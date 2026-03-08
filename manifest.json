@@ -1,0 +1,20 @@
+{
+  "short_name": "YIO Fish",
+  "name": "YIO Fish Carpi",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/index.html",
+  "background_color": "#000000",
+  "display": "standalone",
+  "theme_color": "#bfa46f"
+}
