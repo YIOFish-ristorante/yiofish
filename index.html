@@ -8,6 +8,9 @@
 <link rel="prefetch" href="pranzo.pdf">
 <link rel="prefetch" href="cena.pdf">
 <link rel="prefetch" href="dessert.pdf">
+<link rel="prefetch" href="vini.pdf">
+<link rel="prefetch" href="bevande.pdf">
+<link rel="prefetch" href="caffe_amaro.pdf">
 
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
@@ -28,13 +31,13 @@ function loadMenu() {
         document.getElementById("cena").style.display = "block";
         document.getElementById("special").style.display = "block";
         document.getElementById("dessert").style.display = "block";
+        document.getElementById("bevande-btn").style.display = "block";
         document.getElementById("status").innerText = "MODALITÀ ADMIN: MENU SBLOCCATO";
         document.getElementById("status").style.color = "#bfa46f";
         document.getElementById("timer-banner").style.display = "none";
         return;
     }
 
-    // ⚡ 优化：使用更高性能的时间获取方式
     const now = new Date();
     const romeStr = now.toLocaleString("en-GB", {timeZone: "Europe/Rome"});
     const timeParts = romeStr.split(", ")[1].split(":");
@@ -42,7 +45,7 @@ function loadMenu() {
     const min = parseInt(timeParts[1]);
     const totalMinutes = hour * 60 + min;
 
-    const ids = ["pranzo", "cena", "special", "dessert", "timer-banner"];
+    const ids = ["pranzo", "cena", "special", "dessert", "timer-banner", "bevande-btn"];
     ids.forEach(id => document.getElementById(id).style.display = "none");
     const status = document.getElementById("status");
     status.style.color = ""; 
@@ -56,6 +59,7 @@ function loadMenu() {
 
     if (totalMinutes >= 11 * 60 && totalMinutes < LUNCH_DESSERT_CLOSE) {
         document.getElementById("dessert").style.display = "block";
+        document.getElementById("bevande-btn").style.display = "block";
         const minsToClose = LUNCH_KITCHEN_CLOSE - totalMinutes;
         if (minsToClose > STOP_BUFFER) {
             document.getElementById("pranzo").style.display = "block";
@@ -74,6 +78,7 @@ function loadMenu() {
     } 
     else if (totalMinutes >= 17 * 60 && totalMinutes < DINNER_DESSERT_CLOSE) {
         document.getElementById("dessert").style.display = "block";
+        document.getElementById("bevande-btn").style.display = "block";
         const minsToClose = DINNER_KITCHEN_CLOSE - totalMinutes;
         if (minsToClose > STOP_BUFFER) {
             document.getElementById("cena").style.display = "block";
@@ -115,6 +120,9 @@ function unlockAdmin() {
 function openForm() { document.getElementById("reservationForm").style.display = "flex"; }
 function closeForm() { document.getElementById("reservationForm").style.display = "none"; }
 
+function openBevande() { document.getElementById("bevandeMenu").style.display = "flex"; }
+function closeBevande() { document.getElementById("bevandeMenu").style.display = "none"; }
+
 function updateTimeOptions() {
     const dateInput = document.getElementById("date").value;
     const timeSelect = document.getElementById("time");
@@ -153,14 +161,13 @@ function sendReservation() {
 
 window.onload = function(){
     loadMenu();
-    setInterval(loadMenu, 30000); // ⚡ 降低后台运行频率，节省手机电量
+    setInterval(loadMenu, 30000);
     document.getElementById("date").setAttribute('min', new Date().toISOString().split('T')[0]);
 };
 </script>
 
 <style>
 :root { --gold: #bfa46f; }
-/* ⚡ 渲染加速：优化 CSS 选择器性能 */
 body { margin:0; padding:0; min-height:100vh; background:#000; font-family:-apple-system,BlinkMacSystemFont,sans-serif; display:flex; justify-content:center; align-items:center; color:#fff; overflow-x:hidden; -webkit-font-smoothing: antialiased; }
 .container { width: 92%; max-width: 420px; padding: 40px 20px; display: flex; flex-direction: column; text-align: center; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px solid #222; box-sizing: border-box; }
 #timer-banner { display: none; background: rgba(191, 164, 111, 0.1); border: 1px solid var(--gold); color: var(--gold); padding: 12px; margin-bottom: 20px; border-radius: 8px; font-size: 13px; animation: pulse 2s infinite; }
@@ -174,11 +181,17 @@ body { margin:0; padding:0; min-height:100vh; background:#000; font-family:-appl
 .social-row { display: flex; gap: 12px; margin-top: 18px; }
 .btn-social { display: block !important; margin: 0 !important; border: 1px solid var(--gold); color: var(--gold); flex: 1; padding: 15px 0; font-size: 11px; }
 .footer { margin-top:35px; font-size:10px; color:#444; letter-spacing: 1px; }
+
 .form-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.9); z-index:999; backdrop-filter: blur(5px); }
-.form-box { background:#161616; border-radius:20px; padding:30px; width:88%; max-width:350px; border: 1px solid #333; }
+.form-box { background:#161616; border-radius:20px; padding:30px; width:88%; max-width:350px; border: 1px solid #333; text-align: center; }
 input, select { width:100%; padding:15px; margin:10px 0; border-radius:10px; border: 1px solid #444; background:#222; color:#fff; font-size:16px; box-sizing: border-box; -webkit-appearance: none; }
-.form-box button { margin-top:15px; width:100%; padding:16px; border:none; border-radius:12px; background:var(--gold); color:#000; font-weight:bold; }
+.form-box button, .form-box .sub-btn { margin-top:15px; width:100%; padding:16px; border:none; border-radius:12px; background:var(--gold); color:#000; font-weight:bold; cursor: pointer; display: block; text-decoration: none; font-size: 14px; }
 .form-box button.close { background:transparent; color:#666; margin-top:10px; }
+
+/* ⚡ 修复分类按钮居中：添加 align-items: center */
+.bev-grid { display: flex; flex-direction: column; gap: 5px; align-items: center; } 
+.sub-btn { width: 100%; background: rgba(255,255,255,0.05) !important; color: #fff !important; border: 1px solid #333 !important; box-sizing: border-box; }
+.sub-btn:active { background: var(--gold) !important; color: #000 !important; }
 .notice { font-size:12px; color:var(--gold); margin-bottom: 8px; font-weight: bold; }
 </style>
 </head>
@@ -191,11 +204,15 @@ input, select { width:100%; padding:15px; margin:10px 0; border-radius:10px; bor
     <div class="gold-line"></div>
     <div id="timer-banner">⚠️ ULTIMO ORDINE CUCINA: <span id="countdown">--</span> MINUTI</div>
     <a class="button" onclick="openForm()" style="display:block; background:var(--gold); color:black; font-weight:bold; border:none;">PRENOTA ORA</a>
+    
     <div id="status" class="status">CARICAMENTO...</div>
+    
     <a id="pranzo" class="button" href="pranzo.pdf" target="_blank">MENU PRANZO</a>
     <a id="cena" class="button" href="cena.pdf" target="_blank">MENU CENA</a>
     <a id="special" class="button" href="special.pdf" target="_blank">SPECIAL MENU</a>
+    <a id="bevande-btn" class="button" onclick="openBevande()">MENU BEVANDE</a>
     <a id="dessert" class="button" href="dessert.pdf" target="_blank">DESSERT</a>
+
     <div class="social-row">
         <a href="https://wa.me/393391406020" target="_blank" class="button btn-social">WHATSAPP</a>
         <a href="https://instagram.com/yio_fish_carpi" target="_blank" class="button btn-social">INSTAGRAM</a>
@@ -215,5 +232,18 @@ input, select { width:100%; padding:15px; margin:10px 0; border-radius:10px; bor
         <button class="close" onclick="closeForm()">Annulla</button>
     </div>
 </div>
+
+<div class="form-overlay" id="bevandeMenu">
+    <div class="form-box">
+        <h3 style="color:var(--gold); font-weight:300; margin-bottom:20px; letter-spacing: 2px;">BEVANDE</h3>
+        <div class="bev-grid">
+            <a class="sub-btn" href="vini.pdf" target="_blank">VINI</a>
+            <a class="sub-btn" href="bevande.pdf" target="_blank">BEVANDE</a>
+            <a class="sub-btn" href="caffe_amaro.pdf" target="_blank">CAFFE AMARI E DISTILLATI</a>
+        </div>
+        <button class="close" onclick="closeBevande()">Chiudi</button>
+    </div>
+</div>
+
 </body>
 </html>
