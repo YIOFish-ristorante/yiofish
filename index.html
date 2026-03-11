@@ -8,9 +8,11 @@
 <link rel="prefetch" href="pranzo.pdf">
 <link rel="prefetch" href="cena.pdf">
 <link rel="prefetch" href="dessert.pdf">
-<link rel="prefetch" href="vini.pdf">
-<link rel="prefetch" href="bevande.pdf">
-<link rel="prefetch" href="caffe_amaro.pdf">
+<link rel="prefetch" href="bollicine.pdf">
+<link rel="prefetch" href="fermo.pdf">
+<link rel="prefetch" href="vini_rossi.pdf">
+<link rel="prefetch" href="birre.pdf">
+<link rel="prefetch" href="bibite.pdf">
 
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
@@ -184,11 +186,17 @@ body { margin:0; padding:0; min-height:100vh; background:#000; font-family:-appl
 
 .form-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.9); z-index:999; backdrop-filter: blur(5px); }
 .form-box { background:#161616; border-radius:20px; padding:30px; width:88%; max-width:350px; border: 1px solid #333; text-align: center; }
-input, select { width:100%; padding:15px; margin:10px 0; border-radius:10px; border: 1px solid #444; background:#222; color:#fff; font-size:16px; box-sizing: border-box; -webkit-appearance: none; }
+
+/* ⚡ 修正手机端日期不显示的样式：强制开启深色配色方案并指定颜色 */
+input, select { 
+    width:100%; padding:15px; margin:10px 0; border-radius:10px; border: 1px solid #444; 
+    background:#222; color:#fff !important; font-size:16px; box-sizing: border-box; 
+    -webkit-appearance: none; color-scheme: dark; 
+}
+
 .form-box button, .form-box .sub-btn { margin-top:15px; width:100%; padding:16px; border:none; border-radius:12px; background:var(--gold); color:#000; font-weight:bold; cursor: pointer; display: block; text-decoration: none; font-size: 14px; }
 .form-box button.close { background:transparent; color:#666; margin-top:10px; }
 
-/* ⚡ 修复分类按钮居中：添加 align-items: center */
 .bev-grid { display: flex; flex-direction: column; gap: 5px; align-items: center; } 
 .sub-btn { width: 100%; background: rgba(255,255,255,0.05) !important; color: #fff !important; border: 1px solid #333 !important; box-sizing: border-box; }
 .sub-btn:active { background: var(--gold) !important; color: #000 !important; }
@@ -237,9 +245,11 @@ input, select { width:100%; padding:15px; margin:10px 0; border-radius:10px; bor
     <div class="form-box">
         <h3 style="color:var(--gold); font-weight:300; margin-bottom:20px; letter-spacing: 2px;">BEVANDE</h3>
         <div class="bev-grid">
-            <a class="sub-btn" href="vini.pdf" target="_blank">VINI</a>
-            <a class="sub-btn" href="bevande.pdf" target="_blank">BEVANDE</a>
-            <a class="sub-btn" href="caffe_amaro.pdf" target="_blank">CAFFE AMARI E DISTILLATI</a>
+            <a class="sub-btn" href="bollicine.pdf" target="_blank">BOLLICINE</a>
+            <a class="sub-btn" href="fermo.pdf" target="_blank">FERMO</a>
+            <a class="sub-btn" href="vini_rossi.pdf" target="_blank">VINI ROSSI</a>
+            <a class="sub-btn" href="birre.pdf" target="_blank">BIRRE</a>
+            <a class="sub-btn" href="bibite.pdf" target="_blank">BIBITE</a>
         </div>
         <button class="close" onclick="closeBevande()">Chiudi</button>
     </div>
