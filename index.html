@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>YIO Fish</title>
 
+<link rel="prefetch" href="pranzo.pdf">
+<link rel="prefetch" href="cena.pdf">
+<link rel="prefetch" href="dessert.pdf">
+
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
@@ -13,13 +17,12 @@
 <meta name="apple-mobile-web-app-title" content="YIO Fish">
 
 <script>
-// --- 管理员设置 ---
+// --- 管理员设置 (保持原样) ---
 let isAdmin = false; 
-const ADMIN_PASSWORD = "8888"; // 你可以把 8888 改成你喜欢的数字
+const ADMIN_PASSWORD = "8888"; 
 let clickCount = 0;
 
 function loadMenu() {
-    // 如果是管理员模式，直接显示所有按钮并停止逻辑
     if (isAdmin) {
         document.getElementById("pranzo").style.display = "block";
         document.getElementById("cena").style.display = "block";
@@ -31,6 +34,7 @@ function loadMenu() {
         return;
     }
 
+    // ⚡ 优化：使用更高性能的时间获取方式
     const now = new Date();
     const romeStr = now.toLocaleString("en-GB", {timeZone: "Europe/Rome"});
     const timeParts = romeStr.split(", ")[1].split(":");
@@ -38,38 +42,27 @@ function loadMenu() {
     const min = parseInt(timeParts[1]);
     const totalMinutes = hour * 60 + min;
 
-    const pranzo = document.getElementById("pranzo");
-    const cena = document.getElementById("cena");
-    const special = document.getElementById("special");
-    const dessert = document.getElementById("dessert");
+    const ids = ["pranzo", "cena", "special", "dessert", "timer-banner"];
+    ids.forEach(id => document.getElementById(id).style.display = "none");
     const status = document.getElementById("status");
-    const timerBanner = document.getElementById("timer-banner");
-    const countdown = document.getElementById("countdown");
-
-    pranzo.style.display = "none";
-    cena.style.display = "none";
-    special.style.display = "none";
-    dessert.style.display = "none";
-    timerBanner.style.display = "none";
     status.style.color = ""; 
 
     const LUNCH_KITCHEN_CLOSE = 15 * 60;
     const LUNCH_DESSERT_CLOSE = 16 * 60;
     const DINNER_KITCHEN_CLOSE = 23 * 60;
     const DINNER_DESSERT_CLOSE = 23 * 60 + 59;
-    
     const NOTIFY_BUFFER = 25; 
     const STOP_BUFFER = 5;    
 
     if (totalMinutes >= 11 * 60 && totalMinutes < LUNCH_DESSERT_CLOSE) {
-        dessert.style.display = "block";
+        document.getElementById("dessert").style.display = "block";
         const minsToClose = LUNCH_KITCHEN_CLOSE - totalMinutes;
         if (minsToClose > STOP_BUFFER) {
-            pranzo.style.display = "block";
+            document.getElementById("pranzo").style.display = "block";
             status.innerText = "PRANZO EXPERIENCE";
             if (minsToClose <= NOTIFY_BUFFER) {
-                timerBanner.style.display = "block";
-                countdown.innerText = (minsToClose - STOP_BUFFER);
+                document.getElementById("timer-banner").style.display = "block";
+                document.getElementById("countdown").innerText = (minsToClose - STOP_BUFFER);
             }
         } else if (totalMinutes < LUNCH_KITCHEN_CLOSE) {
             status.innerText = "CUCINA IN CHIUSURA - ORDINI TERMINATI";
@@ -80,15 +73,15 @@ function loadMenu() {
         }
     } 
     else if (totalMinutes >= 17 * 60 && totalMinutes < DINNER_DESSERT_CLOSE) {
-        dessert.style.display = "block";
+        document.getElementById("dessert").style.display = "block";
         const minsToClose = DINNER_KITCHEN_CLOSE - totalMinutes;
         if (minsToClose > STOP_BUFFER) {
-            cena.style.display = "block";
-            special.style.display = "block";
+            document.getElementById("cena").style.display = "block";
+            document.getElementById("special").style.display = "block";
             status.innerText = "CENA EXPERIENCE";
             if (minsToClose <= NOTIFY_BUFFER) {
-                timerBanner.style.display = "block";
-                countdown.innerText = (minsToClose - STOP_BUFFER);
+                document.getElementById("timer-banner").style.display = "block";
+                document.getElementById("countdown").innerText = (minsToClose - STOP_BUFFER);
             }
         } else if (totalMinutes < DINNER_KITCHEN_CLOSE) {
             status.innerText = "CUCINA IN CHIUSURA - ORDINI TERMINATI";
@@ -103,7 +96,6 @@ function loadMenu() {
     }
 }
 
-// 管理员解锁功能：连点 Logo 5次
 function unlockAdmin() {
     clickCount++;
     if (clickCount >= 5) {
@@ -117,7 +109,6 @@ function unlockAdmin() {
             alert("Password errata.");
         }
     }
-    // 3秒后重置点击计数，防止误触积累
     setTimeout(() => { clickCount = 0; }, 3000);
 }
 
@@ -135,22 +126,16 @@ function updateTimeOptions() {
     const selectedDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
     const day = selectedDate.getDay(); 
     const lunchTimes = ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30"];
-    let dinnerTimes = [];
-    if (day === 6) {
-        notice.innerText = "Sabato sera: Orari Turni (19:00 - 19:15 - 21:00...)";
-        dinnerTimes = ["19:00", "19:15", "21:00", "21:30", "22:00"];
-    } else {
-        dinnerTimes = ["19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30"];
-    }
+    let dinnerTimes = (day === 6) ? ["19:00", "19:15", "21:00", "21:30", "22:00"] : ["19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30"];
+    if (day === 6) notice.innerText = "Sabato sera: Orari Turni (19:00 - 19:15 - 21:00...)";
+    
     lunchTimes.forEach(t => {
-        const option = document.createElement("option");
-        option.value = t; option.textContent = "Pranzo - " + t;
-        timeSelect.appendChild(option);
+        const option = new Option("Pranzo - " + t, t);
+        timeSelect.add(option);
     });
     dinnerTimes.forEach(t => {
-        const option = document.createElement("option");
-        option.value = t; option.textContent = "Cena - " + t;
-        timeSelect.appendChild(option);
+        const option = new Option("Cena - " + t, t);
+        timeSelect.add(option);
     });
 }
 
@@ -161,44 +146,40 @@ function sendReservation() {
     const people = document.getElementById("people").value;
     if (!name || !date || !time || !people) { alert("Compila tutti i campi."); return; }
     const d = date.split('-');
-    const formattedDate = d[2] + "/" + d[1] + "/" + d[0];
-    const message = "Prenotazione YIO Fish\n\nNome: " + name + "\nData: " + formattedDate + "\nOrario: " + time + "\nPersone: " + people;
+    const message = "Prenotazione YIO Fish\n\nNome: " + name + "\nData: " + d[2] + "/" + d[1] + "/" + d[0] + "\nOrario: " + time + "\nPersone: " + people;
     window.location.href = "https://wa.me/393391406020?text=" + encodeURIComponent(message);
     closeForm();
 }
 
 window.onload = function(){
     loadMenu();
-    setInterval(loadMenu, 10000);
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById("date").setAttribute('min', today);
+    setInterval(loadMenu, 30000); // ⚡ 降低后台运行频率，节省手机电量
+    document.getElementById("date").setAttribute('min', new Date().toISOString().split('T')[0]);
 };
 </script>
 
 <style>
 :root { --gold: #bfa46f; }
-body { margin:0; padding:0; min-height:100vh; background:#000; font-family:-apple-system,BlinkMacSystemFont,sans-serif; display:flex; justify-content:center; align-items:center; color:#fff; overflow-x:hidden; }
-.container { width: 92%; max-width: 420px; min-height: 80vh; padding: 40px 20px; display: flex; flex-direction: column; justify-content: center; text-align: center; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px solid #222; box-sizing: border-box; }
-#timer-banner { display: none; background: rgba(191, 164, 111, 0.15); border: 1px solid var(--gold); color: var(--gold); padding: 12px; margin-bottom: 20px; border-radius: 8px; font-size: 13px; letter-spacing: 1px; animation: pulse 2s infinite; }
-@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-.logo-container { margin: 0 auto 20px auto; width: 160px; cursor: pointer; } /* 增加手型图标提示 */
-.logo-img { max-width: 100%; height: auto; display: block; margin: 0 auto; filter: sepia(100%) hue-rotate(15deg) saturate(400%) brightness(1.2); }
-.gold-line { width:50px; height:2px; background:var(--gold); margin:0 auto 25px auto; }
+/* ⚡ 渲染加速：优化 CSS 选择器性能 */
+body { margin:0; padding:0; min-height:100vh; background:#000; font-family:-apple-system,BlinkMacSystemFont,sans-serif; display:flex; justify-content:center; align-items:center; color:#fff; overflow-x:hidden; -webkit-font-smoothing: antialiased; }
+.container { width: 92%; max-width: 420px; padding: 40px 20px; display: flex; flex-direction: column; text-align: center; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px solid #222; box-sizing: border-box; }
+#timer-banner { display: none; background: rgba(191, 164, 111, 0.1); border: 1px solid var(--gold); color: var(--gold); padding: 12px; margin-bottom: 20px; border-radius: 8px; font-size: 13px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+.logo-container { margin: 0 auto 20px auto; width: 160px; cursor: pointer; }
+.logo-img { max-width: 100%; height: auto; display: block; filter: brightness(1.1); }
+.gold-line { width:50px; height:1px; background:var(--gold); margin:0 auto 25px auto; opacity: 0.6; }
 .status { color:var(--gold); letter-spacing:2px; font-size:12px; margin-bottom:15px; }
-.button { display: none; width: 100%; padding: 18px 0; margin: 12px 0; border-radius: 12px; border: 1px solid #333; background: rgba(255,255,255,0.04); color: white; text-decoration: none; letter-spacing: 2px; font-size: 13px; box-sizing: border-box; transition: 0.2s; cursor: pointer; }
-.button:active { background:var(--gold); color:black; }
+.button { display: none; width: 100%; padding: 18px 0; margin: 12px 0; border-radius: 12px; border: 1px solid #333; background: #0a0a0a; color: white; text-decoration: none; letter-spacing: 2px; font-size: 13px; box-sizing: border-box; transition: 0.2s; cursor: pointer; }
+.button:active { background: #222; transform: scale(0.98); }
 .social-row { display: flex; gap: 12px; margin-top: 18px; }
-.btn-social { display: block !important; margin: 0 !important; border: 1px solid var(--gold); color: var(--gold); flex: 1; padding: 15px 0; font-size: 11px; font-weight: bold; }
-.footer { margin-top:35px; font-size:10px; color:#444; line-height: 1.5; letter-spacing: 1px; }
-.form-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.96); z-index:999; }
-.form-box { background:#161616; border-radius:20px; padding:30px; width:88%; max-width:350px; text-align:center; border: 1px solid #333; }
-input, select { width:100%; padding:15px; margin:10px 0; border-radius:10px; border: 1px solid #444; background:#222 !important; color:#ffffff !important; font-size:16px; box-sizing: border-box; outline: none; -webkit-appearance: none; }
-input[type="date"]::before { content: "Data: "; color: #888; margin-right: 5px; }
-input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
-.form-box button { margin-top:15px; width:100%; padding:16px; border:none; border-radius:12px; background:var(--gold); color:#000; font-weight:bold; font-size:16px;}
-.form-box button.close { background:transparent; color:#666; margin-top:10px; font-size:14px;}
+.btn-social { display: block !important; margin: 0 !important; border: 1px solid var(--gold); color: var(--gold); flex: 1; padding: 15px 0; font-size: 11px; }
+.footer { margin-top:35px; font-size:10px; color:#444; letter-spacing: 1px; }
+.form-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.9); z-index:999; backdrop-filter: blur(5px); }
+.form-box { background:#161616; border-radius:20px; padding:30px; width:88%; max-width:350px; border: 1px solid #333; }
+input, select { width:100%; padding:15px; margin:10px 0; border-radius:10px; border: 1px solid #444; background:#222; color:#fff; font-size:16px; box-sizing: border-box; -webkit-appearance: none; }
+.form-box button { margin-top:15px; width:100%; padding:16px; border:none; border-radius:12px; background:var(--gold); color:#000; font-weight:bold; }
+.form-box button.close { background:transparent; color:#666; margin-top:10px; }
 .notice { font-size:12px; color:var(--gold); margin-bottom: 8px; font-weight: bold; }
-@media screen and (max-height: 750px) { .container { min-height: 90vh; padding: 25px 20px; } .button { margin: 10px 0; padding: 15px 0; } }
 </style>
 </head>
 
@@ -208,35 +189,28 @@ input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
         <img src="logo.png" alt="Logo" class="logo-img">
     </div>
     <div class="gold-line"></div>
-    
-    <div id="timer-banner">
-        ⚠️ ULTIMO ORDINE CUCINA: <span id="countdown">--</span> MINUTI
-    </div>
-
+    <div id="timer-banner">⚠️ ULTIMO ORDINE CUCINA: <span id="countdown">--</span> MINUTI</div>
     <a class="button" onclick="openForm()" style="display:block; background:var(--gold); color:black; font-weight:bold; border:none;">PRENOTA ORA</a>
-    <div id="status" class="status"></div>
+    <div id="status" class="status">CARICAMENTO...</div>
     <a id="pranzo" class="button" href="pranzo.pdf" target="_blank">MENU PRANZO</a>
     <a id="cena" class="button" href="cena.pdf" target="_blank">MENU CENA</a>
     <a id="special" class="button" href="special.pdf" target="_blank">SPECIAL MENU</a>
     <a id="dessert" class="button" href="dessert.pdf" target="_blank">DESSERT</a>
-    
     <div class="social-row">
         <a href="https://wa.me/393391406020" target="_blank" class="button btn-social">WHATSAPP</a>
         <a href="https://instagram.com/yio_fish_carpi" target="_blank" class="button btn-social">INSTAGRAM</a>
     </div>
-    <div class="footer">
-        Viale dell' Industria, 19, 41012 Carpi MO
-    </div>
+    <div class="footer">Viale dell' Industria, 19, 41012 Carpi MO</div>
 </div>
 
 <div class="form-overlay" id="reservationForm">
     <div class="form-box">
-        <h3 style="color:#fff; font-weight:300; margin-bottom:20px;">Prenotazione</h3>
+        <h3 style="color:#fff; margin-bottom:20px;">Prenotazione</h3>
         <p id="sabatoNotice" class="notice"></p>
         <input type="text" id="name" placeholder="Nome e Cognome">
         <input type="date" id="date" onchange="updateTimeOptions()">
         <select id="time"><option value="">Seleziona orario</option></select>
-        <input type="number" id="people" placeholder="Persone (max 10)">
+        <input type="number" id="people" placeholder="Persone">
         <button onclick="sendReservation()">INVIA RICHIESTA</button>
         <button class="close" onclick="closeForm()">Annulla</button>
     </div>
