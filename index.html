@@ -72,8 +72,8 @@ function loadMenu() {
     ids.forEach(id => document.getElementById(id).style.display = "none");
     const status = document.getElementById("status");
     status.style.color = ""; 
-    const LUNCH_KITCHEN_CLOSE = 15 * 60;
-    const LUNCH_DESSERT_CLOSE = 16 * 60;
+    const LUNCH_KITCHEN_CLOSE = 15 * 30;
+    const LUNCH_DESSERT_CLOSE = 16 * 30;
     const DINNER_KITCHEN_CLOSE = 23 * 60;
     const DINNER_DESSERT_CLOSE = 23 * 60 + 59;
     if (totalMinutes >= 11 * 60 && totalMinutes < LUNCH_DESSERT_CLOSE) {
@@ -219,10 +219,10 @@ input[type="date"]:focus::before, input[type="date"]:valid::before { content: ""
     <div id="timer-banner">⚠️ ULTIMO ORDINE CUCINA: <span id="countdown">--</span> MINUTI</div>
     <a class="button" onclick="openForm()" style="display:block; background:var(--gold); color:black; font-weight:bold; border:none;">PRENOTA ORA</a>
     <div id="status" class="status">CARICAMENTO...</div>
+    <a id="bevande-btn" class="button" onclick="openBevande()">MENU BEVANDE</a>
     <a id="pranzo" class="button" href="pranzo.pdf" target="_blank">MENU PRANZO</a>
     <a id="cena" class="button" href="cena.pdf" target="_blank">MENU CENA</a>
     <a id="special" class="button" href="special.pdf" target="_blank">MENU SPECIAL</a>
-    <a id="bevande-btn" class="button" onclick="openBevande()">MENU BEVANDE</a>
     <a id="dessert" class="button" href="dessert.pdf" target="_blank">DESSERT</a>
     <div class="social-row">
         <a href="https://wa.me/393391406020" target="_blank" class="button btn-social">WHATSAPP</a>
@@ -258,3 +258,4 @@ input[type="date"]:focus::before, input[type="date"]:valid::before { content: ""
 </body>
 
 </html>
+
