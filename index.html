@@ -24,7 +24,6 @@ let isAdmin = false;
 const ADMIN_PASSWORD = "8888"; 
 let clickCount = 0;
 
-// --- 核心逻辑：处理滑动返回关闭弹窗 ---
 window.addEventListener('popstate', function (event) {
     closeForm();
     closeBevande();
@@ -177,21 +176,19 @@ body { margin:0; padding:0; min-height:100vh; background:#000; font-family:-appl
 .gold-line { width:50px; height:1px; background:var(--gold); margin:0 auto 25px auto; opacity: 0.6; }
 .status { color:var(--gold); letter-spacing:2px; font-size:12px; margin-bottom:15px; }
 
-/* --- 按钮颜色修改部分 --- */
-/* 默认按钮现在设为金色 (即 Menu 系列按钮) */
 .button { display: none; width: 100%; padding: 18px 0; margin: 12px 0; border-radius: 12px; border: none; background: var(--gold); color: black; font-weight: bold; text-decoration: none; letter-spacing: 2px; font-size: 13px; box-sizing: border-box; transition: 0.2s; cursor: pointer; text-align: center; }
 .button:active { opacity: 0.8; transform: scale(0.98); }
 
-/* 并排按钮容器 (PRENOTA 和 ASPORTO 现在设为深色) */
 .action-row { display: flex; gap: 12px; margin: 12px 0; }
 .btn-main { display: block !important; flex: 1; margin: 0 !important; background: #0a0a0a !important; color: white !important; font-weight: normal; border: 1px solid #333 !important; }
-.btn-main:active { background: #222 !important; }
 
-/* -------------------- */
+/* 新的社交/联系图标行样式 */
+.social-row { display: flex; justify-content: space-around; align-items: center; margin-top: 25px; padding: 10px 0; border-top: 1px solid #222; }
+.icon-btn { display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--gold); transition: 0.3s; text-decoration: none; }
+.icon-btn svg { width: 24px; height: 24px; fill: var(--gold); }
+.icon-btn:active { background: rgba(191, 164, 111, 0.1); transform: scale(0.9); }
 
-.social-row { display: flex; gap: 12px; margin-top: 18px; }
-.btn-social { display: block !important; margin: 0 !important; border: 1px solid var(--gold); color: var(--gold); flex: 1; padding: 15px 0; font-size: 11px; background: transparent !important; font-weight: normal; }
-.footer { margin-top:35px; font-size:10px; color:#444; letter-spacing: 1px; }
+.footer { margin-top:30px; font-size:10px; color:#444; letter-spacing: 1px; line-height: 1.5; }
 
 .form-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.9); z-index:999; backdrop-filter: blur(5px); }
 .form-box { background:#161616; border-radius:20px; padding:30px; width:88%; max-width:350px; border: 1px solid #333; text-align: center; }
@@ -201,9 +198,6 @@ input, select {
     background:#222; color:#fff !important; font-size:16px; box-sizing: border-box; 
     -webkit-appearance: none; color-scheme: dark; 
 }
-
-input[type="date"]::before { content: "Data: "; color: #666; margin-right: 5px; }
-input[type="date"]:focus::before, input[type="date"]:valid::before { content: "" !important; }
 
 .form-box button, .form-box .sub-btn { margin-top:15px; width:100%; padding:16px; border:none; border-radius:12px; background:var(--gold); color:#000; font-weight:bold; cursor: pointer; display: block; text-decoration: none; font-size: 14px; }
 .form-box button.close { background:transparent; color:#666; margin-top:10px; }
@@ -234,11 +228,23 @@ input[type="date"]:focus::before, input[type="date"]:valid::before { content: ""
     <a id="cena" class="button" href="cena.pdf" target="_blank">MENU CENA</a>
     <a id="special" class="button" href="special.pdf" target="_blank">MENU SPECIAL</a>
     <a id="dessert" class="button" href="dessert.pdf" target="_blank">DESSERT</a>
+
     <div class="social-row">
-        <a href="https://wa.me/393391406020" target="_blank" class="button btn-social">WHATSAPP</a>
-        <a href="https://instagram.com/yio_fish_carpi" target="_blank" class="button btn-social">INSTAGRAM</a>
+        <a href="https://wa.me/393391406020" class="icon-btn" target="_blank">
+            <svg viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217s.231.001.332.005c.101.004.237-.038.37.281.144.35.491 1.197.534 1.285.043.087.072.188.014.303-.058.116-.087.188-.173.289l-.26.303c-.087.087-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.144.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824z"/></svg>
+        </a>
+        <a href="https://instagram.com/yio_fish_carpi" class="icon-btn" target="_blank">
+            <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.607.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.607 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.607-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608.975-.975 2.242-1.245 3.607-1.308 1.266-.058 1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.058-1.281.072-1.689.072-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        </a>
+        <a href="tel:0598726624" class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg>
+        </a>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=Viale+dell+Industria+19+Carpi+MO" class="icon-btn" target="_blank">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </a>
     </div>
-    <div class="footer">©YIO_Fish  Viale dell' Industria, 19, Carpi MO<br>Tel.: 0598726624</div>
+
+    <div class="footer">©YIO_Fish<br>Viale dell' Industria, 19, Carpi MO<br>Tel.: 0598726624</div>
 </div>
 
 <div class="form-overlay" id="reservationForm">
