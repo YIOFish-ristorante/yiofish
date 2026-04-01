@@ -26,14 +26,12 @@ let clickCount = 0;
 
 // --- 核心逻辑：处理滑动返回关闭弹窗 ---
 window.addEventListener('popstate', function (event) {
-    // 当监听到浏览器后退动作时，关闭所有打开的弹窗
     closeForm();
     closeBevande();
 });
 
 function openForm() { 
     document.getElementById("reservationForm").style.display = "flex"; 
-    // 往历史记录推入一个状态，这样滑动返回就不会退出网页
     history.pushState({modal: 'form'}, '');
 }
 function closeForm() { 
@@ -42,14 +40,12 @@ function closeForm() {
 
 function openBevande() { 
     document.getElementById("bevandeMenu").style.display = "flex"; 
-    // 往历史记录推入一个状态
     history.pushState({modal: 'bevande'}, '');
 }
 function closeBevande() { 
     document.getElementById("bevandeMenu").style.display = "none"; 
 }
 
-// --- 其余 JS 逻辑一五一十保留 ---
 function loadMenu() {
     if (isAdmin) {
         document.getElementById("pranzo").style.display = "block";
@@ -180,15 +176,21 @@ body { margin:0; padding:0; min-height:100vh; background:#000; font-family:-appl
 .logo-img { max-width: 100%; height: auto; display: block; filter: brightness(1.1); }
 .gold-line { width:50px; height:1px; background:var(--gold); margin:0 auto 25px auto; opacity: 0.6; }
 .status { color:var(--gold); letter-spacing:2px; font-size:12px; margin-bottom:15px; }
-.button { display: none; width: 100%; padding: 18px 0; margin: 12px 0; border-radius: 12px; border: 1px solid #333; background: #0a0a0a; color: white; text-decoration: none; letter-spacing: 2px; font-size: 13px; box-sizing: border-box; transition: 0.2s; cursor: pointer; text-align: center; }
-.button:active { background: #222; transform: scale(0.98); }
 
-/* 并排按钮容器 */
+/* --- 按钮颜色修改部分 --- */
+/* 默认按钮现在设为金色 (即 Menu 系列按钮) */
+.button { display: none; width: 100%; padding: 18px 0; margin: 12px 0; border-radius: 12px; border: none; background: var(--gold); color: black; font-weight: bold; text-decoration: none; letter-spacing: 2px; font-size: 13px; box-sizing: border-box; transition: 0.2s; cursor: pointer; text-align: center; }
+.button:active { opacity: 0.8; transform: scale(0.98); }
+
+/* 并排按钮容器 (PRENOTA 和 ASPORTO 现在设为深色) */
 .action-row { display: flex; gap: 12px; margin: 12px 0; }
-.btn-main { display: block !important; flex: 1; margin: 0 !important; background: var(--gold) !important; color: black !important; font-weight: bold; border: none !important; }
+.btn-main { display: block !important; flex: 1; margin: 0 !important; background: #0a0a0a !important; color: white !important; font-weight: normal; border: 1px solid #333 !important; }
+.btn-main:active { background: #222 !important; }
+
+/* -------------------- */
 
 .social-row { display: flex; gap: 12px; margin-top: 18px; }
-.btn-social { display: block !important; margin: 0 !important; border: 1px solid var(--gold); color: var(--gold); flex: 1; padding: 15px 0; font-size: 11px; }
+.btn-social { display: block !important; margin: 0 !important; border: 1px solid var(--gold); color: var(--gold); flex: 1; padding: 15px 0; font-size: 11px; background: transparent !important; font-weight: normal; }
 .footer { margin-top:35px; font-size:10px; color:#444; letter-spacing: 1px; }
 
 .form-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.9); z-index:999; backdrop-filter: blur(5px); }
@@ -200,16 +202,14 @@ input, select {
     -webkit-appearance: none; color-scheme: dark; 
 }
 
-/* 日期框 Data: 提示样式保留 */
 input[type="date"]::before { content: "Data: "; color: #666; margin-right: 5px; }
 input[type="date"]:focus::before, input[type="date"]:valid::before { content: "" !important; }
 
 .form-box button, .form-box .sub-btn { margin-top:15px; width:100%; padding:16px; border:none; border-radius:12px; background:var(--gold); color:#000; font-weight:bold; cursor: pointer; display: block; text-decoration: none; font-size: 14px; }
 .form-box button.close { background:transparent; color:#666; margin-top:10px; }
 
-/* 居中样式保留 */
 .bev-grid { display: flex; flex-direction: column; gap: 5px; align-items: center; } 
-.sub-btn { width: 100%; background: rgba(255,255,255,0.05) !important; color: #fff !important; border: 1px solid #333 !important; box-sizing: border-box; }
+.sub-btn { width: 100%; background: rgba(255,255,255,0.05) !important; color: #fff !important; border: 1px solid #333 !important; box-sizing: border-box; font-weight: normal !important; }
 .sub-btn:active { background: var(--gold) !important; color: #000 !important; }
 .notice { font-size:12px; color:var(--gold); margin-bottom: 8px; font-weight: bold; }
 </style>
@@ -238,7 +238,7 @@ input[type="date"]:focus::before, input[type="date"]:valid::before { content: ""
         <a href="https://wa.me/393391406020" target="_blank" class="button btn-social">WHATSAPP</a>
         <a href="https://instagram.com/yio_fish_carpi" target="_blank" class="button btn-social">INSTAGRAM</a>
     </div>
-    <div class="footer">©YIO_Fish  Viale dell' Industria, 19, Carpi MO  Tel.: 0598726624</div>
+    <div class="footer">©YIO_Fish  Viale dell' Industria, 19, Carpi MO<br>Tel.: 0598726624</div>
 </div>
 
 <div class="form-overlay" id="reservationForm">
