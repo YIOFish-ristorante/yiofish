@@ -180,8 +180,13 @@ body { margin:0; padding:0; min-height:100vh; background:#000; font-family:-appl
 .logo-img { max-width: 100%; height: auto; display: block; filter: brightness(1.1); }
 .gold-line { width:50px; height:1px; background:var(--gold); margin:0 auto 25px auto; opacity: 0.6; }
 .status { color:var(--gold); letter-spacing:2px; font-size:12px; margin-bottom:15px; }
-.button { display: none; width: 100%; padding: 18px 0; margin: 12px 0; border-radius: 12px; border: 1px solid #333; background: #0a0a0a; color: white; text-decoration: none; letter-spacing: 2px; font-size: 13px; box-sizing: border-box; transition: 0.2s; cursor: pointer; }
+.button { display: none; width: 100%; padding: 18px 0; margin: 12px 0; border-radius: 12px; border: 1px solid #333; background: #0a0a0a; color: white; text-decoration: none; letter-spacing: 2px; font-size: 13px; box-sizing: border-box; transition: 0.2s; cursor: pointer; text-align: center; }
 .button:active { background: #222; transform: scale(0.98); }
+
+/* 并排按钮容器 */
+.action-row { display: flex; gap: 12px; margin: 12px 0; }
+.btn-main { display: block !important; flex: 1; margin: 0 !important; background: var(--gold) !important; color: black !important; font-weight: bold; border: none !important; }
+
 .social-row { display: flex; gap: 12px; margin-top: 18px; }
 .btn-social { display: block !important; margin: 0 !important; border: 1px solid var(--gold); color: var(--gold); flex: 1; padding: 15px 0; font-size: 11px; }
 .footer { margin-top:35px; font-size:10px; color:#444; letter-spacing: 1px; }
@@ -217,7 +222,12 @@ input[type="date"]:focus::before, input[type="date"]:valid::before { content: ""
     </div>
     <div class="gold-line"></div>
     <div id="timer-banner">⚠️ ULTIMO ORDINE CUCINA: <span id="countdown">--</span> MINUTI</div>
-    <a class="button" onclick="openForm()" style="display:block; background:var(--gold); color:black; font-weight:bold; border:none;">PRENOTA ORA</a>
+    
+    <div class="action-row">
+        <a class="button btn-main" onclick="openForm()">PRENOTA</a>
+        <a class="button btn-main" href="https://wa.me/c/393391406020" target="_blank">ASPORTO</a>
+    </div>
+
     <div id="status" class="status">CARICAMENTO...</div>
     <a id="bevande-btn" class="button" onclick="openBevande()">MENU BEVANDE</a>
     <a id="pranzo" class="button" href="pranzo.pdf" target="_blank">MENU PRANZO</a>
@@ -228,7 +238,7 @@ input[type="date"]:focus::before, input[type="date"]:valid::before { content: ""
         <a href="https://wa.me/393391406020" target="_blank" class="button btn-social">WHATSAPP</a>
         <a href="https://instagram.com/yio_fish_carpi" target="_blank" class="button btn-social">INSTAGRAM</a>
     </div>
-    <div class="footer">Viale dell' Industria, 19, 41012 Carpi MO</div>
+    <div class="footer">©YIO_Fish  Viale dell' Industria, 19, Carpi MO  Tel.: 0598726624</div>
 </div>
 
 <div class="form-overlay" id="reservationForm">
