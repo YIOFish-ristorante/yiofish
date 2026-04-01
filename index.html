@@ -182,10 +182,14 @@ body { margin:0; padding:0; min-height:100vh; background:#000; font-family:-appl
 .action-row { display: flex; gap: 12px; margin: 12px 0; }
 .btn-main { display: block !important; flex: 1; margin: 0 !important; background: #0a0a0a !important; color: white !important; font-weight: normal; border: 1px solid #333 !important; }
 
-/* 新的社交/联系图标行样式 */
+/* 社交图标行 */
 .social-row { display: flex; justify-content: space-around; align-items: center; margin-top: 25px; padding: 10px 0; border-top: 1px solid #222; }
 .icon-btn { display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--gold); transition: 0.3s; text-decoration: none; }
-.icon-btn svg { width: 24px; height: 24px; fill: var(--gold); }
+
+/* --- 重点修改：图标尺寸从 24px 调大到 30px --- */
+.icon-btn svg { width: 35px; height: 35px; fill: var(--gold); }
+/* ----------------------------------------- */
+
 .icon-btn:active { background: rgba(191, 164, 111, 0.1); transform: scale(0.9); }
 
 .footer { margin-top:30px; font-size:10px; color:#444; letter-spacing: 1px; line-height: 1.5; }
@@ -239,12 +243,12 @@ input, select {
         <a href="tel:0598726624" class="icon-btn">
             <svg viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg>
         </a>
-        <a href="https://www.google.com/maps/dir/?api=1&destination=Viale+dell+Industria+19+Carpi+MO" class="icon-btn" target="_blank">
+        <a href="https://www.google.com/maps/search/?api=1&query=YIO+Fish+Viale+dell+Industria+19+Carpi+MO" class="icon-btn" target="_blank">
             <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
         </a>
     </div>
 
-    <div class="footer">©YIO_Fish<br>Viale dell' Industria, 19, Carpi MO<br>Tel.: 0598726624</div>
+    <div class="footer">©YIO_Fish  Viale dell' Industria, 19, Carpi MO<br>www.yiofish.it</div>
 </div>
 
 <div class="form-overlay" id="reservationForm">
