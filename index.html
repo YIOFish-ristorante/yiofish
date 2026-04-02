@@ -231,6 +231,37 @@
   .form-field:focus { outline: none; border-color: var(--gold); }
   .form-field::placeholder { color: #444; }
 
+  /* ── 日期输入框：浮动 label 方案 ── */
+  .date-wrap {
+    position: relative;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .date-wrap input[type="date"] {
+    width: 100%;
+    margin-bottom: 0;
+    padding-top: 22px;
+    padding-bottom: 8px;
+  }
+  .date-wrap label {
+    position: absolute;
+    top: 50%;
+    left: 15px;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #444;
+    pointer-events: none;
+    transition: top .18s, font-size .18s, color .18s;
+  }
+  /* 有值或获取焦点时，label 缩小上移 */
+  .date-wrap input[type="date"]:focus + label,
+  .date-wrap input[type="date"]:valid + label {
+    top: 10px;
+    font-size: 10px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
   .notice { font-size: 12px; color: var(--gold); margin-bottom: 10px; font-weight: 600; letter-spacing: 1px; min-height: 18px; }
 
   /* ── 饮料子按钮 ── */
@@ -382,7 +413,10 @@
     <h3>PRENOTAZIONE</h3>
     <p id="sabatoNotice" class="notice"></p>
     <input class="form-field" type="text"   id="name"   placeholder="Nome e Cognome">
-    <input class="form-field" type="date"   id="date"   onchange="updateTimeOptions()" required>
+    <div class="date-wrap">
+      <input class="form-field" type="date" id="date" onchange="updateTimeOptions()" required>
+      <label for="date">Data</label>
+    </div>
     <select class="form-field" id="time"><option value="">Seleziona orario</option></select>
     <input class="form-field" type="number" id="people" placeholder="Numero di persone" min="1">
     <button class="btn btn-gold" style="margin-top:6px" onclick="sendReservation()">INVIA SU WHATSAPP</button>
