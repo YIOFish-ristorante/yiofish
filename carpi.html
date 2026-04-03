@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>YIO Fish</title>
+
+<link rel="prefetch" href="pranzo.pdf">
+<link rel="prefetch" href="cena.pdf">
+<link rel="prefetch" href="dessert.pdf">
+<link rel="prefetch" href="vini.pdf">
+<link rel="prefetch" href="bevande.pdf">
+<link rel="prefetch" href="caffe_amaro.pdf">
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="YIO Fish">
+
+<style>
+  /* ── 变量 ── */
+  :root {
+    --gold: #bfa46f;
+    --gold-dim: rgba(191,164,111,0.12);
+    --bg: #000;
+    --surface: #111;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #fff;
+    --text-muted: #555;
+    --red: #ff4444;
+    --radius: 14px;
+    --transition: 0.22s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* ── 基础 ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 容器 ── */
+  .container {
+    width: 92%;
+    max-width: 420px;
+    padding: 40px 20px 30px;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  /* ── Logo ── */
+  .logo-wrap {
+    margin: 0 auto 24px;
+    width: 160px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .logo-wrap img { width: 100%; height: auto; display: block; filter: brightness(1.1); }
+
+  .gold-line { width: 48px; height: 1px; background: var(--gold); margin: 0 auto 24px; opacity: .5; }
+
+  /* ── 状态栏 ── */
+  .status {
+    color: var(--gold);
+    letter-spacing: 2px;
+    font-size: 11px;
+    margin-bottom: 18px;
+    transition: color var(--transition);
+    min-height: 16px;
+  }
+  .status.closed   { color: var(--text-muted); }
+  .status.closing  { color: var(--red); }
+  .status.admin    { color: var(--gold); }
+
+  /* ── 倒计时横幅 ── */
+  .timer-banner {
+    display: none;
+    background: var(--gold-dim);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    letter-spacing: 1px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:.65} 50%{opacity:1} }
+
+  /* ── 顶部操作行 ── */
+  .action-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  /* ── 通用按钮 ── */
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 17px 0;
+    margin-bottom: 10px;
+    border-radius: var(--radius);
+    border: none;
+    font-weight: 600;
+    text-decoration: none;
+    letter-spacing: 2px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: opacity var(--transition), transform var(--transition);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { opacity: .75; transform: scale(.97); }
+
+  /* 主色按钮 */
+  .btn-gold { background: var(--gold); color: #000; }
+
+  /* 次级按钮（顶部操作行） */
+  .btn-ghost {
+    flex: 1;
+    margin-bottom: 0;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  /* 菜单按钮（默认隐藏，由 JS 控制） */
+  .menu-btn { display: none; }
+
+  /* ── 社交图标行 ── */
+  .social-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    transition: border-color var(--transition), background var(--transition), transform var(--transition);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .icon-btn svg { width: 22px; height: 22px; fill: var(--gold); }
+  .icon-btn:active { background: var(--gold-dim); border-color: var(--gold); transform: scale(.9); }
+
+  /* ── 页脚 ── */
+  .footer { margin-top: 24px; font-size: 10px; color: var(--text-muted); letter-spacing: 1px; line-height: 1.8; }
+
+  /* ── 弹窗遮罩 ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(0,0,0,.85);
+    z-index: 999;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .overlay.open { display: flex; }
+
+  /* ── 弹窗面板（从底部滑入） ── */
+  .sheet {
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 28px 24px 40px;
+    width: 100%;
+    max-width: 480px;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    text-align: center;
+    animation: slideUp .28s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+
+  .sheet h3 {
+    color: var(--gold);
+    font-weight: 300;
+    letter-spacing: 3px;
+    font-size: 14px;
+    margin-bottom: 22px;
+  }
+
+  /* ── 拖动条 ── */
+  .drag-bar {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 22px;
+  }
+
+  /* ── 表单元素 ── */
+  .form-field {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 16px;
+    -webkit-appearance: none;
+    color-scheme: dark;
+    transition: border-color var(--transition);
+  }
+  .form-field:focus { outline: none; border-color: var(--gold); }
+  .form-field::placeholder { color: #444; }
+
+  /* ── 日期输入框：浮动 label 方案 ── */
+  .date-wrap {
+    position: relative;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .date-wrap input[type="date"] {
+    width: 100%;
+    margin-bottom: 0;
+    padding-top: 22px;
+    padding-bottom: 8px;
+  }
+  .date-wrap label {
+    position: absolute;
+    top: 50%;
+    left: 15px;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #444;
+    pointer-events: none;
+    transition: top .18s, font-size .18s, color .18s;
+  }
+  /* 有值或获取焦点时，label 缩小上移 */
+  .date-wrap input[type="date"]:focus + label,
+  .date-wrap input[type="date"]:valid + label {
+    top: 10px;
+    font-size: 10px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  .notice { font-size: 12px; color: var(--gold); margin-bottom: 10px; font-weight: 600; letter-spacing: 1px; min-height: 18px; }
+
+  /* ── 饮料子按钮 ── */
+  .bev-list { display: flex; flex-direction: column; gap: 8px; }
+  .bev-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-decoration: none;
+    transition: background var(--transition), border-color var(--transition);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bev-btn:active { background: var(--gold-dim); border-color: var(--gold); }
+
+  /* ── 关闭按钮 ── */
+  .btn-close {
+    margin-top: 16px;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    padding: 10px;
+    width: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── 管理员密码弹窗 ── */
+  .admin-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,.92);
+    z-index: 1000;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .admin-overlay.open { display: flex; }
+  .admin-box {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 32px 28px;
+    width: 85%;
+    max-width: 320px;
+    border: 1px solid var(--border);
+    text-align: center;
+    animation: fadeScale .22s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes fadeScale { from{opacity:0;transform:scale(.92)} to{opacity:1;transform:scale(1)} }
+  .admin-box h4 { color: var(--gold); letter-spacing: 2px; font-size: 13px; font-weight: 400; margin-bottom: 20px; }
+
+  /* 密码点阵 */
+  .pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 24px; }
+  .pin-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    transition: background .15s, border-color .15s;
+  }
+  .pin-dot.filled { background: var(--gold); border-color: var(--gold); }
+
+  /* 数字键盘 */
+  .keypad { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+  .key {
+    padding: 18px 0;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .key:active { background: var(--gold-dim); transform: scale(.93); }
+  .key.del { color: var(--gold); font-size: 14px; letter-spacing: 1px; }
+  .key.empty { pointer-events: none; background: transparent; border-color: transparent; }
+  .admin-error { color: var(--red); font-size: 12px; letter-spacing: 1px; margin-top: 12px; min-height: 18px; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <!-- Logo（点击5次触发管理员） -->
+  <div class="logo-wrap" id="logoBtn">
+    <img src="logo.png" alt="YIO Fish">
+  </div>
+
+  <div class="gold-line"></div>
+
+  <!-- 倒计时横幅 -->
+  <div class="timer-banner" id="timerBanner">
+    ⚠ ULTIMO ORDINE CUCINA: <span id="countdown">--</span> MINUTI
+  </div>
+
+  <!-- 顶部操作行：预订 + 外卖 -->
+  <div class="action-row">
+    <button class="btn btn-ghost" onclick="openModal('reservationModal')">PRENOTA</button>
+    <a class="btn btn-ghost" href="https://wa.me/c/393391406020" target="_blank">ASPORTO</a>
+  </div>
+
+  <!-- 状态文字 -->
+  <div class="status" id="status">CARICAMENTO...</div>
+
+  <!-- 菜单按钮（由 JS 动态 show/hide） -->
+  <button class="btn btn-gold menu-btn" id="btnBevande" onclick="openModal('bevandeModal')">MENU BEVANDE</button>
+  <a class="btn btn-gold menu-btn" id="btnPranzo"   href="pranzo.pdf"  target="_blank">MENU PRANZO</a>
+  <a class="btn btn-gold menu-btn" id="btnCena"     href="cena.pdf"    target="_blank">MENU CENA</a>
+  <a class="btn btn-gold menu-btn" id="btnSpecial"  href="special.pdf" target="_blank">MENU SPECIAL</a>
+  <a class="btn btn-gold menu-btn" id="btnDessert"  href="dessert.pdf" target="_blank">DESSERT</a>
+
+  <!-- 社交图标 -->
+  <div class="social-row">
+    <a href="https://wa.me/393391406020" class="icon-btn" target="_blank" aria-label="WhatsApp">
+      <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    </a>
+    <a href="https://instagram.com/yio_fish_carpi" class="icon-btn" target="_blank" aria-label="Instagram">
+      <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.607.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.607 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.607-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608.975-.975 2.242-1.245 3.607-1.308 1.266-.058 1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.058-1.281.072-1.689.072-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+    </a>
+    <a href="tel:0598726624" class="icon-btn" aria-label="Telefono">
+      <svg viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg>
+    </a>
+    <a href="https://www.google.com/maps/dir/?api=1&destination=YIO+Fish+Restaurant+-+Sushi+Carpi&destination_place_id=ChIJZYFFEdiNf0cRrsH3-9a0o2M" class="icon-btn" target="_blank" aria-label="Mappa">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+    </a>
+  </div>
+
+  <div class="footer">©YIO_Fish · Viale dell'Industria, 19, Carpi MO<br>www.yiofish.it</div>
+</div>
+
+
+<!-- ══════════ 预订弹窗 ══════════ -->
+<div class="overlay" id="reservationModal">
+  <div class="sheet">
+    <div class="drag-bar"></div>
+    <h3>PRENOTAZIONE</h3>
+    <p id="sabatoNotice" class="notice"></p>
+    <input class="form-field" type="text"   id="name"   placeholder="Nome e Cognome">
+    <div class="date-wrap">
+      <input class="form-field" type="date" id="date" onchange="updateTimeOptions()" required>
+      <label for="date">Data</label>
+    </div>
+    <select class="form-field" id="time"><option value="">Seleziona orario</option></select>
+    <input class="form-field" type="number" id="people" placeholder="Numero di persone" min="1">
+    <button class="btn btn-gold" style="margin-top:6px" onclick="sendReservation()">INVIA SU WHATSAPP</button>
+    <button class="btn-close" onclick="closeModal('reservationModal')">Annulla</button>
+  </div>
+</div>
+
+
+<!-- ══════════ 饮料菜单弹窗 ══════════ -->
+<div class="overlay" id="bevandeModal">
+  <div class="sheet">
+    <div class="drag-bar"></div>
+    <h3>BEVANDE</h3>
+    <div class="bev-list">
+      <a class="bev-btn" href="vini.pdf"        target="_blank">VINI</a>
+      <a class="bev-btn" href="bevande.pdf"     target="_blank">BEVANDE</a>
+      <a class="bev-btn" href="caffe_amaro.pdf" target="_blank">CAFFÈ · AMARO · DISTILLATI</a>
+    </div>
+    <button class="btn-close" onclick="closeModal('bevandeModal')">Chiudi</button>
+  </div>
+</div>
+
+
+<!-- ══════════ 管理员密码弹窗（自定义键盘，替代原生 prompt） ══════════ -->
+<div class="admin-overlay" id="adminModal">
+  <div class="admin-box">
+    <h4>ACCESSO ADMIN</h4>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="dot0"></div>
+      <div class="pin-dot" id="dot1"></div>
+      <div class="pin-dot" id="dot2"></div>
+      <div class="pin-dot" id="dot3"></div>
+    </div>
+    <div class="keypad">
+      <button class="key" onclick="pinInput('1')">1</button>
+      <button class="key" onclick="pinInput('2')">2</button>
+      <button class="key" onclick="pinInput('3')">3</button>
+      <button class="key" onclick="pinInput('4')">4</button>
+      <button class="key" onclick="pinInput('5')">5</button>
+      <button class="key" onclick="pinInput('6')">6</button>
+      <button class="key" onclick="pinInput('7')">7</button>
+      <button class="key" onclick="pinInput('8')">8</button>
+      <button class="key" onclick="pinInput('9')">9</button>
+      <button class="key empty"></button>
+      <button class="key" onclick="pinInput('0')">0</button>
+      <button class="key del" onclick="pinDelete()">DEL</button>
+    </div>
+    <div class="admin-error" id="adminError"></div>
+    <button class="btn-close" onclick="closeModal('adminModal'); resetPin()">Annulla</button>
+  </div>
+</div>
+
+
+<script>
+/* ════════════════════════════════════════════
+   配置区（只需修改这里）
+════════════════════════════════════════════ */
+const CONFIG = {
+  ADMIN_PIN: "8888",        // 管理员密码
+  LOGO_CLICKS: 5,           // 触发管理员所需点击次数
+  CLICK_TIMEOUT: 3000,      // 点击超时重置（毫秒）
+  WA_NUMBER: "393391406020",// WhatsApp 号码
+
+  // 时间段（分钟）
+  LUNCH_START:          11 * 60,
+  LUNCH_KITCHEN_CLOSE:  15 * 60,
+  LUNCH_END:            16 * 60,
+  DINNER_START:         17 * 60,
+  DINNER_KITCHEN_CLOSE: 23 * 60,
+  DINNER_END:           23 * 60 + 59,
+  TIMER_WARNING_MINS:   25,   // 提前多少分钟显示倒计时
+};
+
+
+/* ════════════════════════════════════════════
+   状态
+════════════════════════════════════════════ */
+let isAdmin = false;
+let logoClickCount = 0;
+let logoClickTimer = null;
+let pinValue = "";
+
+
+/* ════════════════════════════════════════════
+   弹窗通用控制
+════════════════════════════════════════════ */
+function openModal(id) {
+  document.getElementById(id).classList.add("open");
+  history.pushState({ modal: id }, "");
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove("open");
+}
+
+// 返回键关闭当前弹窗
+window.addEventListener("popstate", () => {
+  document.querySelectorAll(".overlay.open, .admin-overlay.open")
+    .forEach(el => el.classList.remove("open"));
+});
+
+// 点击遮罩关闭（点到 .sheet 外面时）
+document.querySelectorAll(".overlay").forEach(overlay => {
+  overlay.addEventListener("click", e => {
+    if (e.target === overlay) {
+      closeModal(overlay.id);
+      history.back();
+    }
+  });
+});
+
+
+/* ════════════════════════════════════════════
+   菜单时间逻辑（拆分为小函数）
+════════════════════════════════════════════ */
+
+/** 获取罗马时区当前总分钟数 */
+function getRomeMinutes() {
+  const str = new Date().toLocaleString("en-GB", { timeZone: "Europe/Rome" });
+  const [h, m] = str.split(", ")[1].split(":").map(Number);
+  return h * 60 + m;
+}
+
+/** 设置状态文字和样式 */
+function setStatus(text, cls = "") {
+  const el = document.getElementById("status");
+  el.textContent = text;
+  el.className = "status " + cls;
+}
+
+/** 显示/隐藏菜单按钮（通过 CSS class） */
+function showMenuButtons(ids) {
+  const allIds = ["btnBevande", "btnPranzo", "btnCena", "btnSpecial", "btnDessert"];
+  allIds.forEach(id => {
+    document.getElementById(id).style.display = ids.includes(id) ? "flex" : "none";
+  });
+}
+
+/** 倒计时横幅 */
+function setTimerBanner(mins) {
+  const banner = document.getElementById("timerBanner");
+  if (mins > 0) {
+    document.getElementById("countdown").textContent = mins;
+    banner.style.display = "block";
+  } else {
+    banner.style.display = "none";
+  }
+}
+
+/** 主菜单加载逻辑 */
+function loadMenu() {
+  if (isAdmin) {
+    showMenuButtons(["btnBevande", "btnPranzo", "btnCena", "btnSpecial", "btnDessert"]);
+    setStatus("MODALITÀ ADMIN · MENU SBLOCCATO", "admin");
+    setTimerBanner(0);
+    return;
+  }
+
+  const t = getRomeMinutes();
+  const C = CONFIG;
+  setTimerBanner(0);
+
+  // 午餐时段
+  if (t >= C.LUNCH_START && t < C.LUNCH_END) {
+    showMenuButtons(["btnBevande", "btnDessert"]);
+    const remaining = C.LUNCH_KITCHEN_CLOSE - t;
+
+    if (remaining > 5) {
+      showMenuButtons(["btnBevande", "btnPranzo", "btnDessert"]);
+      setStatus("PRANZO EXPERIENCE");
+      if (remaining <= C.TIMER_WARNING_MINS) setTimerBanner(remaining - 5);
+    } else if (t < C.LUNCH_KITCHEN_CLOSE) {
+      setStatus("CUCINA IN CHIUSURA · ORDINI TERMINATI", "closing");
+    } else {
+      setStatus("CUCINA CHIUSA · SOLO BEVANDE E DESSERT");
+    }
+    return;
+  }
+
+  // 晚餐时段
+  if (t >= C.DINNER_START && t < C.DINNER_END) {
+    showMenuButtons(["btnBevande", "btnDessert"]);
+    const remaining = C.DINNER_KITCHEN_CLOSE - t;
+
+    if (remaining > 5) {
+      showMenuButtons(["btnBevande", "btnCena", "btnSpecial", "btnDessert"]);
+      setStatus("CENA EXPERIENCE");
+      if (remaining <= C.TIMER_WARNING_MINS) setTimerBanner(remaining - 5);
+    } else if (t < C.DINNER_KITCHEN_CLOSE) {
+      setStatus("CUCINA IN CHIUSURA · ORDINI TERMINATI", "closing");
+    } else {
+      setStatus("CUCINA CHIUSA · SOLO BEVANDE E DESSERT");
+    }
+    return;
+  }
+
+  // 打烊
+  showMenuButtons([]);
+  setStatus("CHIUSO · RIAPRIAMO PRESTO", "closed");
+}
+
+
+/* ════════════════════════════════════════════
+   管理员解锁（Logo 点击 + PIN 键盘）
+════════════════════════════════════════════ */
+document.getElementById("logoBtn").addEventListener("click", () => {
+  logoClickCount++;
+  clearTimeout(logoClickTimer);
+
+  if (logoClickCount >= CONFIG.LOGO_CLICKS) {
+    logoClickCount = 0;
+    openModal("adminModal");
+    return;
+  }
+
+  // 超时后重置
+  logoClickTimer = setTimeout(() => { logoClickCount = 0; }, CONFIG.CLICK_TIMEOUT);
+});
+
+function pinInput(digit) {
+  if (pinValue.length >= 4) return;
+  pinValue += digit;
+  updatePinDots();
+  if (pinValue.length === 4) verifyPin();
+}
+
+function pinDelete() {
+  pinValue = pinValue.slice(0, -1);
+  updatePinDots();
+  document.getElementById("adminError").textContent = "";
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById("dot" + i).classList.toggle("filled", i < pinValue.length);
+  }
+}
+
+function verifyPin() {
+  if (pinValue === CONFIG.ADMIN_PIN) {
+    isAdmin = true;
+    closeModal("adminModal");
+    resetPin();
+    loadMenu();
+  } else {
+    document.getElementById("adminError").textContent = "PASSWORD ERRATA";
+    // 抖动反馈
+    setTimeout(resetPin, 600);
+  }
+}
+
+function resetPin() {
+  pinValue = "";
+  updatePinDots();
+  document.getElementById("adminError").textContent = "";
+}
+
+
+/* ════════════════════════════════════════════
+   预订表单
+════════════════════════════════════════════ */
+function updateTimeOptions() {
+  const dateVal = document.getElementById("date").value;
+  const timeSelect = document.getElementById("time");
+  const notice = document.getElementById("sabatoNotice");
+
+  timeSelect.innerHTML = '<option value="">Seleziona orario</option>';
+  notice.textContent = "";
+  if (!dateVal) return;
+
+  const [y, mo, d] = dateVal.split("-").map(Number);
+  const day = new Date(y, mo - 1, d).getDay(); // 0=Dom, 6=Sab
+
+  const lunchTimes  = ["12:00","12:30","13:00","13:30","14:00","14:30"];
+  const dinnerTimes = day === 6
+    ? ["19:00","19:15","21:00","21:30","22:00"]
+    : ["19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30"];
+
+  if (day === 6) notice.textContent = "Sabato sera: orari a turni (19:00 · 19:15 · 21:00...)";
+
+  lunchTimes.forEach(t  => timeSelect.add(new Option("Pranzo · " + t, t)));
+  dinnerTimes.forEach(t => timeSelect.add(new Option("Cena · "   + t, t)));
+}
+
+function sendReservation() {
+  const name   = document.getElementById("name").value.trim();
+  const date   = document.getElementById("date").value;
+  const time   = document.getElementById("time").value;
+  const people = document.getElementById("people").value;
+
+  if (!name || !date || !time || !people) {
+    alert("Compila tutti i campi.");
+    return;
+  }
+
+  const [y, mo, d] = date.split("-");
+  const msg = `Prenotazione YIO Fish\n\nNome: ${name}\nData: ${d}/${mo}/${y}\nOrario: ${time}\nPersone: ${people}`;
+  window.open(`https://wa.me/${CONFIG.WA_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
+  closeModal("reservationModal");
+}
+
+
+/* ════════════════════════════════════════════
+   初始化
+════════════════════════════════════════════ */
+window.addEventListener("DOMContentLoaded", () => {
+  // 日期选择器最小值设为今天
+  document.getElementById("date").min = new Date().toISOString().split("T")[0];
+  loadMenu();
+  setInterval(loadMenu, 30_000); // 每30秒刷新一次
+});
+</script>
+</body>
+</html>
