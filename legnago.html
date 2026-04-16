@@ -586,7 +586,7 @@ function loadMenu() {
 
     if (remaining > 5) {
       showMenuButtons(["btnBevande", "btnPranzo", "btnDessert"]);
-      setStatus("PRANZO EXPERIENCE");
+      setStatus("YIO TASTE EXPERIENCE");
       if (remaining <= C.TIMER_WARNING_MINS) setTimerBanner(remaining - 5);
     } else if (t < C.LUNCH_KITCHEN_CLOSE) {
       setStatus("CUCINA IN CHIUSURA · ORDINI TERMINATI", "closing");
@@ -603,7 +603,7 @@ function loadMenu() {
 
     if (remaining > 5) {
       showMenuButtons(["btnBevande", "btnCena", "btnSpecial", "btnDessert"]);
-      setStatus("CENA EXPERIENCE");
+      setStatus("YIO TASTE EXPERIENCE");
       if (remaining <= C.TIMER_WARNING_MINS) setTimerBanner(remaining - 5);
     } else if (t < C.DINNER_KITCHEN_CLOSE) {
       setStatus("CUCINA IN CHIUSURA · ORDINI TERMINATI", "closing");
