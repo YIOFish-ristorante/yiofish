@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>YIO Fish</title>
 
-<link rel="prefetch" href="pranzo.pdf">
-<link rel="prefetch" href="cena.pdf">
+<link rel="prefetch" href="menu-pranzo.html">
+<link rel="prefetch" href="menu-cena.html">
 <link rel="prefetch" href="dessert.pdf">
 <link rel="prefetch" href="vini.pdf">
 <link rel="prefetch" href="bevande.pdf">
@@ -373,18 +373,18 @@
   <!-- 顶部操作行：预订 + 外卖 -->
   <div class="action-row">
     <button class="btn btn-ghost" onclick="openModal('reservationModal')">PRENOTA</button>
-    <a class="btn btn-ghost" href="menu-asporto.html">ASPORTO</a>
+    <a class="btn btn-ghost" href="menu-asporto.html"_blank">ASPORTO</a>
   </div>
 
   <!-- 状态文字 -->
   <div class="status" id="status">CARICAMENTO...</div>
 
   <!-- 菜单按钮（由 JS 动态 show/hide） -->
-  <a class="btn btn-gold menu-btn" id="btnBevande"  href="menu-bevande.html">MENU BEVANDE</a>
-  <a class="btn btn-gold menu-btn" id="btnPranzo"   href="menu-pranzo.html">MENU PRANZO</a>
-  <a class="btn btn-gold menu-btn" id="btnCena"     href="menu-cena.html">MENU CENA</a>
-  <a class="btn btn-gold menu-btn" id="btnSpecial"  href="menu-speciale.html">MENU SPECIAL</a>
-  <a class="btn btn-gold menu-btn" id="btnDessert"  href="menu-dessert.html">DESSERT</a>
+  <button class="btn btn-gold menu-btn" id="btnBevande" onclick="openModal('bevandeModal')">MENU BEVANDE</button>
+  <a class="btn btn-gold menu-btn" id="btnPranzo"   href="menu-pranzo.html"  target="_blank">MENU PRANZO</a>
+  <a class="btn btn-gold menu-btn" id="btnCena"     href="menu-cena.html"    target="_blank">MENU CENA</a>
+  <a class="btn btn-gold menu-btn" id="btnSpecial"  href="menu-speciale.html" target="_blank">MENU SPECIAL</a>
+  <a class="btn btn-gold menu-btn" id="btnDessert"  href="dessert.pdf" target="_blank">DESSERT</a>
 
   <!-- 社交图标 -->
   <div class="social-row">
@@ -421,6 +421,21 @@
     <input class="form-field" type="number" id="people" placeholder="Numero di persone" min="1">
     <button class="btn btn-gold" style="margin-top:6px" onclick="sendReservation()">INVIA SU WHATSAPP</button>
     <button class="btn-close" onclick="closeModal('reservationModal')">Annulla</button>
+  </div>
+</div>
+
+
+<!-- ══════════ 饮料菜单弹窗 ══════════ -->
+<div class="overlay" id="bevandeModal">
+  <div class="sheet">
+    <div class="drag-bar"></div>
+    <h3>BEVANDE</h3>
+    <div class="bev-list">
+      <a class="bev-btn" href="vini.pdf"        target="_blank">VINI</a>
+      <a class="bev-btn" href="bevande.pdf"     target="_blank">BEVANDE</a>
+      <a class="bev-btn" href="caffe_amaro.pdf" target="_blank">CAFFÈ · AMARO · DISTILLATI</a>
+    </div>
+    <button class="btn-close" onclick="closeModal('bevandeModal')">Chiudi</button>
   </div>
 </div>
 
@@ -571,7 +586,7 @@ function loadMenu() {
 
     if (remaining > 5) {
       showMenuButtons(["btnBevande", "btnPranzo", "btnDessert"]);
-      setStatus("PRANZO EXPERIENCE");
+      setStatus("YIO TASTE EXPERIENCE");
       if (remaining <= C.TIMER_WARNING_MINS) setTimerBanner(remaining - 5);
     } else if (t < C.LUNCH_KITCHEN_CLOSE) {
       setStatus("CUCINA IN CHIUSURA · ORDINI TERMINATI", "closing");
@@ -588,7 +603,7 @@ function loadMenu() {
 
     if (remaining > 5) {
       showMenuButtons(["btnBevande", "btnCena", "btnSpecial", "btnDessert"]);
-      setStatus("CENA EXPERIENCE");
+      setStatus("YIO TASTE EXPERIENCE");
       if (remaining <= C.TIMER_WARNING_MINS) setTimerBanner(remaining - 5);
     } else if (t < C.DINNER_KITCHEN_CLOSE) {
       setStatus("CUCINA IN CHIUSURA · ORDINI TERMINATI", "closing");
