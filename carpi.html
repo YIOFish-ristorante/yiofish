@@ -663,7 +663,6 @@ var MENU_CONFIG = {
 // ════════════════════════════════════
 var cart_dine = {};    // 堂食购物车
 var cart_asporto = {}; // 外卖购物车
-var cart = cart_dine;  // 当前活跃购物车（向后兼容）
 var guestCount = 1;  // 人数（服务员控制）
 var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
 var _tableSession = null;  // 当前桌号的轮次状态
@@ -894,8 +893,6 @@ function loadMenu() {
 function openMenuView(menuId) {
   currentMenuId = menuId;
   isAsporto = menuId === 'asporto';
-  // 切换到对应购物车
-  cart = isAsporto ? cart_asporto : cart_dine;
   // 外卖菜单：填充时间选项
   if (isAsporto) buildAsportoTimes();
   try { history.pushState({ menuId: menuId }, '', '#menu-' + menuId); } catch(e) {}
@@ -1559,7 +1556,7 @@ function canAddItem() {
   if (!status.ok) return {ok: false, msg: status.msg};
   // 只计算price=0的菜（用该菜在其对应菜单里的price判断）
   var thisRoundCount = 0;
-  for (var k in cart) {
+  for (var k in cart_dine) {
     var kit = getItemById(k);
     if (kit) {
       // 检查该菜在任意菜单里的price是否>0
