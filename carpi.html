@@ -1274,6 +1274,7 @@ function updateItemUI(itemId) {
   if (!el) return;
   var it = getItemForMenu(itemId);
   if (!it) return;
+  console.log('[updateItemUI] id:', itemId, 'it.price:', it.price, 'it.id:', it.id);
   var q = cart[itemId] || 0;
   el.innerHTML = '';
   if (q === 0) {
