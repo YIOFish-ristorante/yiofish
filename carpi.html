@@ -890,7 +890,7 @@ function openMenuView(menuId) {
   isAsporto = menuId === 'asporto';
   // 购物车永远不在切换菜单时清空，只有"清空"按钮才清空
   // 方案A：加历史记录，支持手机返回手势
-  history.pushState({ menuId: menuId }, '', '#menu-' + menuId);
+  try { history.pushState({ menuId: menuId }, '', '#menu-' + menuId); } catch(e) {}
 
   var cfg = MENU_CONFIG[menuId] || {label: menuId, emoji: '🍽️', color: '#c8a84c'};
 
@@ -937,7 +937,7 @@ function closeMenuView() {
   closeCart();
   // 清除hash
   if (window.location.hash) {
-    history.replaceState(null, '', window.location.pathname);
+    try { history.replaceState(null, '', window.location.pathname); } catch(e) {}
   }
 }
 
