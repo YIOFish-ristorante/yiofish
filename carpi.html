@@ -1160,6 +1160,7 @@ function cartTotal() {
 function fmt(n) { return '€ ' + Number(n).toFixed(2).replace('.', ','); }
 
 function addItem(it) {
+  console.log('[addItem] id:', it.id, 'price:', it.price, 'cart:', JSON.stringify(cart), 'menuId:', currentMenuId);
   var mq = it.max_qty || 0;
   var cur = cart[it.id] || 0;
 
@@ -1220,6 +1221,21 @@ function addItem(it) {
   cart[it.id] = cur + 1;
   updateItemUI(it.id);
   updateCartUI();
+}
+
+// DEBUG - 临时调试函数
+function debugAddItem(it) {
+  console.log('[DEBUG] addItem id:', it.id, 'price:', it.price, 'cart before:', JSON.stringify(cart));
+  var menuLimit = (MENU_CONFIGS[currentMenuId] && MENU_CONFIGS[currentMenuId].menuLimit) || 0;
+  var menuTotal = 0;
+  for (var k in cart) {
+    var kit = getItemById(k);
+    if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on) {
+      var kitPrice = parseFloat(kit.menus[currentMenuId].price) || 0;
+      if (kitPrice === 0) menuTotal += cart[k];
+    }
+  }
+  console.log('[DEBUG] menuLimit:', menuLimit, 'menuTotal:', menuTotal, 'would block:', menuTotal + 1 > menuLimit * guestCount);
 }
 
 function getItemById(id) {
