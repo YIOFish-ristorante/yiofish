@@ -1170,9 +1170,8 @@ function addItem(it) {
   }
 
   // 价格>0的菜不受任何限制
-  // 用当前菜单的price判断（不用ALL_ITEMS里的原始price）
-  var menuPrice = (it.menus && currentMenuId && it.menus[currentMenuId]) ? (parseFloat(it.menus[currentMenuId].price) || 0) : 0;
-  var hasPrice = menuPrice > 0;
+  // it.price已经是当前菜单的price（由openMenuView的Object.assign设置）
+  var hasPrice = (parseFloat(it.price) || 0) > 0;
 
   if (!hasPrice) {
     // 检查轮次限制
