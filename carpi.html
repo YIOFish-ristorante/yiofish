@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>YIO Fish · Carpi</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
@@ -491,6 +491,10 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <label>Numero tavolo</label>
       <input type="text" id="table-number" placeholder="Es. 12" oninput="updateCartButtons()">
     </div>
+    <div class="table-input-wrap" id="note-wrap" style="display:none">
+      <label>Note (opzionale)</label>
+      <textarea id="order-note" placeholder="Es. allergie, richieste speciali..." style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:70px;font-family:inherit;"></textarea>
+    </div>
     <div class="table-input-wrap" id="asporto-name-wrap" style="display:none">
       <label>Il tuo nome</label>
       <input type="text" id="asporto-name" placeholder="Es. Mario Rossi" oninput="updateCartButtons()">
@@ -500,6 +504,10 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <select id="asporto-time" onchange="updateCartButtons()" style="width:100%;background:#1a1a1a;border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:#ede5d4;outline:none;-webkit-appearance:none;-webkit-text-fill-color:#ede5d4;">
         <option value="">Seleziona orario...</option>
       </select>
+    </div>
+    <div class="table-input-wrap" id="asporto-note-wrap" style="display:none">
+      <label>Note (opzionale)</label>
+      <textarea id="asporto-note" placeholder="Es. allergie, richieste speciali..." style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:70px;font-family:inherit;"></textarea>
     </div>
     <button class="obtn-notify" id="btn-notify" onclick="sendNotify()">🔔 CHIAMA IL CAMERIERE</button>
     <button class="obtn" id="btn-order" onclick="sendOrder()" disabled>
@@ -522,6 +530,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     </div>
     <select class="form-field" id="res-time"><option value="">Seleziona orario</option></select>
     <input class="form-field" type="number" id="res-people" placeholder="Numero di persone" min="1">
+    <textarea class="form-field" id="res-note" placeholder="Note (opzionale): allergie, richieste speciali..." style="resize:none;height:80px;margin-top:4px"></textarea>
     <button class="btn btn-gold" style="margin-top:6px" onclick="sendReservation()">INVIA SU WHATSAPP</button>
     <button class="btn-close" onclick="closeModal('reservationModal')">Annulla</button>
   </div>
@@ -588,6 +597,7 @@ var DISH_MENUS = [];
 var SETTINGS = {notify_enabled: false, takeaway_enabled: true, is_open: true};
 var TAGS = {"1":{"label":"Glutine","color":"#95a5a6","icon":"🌾"},"2":{"label":"Crostacei","color":"#2980b9","icon":"🦐"},"3":{"label":"Uova","color":"#f39c12","icon":"🥚"},"4":{"label":"Pesce","color":"#3498db","icon":"🐟"},"6":{"label":"Soia","color":"#16a085","icon":"🫘"},"7":{"label":"Latte","color":"#f1c40f","icon":"🥛"},"8":{"label":"Frutta a guscio","color":"#e74c3c","icon":"🌰"},"11":{"label":"Sesamo","color":"#e67e22","icon":"🌱"},"14":{"label":"Molluschi","color":"#2980b9","icon":"🦑"},"piccante":{"label":"Piccante","color":"#c0392b","icon":"🌶"},"vegano":{"label":"Vegano","color":"#27ae60","icon":"🌿"},"new":{"label":"Novità","color":"#8e44ad","icon":"✨"}};
 
+var MENU_CONFIGS = {}; // 从Supabase加载
 var MENU_CONFIG = {
   pranzo:   {label:'Pranzo',   emoji:'☀️',  color:'#f39c12'},
   cena:     {label:'Cena',     emoji:'🌙',  color:'#8e44ad'},
@@ -610,11 +620,12 @@ var isAsporto = false;
 async function loadAll() {
   try {
     // 并行加载
-    var [rRes, sRes, cRes, dRes] = await Promise.all([
+    var [rRes, sRes, cRes, dRes, mcRes] = await Promise.all([
       sbFetch('restaurants?id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('categories?select=*&order=sort_order'),
-      sbFetch('dishes?select=*&order=id&limit=2000')
+      sbFetch('dishes?select=*&order=id&limit=2000'),
+      sbFetch('menu_configs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
     ]);
 
     var rData = await rRes.json();
@@ -625,6 +636,15 @@ async function loadAll() {
 
     CATS = await cRes.json();
     var dishes = await dRes.json();
+    var mcData = await mcRes.json();
+    // 存储每个菜单的excludeCats
+    MENU_CONFIGS = {};
+    mcData.forEach(function(mc) {
+      MENU_CONFIGS[mc.menu_id] = {
+        excludeCats: mc.exclude_cats || [],
+        menuLimit: mc.menu_limit || 0
+      };
+    });
 
     // dish_menus超过1000条，分3次加载
     var [dm1Res, dm2Res, dm3Res] = await Promise.all([
@@ -690,6 +710,15 @@ async function reloadMenuData() {
     ]);
     CATS = await cRes.json();
     var dishes = await dRes.json();
+    var mcData = await mcRes.json();
+    // 存储每个菜单的excludeCats
+    MENU_CONFIGS = {};
+    mcData.forEach(function(mc) {
+      MENU_CONFIGS[mc.menu_id] = {
+        excludeCats: mc.exclude_cats || [],
+        menuLimit: mc.menu_limit || 0
+      };
+    });
     var [dm1Res, dm2Res, dm3Res] = await Promise.all([
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
@@ -805,6 +834,8 @@ function openMenuView(menuId) {
   currentMenuId = menuId;
   isAsporto = menuId === 'asporto';
   cart = {};
+  // 方案A：加历史记录，支持手机返回手势
+  history.pushState({ menuId: menuId }, '', '#menu-' + menuId);
 
   var cfg = MENU_CONFIG[menuId] || {label: menuId, emoji: '🍽️', color: '#c8a84c'};
 
@@ -819,8 +850,12 @@ function openMenuView(menuId) {
     '<span>📍 ' + (R.address||'') + '</span>' +
     '<span>🕐 ' + (R.hours||'') + '</span>';
 
-  // 过滤当前菜单的菜品
+  // 过滤当前菜单的菜品（两级过滤）
+  var excludeCats = (MENU_CONFIGS[menuId] && MENU_CONFIGS[menuId].excludeCats) || [];
   var items = ALL_ITEMS.filter(function(it) {
+    // 第一级：分类是否被排除
+    if (excludeCats.indexOf(it.category) >= 0) return false;
+    // 第二级：菜品是否在此菜单启用
     var m = it.menus[menuId];
     return m && m.on;
   }).map(function(it) {
@@ -846,6 +881,10 @@ function closeMenuView() {
   document.getElementById('menu-view').style.display = 'none';
   document.getElementById('home-view').style.display = 'flex';
   closeCart();
+  // 清除hash
+  if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname);
+  }
 }
 
 // ════════════════════════════════════
@@ -941,27 +980,24 @@ function mkCard(it, delay) {
   card.className = 'card' + (it.sold_out ? ' so' : '');
   card.style.animationDelay = (delay * 0.04) + 's';
 
-  var iw = document.createElement('div');
-  iw.className = 'cimg';
+  var iw = null;
   if (it.image) {
+    iw = document.createElement('div');
+    iw.className = 'cimg';
     var img = document.createElement('img');
     img.loading = 'lazy';
     img.alt = it.name;
     img.setAttribute('data-fb', icon);
     img.onerror = function() {
-      var ph = document.createElement('div');
-      ph.className = 'cph';
-      ph.textContent = this.getAttribute('data-fb');
-      if (this.parentNode) this.parentNode.replaceChild(ph, this);
+      // 图片加载失败时移除整个图片区域
+      if (this.parentNode && this.parentNode.parentNode) {
+        this.parentNode.parentNode.removeChild(this.parentNode);
+      }
     };
     img.src = it.image;
     iw.appendChild(img);
-  } else {
-    var ph = document.createElement('div');
-    ph.className = 'cph';
-    ph.textContent = icon;
-    iw.appendChild(ph);
   }
+  // 没有图片路径时不显示图片区域
   if (it.sold_out) {
     var sb = document.createElement('div');
     sb.className = 'sbadge';
@@ -1033,7 +1069,7 @@ function mkCard(it, delay) {
   ft.appendChild(ac);
 
   body.appendChild(ft);
-  card.appendChild(iw);
+  if (iw) card.appendChild(iw);
   card.appendChild(body);
   return card;
 }
@@ -1200,6 +1236,9 @@ function updateCartButtons() {
       });
     }
 
+    // 显示外卖备注框
+    var asportoNoteWrap = document.getElementById('asporto-note-wrap');
+    if (asportoNoteWrap) asportoNoteWrap.style.display = 'block';
     if (SETTINGS.takeaway_enabled) {
       var nameVal = asportoName ? asportoName.value.trim() : '';
       var timeVal = asportoTime ? asportoTime.value : '';
@@ -1280,12 +1319,15 @@ function renderCartBody() {
 function sendNotify() {
   var tableNum = document.getElementById('table-number').value.trim();
   if (!tableNum) { alert('Inserisci il numero del tavolo.'); return; }
+  var note = (document.getElementById('order-note') || {}).value || '';
+  note = note.trim();
   var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Carpi*', '', '🪑 Tavolo: ' + tableNum, ''];
   for (var id in cart) {
     var it = getItemForMenu(id);
     if (it) lines.push('• ' + it.name + ' x' + cart[id]);
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
+  if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
@@ -1297,12 +1339,15 @@ function sendOrder() {
   var orario = timeEl ? timeEl.value : '';
   if (!nome) { alert('Inserisci il tuo nome.'); return; }
   if (!orario) { alert("Seleziona l'orario di ritiro."); return; }
+  var note = (document.getElementById('asporto-note') || {}).value || '';
+  note = note.trim();
   var lines = ['📦 *ORDINE ASPORTO - Yio Fish Carpi*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orario, ''];
   for (var id in cart) {
     var it = getItemForMenu(id);
     if (it) lines.push('• ' + it.name + ' x' + cart[id] + (it.price > 0 ? ' (' + fmt(it.price * cart[id]) + ')' : ''));
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
+  if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
@@ -1357,7 +1402,15 @@ document.getElementById('search-clear').onclick = function() {
 // ════════════════════════════════════
 function openModal(id) { document.getElementById(id).classList.add('open'); history.pushState({modal:id},''); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-window.addEventListener('popstate', function() {
+window.addEventListener('popstate', function(e) {
+  if (currentMenuId && !e.state) {
+    currentMenuId = null;
+    cart = {};
+    document.getElementById('menu-view').style.display = 'none';
+    document.getElementById('home-view').style.display = 'flex';
+    closeCart();
+    return;
+  }
   document.querySelectorAll('.overlay.open, .admin-overlay.open').forEach(function(el){ el.classList.remove('open'); });
 });
 document.querySelectorAll('.overlay').forEach(function(overlay) {
@@ -1413,7 +1466,8 @@ function sendReservation() {
   var people = document.getElementById('res-people').value;
   if (!name||!date||!time||!people){ alert('Compila tutti i campi.'); return; }
   var p = date.split('-');
-  var msg = 'Prenotazione YIO Fish\n\nNome: '+name+'\nData: '+p[2]+'/'+p[1]+'/'+p[0]+'\nOrario: '+time+'\nPersone: '+people;
+  var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
+  var msg = 'Prenotazione YIO Fish\n\nNome: '+name+'\nData: '+p[2]+'/'+p[1]+'/'+p[0]+'\nOrario: '+time+'\nPersone: '+people+(note ? '\nNote: '+note : '');
   window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
   closeModal('reservationModal');
 }
