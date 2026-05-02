@@ -503,45 +503,64 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
   <div class="cbdy" id="cart-body"></div>
   <div class="cft">
     <div class="csub"><span>Totale</span><span class="ctotal" id="cart-total">€ 0,00</span></div>
-    <div class="cinfo" id="cart-info"></div>
-    <div class="table-input-wrap" id="table-input-wrap">
-      <label>Numero tavolo</label>
-      <input type="text" id="table-number" placeholder="Es. 12" oninput="updateCartButtons();var tv=this.value.trim();if(tv)loadTableSession(tv);">
-    </div>
-    <div class="table-input-wrap" id="guest-wrap" style="display:none">
-      <label>Numero persone</label>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;font-size:15px;color:var(--text2);text-align:center;" id="guest-display">1</div>
-        <button onclick="changeGuestCount()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 14px;font-size:12px;color:#1a1510;cursor:pointer;letter-spacing:1px;">MODIFICA</button>
+
+    <!-- ── 堂食区域 ── -->
+    <div id="dine-section" style="display:none">
+      <!-- 桌号 + 人数 + MODIFICA 同一排 -->
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+        <div style="flex:1;">
+          <label style="font-size:10px;color:var(--muted);letter-spacing:1px;display:block;margin-bottom:4px;">N. TAVOLO</label>
+          <input type="text" id="table-number" placeholder="Es. 12"
+            oninput="updateCartButtons();var tv=this.value.trim();if(tv)loadTableSession(tv);"
+            style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 10px;font-size:14px;color:var(--text2);outline:none;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:10px;color:var(--muted);letter-spacing:1px;display:block;margin-bottom:4px;">N. PERSONE</label>
+          <div style="background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 10px;font-size:14px;color:var(--text2);text-align:center;" id="guest-display">1</div>
+        </div>
+        <button onclick="changeGuestCount()"
+          style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 12px;font-size:11px;color:#1a1510;cursor:pointer;letter-spacing:1px;flex-shrink:0;margin-top:18px;">MODIFICA</button>
+      </div>
+      <!-- 轮次信息 -->
+      <div id="round-info"></div>
+      <div id="reset-round-wrap" style="display:none;text-align:center;padding:4px 0 8px;">
+        <button onclick="confirmResetRound()"
+          style="background:transparent;border:1px solid rgba(231,76,60,.4);border-radius:var(--r);padding:6px 14px;font-size:11px;color:#e74c3c;cursor:pointer;letter-spacing:1px;">🔄 RESET TAVOLO</button>
+      </div>
+      <!-- 备注 -->
+      <textarea id="order-note" placeholder="Note (opzionale): allergie, richieste speciali..."
+        style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:65px;font-family:inherit;margin-bottom:8px;"></textarea>
+      <!-- 按钮行 -->
+      <div style="display:flex;gap:8px;">
+        <button class="obtn-notify" id="btn-notify" onclick="sendNotify()" style="flex:1;">🔔 CHIAMA IL CAMERIERE</button>
+        <button class="clr" id="btn-clear-dine" style="flex-shrink:0;">Svuota</button>
       </div>
     </div>
-    <div id="round-info" style="display:none"></div>
-    <div id="reset-round-wrap" style="display:none;text-align:center;padding:4px 0;">
-      <button onclick="confirmResetRound()" style="background:transparent;border:1px solid rgba(231,76,60,.4);border-radius:var(--r);padding:6px 14px;font-size:11px;color:#e74c3c;cursor:pointer;letter-spacing:1px;">🔄 RESET TAVOLO</button>
+
+    <!-- ── 外卖区域 ── -->
+    <div id="asporto-section" style="display:none">
+      <div class="table-input-wrap" id="asporto-name-wrap">
+        <label>Il tuo nome</label>
+        <input type="text" id="asporto-name" placeholder="Es. Mario Rossi" oninput="updateCartButtons()">
+      </div>
+      <div class="table-input-wrap" id="asporto-time-wrap">
+        <label>Orario di ritiro</label>
+        <select id="asporto-time" onchange="updateCartButtons()"
+          style="width:100%;background:#1a1a1a;border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:#ede5d4;outline:none;-webkit-appearance:none;-webkit-text-fill-color:#ede5d4;">
+          <option value="">Seleziona orario...</option>
+        </select>
+      </div>
+      <textarea id="asporto-note" placeholder="Note (opzionale): allergie, richieste speciali..."
+        style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:65px;font-family:inherit;margin-bottom:8px;"></textarea>
+      <!-- 按钮行 -->
+      <div style="display:flex;gap:8px;">
+        <button class="obtn" id="btn-order" onclick="sendOrder()" disabled style="flex:1;">📦 INVIA ORDINE ASPORTO</button>
+        <button class="clr" id="btn-clear-asporto" style="flex-shrink:0;">Svuota</button>
+      </div>
     </div>
-    <div class="table-input-wrap" id="note-wrap" style="display:none">
-      <label>Note (opzionale)</label>
-      <textarea id="order-note" placeholder="Es. allergie, richieste speciali..." style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:70px;font-family:inherit;"></textarea>
-    </div>
-    <div class="table-input-wrap" id="asporto-name-wrap" style="display:none">
-      <label>Il tuo nome</label>
-      <input type="text" id="asporto-name" placeholder="Es. Mario Rossi" oninput="updateCartButtons()">
-    </div>
-    <div class="table-input-wrap" id="asporto-time-wrap" style="display:none">
-      <label>Orario di ritiro</label>
-      <select id="asporto-time" onchange="updateCartButtons()" style="width:100%;background:#1a1a1a;border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:#ede5d4;outline:none;-webkit-appearance:none;-webkit-text-fill-color:#ede5d4;">
-        <option value="">Seleziona orario...</option>
-      </select>
-    </div>
-    <div class="table-input-wrap" id="asporto-note-wrap" style="display:none">
-      <label>Note (opzionale)</label>
-      <textarea id="asporto-note" placeholder="Es. allergie, richieste speciali..." style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:70px;font-family:inherit;"></textarea>
-    </div>
-    <button class="obtn-notify" id="btn-notify" onclick="sendNotify()">🔔 CHIAMA IL CAMERIERE</button>
-    <button class="obtn" id="btn-order" onclick="sendOrder()" disabled>
-      📦 INVIA ORDINE ASPORTO
-    </button>
-    <button class="clr" id="btn-clear">Svuota carrello</button>
+
+    <!-- 隐藏的兼容元素 -->
+    <button id="btn-clear" style="display:none"></button>
   </div>
 </div>
 
@@ -1223,8 +1242,9 @@ function addItem(it) {
 }
 
 function getItemById(id) {
+  var sid = String(id);
   for (var i = 0; i < ALL_ITEMS.length; i++) {
-    if (String(ALL_ITEMS[i].id) === String(id)) return ALL_ITEMS[i];
+    if (String(ALL_ITEMS[i].id) === sid) return ALL_ITEMS[i];
   }
   return null;
 }
@@ -1298,124 +1318,51 @@ function updateCartUI() {
 
 function updateCartButtons() {
   var n = cartCount();
-  var tableNum = document.getElementById('table-number');
-  var tVal = tableNum ? tableNum.value.trim() : '';
-
-  // 外卖：显示发送按钮，隐藏叫服务员
-  var btnOrder = document.getElementById('btn-order');
+  var tVal = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
   var btnNotify = document.getElementById('btn-notify');
-  var tableWrap = document.getElementById('table-input-wrap');
-
-  var nameWrap = document.getElementById('asporto-name-wrap');
-  var timeWrap = document.getElementById('asporto-time-wrap');
+  var btnOrder = document.getElementById('btn-order');
+  var dineSection = document.getElementById('dine-section');
+  var asportoSection = document.getElementById('asporto-section');
   var asportoName = document.getElementById('asporto-name');
   var asportoTime = document.getElementById('asporto-time');
 
   if (isAsporto) {
-    // 外卖：显示姓名+时间，隐藏桌号+堂食备注
-    if (tableWrap) tableWrap.style.display = 'none';
-    var noteWrap2 = document.getElementById('note-wrap');
-    if (noteWrap2) noteWrap2.style.display = 'none';
-    var guestWrap2 = document.getElementById('guest-wrap');
-    if (guestWrap2) guestWrap2.style.display = 'none';
-    if (nameWrap) nameWrap.style.display = 'block';
-    if (timeWrap) timeWrap.style.display = 'block';
-    btnNotify.style.display = 'none';
-
-    // 填充时间选项（如果还没填充）
-    if (asportoTime && asportoTime.options.length <= 1) {
-      var slots = [];
-      // 午餐 12:00 - 15:00
-      for (var h = 12; h <= 15; h++) {
-        for (var m = 0; m < 60; m += 30) {
-          if (h === 15 && m > 0) break;
-          slots.push((h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m);
-        }
-      }
-      // 分隔线
-      var sep = document.createElement('option');
-      sep.disabled = true;
-      sep.textContent = '── Cena ──';
-      asportoTime.appendChild(document.createElement('option')).textContent = '── Pranzo sopra · Cena sotto ──';
-      asportoTime.options[asportoTime.options.length-1].disabled = true;
-      // 晚餐 19:00 - 23:00
-      for (var h = 19; h <= 23; h++) {
-        for (var m = 0; m < 60; m += 30) {
-          if (h === 23 && m > 0) break;
-          slots.push((h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m);
-        }
-      }
-      // 先清空再填充
-      asportoTime.innerHTML = '<option value="">Seleziona orario...</option>';
-      var lunchAdded = false, dinnerAdded = false;
-      slots.forEach(function(t) {
-        if (!lunchAdded && t >= '12:00' && t <= '15:00') {
-          if (t === '12:00') {
-            var g = document.createElement('option');
-            g.disabled = true; g.textContent = '─── Pranzo ───';
-            asportoTime.appendChild(g);
-          }
-          lunchAdded = true;
-        }
-        if (!dinnerAdded && t >= '19:00') {
-          var g = document.createElement('option');
-          g.disabled = true; g.textContent = '─── Cena ───';
-          asportoTime.appendChild(g);
-          dinnerAdded = true;
-        }
-        var op = document.createElement('option');
-        op.value = t; op.textContent = t;
-        asportoTime.appendChild(op);
-      });
-    }
-
-    // 显示外卖备注框
-    var asportoNoteWrap = document.getElementById('asporto-note-wrap');
-    if (asportoNoteWrap) asportoNoteWrap.style.display = 'block';
+    if (dineSection) dineSection.style.display = 'none';
+    if (asportoSection) asportoSection.style.display = 'block';
     if (SETTINGS.takeaway_enabled) {
       var nameVal = asportoName ? asportoName.value.trim() : '';
       var timeVal = asportoTime ? asportoTime.value : '';
-      btnOrder.style.display = 'block';
-      btnOrder.disabled = (!nameVal || !timeVal);
+      if (btnOrder) { btnOrder.style.display = 'block'; btnOrder.disabled = (!nameVal || !timeVal); }
     } else {
-      btnOrder.style.display = 'none';
+      if (btnOrder) btnOrder.style.display = 'none';
     }
   } else {
-    // 堂食：显示桌号+备注，隐藏姓名+时间+外卖备注
-    btnOrder.style.display = 'none';
-    if (nameWrap) nameWrap.style.display = 'none';
-    if (timeWrap) timeWrap.style.display = 'none';
-    if (tableWrap) tableWrap.style.display = 'block';
-    var noteWrap = document.getElementById('note-wrap');
-    if (noteWrap) noteWrap.style.display = 'block';
-    var guestWrap = document.getElementById('guest-wrap');
-    if (guestWrap) guestWrap.style.display = 'block';
+    if (asportoSection) asportoSection.style.display = 'none';
+    if (dineSection) dineSection.style.display = 'block';
     var guestDisplay = document.getElementById('guest-display');
     if (guestDisplay) guestDisplay.textContent = guestCount;
-    // 加载桌号session和轮次信息
     var roundMax = SETTINGS.round_max || 0;
     var roundTotal = SETTINGS.round_total || 0;
-    var roundInfoEl = document.getElementById('round-info');
     var resetWrap = document.getElementById('reset-round-wrap');
     if (roundMax > 0 || roundTotal > 0) {
-      if (roundInfoEl) roundInfoEl.style.display = 'block';
       if (resetWrap) resetWrap.style.display = 'block';
       if (tVal) loadTableSession(tVal);
       else updateRoundUI();
     } else {
-      if (roundInfoEl) roundInfoEl.style.display = 'none';
       if (resetWrap) resetWrap.style.display = 'none';
     }
-    var asportoNoteWrap2 = document.getElementById('asporto-note-wrap');
-    if (asportoNoteWrap2) asportoNoteWrap2.style.display = 'none';
-    if (SETTINGS.notify_enabled) {
-      btnNotify.style.display = 'block';
-      btnNotify.disabled = !tVal;
-    } else {
-      btnNotify.style.display = 'none';
+    if (btnNotify) {
+      if (SETTINGS.notify_enabled) {
+        btnNotify.style.display = 'block';
+        btnNotify.disabled = !tVal;
+      } else {
+        btnNotify.style.display = 'none';
+      }
     }
   }
+  $('cart-badge').textContent = n > 0 ? n : '0';
 }
+
 
 function renderCartBody() {
   var el = document.getElementById('cart-body');
@@ -1691,11 +1638,14 @@ function closeCart() {
 document.getElementById('cart-fab').onclick = openCart;
 document.getElementById('cart-close').onclick = closeCart;
 document.getElementById('cart-overlay').onclick = closeCart;
-document.getElementById('btn-clear').onclick = function() {
-  cart = {};
-  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
-  updateCartUI();
-};
+['btn-clear-dine','btn-clear-asporto','btn-clear'].forEach(function(btnId){
+  var btn = document.getElementById(btnId);
+  if(btn) btn.onclick = function() {
+    cart = {};
+    ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+    updateCartUI();
+  };
+});
 
 // 搜索
 document.getElementById('search-input').addEventListener('input', function() {
