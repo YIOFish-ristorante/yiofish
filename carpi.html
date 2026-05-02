@@ -1167,18 +1167,20 @@ function toast(msg, duration) {
 }
 
 function cartCount() {
+  var c = isAsporto ? cart_asporto : cart_dine;
   var n = 0;
-  for (var k in cart) n += cart[k];
+  for (var k in c) n += c[k];
   return n;
 }
 
 function cartTotal() {
+  var c = isAsporto ? cart_asporto : cart_dine;
   var t = 0;
-  for (var id in cart) {
+  for (var id in c) {
     var it = getItemForMenu(id);
     if (it) {
       var p = it.sconto > 0 ? it.price * (1 - it.sconto/100) : it.price;
-      t += p * cart[id];
+      t += p * c[id];
     }
   }
   return t;
@@ -1187,8 +1189,9 @@ function cartTotal() {
 function fmt(n) { return '€ ' + Number(n).toFixed(2).replace('.', ','); }
 
 function addItem(it) {
+  var activeDine = !isAsporto; // 是否堂食
   var mq = it.max_qty || 0;
-  var cur = cart[it.id] || 0;
+  var cur = (isAsporto ? cart_asporto : cart_dine)[it.id] || 0;
 
   // 检查单品最大数量
   if (mq > 0 && cur >= mq) {
@@ -1248,7 +1251,11 @@ function addItem(it) {
     }
   }
 
-  cart[it.id] = cur + 1;
+  if (isAsporto) {
+    cart_asporto[it.id] = (cart_asporto[it.id] || 0) + 1;
+  } else {
+    cart_dine[it.id] = (cart_dine[it.id] || 0) + 1;
+  }
   updateItemUI(it.id);
   updateCartUI();
 }
@@ -1277,11 +1284,12 @@ function getCatName(catId) {
 }
 
 function changeQty(it, d) {
+  var c = isAsporto ? cart_asporto : cart_dine;
   var mq = it.max_qty || 0;
-  var nv = Math.max(0, (cart[it.id] || 0) + d);
+  var nv = Math.max(0, (c[it.id] || 0) + d);
   if (d > 0 && mq > 0 && nv > mq) nv = mq;
-  cart[it.id] = nv;
-  if (cart[it.id] === 0) delete cart[it.id];
+  c[it.id] = nv;
+  if (c[it.id] === 0) delete c[it.id];
   updateItemUI(it.id);
   updateCartUI();
 }
@@ -1291,7 +1299,7 @@ function updateItemUI(itemId) {
   if (!el) return;
   var it = getItemForMenu(itemId);
   if (!it) return;
-  var q = cart[itemId] || 0;
+  var q = (isAsporto ? cart_asporto : cart_dine)[itemId] || 0;
   el.innerHTML = '';
   if (q === 0) {
     var btn = document.createElement('button');
@@ -1387,7 +1395,8 @@ function renderCartBody() {
     return;
   }
   el.innerHTML = '';
-  for (var id in cart) {
+  var activeCart = isAsporto ? cart_asporto : cart_dine;
+  for (var id in activeCart) {
     (function(id, qty) {
       var it = getItemForMenu(id);
       if (!it) return;
@@ -1418,7 +1427,7 @@ function renderCartBody() {
       qc.appendChild(bm); qc.appendChild(sp); qc.appendChild(bp);
       row.appendChild(th); row.appendChild(info); row.appendChild(qc);
       el.appendChild(row);
-    })(id, cart[id]);
+    })(id, c[id]);
   }
   // 更新合计
   var tot = document.getElementById('cart-total');
@@ -1560,7 +1569,7 @@ function canAddItem() {
           if ((parseFloat(kit.menus[mid].price) || 0) > 0) { kitHasPrice = true; break; }
         }
       }
-      if (!kitHasPrice) thisRoundCount += cart[k];
+      if (!kitHasPrice) thisRoundCount += cart_dine[k];
     }
   }
   if (thisRoundCount >= roundMax * guestCount) {
@@ -1606,9 +1615,9 @@ function sendNotify() {
   var note = (document.getElementById('order-note') || {}).value || '';
   note = note.trim();
   var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Carpi*', '', '🪑 Tavolo: ' + tableNum, ''];
-  for (var id in cart) {
+  for (var id in cart_dine) {
     var it = getItemForMenu(id);
-    if (it) lines.push('• ' + it.name + ' x' + cart[id]);
+    if (it) lines.push('• ' + it.name + ' x' + cart_dine[id]);
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
   if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
@@ -1674,9 +1683,9 @@ function sendOrder() {
   var note = (document.getElementById('asporto-note') || {}).value || '';
   note = note.trim();
   var lines = ['📦 *ORDINE ASPORTO - Yio Fish Carpi*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orario, ''];
-  for (var id in cart) {
+  for (var id in cart_asporto) {
     var it = getItemForMenu(id);
-    if (it) lines.push('• ' + it.name + ' x' + cart[id] + (it.price > 0 ? ' (' + fmt(it.price * cart[id]) + ')' : ''));
+    if (it) lines.push('• ' + it.name + ' x' + cart_asporto[id] + (it.price > 0 ? ' (' + fmt(it.price * cart_asporto[id]) + ')' : ''));
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
   if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
@@ -1700,14 +1709,18 @@ function closeCart() {
 document.getElementById('cart-fab').onclick = openCart;
 document.getElementById('cart-close').onclick = closeCart;
 document.getElementById('cart-overlay').onclick = closeCart;
-['btn-clear-dine','btn-clear-asporto','btn-clear'].forEach(function(btnId){
-  var btn = document.getElementById(btnId);
-  if(btn) btn.onclick = function() {
-    cart = {};
-    ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
-    updateCartUI();
-  };
-});
+var btnDine = document.getElementById('btn-clear-dine');
+if (btnDine) btnDine.onclick = function() {
+  cart_dine = {};
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+  updateCartUI();
+};
+var btnAsp = document.getElementById('btn-clear-asporto');
+if (btnAsp) btnAsp.onclick = function() {
+  cart_asporto = {};
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+  updateCartUI();
+};
 
 // 搜索
 document.getElementById('search-input').addEventListener('input', function() {
