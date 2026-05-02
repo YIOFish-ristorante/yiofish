@@ -506,7 +506,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <div class="cinfo" id="cart-info"></div>
     <div class="table-input-wrap" id="table-input-wrap">
       <label>Numero tavolo</label>
-      <input type="text" id="table-number" placeholder="Es. 12" oninput="updateCartButtons()">
+      <input type="text" id="table-number" placeholder="Es. 12" oninput="updateCartButtons();var tv=this.value.trim();if(tv)loadTableSession(tv);">
     </div>
     <div class="table-input-wrap" id="guest-wrap" style="display:none">
       <label>Numero persone</label>
@@ -514,6 +514,10 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <div style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;font-size:15px;color:var(--text2);text-align:center;" id="guest-display">1</div>
         <button onclick="changeGuestCount()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 14px;font-size:12px;color:#1a1510;cursor:pointer;letter-spacing:1px;">MODIFICA</button>
       </div>
+    </div>
+    <div id="round-info" style="display:none"></div>
+    <div id="reset-round-wrap" style="display:none;text-align:center;padding:4px 0;">
+      <button onclick="confirmResetRound()" style="background:transparent;border:1px solid rgba(231,76,60,.4);border-radius:var(--r);padding:6px 14px;font-size:11px;color:#e74c3c;cursor:pointer;letter-spacing:1px;">🔄 RESET TAVOLO</button>
     </div>
     <div class="table-input-wrap" id="note-wrap" style="display:none">
       <label>Note (opzionale)</label>
@@ -637,6 +641,8 @@ var MENU_CONFIG = {
 var cart = {};  // { itemId: qty }
 var guestCount = 1;  // 人数（服务员控制）
 var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
+var _tableSession = null;  // 当前桌号的轮次状态
+var _roundCartCount = 0;   // 本轮已点道数
 var currentMenuId = null;
 var isAsporto = false;
 
@@ -1163,38 +1169,49 @@ function addItem(it) {
     return;
   }
 
-  // 检查菜单级别限制（包含当前要加的这道菜）
-  if (currentMenuId) {
-    var menuLimit = (MENU_CONFIGS[currentMenuId] && MENU_CONFIGS[currentMenuId].menuLimit) || 0;
-    if (menuLimit > 0) {
-      var menuTotal = 0;
-      for (var k in cart) {
-        var kit = getItemById(k);
-        if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on) {
-          menuTotal += cart[k];
+  // 价格>0的菜不受任何限制
+  var hasPrice = (it.price || 0) > 0;
+
+  if (!hasPrice) {
+    // 检查轮次限制
+    var roundCheck = canAddItem();
+    if (!roundCheck.ok) {
+      toast('⚠️ ' + roundCheck.msg);
+      return;
+    }
+
+    // 检查菜单级别限制（只计算price=0的菜）
+    if (currentMenuId) {
+      var menuLimit = (MENU_CONFIGS[currentMenuId] && MENU_CONFIGS[currentMenuId].menuLimit) || 0;
+      if (menuLimit > 0) {
+        var menuTotal = 0;
+        for (var k in cart) {
+          var kit = getItemById(k);
+          if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on && !(kit.price > 0)) {
+            menuTotal += cart[k];
+          }
+        }
+        if (menuTotal + 1 > menuLimit * guestCount) {
+          toast('⚠️ Limite menu: max ' + (menuLimit * guestCount) + ' piatti (' + menuLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
+          return;
         }
       }
-      // menuTotal是现有数量，加1后是否超限
-      if (menuTotal + 1 > menuLimit * guestCount) {
-        toast('⚠️ Limite menu: max ' + (menuLimit * guestCount) + ' piatti (' + menuLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
+    }
+
+    // 检查分类级别限制（只计算price=0的菜）
+    var catLimit = getCatLimit(it.category);
+    if (catLimit > 0) {
+      var catTotal = 0;
+      for (var k2 in cart) {
+        var kit2 = getItemById(k2);
+        if (kit2 && kit2.category === it.category && !(kit2.price > 0)) {
+          catTotal += cart[k2];
+        }
+      }
+      if (catTotal + 1 > catLimit * guestCount) {
+        toast('⚠️ Limite categoria ' + getCatName(it.category) + ': max ' + (catLimit * guestCount) + ' piatti (' + catLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
         return;
       }
-    }
-  }
-
-  // 检查分类级别限制（包含当前要加的这道菜）
-  var catLimit = getCatLimit(it.category);
-  if (catLimit > 0) {
-    var catTotal = 0;
-    for (var k2 in cart) {
-      var kit2 = getItemById(k2);
-      if (kit2 && kit2.category === it.category) {
-        catTotal += cart[k2];
-      }
-    }
-    if (catTotal + 1 > catLimit * guestCount) {
-      toast('⚠️ Limite categoria ' + getCatName(it.category) + ': max ' + (catLimit * guestCount) + ' piatti (' + catLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
-      return;
     }
   }
 
@@ -1373,6 +1390,20 @@ function updateCartButtons() {
     if (guestWrap) guestWrap.style.display = 'block';
     var guestDisplay = document.getElementById('guest-display');
     if (guestDisplay) guestDisplay.textContent = guestCount;
+    // 加载桌号session和轮次信息
+    var roundMax = SETTINGS.round_max || 0;
+    var roundTotal = SETTINGS.round_total || 0;
+    var roundInfoEl = document.getElementById('round-info');
+    var resetWrap = document.getElementById('reset-round-wrap');
+    if (roundMax > 0 || roundTotal > 0) {
+      if (roundInfoEl) roundInfoEl.style.display = 'block';
+      if (resetWrap) resetWrap.style.display = 'block';
+      if (tVal) loadTableSession(tVal);
+      else updateRoundUI();
+    } else {
+      if (roundInfoEl) roundInfoEl.style.display = 'none';
+      if (resetWrap) resetWrap.style.display = 'none';
+    }
     var asportoNoteWrap2 = document.getElementById('asporto-note-wrap');
     if (asportoNoteWrap2) asportoNoteWrap2.style.display = 'none';
     if (SETTINGS.notify_enabled) {
@@ -1438,6 +1469,134 @@ function renderCartBody() {
 }
 
 // 叫服务员
+// ════════════════════════════════════
+//  轮次控制
+// ════════════════════════════════════
+
+async function loadTableSession(tableNum) {
+  if (!tableNum) { _tableSession = null; _roundCartCount = 0; return; }
+  try {
+    var res = await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum) + '&select=*');
+    var data = await res.json();
+    if (data && data[0]) {
+      var s = data[0];
+      // 检查是否超过4小时自动重置
+      var created = new Date(s.created_at);
+      var now = new Date();
+      if ((now - created) > 4 * 60 * 60 * 1000) {
+        await resetTableSession(tableNum);
+        return;
+      }
+      _tableSession = s;
+    } else {
+      _tableSession = null;
+    }
+    updateRoundUI();
+  } catch(e) { console.log('loadTableSession error:', e); }
+}
+
+async function resetTableSession(tableNum) {
+  if (!tableNum) return;
+  try {
+    // 删除旧记录
+    await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
+    _tableSession = null;
+    _roundCartCount = 0;
+    updateRoundUI();
+    toast('✅ Tavolo ' + tableNum + ' resettato');
+  } catch(e) { toast('❌ Errore reset: ' + e.message); }
+}
+
+async function recordRoundSent(tableNum) {
+  if (!tableNum) return;
+  var roundMax = SETTINGS.round_max || 0;
+  var roundTotal = SETTINGS.round_total || 0;
+  if (roundMax === 0 && roundTotal === 0) return; // 未启用轮次控制
+  try {
+    var now = new Date().toISOString();
+    if (_tableSession) {
+      var newRound = (_tableSession.round_number || 1) + 1;
+      await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {
+        method: 'PATCH',
+        body: JSON.stringify({round_number: newRound, last_sent_at: now})
+      });
+      _tableSession.round_number = newRound;
+      _tableSession.last_sent_at = now;
+    } else {
+      await sbFetch('table_sessions', {
+        method: 'POST',
+        body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: tableNum, round_number: 1, last_sent_at: now})
+      });
+      _tableSession = {round_number: 1, last_sent_at: now};
+    }
+    _roundCartCount = 0;
+    updateRoundUI();
+  } catch(e) { console.log('recordRoundSent error:', e); }
+}
+
+function getRoundStatus() {
+  var roundMax = SETTINGS.round_max || 0;
+  var roundTotal = SETTINGS.round_total || 0;
+  var roundInterval = SETTINGS.round_interval || 0;
+  if (roundMax === 0 && roundTotal === 0) return {ok: true}; // 未启用
+
+  var currentRound = _tableSession ? (_tableSession.round_number || 1) : 1;
+  var lastSent = _tableSession ? _tableSession.last_sent_at : null;
+
+  // 检查是否超过总轮数
+  if (roundTotal > 0 && currentRound > roundTotal) {
+    return {ok: false, msg: 'Hai completato tutti i ' + roundTotal + ' turni'};
+  }
+
+  // 检查间隔时间
+  if (lastSent && roundInterval > 0) {
+    var elapsed = (new Date() - new Date(lastSent)) / 60000; // 分uti
+    if (elapsed < roundInterval) {
+      var remaining = Math.ceil(roundInterval - elapsed);
+      return {ok: false, msg: 'Prossimo turno tra ' + remaining + ' minut' + (remaining===1?'o':'i'), countdown: remaining};
+    }
+  }
+
+  return {ok: true, round: currentRound, roundTotal: roundTotal, roundMax: roundMax};
+}
+
+function updateRoundUI() {
+  var status = getRoundStatus();
+  var roundMax = SETTINGS.round_max || 0;
+  var roundTotal = SETTINGS.round_total || 0;
+  if (roundMax === 0 && roundTotal === 0) return;
+
+  var roundInfoEl = document.getElementById('round-info');
+  if (!roundInfoEl) return;
+
+  var currentRound = _tableSession ? (_tableSession.round_number || 1) : 1;
+
+  if (!status.ok) {
+    roundInfoEl.innerHTML = '<div style="color:#e74c3c;font-size:12px;text-align:center;padding:8px;">⏳ ' + status.msg + '</div>';
+  } else {
+    var roundText = roundTotal > 0 ? 'Turno ' + currentRound + '/' + roundTotal : 'Turno ' + currentRound;
+    var maxText = roundMax > 0 ? ' · max ' + (roundMax * guestCount) + ' piatti' : '';
+    roundInfoEl.innerHTML = '<div style="color:var(--gold);font-size:11px;text-align:center;padding:6px;">🍽️ ' + roundText + maxText + '</div>';
+  }
+}
+
+function canAddItem() {
+  var roundMax = SETTINGS.round_max || 0;
+  if (roundMax === 0) return {ok: true};
+  var status = getRoundStatus();
+  if (!status.ok) return {ok: false, msg: status.msg};
+  // 只计算price=0的菜的数量
+  var thisRoundCount = 0;
+  for (var k in cart) {
+    var kit = getItemById(k);
+    if (kit && !(kit.price > 0)) thisRoundCount += cart[k];
+  }
+  if (thisRoundCount >= roundMax * guestCount) {
+    return {ok: false, msg: 'Limite turno: max ' + (roundMax * guestCount) + ' piatti per questo turno'};
+  }
+  return {ok: true};
+}
+
 // 修改人数（需要服务员密码）
 function changeGuestCount() {
   var pwd = prompt('Inserisci il codice cameriere:');
@@ -1458,6 +1617,15 @@ function changeGuestCount() {
   if (guestDisplay) guestDisplay.textContent = guestCount;
   updateCartUI();
   toast('👥 ' + guestCount + ' ' + (guestCount === 1 ? 'persona' : 'persone'));
+}
+
+function confirmResetRound() {
+  var pwd = prompt('Codice cameriere per reset:');
+  if (pwd === null) return;
+  if (pwd !== WAITER_PASSWORD) { alert('Codice non corretto.'); return; }
+  var tableNum = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
+  if (!tableNum) { alert('Inserisci prima il numero del tavolo.'); return; }
+  resetTableSession(tableNum);
 }
 
 function sendNotify() {

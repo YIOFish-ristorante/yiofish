@@ -1775,6 +1775,29 @@ function renderSettings(){
       +'</div>'
     +'</div>'
     +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+      +'<div class="s-label" style="padding:0 0 12px">🍽️ 点餐轮次控制</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">控制每桌客人的点餐节奏</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:8px;">'
+        +'<div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">每轮最多道数</div>'
+          +'<input id="round-max-input" type="number" min="0" value="'+(s.round_max||0)+'"'
+          +' style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 10px;font-size:14px;color:var(--text2);outline:none;text-align:center;">'
+        +'</div>'
+        +'<div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">总轮数</div>'
+          +'<input id="round-total-input" type="number" min="0" value="'+(s.round_total||0)+'"'
+          +' style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 10px;font-size:14px;color:var(--text2);outline:none;text-align:center;">'
+        +'</div>'
+        +'<div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">间隔分钟</div>'
+          +'<input id="round-interval-input" type="number" min="0" value="'+(s.round_interval||0)+'"'
+          +' style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 10px;font-size:14px;color:var(--text2);outline:none;text-align:center;">'
+        +'</div>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--muted);margin-bottom:10px;">设为0表示不限制</div>'
+      +'<button onclick="saveRoundSettings()" style="background:var(--gold);border:none;border-radius:var(--r);padding:8px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存轮次设置</button>'
+    +'</div>'
+    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">🔑 服务员密码</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">客人修改人数时需要输入此密码（初始：5555）</div>'
       +'<div style="display:flex;gap:8px;">'
@@ -1839,6 +1862,21 @@ function makeSwitch(key, val, label, desc){
       +'</div>'
     +'</div>'
   +'</div>';
+}
+
+async function saveRoundSettings() {
+  var max = parseInt(document.getElementById('round-max-input').value) || 0;
+  var total = parseInt(document.getElementById('round-total-input').value) || 0;
+  var interval = parseInt(document.getElementById('round-interval-input').value) || 0;
+  try {
+    markDirty();
+    await saveSettingsToDB({round_max: max, round_total: total, round_interval: interval});
+    _SETTINGS.round_max = max;
+    _SETTINGS.round_total = total;
+    _SETTINGS.round_interval = interval;
+    markSaved();
+    toast('✅ 轮次设置已保存');
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
 }
 
 async function saveWaiterPassword() {
