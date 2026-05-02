@@ -1360,7 +1360,8 @@ function updateCartButtons() {
       }
     }
   }
-  $('cart-badge').textContent = n > 0 ? n : '0';
+  var badge = document.getElementById('cart-badge');
+  if (badge) badge.textContent = n > 0 ? n : '0';
 }
 
 
