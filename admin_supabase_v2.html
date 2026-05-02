@@ -176,6 +176,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 
 @media(max-width:640px){.sidebar{display:none;}.content{padding:18px 14px 60px;}}
 
+.btn-green{background:#27ae60;color:#fff;}.btn-green:hover{background:#2ecc71;}
+.btn-green:disabled{background:#95a5a6;cursor:default;}
+.publish-status{font-size:10px;color:rgba(244,241,236,.4);margin-left:8px;}
 /* LOADING OVERLAY */
 #loading-overlay{position:fixed;inset:0;background:rgba(26,21,16,.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 .loading-spinner{width:40px;height:40px;border:3px solid rgba(212,171,72,.2);border-top-color:#d4ab48;border-radius:50%;animation:spin .8s linear infinite;}
@@ -195,6 +198,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
     <button class="btn btn-ghost btn-sm" onclick="showPage('settings')">⚙️ 设置</button>
+    <button class="btn btn-green btn-sm" id="publish-btn" onclick="publishMenu()">🚀 发布菜单</button>
     <button class="btn btn-gold btn-sm" onclick="showPage('export')">⬇ 导出菜单</button>
   </div>
 </div>
@@ -1501,6 +1505,44 @@ function dlAll(){
   }
 }
 
+
+
+// ════════════════════════════════════
+//  发布菜单
+// ════════════════════════════════════
+var _lastPublished = null;
+
+async function publishMenu() {
+  var btn = $('publish-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 发布中…'; }
+  try {
+    var now = new Date().toISOString();
+    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID, {
+      method: 'PATCH',
+      body: JSON.stringify({ published_at: now })
+    });
+    if (!res.ok) throw new Error('发布失败');
+    _lastPublished = now;
+    var timeStr = new Date(now).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+    toast('🚀 菜单已发布！' + timeStr);
+    if (btn) { btn.disabled = false; btn.textContent = '🚀 发布菜单'; }
+    // 更新发布时间显示
+    updatePublishStatus(timeStr);
+  } catch(e) {
+    toast('❌ 发布失败: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '🚀 发布菜单'; }
+  }
+}
+
+function updatePublishStatus(timeStr) {
+  var existing = document.querySelector('.publish-status');
+  if (existing) existing.remove();
+  var span = document.createElement('span');
+  span.className = 'publish-status';
+  span.textContent = '上次发布: ' + timeStr;
+  var btn = $('publish-btn');
+  if (btn && btn.parentNode) btn.parentNode.insertBefore(span, btn.nextSibling);
+}
 
 // ════════════════════════════════════
 //  设置页面
