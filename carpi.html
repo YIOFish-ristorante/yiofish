@@ -531,9 +531,11 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <textarea id="order-note" placeholder="Note (opzionale): allergie, richieste speciali..."
         style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:65px;font-family:inherit;margin-bottom:8px;"></textarea>
       <!-- 按钮行 -->
-      <div style="display:flex;gap:8px;">
-        <button class="obtn-notify" id="btn-notify" onclick="sendNotify()" style="flex:3;">🔔 CHIAMA IL CAMERIERE</button>
-        <button class="clr" id="btn-clear-dine" style="flex:1;">Svuota</button>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button id="btn-notify" onclick="sendNotify()"
+          style="flex:1;background:#27ae60;border:none;border-radius:var(--r);padding:12px 8px;font-size:12px;letter-spacing:1px;color:#fff;cursor:pointer;font-family:inherit;font-weight:500;">🔔 CHIAMA IL CAMERIERE</button>
+        <button id="btn-clear-dine"
+          style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:var(--r);padding:12px 8px;font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;">Svuota</button>
       </div>
     </div>
 
@@ -553,9 +555,11 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <textarea id="asporto-note" placeholder="Note (opzionale): allergie, richieste speciali..."
         style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:65px;font-family:inherit;margin-bottom:8px;"></textarea>
       <!-- 按钮行 -->
-      <div style="display:flex;gap:8px;">
-        <button class="obtn" id="btn-order" onclick="sendOrder()" disabled style="flex:3;">📦 INVIA ORDINE ASPORTO</button>
-        <button class="clr" id="btn-clear-asporto" style="flex:1;">Svuota</button>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button id="btn-order" onclick="sendOrder()" disabled
+          style="flex:1;background:#d4ab48;border:none;border-radius:var(--r);padding:12px 8px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-family:inherit;font-weight:500;">📦 ASPORTO</button>
+        <button id="btn-clear-asporto"
+          style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:var(--r);padding:12px 8px;font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;">Svuota</button>
       </div>
     </div>
 
@@ -1192,50 +1196,54 @@ function addItem(it) {
     return;
   }
 
-  // 价格>0的菜不受任何限制
-  // it.price已经是当前菜单的price（由openMenuView的Object.assign设置）
-  var hasPrice = (parseFloat(it.price) || 0) > 0;
+  // 外卖无限制
+  if (!isAsporto) {
+    var hasPrice = (parseFloat(it.price) || 0) > 0;
 
-  if (!hasPrice) {
-    // 检查轮次限制
-    var roundCheck = canAddItem();
-    if (!roundCheck.ok) {
-      toast('⚠️ ' + roundCheck.msg);
-      return;
-    }
+    if (!hasPrice) {
+      // 检查轮次限制
+      var roundCheck = canAddItem();
+      if (!roundCheck.ok) {
+        toast('⚠️ ' + roundCheck.msg);
+        return;
+      }
 
-    // 检查菜单级别限制（只计算price=0的菜，用当前菜单的价格判断）
-    if (currentMenuId) {
-      var menuLimit = (MENU_CONFIGS[currentMenuId] && MENU_CONFIGS[currentMenuId].menuLimit) || 0;
-      if (menuLimit > 0) {
-        var menuTotal = 0;
-        for (var k in cart_dine) {
-          var kit = getItemById(k);
-          if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on) {
-            var kitPrice = parseFloat(kit.menus[currentMenuId].price) || 0;
-            if (kitPrice === 0) menuTotal += cart_dine[k];
+      // 检查菜单级别限制 - 只计算cart_dine里price=0的菜
+      if (currentMenuId) {
+        var menuLimit = (MENU_CONFIGS[currentMenuId] && MENU_CONFIGS[currentMenuId].menuLimit) || 0;
+        if (menuLimit > 0) {
+          var menuTotal = 0;
+          for (var k in cart_dine) {
+            var kit = getItemById(k);
+            if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on) {
+              if ((parseFloat(kit.menus[currentMenuId].price) || 0) === 0) {
+                menuTotal += cart_dine[k];
+              }
+            }
+          }
+          if (menuTotal >= menuLimit * guestCount) {
+            toast('⚠️ Limite menu: max ' + (menuLimit * guestCount) + ' piatti (' + menuLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
+            return;
           }
         }
-        if (menuTotal >= menuLimit * guestCount) {
-          toast('⚠️ Limite menu: max ' + (menuLimit * guestCount) + ' piatti (' + menuLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
+      }
+
+      // 检查分类级别限制
+      var catLimit = getCatLimit(it.category);
+      if (catLimit > 0) {
+        var catTotal = 0;
+        for (var k2 in cart_dine) {
+          var kit2 = getItemById(k2);
+          if (kit2 && kit2.category === it.category) {
+            if ((parseFloat(kit2.menus && kit2.menus[currentMenuId] && kit2.menus[currentMenuId].price) || 0) === 0) {
+              catTotal += cart_dine[k2];
+            }
+          }
+        }
+        if (catTotal >= catLimit * guestCount) {
+          toast('⚠️ Limite categoria ' + getCatName(it.category) + ': max ' + (catLimit * guestCount) + ' piatti (' + catLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
           return;
         }
-      }
-    }
-
-    // 检查分类级别限制（只计算price=0的菜）
-    var catLimit = getCatLimit(it.category);
-    if (catLimit > 0) {
-      var catTotal = 0;
-      for (var k2 in cart) {
-        var kit2 = getItemById(k2);
-        if (kit2 && kit2.category === it.category && !(kit2.price > 0)) {
-          catTotal += cart[k2];
-        }
-      }
-      if (catTotal >= catLimit * guestCount) {
-        toast('⚠️ Limite categoria ' + getCatName(it.category) + ': max ' + (catLimit * guestCount) + ' piatti (' + catLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
-        return;
       }
     }
   }
@@ -1244,6 +1252,7 @@ function addItem(it) {
   updateItemUI(it.id);
   updateCartUI();
 }
+
 
 function getItemById(id) {
   var sid = String(id);
@@ -1612,36 +1621,45 @@ function buildAsportoTimes() {
   if (!sel) return;
   sel.innerHTML = '<option value="">Seleziona orario...</option>';
   var now = new Date();
-  var romeOffset = 60; // CET, adjust for DST if needed
+  // 意大利时间（UTC+1或UTC+2夏令时）
+  var isDST = (function() {
+    var jan = new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+    var jul = new Date(now.getFullYear(), 6, 1).getTimezoneOffset();
+    return now.getTimezoneOffset() < Math.max(jan, jul);
+  })();
+  var romeOffset = isDST ? 120 : 60;
   var romeMinutes = now.getUTCHours() * 60 + now.getUTCMinutes() + romeOffset;
   if (romeMinutes >= 1440) romeMinutes -= 1440;
+
   var slots = [];
-  // 午餐时段：12:00-15:00，每30分钟
   var lunchStart = 12*60, lunchEnd = 15*60;
-  // 晚餐时段：19:00-23:00，每30分钟
   var dinnerStart = 19*60, dinnerEnd = 23*60;
-  var minTime = romeMinutes + 30; // 至少30分钟后
+  var minTime = romeMinutes + 30;
+
+  // 今天的时间段
   for (var t = lunchStart; t <= lunchEnd; t += 30) {
-    if (t >= minTime) {
-      var h = Math.floor(t/60), m = t%60;
-      slots.push((h<10?'0':'')+h+':'+(m<10?'0':'')+m);
-    }
+    if (t >= minTime) slots.push((Math.floor(t/60)<10?'0':'')+Math.floor(t/60)+':'+(t%60<10?'0':'')+t%60);
   }
   for (var t2 = dinnerStart; t2 <= dinnerEnd; t2 += 30) {
-    if (t2 >= minTime) {
-      var h2 = Math.floor(t2/60), m2 = t2%60;
-      slots.push((h2<10?'0':'')+h2+':'+(m2<10?'0':'')+m2);
+    if (t2 >= minTime) slots.push((Math.floor(t2/60)<10?'0':'')+Math.floor(t2/60)+':'+(t2%60<10?'0':'')+t2%60);
+  }
+
+  // 如果今天没有时间了，显示明天的时间
+  var prefix = '';
+  if (slots.length === 0) {
+    prefix = 'Domani · ';
+    for (var t3 = lunchStart; t3 <= lunchEnd; t3 += 30) {
+      slots.push(prefix+(Math.floor(t3/60)<10?'0':'')+Math.floor(t3/60)+':'+(t3%60<10?'0':'')+t3%60);
+    }
+    for (var t4 = dinnerStart; t4 <= dinnerEnd; t4 += 30) {
+      slots.push(prefix+(Math.floor(t4/60)<10?'0':'')+Math.floor(t4/60)+':'+(t4%60<10?'0':'')+t4%60);
     }
   }
-  if (slots.length === 0) {
-    // 非营业时间，显示明天的时间
-    sel.innerHTML = '<option value="">Non disponibile ora</option>';
-    return;
-  }
-  slots.forEach(function(t) {
+
+  slots.forEach(function(s) {
     var opt = document.createElement('option');
-    opt.value = t;
-    opt.textContent = t;
+    opt.value = s;
+    opt.textContent = s;
     sel.appendChild(opt);
   });
 }
