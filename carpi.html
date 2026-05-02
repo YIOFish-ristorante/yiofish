@@ -1160,7 +1160,6 @@ function cartTotal() {
 function fmt(n) { return '€ ' + Number(n).toFixed(2).replace('.', ','); }
 
 function addItem(it) {
-  console.log('[addItem] id:', it.id, 'price:', it.price, 'cart:', JSON.stringify(cart), 'menuId:', currentMenuId);
   var mq = it.max_qty || 0;
   var cur = cart[it.id] || 0;
 
@@ -1194,7 +1193,8 @@ function addItem(it) {
             if (kitPrice === 0) menuTotal += cart[k];
           }
         }
-        if (menuTotal + 1 > menuLimit * guestCount) {
+        console.log('[LIMIT] menuTotal:', menuTotal, 'menuLimit:', menuLimit, 'guestCount:', guestCount, 'block:', menuTotal >= menuLimit * guestCount);
+        if (menuTotal >= menuLimit * guestCount) {
           toast('⚠️ Limite menu: max ' + (menuLimit * guestCount) + ' piatti (' + menuLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
           return;
         }
@@ -1211,7 +1211,7 @@ function addItem(it) {
           catTotal += cart[k2];
         }
       }
-      if (catTotal + 1 > catLimit * guestCount) {
+      if (catTotal >= catLimit * guestCount) {
         toast('⚠️ Limite categoria ' + getCatName(it.category) + ': max ' + (catLimit * guestCount) + ' piatti (' + catLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
         return;
       }
