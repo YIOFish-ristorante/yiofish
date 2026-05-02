@@ -38,12 +38,17 @@
   --transition: 0.22s cubic-bezier(.4,0,.2,1);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow: hidden; width: 100%; height: 100%; }
 body {
   min-height: 100vh;
   background: var(--bg);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "DM Sans", sans-serif;
   color: var(--text);
   overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  width: 100%;
+  height: 100%;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -924,6 +929,13 @@ function renderMenuItems(items) {
       var sec = document.getElementById('sec-' + cat.id);
       if (sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
       scrollLockTimer = setTimeout(function(){ scrollLock = false; }, 1000);
+      // 手动滚动分类导航，不用scrollIntoView避免页面横向偏移
+      var navEl = document.getElementById('catnav-inner');
+      var activeBtn = navEl ? navEl.querySelector('.cbtn.active') : null;
+      if (activeBtn && navEl && navEl.parentNode) {
+        var nav = navEl.parentNode;
+        nav.scrollLeft = activeBtn.offsetLeft - nav.offsetWidth/2 + activeBtn.offsetWidth/2;
+      }
     };
     nav.appendChild(btn);
     firstCat = false;
@@ -963,7 +975,10 @@ function renderMenuItems(items) {
         document.querySelectorAll('.cbtn').forEach(function(b) {
           var active = b.getAttribute('data-id') === cid;
           b.className = 'cbtn' + (active ? ' active' : '');
-          if (active) b.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+          if (active) {
+            var nav = b.parentNode ? b.parentNode.parentNode : null;
+            if (nav) nav.scrollLeft = b.offsetLeft - nav.offsetWidth/2 + b.offsetWidth/2;
+          }
         });
       }
     });
