@@ -187,10 +187,10 @@ body {
 
 /* Toast提示 */
 #toast {
-  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-  background: rgba(30,25,18,.95); border: 1px solid rgba(212,171,72,.3);
-  color: #f4f1ec; padding: 10px 20px; border-radius: 20px;
-  font-size: 13px; letter-spacing: .5px; z-index: 9999;
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+  background: rgba(30,25,18,.97); border: 1px solid rgba(212,171,72,.5);
+  color: #f4f1ec; padding: 12px 24px; border-radius: 20px;
+  font-size: 13px; letter-spacing: .5px; z-index: 99999;
   opacity: 0; transition: opacity .2s; pointer-events: none;
   white-space: nowrap; max-width: 90vw; text-align: center;
 }
@@ -421,6 +421,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 </style>
 </head>
 <body>
+<div id="toast"></div>
 
 <div id="loading-overlay">
   <div class="loading-spinner"></div>
@@ -476,7 +477,6 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
   </header>
   <nav class="catnav"><div class="catnav-inner" id="catnav-inner"></div></nav>
   <main id="menu-main"></main>
-  <div id="toast"></div>
   <div class="toolbar">
     <button class="back-fab" id="back-fab" onclick="closeMenuView()">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
@@ -521,11 +521,11 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <button onclick="changeGuestCount()"
           style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 12px;font-size:11px;color:#1a1510;cursor:pointer;letter-spacing:1px;flex-shrink:0;margin-top:18px;">MODIFICA</button>
       </div>
-      <!-- 轮次信息 -->
-      <div id="round-info"></div>
-      <div id="reset-round-wrap" style="display:none;text-align:center;padding:4px 0 8px;">
-        <button onclick="confirmResetRound()"
-          style="background:transparent;border:1px solid rgba(231,76,60,.4);border-radius:var(--r);padding:6px 14px;font-size:11px;color:#e74c3c;cursor:pointer;letter-spacing:1px;">🔄 RESET TAVOLO</button>
+      <!-- 轮次信息+重置同一行 -->
+      <div id="round-row" style="display:none;flex-direction:row;gap:8px;margin-bottom:8px;">
+        <div id="round-info" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:center;justify-content:center;padding:8px 6px;font-size:11px;"></div>
+        <button id="reset-round-wrap" onclick="confirmResetRound()"
+          style="flex:1;background:transparent;border:1px solid rgba(231,76,60,.4);border-radius:var(--r);padding:8px 6px;font-size:11px;color:#e74c3c;cursor:pointer;letter-spacing:.5px;">🔄 RESET TAVOLO</button>
       </div>
       <!-- 备注 -->
       <textarea id="order-note" placeholder="Note (opzionale): allergie, richieste speciali..."
@@ -1350,7 +1350,7 @@ function updateCartButtons() {
     if (SETTINGS.takeaway_enabled) {
       var nameVal = asportoName ? asportoName.value.trim() : '';
       var timeVal = asportoTime ? asportoTime.value : '';
-      if (btnOrder) { btnOrder.style.display = 'block'; btnOrder.disabled = (!nameVal || !timeVal); }
+      if (btnOrder) { btnOrder.style.display = 'block'; btnOrder.disabled = false; }
     } else {
       if (btnOrder) btnOrder.style.display = 'none';
     }
@@ -1361,13 +1361,13 @@ function updateCartButtons() {
     if (guestDisplay) guestDisplay.textContent = guestCount;
     var roundMax = SETTINGS.round_max || 0;
     var roundTotal = SETTINGS.round_total || 0;
-    var resetWrap = document.getElementById('reset-round-wrap');
+    var roundRow2 = document.getElementById('round-row');
     if (roundMax > 0 || roundTotal > 0) {
-      if (resetWrap) resetWrap.style.display = 'block';
+      if (roundRow2) roundRow2.style.display = 'flex';
       if (tVal) loadTableSession(tVal);
       else updateRoundUI();
     } else {
-      if (resetWrap) resetWrap.style.display = 'none';
+      if (roundRow2) roundRow2.style.display = 'none';
     }
     if (btnNotify) {
       if (SETTINGS.notify_enabled) {
@@ -1540,12 +1540,16 @@ function updateRoundUI() {
 
   var currentRound = _tableSession ? (_tableSession.round_number || 1) : 1;
 
+  var roundRow = document.getElementById('round-row');
+  if (roundRow) roundRow.style.display = 'flex';
   if (!status.ok) {
-    roundInfoEl.innerHTML = '<div style="color:#e74c3c;font-size:12px;text-align:center;padding:8px;">⏳ ' + status.msg + '</div>';
+    roundInfoEl.innerHTML = '⏳ ' + status.msg;
+    roundInfoEl.style.color = '#e74c3c';
   } else {
     var roundText = roundTotal > 0 ? 'Turno ' + currentRound + '/' + roundTotal : 'Turno ' + currentRound;
     var maxText = roundMax > 0 ? ' · max ' + (roundMax * guestCount) + ' piatti' : '';
-    roundInfoEl.innerHTML = '<div style="color:var(--gold);font-size:11px;text-align:center;padding:6px;">🍽️ ' + roundText + maxText + '</div>';
+    roundInfoEl.innerHTML = '🍽️ ' + roundText + maxText;
+    roundInfoEl.style.color = 'var(--gold)';
   }
 }
 
@@ -1607,8 +1611,8 @@ function confirmResetRound() {
 }
 
 function sendNotify() {
-  var tableNum = document.getElementById('table-number').value.trim();
-  if (!tableNum) { alert('Inserisci il numero del tavolo.'); return; }
+  var tableNum = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
+  if (!tableNum) { toast('⚠️ Inserisci il numero del tavolo'); return; }
   var note = (document.getElementById('order-note') || {}).value || '';
   note = note.trim();
   var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Carpi*', '', '🪑 Tavolo: ' + tableNum, ''];
@@ -1675,8 +1679,8 @@ function sendOrder() {
   var timeEl = document.getElementById('asporto-time');
   var nome = nameEl ? nameEl.value.trim() : '';
   var orario = timeEl ? timeEl.value : '';
-  if (!nome) { alert('Inserisci il tuo nome.'); return; }
-  if (!orario) { alert("Seleziona l'orario di ritiro."); return; }
+  if (!nome) { toast('⚠️ Inserisci il tuo nome'); return; }
+  if (!orario) { toast("⚠️ Seleziona l'orario di ritiro"); return; }
   var note = (document.getElementById('asporto-note') || {}).value || '';
   note = note.trim();
   var lines = ['📦 *ORDINE ASPORTO - Yio Fish Carpi*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orario, ''];
