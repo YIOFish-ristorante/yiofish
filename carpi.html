@@ -993,7 +993,6 @@ function renderMenuItems(items) {
   }
 
   // 刷新数量显示
-  console.log('[renderMenuItems] updating', items.length, 'items, currentMenuId:', currentMenuId);
   items.forEach(function(it) { updateItemUI(it.id); });
 
   // 滚动监听
@@ -1194,7 +1193,6 @@ function addItem(it) {
             if (kitPrice === 0) menuTotal += cart[k];
           }
         }
-        console.log('[LIMIT] menuTotal:', menuTotal, 'menuLimit:', menuLimit, 'guestCount:', guestCount, 'block:', menuTotal >= menuLimit * guestCount);
         if (menuTotal >= menuLimit * guestCount) {
           toast('⚠️ Limite menu: max ' + (menuLimit * guestCount) + ' piatti (' + menuLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
           return;
@@ -1222,21 +1220,6 @@ function addItem(it) {
   cart[it.id] = cur + 1;
   updateItemUI(it.id);
   updateCartUI();
-}
-
-// DEBUG - 临时调试函数
-function debugAddItem(it) {
-  console.log('[DEBUG] addItem id:', it.id, 'price:', it.price, 'cart before:', JSON.stringify(cart));
-  var menuLimit = (MENU_CONFIGS[currentMenuId] && MENU_CONFIGS[currentMenuId].menuLimit) || 0;
-  var menuTotal = 0;
-  for (var k in cart) {
-    var kit = getItemById(k);
-    if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on) {
-      var kitPrice = parseFloat(kit.menus[currentMenuId].price) || 0;
-      if (kitPrice === 0) menuTotal += cart[k];
-    }
-  }
-  console.log('[DEBUG] menuLimit:', menuLimit, 'menuTotal:', menuTotal, 'would block:', menuTotal + 1 > menuLimit * guestCount);
 }
 
 function getItemById(id) {
@@ -1272,10 +1255,9 @@ function changeQty(it, d) {
 
 function updateItemUI(itemId) {
   var el = document.getElementById('ac' + itemId);
-  if (!el) { console.log('[updateItemUI] no el for', itemId); return; }
+  if (!el) return;
   var it = getItemForMenu(itemId);
-  if (!it) { console.log('[updateItemUI] no it for', itemId, 'currentMenuId:', currentMenuId); return; }
-  console.log('[updateItemUI] id:', itemId, 'it.price:', it.price, 'it.id:', it.id);
+  if (!it) return;
   var q = cart[itemId] || 0;
   el.innerHTML = '';
   if (q === 0) {
