@@ -421,9 +421,9 @@ async function reloadDishes() {
         .forEach(function(dm) {
           menus[dm.menu_id] = {
             on: dm.enabled,
-            price: dm.price,
-            max_qty: dm.max_qty || 0,
-            sconto: dm.sconto || 0
+            price: parseFloat(dm.price) || 0,
+            max_qty: parseInt(dm.max_qty) || 0,
+            sconto: parseInt(dm.sconto) || 0
           };
         });
       return {
@@ -470,9 +470,9 @@ async function loadAll() {
         .forEach(function(dm) {
           menus[dm.menu_id] = {
             on: dm.enabled,
-            price: dm.price,
-            max_qty: dm.max_qty || 0,
-            sconto: dm.sconto || 0
+            price: parseFloat(dm.price) || 0,
+            max_qty: parseInt(dm.max_qty) || 0,
+            sconto: parseInt(dm.sconto) || 0
           };
         });
       return {
@@ -669,8 +669,8 @@ function renderDishes(){
   var rows = items.map(function(it){
     var pills = MENUS.map(function(m){
       var on = it.menus && it.menus[m.id] && it.menus[m.id].on;
-      var p = it.menus && it.menus[m.id] ? (it.menus[m.id].price||0) : 0;
-      var sc = it.menus && it.menus[m.id] ? (it.menus[m.id].sconto||0) : 0;
+      var p = parseFloat((it.menus && it.menus[m.id]) ? (it.menus[m.id].price||0) : 0);
+      var sc = parseFloat((it.menus && it.menus[m.id]) ? (it.menus[m.id].sconto||0) : 0);
       var displayP = sc > 0 ? p*(1-sc/100) : p;
       return '<span class="mpill'+(on?'':' off')+'" style="color:'+m.color+';border-color:'+m.color+'">'
         +m.icon+(on&&m.showPrice&&displayP>0?' '+fmtP(displayP):on?' ✓':' —')+'</span>';
