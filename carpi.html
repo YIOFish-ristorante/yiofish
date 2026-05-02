@@ -993,6 +993,7 @@ function renderMenuItems(items) {
   }
 
   // 刷新数量显示
+  console.log('[renderMenuItems] updating', items.length, 'items, currentMenuId:', currentMenuId);
   items.forEach(function(it) { updateItemUI(it.id); });
 
   // 滚动监听
