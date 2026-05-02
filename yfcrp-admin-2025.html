@@ -1753,6 +1753,12 @@ function renderSettings(){
         +makeSwitch('is_open', s.is_open, '🟢 营业状态', '关闭后菜单顶部显示"已打烊"提示')
       +'</div>'
     +'</div>'
+    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+      +'<div class="s-label" style="padding:0 0 12px">📢 菜单公告栏</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">显示在每个菜单顶部，用于价格说明、特别通知等</div>'
+      +'<textarea id="announcement-input" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--text2);outline:none;resize:none;height:80px;font-family:inherit;">'+(s.announcement||'')+'</textarea>'
+      +'<button onclick="saveAnnouncement()" style="margin-top:8px;background:var(--gold);border:none;border-radius:var(--r);padding:8px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存公告</button>'
+    +'</div>'
     +'<div class="card" style="padding:20px 22px">'
       +'<div class="s-label" style="padding:0 0 12px">菜单分类控制（勾选=显示）</div>'
       +menuConfigHTML
@@ -1803,6 +1809,17 @@ function makeSwitch(key, val, label, desc){
       +'</div>'
     +'</div>'
   +'</div>';
+}
+
+async function saveAnnouncement() {
+  var val = document.getElementById('announcement-input') ? document.getElementById('announcement-input').value.trim() : '';
+  try {
+    markDirty();
+    await saveSettingsToDB({announcement: val});
+    _SETTINGS.announcement = val;
+    markSaved();
+    toast('✅ 公告已保存');
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
 }
 
 async function toggleSetting(key, val){

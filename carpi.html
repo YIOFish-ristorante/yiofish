@@ -836,9 +836,11 @@ function loadMenu() {
 // 菜单视图
 // ════════════════════════════════════
 function openMenuView(menuId) {
+  var prevMenuId = currentMenuId;
   currentMenuId = menuId;
   isAsporto = menuId === 'asporto';
-  cart = {};
+  // 只有从首页进入时才清空购物车，切换菜单时保留
+  if (!prevMenuId) cart = {};
   // 方案A：加历史记录，支持手机返回手势
   history.pushState({ menuId: menuId }, '', '#menu-' + menuId);
 
@@ -851,9 +853,8 @@ function openMenuView(menuId) {
 
   // 设置信息行
   var info = document.getElementById('menu-info');
-  info.innerHTML = '<span>📞 ' + (R.phone||'') + '</span>' +
-    '<span>📍 ' + (R.address||'') + '</span>' +
-    '<span>🕐 ' + (R.hours||'') + '</span>';
+  var announcement = (SETTINGS && SETTINGS.announcement) ? SETTINGS.announcement : '🍱 Pranzo feriale: €16 · Festivo: €20 · Cena: €28 · Coperto: €2';
+  info.innerHTML = '<span style="color:rgba(212,171,72,.8);font-size:11px;letter-spacing:.5px;">' + announcement + '</span>';
 
   // 过滤当前菜单的菜品（两级过滤）
   var excludeCats = (MENU_CONFIGS[menuId] && MENU_CONFIGS[menuId].excludeCats) || [];
