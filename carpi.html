@@ -1271,9 +1271,9 @@ function changeQty(it, d) {
 
 function updateItemUI(itemId) {
   var el = document.getElementById('ac' + itemId);
-  if (!el) return;
+  if (!el) { console.log('[updateItemUI] no el for', itemId); return; }
   var it = getItemForMenu(itemId);
-  if (!it) return;
+  if (!it) { console.log('[updateItemUI] no it for', itemId, 'currentMenuId:', currentMenuId); return; }
   console.log('[updateItemUI] id:', itemId, 'it.price:', it.price, 'it.id:', it.id);
   var q = cart[itemId] || 0;
   el.innerHTML = '';
