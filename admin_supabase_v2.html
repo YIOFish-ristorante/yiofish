@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v1.5</title>
+<title>Yio Fish Admin v2.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -190,7 +190,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 <div class="topbar">
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
-    <div class="t-title">菜单管理后台 <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v1.5</span></div>
+    <div class="t-title">菜单管理后台 <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.0</span></div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -627,9 +627,11 @@ function renderDishes(){
   var rows = items.map(function(it){
     var pills = MENUS.map(function(m){
       var on = it.menus && it.menus[m.id] && it.menus[m.id].on;
-      var p = it.menus && it.menus[m.id] && it.menus[m.id].price;
+      var p = it.menus && it.menus[m.id] ? (it.menus[m.id].price||0) : 0;
+      var sc = it.menus && it.menus[m.id] ? (it.menus[m.id].sconto||0) : 0;
+      var displayP = sc > 0 ? p*(1-sc/100) : p;
       return '<span class="mpill'+(on?'':' off')+'" style="color:'+m.color+';border-color:'+m.color+'">'
-        +m.icon+(on&&m.showPrice&&p?' '+fmtP(p):on?' ✓':' —')+'</span>';
+        +m.icon+(on&&m.showPrice&&displayP>0?' '+fmtP(displayP):on?' ✓':' —')+'</span>';
     }).join('');
     var thumb = it.image ? '<img src="'+it.image+'" alt="" onerror="this.style.display=\'none\'">' : catIcon(it.category);
     return '<div class="item-row">'
@@ -691,12 +693,13 @@ function openEditDish(id){
   buildCatSel(it.category);
   buildTagPicker(it.tags||[]);
   MENUS.forEach(function(m){
-    var ms = (it.menus && it.menus[m.id]) || {on:false,price:0};
-    $('mp-'+m.id).checked = !!ms.on;
-    $('pp-'+m.id).value = ms.on ? (ms.price||0) : '';
-    $('pp-'+m.id).disabled = !ms.on;
-    if($('mq-'+m.id)){ $('mq-'+m.id).value = ms.on ? (ms.max_qty||0) : ''; $('mq-'+m.id).disabled = !ms.on; }
-    if($('sc-'+m.id)){ $('sc-'+m.id).value = ms.on ? (ms.sconto||0) : ''; $('sc-'+m.id).disabled = !ms.on; }
+    var ms = (it.menus && it.menus[m.id]) || {on:false, price:0, max_qty:0, sconto:0};
+    var isOn = !!ms.on;
+    $('mp-'+m.id).checked = isOn;
+    $('pp-'+m.id).value = isOn ? (ms.price||0) : '';
+    $('pp-'+m.id).disabled = !isOn;
+    if($('mq-'+m.id)){ $('mq-'+m.id).value = isOn ? (ms.max_qty||0) : ''; $('mq-'+m.id).disabled = !isOn; }
+    if($('sc-'+m.id)){ $('sc-'+m.id).value = isOn ? (ms.sconto||0) : ''; $('sc-'+m.id).disabled = !isOn; }
   });
   openModal('dish-modal');
 }
