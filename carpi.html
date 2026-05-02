@@ -1170,7 +1170,9 @@ function addItem(it) {
   }
 
   // 价格>0的菜不受任何限制
-  var hasPrice = (it.price || 0) > 0;
+  // 用当前菜单的price判断（不用ALL_ITEMS里的原始price）
+  var menuPrice = (it.menus && currentMenuId && it.menus[currentMenuId]) ? (parseFloat(it.menus[currentMenuId].price) || 0) : 0;
+  var hasPrice = menuPrice > 0;
 
   if (!hasPrice) {
     // 检查轮次限制
@@ -1180,15 +1182,16 @@ function addItem(it) {
       return;
     }
 
-    // 检查菜单级别限制（只计算price=0的菜）
+    // 检查菜单级别限制（只计算price=0的菜，用当前菜单的价格判断）
     if (currentMenuId) {
       var menuLimit = (MENU_CONFIGS[currentMenuId] && MENU_CONFIGS[currentMenuId].menuLimit) || 0;
       if (menuLimit > 0) {
         var menuTotal = 0;
         for (var k in cart) {
           var kit = getItemById(k);
-          if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on && !(kit.price > 0)) {
-            menuTotal += cart[k];
+          if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on) {
+            var kitPrice = parseFloat(kit.menus[currentMenuId].price) || 0;
+            if (kitPrice === 0) menuTotal += cart[k];
           }
         }
         if (menuTotal + 1 > menuLimit * guestCount) {
@@ -1585,11 +1588,20 @@ function canAddItem() {
   if (roundMax === 0) return {ok: true};
   var status = getRoundStatus();
   if (!status.ok) return {ok: false, msg: status.msg};
-  // 只计算price=0的菜的数量
+  // 只计算price=0的菜（用该菜在其对应菜单里的price判断）
   var thisRoundCount = 0;
   for (var k in cart) {
     var kit = getItemById(k);
-    if (kit && !(kit.price > 0)) thisRoundCount += cart[k];
+    if (kit) {
+      // 检查该菜在任意菜单里的price是否>0
+      var kitHasPrice = false;
+      if (kit.menus) {
+        for (var mid in kit.menus) {
+          if ((parseFloat(kit.menus[mid].price) || 0) > 0) { kitHasPrice = true; break; }
+        }
+      }
+      if (!kitHasPrice) thisRoundCount += cart[k];
+    }
   }
   if (thisRoundCount >= roundMax * guestCount) {
     return {ok: false, msg: 'Limite turno: max ' + (roundMax * guestCount) + ' piatti per questo turno'};
