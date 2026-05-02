@@ -1427,7 +1427,7 @@ function renderCartBody() {
       qc.appendChild(bm); qc.appendChild(sp); qc.appendChild(bp);
       row.appendChild(th); row.appendChild(info); row.appendChild(qc);
       el.appendChild(row);
-    })(id, c[id]);
+    })(id, activeCart[id]);
   }
   // 更新合计
   var tot = document.getElementById('cart-total');
