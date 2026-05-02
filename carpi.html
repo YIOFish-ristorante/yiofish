@@ -496,6 +496,13 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <label>Numero tavolo</label>
       <input type="text" id="table-number" placeholder="Es. 12" oninput="updateCartButtons()">
     </div>
+    <div class="table-input-wrap" id="guest-wrap" style="display:none">
+      <label>Numero persone</label>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;font-size:15px;color:var(--text2);text-align:center;" id="guest-display">1</div>
+        <button onclick="changeGuestCount()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 14px;font-size:12px;color:#1a1510;cursor:pointer;letter-spacing:1px;">MODIFICA</button>
+      </div>
+    </div>
     <div class="table-input-wrap" id="note-wrap" style="display:none">
       <label>Note (opzionale)</label>
       <textarea id="order-note" placeholder="Es. allergie, richieste speciali..." style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:70px;font-family:inherit;"></textarea>
@@ -616,6 +623,8 @@ var MENU_CONFIG = {
 // 购物车（按菜单分开）
 // ════════════════════════════════════
 var cart = {};  // { itemId: qty }
+var guestCount = 1;  // 人数（服务员控制）
+var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
 var currentMenuId = null;
 var isAsporto = false;
 
@@ -637,7 +646,11 @@ async function loadAll() {
     if (rData[0]) R = rData[0];
 
     var sData = await sRes.json();
-    if (sData[0]) SETTINGS = sData[0];
+    if (sData[0]) {
+      SETTINGS = sData[0];
+      // 读取服务员密码
+      if (SETTINGS.waiter_password) WAITER_PASSWORD = SETTINGS.waiter_password;
+    }
 
     CATS = await cRes.json();
     var dishes = await dRes.json();
@@ -883,7 +896,7 @@ function openMenuView(menuId) {
 
 function closeMenuView() {
   currentMenuId = null;
-  cart = {};
+  // 不清空购物车，保留跨菜单的选择
   document.getElementById('menu-view').style.display = 'none';
   document.getElementById('home-view').style.display = 'flex';
   closeCart();
@@ -1124,10 +1137,71 @@ function fmt(n) { return '€ ' + Number(n).toFixed(2).replace('.', ','); }
 function addItem(it) {
   var mq = it.max_qty || 0;
   var cur = cart[it.id] || 0;
-  if (mq > 0 && cur >= mq) return;
+
+  // 检查单品最大数量
+  if (mq > 0 && cur >= mq) {
+    toast('⚠️ Quantità massima per questo piatto raggiunta');
+    return;
+  }
+
+  // 检查菜单级别限制
+  if (currentMenuId) {
+    var menuLimit = (MENU_CONFIGS[currentMenuId] && MENU_CONFIGS[currentMenuId].menuLimit) || 0;
+    if (menuLimit > 0) {
+      var menuTotal = 0;
+      for (var k in cart) {
+        var kit = getItemById(k);
+        if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on) {
+          menuTotal += cart[k];
+        }
+      }
+      if (menuTotal >= menuLimit * guestCount) {
+        toast('⚠️ Limite menu: max ' + (menuLimit * guestCount) + ' piatti (' + menuLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
+        return;
+      }
+    }
+  }
+
+  // 检查分类级别限制
+  var catLimit = getCatLimit(it.category);
+  if (catLimit > 0) {
+    var catTotal = 0;
+    for (var k2 in cart) {
+      var kit2 = getItemById(k2);
+      if (kit2 && kit2.category === it.category) {
+        catTotal += cart[k2];
+      }
+    }
+    if (catTotal >= catLimit * guestCount) {
+      toast('⚠️ Limite categoria ' + getCatName(it.category) + ': max ' + (catLimit * guestCount) + ' piatti (' + catLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
+      return;
+    }
+  }
+
   cart[it.id] = cur + 1;
   updateItemUI(it.id);
   updateCartUI();
+}
+
+function getItemById(id) {
+  for (var i = 0; i < ALL_ITEMS.length; i++) {
+    if (String(ALL_ITEMS[i].id) === String(id)) return ALL_ITEMS[i];
+  }
+  return null;
+}
+
+function getCatLimit(catId) {
+  for (var i = 0; i < CATS.length; i++) {
+    if (CATS[i].id === catId) return parseInt(CATS[i].cat_limit) || 0;
+  }
+  return 0;
+}
+
+function getCatName(catId) {
+  for (var i = 0; i < CATS.length; i++) {
+    if (CATS[i].id === catId) return CATS[i].name;
+  }
+  return catId;
 }
 
 function changeQty(it, d) {
@@ -1203,6 +1277,8 @@ function updateCartButtons() {
     if (tableWrap) tableWrap.style.display = 'none';
     var noteWrap2 = document.getElementById('note-wrap');
     if (noteWrap2) noteWrap2.style.display = 'none';
+    var guestWrap2 = document.getElementById('guest-wrap');
+    if (guestWrap2) guestWrap2.style.display = 'none';
     if (nameWrap) nameWrap.style.display = 'block';
     if (timeWrap) timeWrap.style.display = 'block';
     btnNotify.style.display = 'none';
@@ -1273,6 +1349,10 @@ function updateCartButtons() {
     if (tableWrap) tableWrap.style.display = 'block';
     var noteWrap = document.getElementById('note-wrap');
     if (noteWrap) noteWrap.style.display = 'block';
+    var guestWrap = document.getElementById('guest-wrap');
+    if (guestWrap) guestWrap.style.display = 'block';
+    var guestDisplay = document.getElementById('guest-display');
+    if (guestDisplay) guestDisplay.textContent = guestCount;
     var asportoNoteWrap2 = document.getElementById('asporto-note-wrap');
     if (asportoNoteWrap2) asportoNoteWrap2.style.display = 'none';
     if (SETTINGS.notify_enabled) {
@@ -1338,6 +1418,28 @@ function renderCartBody() {
 }
 
 // 叫服务员
+// 修改人数（需要服务员密码）
+function changeGuestCount() {
+  var pwd = prompt('Inserisci il codice cameriere:');
+  if (pwd === null) return;
+  if (pwd !== WAITER_PASSWORD) {
+    alert('Codice non corretto.');
+    return;
+  }
+  var n = prompt('Numero di persone (1-20):', guestCount);
+  if (n === null) return;
+  n = parseInt(n);
+  if (isNaN(n) || n < 1 || n > 20) {
+    alert('Numero non valido (1-20).');
+    return;
+  }
+  guestCount = n;
+  var guestDisplay = document.getElementById('guest-display');
+  if (guestDisplay) guestDisplay.textContent = guestCount;
+  updateCartUI();
+  toast('👥 ' + guestCount + ' ' + (guestCount === 1 ? 'persona' : 'persone'));
+}
+
 function sendNotify() {
   var tableNum = document.getElementById('table-number').value.trim();
   if (!tableNum) { alert('Inserisci il numero del tavolo.'); return; }
@@ -1427,7 +1529,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 window.addEventListener('popstate', function(e) {
   if (currentMenuId && !e.state) {
     currentMenuId = null;
-    cart = {};
+    // 不清空购物车
     document.getElementById('menu-view').style.display = 'none';
     document.getElementById('home-view').style.display = 'flex';
     closeCart();

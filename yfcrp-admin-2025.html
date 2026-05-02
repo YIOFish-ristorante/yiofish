@@ -1028,6 +1028,12 @@ function renderCats(){
       +'<div style="color:var(--muted);font-size:18px;cursor:grab;padding:0 4px;flex-shrink:0">⠿</div>'
       +'<div class="cat-icon-box">'+cat.icon+'</div>'
       +'<div class="cat-info"><div class="cat-name-t">'+cat.name+'</div><div class="cat-id-t">id: '+cat.id+' · '+cnt+' piatti</div></div>'
+      +'<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">'
+        +'<span style="font-size:10px;color:var(--muted);letter-spacing:.5px;">限/人:</span>'
+        +'<input type="number" min="0" value="'+(cat.cat_limit||0)+'" '
+        +'onchange="saveCatLimit(\'' + cat.id + '\', this.value)" '
+        +'style="width:50px;background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:3px 6px;font-size:12px;color:var(--text2);text-align:center;outline:none;">'
+      +'</div>'
       +'<button class="btn btn-sm btn-gold-s" onclick="openEditCat('+i+')">编辑</button>'
       +'<button class="btn btn-sm btn-red" onclick="delCat('+i+')">删除</button>'
     +'</div>';
@@ -1081,6 +1087,21 @@ function openEditCat(idx){
   $('fc-name').value=C[idx].name; $('fc-icon').value=C[idx].icon; $('fc-id').value=C[idx].id;
   openModal('cat-modal');
 }
+async function saveCatLimit(catId, val) {
+  var limit = parseInt(val) || 0;
+  // 更新本地C数组
+  for (var i = 0; i < C.length; i++) {
+    if (C[i].id === catId) { C[i].cat_limit = limit; break; }
+  }
+  try {
+    await sbFetch('categories?id=eq.' + catId, {
+      method: 'PATCH',
+      body: JSON.stringify({cat_limit: limit})
+    });
+    toast('✅ ' + catId + ' 限点: ' + (limit === 0 ? '无限制' : limit + '/人'));
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
+}
+
 async function saveCat(){
   var name=$('fc-name').value.trim();
   var icon=$('fc-icon').value.trim()||'🍽️';
@@ -1754,6 +1775,15 @@ function renderSettings(){
       +'</div>'
     +'</div>'
     +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+      +'<div class="s-label" style="padding:0 0 12px">🔑 服务员密码</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">客人修改人数时需要输入此密码（初始：5555）</div>'
+      +'<div style="display:flex;gap:8px;">'
+        +'<input id="waiter-pwd-input" type="text" value="'+(s.waiter_password||'5555')+'"'
+        +' style="flex:1;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;font-size:14px;color:var(--text2);outline:none;">'
+        +'<button onclick="saveWaiterPassword()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 16px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存</button>'
+      +'</div>'
+    +'</div>'
+    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">📢 菜单公告栏</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">显示在每个菜单顶部，用于价格说明、特别通知等</div>'
       +'<textarea id="announcement-input" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--text2);outline:none;resize:none;height:80px;font-family:inherit;">'+(s.announcement||'')+'</textarea>'
@@ -1809,6 +1839,18 @@ function makeSwitch(key, val, label, desc){
       +'</div>'
     +'</div>'
   +'</div>';
+}
+
+async function saveWaiterPassword() {
+  var val = document.getElementById('waiter-pwd-input') ? document.getElementById('waiter-pwd-input').value.trim() : '';
+  if (!val) { toast('⚠️ 密码不能为空'); return; }
+  try {
+    markDirty();
+    await saveSettingsToDB({waiter_password: val});
+    _SETTINGS.waiter_password = val;
+    markSaved();
+    toast('✅ 服务员密码已保存');
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
 }
 
 async function saveAnnouncement() {
