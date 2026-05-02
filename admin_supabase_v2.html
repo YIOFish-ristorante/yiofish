@@ -767,10 +767,23 @@ function buildTagPicker(sel){
 function getSelTags(){ return Array.from(document.querySelectorAll('#f-tags .t-chip.on')).map(function(c){return c.dataset.key;}); }
 function togglePrice(mid){
   var on = $('mp-'+mid).checked;
-  $('pp-'+mid).disabled = !on;
-  if(!on) $('pp-'+mid).value='';
-  if($('mq-'+mid)){ $('mq-'+mid).disabled = !on; if(!on) $('mq-'+mid).value=''; }
-  if($('sc-'+mid)){ $('sc-'+mid).disabled = !on; if(!on) $('sc-'+mid).value=''; }
+  var pp = $('pp-'+mid);
+  var mq = $('mq-'+mid);
+  var sc = $('sc-'+mid);
+  if(on){
+    // 重新勾选：恢复之前保存的值
+    pp.disabled = false;
+    if(pp.dataset.saved !== undefined && pp.dataset.saved !== '') pp.value = pp.dataset.saved;
+    if(mq){ mq.disabled = false; if(mq.dataset.saved !== undefined) mq.value = mq.dataset.saved; }
+    if(sc){ sc.disabled = false; if(sc.dataset.saved !== undefined) sc.value = sc.dataset.saved; }
+  } else {
+    // 取消勾选：保存当前值再清空显示
+    pp.dataset.saved = pp.value;
+    pp.disabled = true;
+    pp.value = '';
+    if(mq){ mq.dataset.saved = mq.value; mq.disabled = true; mq.value = ''; }
+    if(sc){ sc.dataset.saved = sc.value; sc.disabled = true; sc.value = ''; }
+  }
 }
 
 async function saveDish(){
