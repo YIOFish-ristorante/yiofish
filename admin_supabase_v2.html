@@ -410,8 +410,8 @@ var _fSearch = '', _fCat = '__all__', _fMenu = '__all__';
 async function reloadDishes() {
   try {
     var [dRes, dmRes] = await Promise.all([
-      sbFetch('dishes?select=*&order=id'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
+      sbFetch('dishes?select=*&order=id&limit=2000'),
+      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=5000')
     ]);
     var dishes = await dRes.json();
     var dishMenus = await dmRes.json();
@@ -452,8 +452,8 @@ async function loadAll() {
       sbFetch('restaurants?id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('categories?select=*&order=sort_order'),
-      sbFetch('dishes?select=*&order=id'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
+      sbFetch('dishes?select=*&order=id&limit=2000'),
+      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=5000')
     ]);
     var rData = await rRes.json();
     if (rData[0]) R = rData[0];
