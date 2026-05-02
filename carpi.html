@@ -1260,7 +1260,7 @@ function updateCartButtons() {
       var nameVal = asportoName ? asportoName.value.trim() : '';
       var timeVal = asportoTime ? asportoTime.value : '';
       btnOrder.style.display = 'block';
-      btnOrder.disabled = (n === 0 || !nameVal || !timeVal);
+      btnOrder.disabled = (!nameVal || !timeVal);
     } else {
       btnOrder.style.display = 'none';
     }
@@ -1271,12 +1271,12 @@ function updateCartButtons() {
     if (timeWrap) timeWrap.style.display = 'none';
     if (tableWrap) tableWrap.style.display = 'block';
     var noteWrap = document.getElementById('note-wrap');
-    if (noteWrap) noteWrap.style.display = n > 0 ? 'block' : 'none';
+    if (noteWrap) noteWrap.style.display = 'block';
     var asportoNoteWrap2 = document.getElementById('asporto-note-wrap');
     if (asportoNoteWrap2) asportoNoteWrap2.style.display = 'none';
     if (SETTINGS.notify_enabled) {
       btnNotify.style.display = 'block';
-      btnNotify.disabled = (n === 0 || !tVal);
+      btnNotify.disabled = !tVal;
     } else {
       btnNotify.style.display = 'none';
     }
