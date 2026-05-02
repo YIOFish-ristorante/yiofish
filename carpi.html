@@ -1198,8 +1198,10 @@ function updateCartButtons() {
   var asportoTime = document.getElementById('asporto-time');
 
   if (isAsporto) {
-    // 外卖：显示姓名+时间，隐藏桌号
+    // 外卖：显示姓名+时间，隐藏桌号+堂食备注
     if (tableWrap) tableWrap.style.display = 'none';
+    var noteWrap2 = document.getElementById('note-wrap');
+    if (noteWrap2) noteWrap2.style.display = 'none';
     if (nameWrap) nameWrap.style.display = 'block';
     if (timeWrap) timeWrap.style.display = 'block';
     btnNotify.style.display = 'none';
@@ -1263,11 +1265,15 @@ function updateCartButtons() {
       btnOrder.style.display = 'none';
     }
   } else {
-    // 堂食：显示桌号，隐藏姓名+时间
+    // 堂食：显示桌号+备注，隐藏姓名+时间+外卖备注
     btnOrder.style.display = 'none';
     if (nameWrap) nameWrap.style.display = 'none';
     if (timeWrap) timeWrap.style.display = 'none';
     if (tableWrap) tableWrap.style.display = 'block';
+    var noteWrap = document.getElementById('note-wrap');
+    if (noteWrap) noteWrap.style.display = n > 0 ? 'block' : 'none';
+    var asportoNoteWrap2 = document.getElementById('asporto-note-wrap');
+    if (asportoNoteWrap2) asportoNoteWrap2.style.display = 'none';
     if (SETTINGS.notify_enabled) {
       btnNotify.style.display = 'block';
       btnNotify.disabled = (n === 0 || !tVal);
