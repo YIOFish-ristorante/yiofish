@@ -403,6 +403,48 @@ var _editCatIdx = null;
 var _editTagId = null;
 var _fSearch = '', _fCat = '__all__', _fMenu = '__all__';
 
+
+// ════════════════════════════════════
+//  重新加载菜品数据（保存后调用）
+// ════════════════════════════════════
+async function reloadDishes() {
+  try {
+    var [dRes, dmRes] = await Promise.all([
+      sbFetch('dishes?select=*&order=id'),
+      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
+    ]);
+    var dishes = await dRes.json();
+    var dishMenus = await dmRes.json();
+    I = dishes.map(function(d) {
+      var menus = {};
+      dishMenus.filter(function(dm){ return dm.dish_id === d.id; })
+        .forEach(function(dm) {
+          menus[dm.menu_id] = {
+            on: dm.enabled,
+            price: dm.price,
+            max_qty: dm.max_qty || 0,
+            sconto: dm.sconto || 0
+          };
+        });
+      return {
+        id: d.id,
+        category: d.category_id,
+        name: d.name,
+        desc: d.description || '',
+        image: d.image || '',
+        tags: d.tags || [],
+        sold_out: d.sold_out || false,
+        menus: menus
+      };
+    });
+    render();
+    updateCounts();
+  } catch(e) {
+    console.error('重新加载失败:', e);
+    render(); // 失败时也刷新显示
+  }
+}
+
 async function loadAll() {
   try {
     showLoading(true);
@@ -756,7 +798,7 @@ async function saveDish(){
     markDirty();
     if(_editDishId){
       await saveDishToDB(dish);
-      for(var i=0;i<I.length;i++) if(I[i].id===_editDishId){ I[i]=dish; break; }
+      for(var i=0;i<I.length;i++) if(String(I[i].id)===String(_editDishId)){ I[i]=dish; break; }
       toast('✅ 菜品已更新');
     } else {
       dish._isNew = true;
@@ -765,7 +807,9 @@ async function saveDish(){
       I.push(dish);
       toast('✅ 菜品已添加');
     }
-    markSaved(); closeModal(); render();
+    markSaved(); closeModal();
+    // 重新加载数据确保显示准确
+    await reloadDishes();
   } catch(e) { toast('❌ 保存失败: '+e.message); console.error(e); }
 }
 
