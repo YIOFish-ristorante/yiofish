@@ -461,7 +461,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.1.0 · 2025-05-02</span><br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.1.0 · 2025-05-01</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.2.0 · 2025-05-03</span></div>
 </div>
 </div>
 
@@ -532,8 +532,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:65px;font-family:inherit;margin-bottom:8px;"></textarea>
       <!-- 按钮行 -->
       <div style="display:flex;gap:8px;">
-        <button class="obtn-notify" id="btn-notify" onclick="sendNotify()" style="flex:1;">🔔 CHIAMA IL CAMERIERE</button>
-        <button class="clr" id="btn-clear-dine" style="flex-shrink:0;">Svuota</button>
+        <button class="obtn-notify" id="btn-notify" onclick="sendNotify()" style="flex:3;">🔔 CHIAMA IL CAMERIERE</button>
+        <button class="clr" id="btn-clear-dine" style="flex:1;">Svuota</button>
       </div>
     </div>
 
@@ -554,8 +554,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:65px;font-family:inherit;margin-bottom:8px;"></textarea>
       <!-- 按钮行 -->
       <div style="display:flex;gap:8px;">
-        <button class="obtn" id="btn-order" onclick="sendOrder()" disabled style="flex:1;">📦 INVIA ORDINE ASPORTO</button>
-        <button class="clr" id="btn-clear-asporto" style="flex-shrink:0;">Svuota</button>
+        <button class="obtn" id="btn-order" onclick="sendOrder()" disabled style="flex:3;">📦 INVIA ORDINE ASPORTO</button>
+        <button class="clr" id="btn-clear-asporto" style="flex:1;">Svuota</button>
       </div>
     </div>
 
@@ -657,7 +657,9 @@ var MENU_CONFIG = {
 // ════════════════════════════════════
 // 购物车（按菜单分开）
 // ════════════════════════════════════
-var cart = {};  // { itemId: qty }
+var cart_dine = {};    // 堂食购物车
+var cart_asporto = {}; // 外卖购物车
+var cart = cart_dine;  // 当前活跃购物车（向后兼容）
 var guestCount = 1;  // 人数（服务员控制）
 var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
 var _tableSession = null;  // 当前桌号的轮次状态
@@ -888,8 +890,10 @@ function loadMenu() {
 function openMenuView(menuId) {
   currentMenuId = menuId;
   isAsporto = menuId === 'asporto';
-  // 购物车永远不在切换菜单时清空，只有"清空"按钮才清空
-  // 方案A：加历史记录，支持手机返回手势
+  // 切换到对应购物车
+  cart = isAsporto ? cart_asporto : cart_dine;
+  // 外卖菜单：填充时间选项
+  if (isAsporto) buildAsportoTimes();
   try { history.pushState({ menuId: menuId }, '', '#menu-' + menuId); } catch(e) {}
 
   var cfg = MENU_CONFIG[menuId] || {label: menuId, emoji: '🍽️', color: '#c8a84c'};
@@ -1205,11 +1209,11 @@ function addItem(it) {
       var menuLimit = (MENU_CONFIGS[currentMenuId] && MENU_CONFIGS[currentMenuId].menuLimit) || 0;
       if (menuLimit > 0) {
         var menuTotal = 0;
-        for (var k in cart) {
+        for (var k in cart_dine) {
           var kit = getItemById(k);
           if (kit && kit.menus && kit.menus[currentMenuId] && kit.menus[currentMenuId].on) {
             var kitPrice = parseFloat(kit.menus[currentMenuId].price) || 0;
-            if (kitPrice === 0) menuTotal += cart[k];
+            if (kitPrice === 0) menuTotal += cart_dine[k];
           }
         }
         if (menuTotal >= menuLimit * guestCount) {
@@ -1603,6 +1607,45 @@ function sendNotify() {
 }
 
 // 外卖发送
+function buildAsportoTimes() {
+  var sel = document.getElementById('asporto-time');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Seleziona orario...</option>';
+  var now = new Date();
+  var romeOffset = 60; // CET, adjust for DST if needed
+  var romeMinutes = now.getUTCHours() * 60 + now.getUTCMinutes() + romeOffset;
+  if (romeMinutes >= 1440) romeMinutes -= 1440;
+  var slots = [];
+  // 午餐时段：12:00-15:00，每30分钟
+  var lunchStart = 12*60, lunchEnd = 15*60;
+  // 晚餐时段：19:00-23:00，每30分钟
+  var dinnerStart = 19*60, dinnerEnd = 23*60;
+  var minTime = romeMinutes + 30; // 至少30分钟后
+  for (var t = lunchStart; t <= lunchEnd; t += 30) {
+    if (t >= minTime) {
+      var h = Math.floor(t/60), m = t%60;
+      slots.push((h<10?'0':'')+h+':'+(m<10?'0':'')+m);
+    }
+  }
+  for (var t2 = dinnerStart; t2 <= dinnerEnd; t2 += 30) {
+    if (t2 >= minTime) {
+      var h2 = Math.floor(t2/60), m2 = t2%60;
+      slots.push((h2<10?'0':'')+h2+':'+(m2<10?'0':'')+m2);
+    }
+  }
+  if (slots.length === 0) {
+    // 非营业时间，显示明天的时间
+    sel.innerHTML = '<option value="">Non disponibile ora</option>';
+    return;
+  }
+  slots.forEach(function(t) {
+    var opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    sel.appendChild(opt);
+  });
+}
+
 function sendOrder() {
   var nameEl = document.getElementById('asporto-name');
   var timeEl = document.getElementById('asporto-time');
