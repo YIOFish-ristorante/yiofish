@@ -131,18 +131,8 @@
             <h2 id="txt-add-title" class="text-md font-bold text-gray-800 mb-3">➕ 建立/分配物料資訊</h2>
             <form id="addItemForm" onsubmit="handleAddItem(event)" class="space-y-3">
                 <div>
-                    <label id="lbl-chef" class="block text-xs text-gray-600 mb-1">廚師姓名</label>
-                    <input type="text" id="formChefName" required placeholder="例如：張師傅"
-                           class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                </div>
-                <div>
-                    <label id="lbl-dept" class="block text-xs text-gray-600 mb-1">使用部門 (可多選)</label>
-                    <div id="deptCheckboxes" class="grid grid-cols-3 gap-2 bg-gray-50 p-2 rounded-md border border-gray-200 text-xs text-gray-700">
-                        </div>
-                </div>
-                <div>
-                    <label id="lbl-itemname" class="block text-xs text-gray-600 mb-1">物料名稱 (中文名)</label>
-                    <input type="text" id="formItemName" required placeholder="例如：青島素春捲"
+                    <label class="block text-xs text-gray-600 mb-1">貨物號</label>
+                    <input type="text" id="formItemCode" placeholder="例如：001"
                            class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
                 </div>
                 <div>
@@ -151,21 +141,43 @@
                            class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
                 </div>
                 <div>
-                    <label id="lbl-spec" class="block text-xs text-gray-600 mb-1">規格 (例如: 10X900G)</label>
-                    <input type="text" id="formSpec" required placeholder="例如：10X900G"
+                    <label id="lbl-itemname" class="block text-xs text-gray-600 mb-1">中文名稱</label>
+                    <input type="text" id="formItemName" placeholder="例如：青島素春捲"
+                           class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                </div>
+                <div>
+                    <label id="lbl-spec" class="block text-xs text-gray-600 mb-1">規格</label>
+                    <input type="text" id="formSpec" placeholder="例如：10X900G"
                            class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label id="lbl-stock" class="block text-xs text-gray-600 mb-1">目前庫存數量</label>
-                        <input type="number" id="formStock" required step="0.1" placeholder="1" value="1"
-                               class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                    </div>
-                    <div>
-                        <label id="lbl-price" class="block text-xs text-gray-600 mb-1">價格 (參考價，如 3.20)</label>
+                        <label id="lbl-price" class="block text-xs text-gray-600 mb-1">價格</label>
                         <input type="number" id="formPrice" step="0.01" placeholder="0.00"
                                class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
                     </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">進貨單位</label>
+                        <input type="text" id="formSupplier" placeholder="例如：jfc"
+                               class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">產品型號</label>
+                        <input type="text" id="formModelNo" placeholder="例如：A9013"
+                               class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">材料類型</label>
+                        <input type="text" id="formCategory" placeholder="例如：salsa"
+                               class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+                <div>
+                    <label id="lbl-dept" class="block text-xs text-gray-600 mb-1">使用單位 (可多選)</label>
+                    <div id="deptCheckboxes" class="grid grid-cols-3 gap-2 bg-gray-50 p-2 rounded-md border border-gray-200 text-xs text-gray-700">
+                        </div>
                 </div>
                 <div>
                     <label id="lbl-cycle" class="block text-xs text-gray-600 mb-1">進貨週期 (星期制，可多選)</label>
@@ -374,11 +386,11 @@
 
                 database = items.map(function(r) {
                     return {
-                        id: r.id, name: r.name, italian: r.italian, spec: r.spec,
-                        price: r.price, chef: r.chef,
+                        id: r.id, item_code: r.item_code||'', name: r.name||'', italian: r.italian||'',
+                        spec: r.spec||'', price: r.price||'', supplier: r.supplier||'', model_no: r.model_no||'',
                         departments: r.departments || ['廚房'],
                         cycle: r.cycle || ['星期一'],
-                        stock: r.stock, safety: r.safety,
+                        stock: r.stock||'1', safety: r.safety||'1',
                         need: '', checked: false, category: r.category || '其他'
                     };
                 });
@@ -770,7 +782,12 @@
                 return;
             }
 
-            const orderItems = selected.map(i => ({ name: i.name, need: i.need }));
+            const orderItems = selected.map(i => ({
+                item_code: i.item_code || '',
+                name: i.name || i.italian || '',
+                spec: i.spec || '',
+                need: i.need
+            }));
             const chefName = loggedInChef || "張師傅";
 
             // 在系統內部暫存
@@ -795,7 +812,9 @@
                           `📦 採購清單:\n`;
             
             orderItems.forEach(i => {
-                message += `• ${i.name}: ${i.need}\n`;
+                const code = i.item_code ? i.item_code + ' / ' : '';
+                const spec = i.spec ? ' ' + i.spec : '';
+                message += `• ${code}${i.name} = ${i.need}${spec}\n`;
             });
 
             const whatsappNumber = "393778826875";
@@ -876,13 +895,14 @@
 
         async function handleAddItem(event) {
             event.preventDefault();
-
-            const chefName = document.getElementById('formChefName').value;
-            const itemName = document.getElementById('formItemName').value;
+            const itemCode = (document.getElementById('formItemCode')||{}).value || '';
             const italianName = document.getElementById('formItalianName').value;
+            const itemName = document.getElementById('formItemName').value;
             const spec = document.getElementById('formSpec').value;
-            const stock = document.getElementById('formStock').value;
             const price = document.getElementById('formPrice').value;
+            const supplier = (document.getElementById('formSupplier')||{}).value || '';
+            const modelNo = (document.getElementById('formModelNo')||{}).value || '';
+            const category = (document.getElementById('formCategory')||{}).value || '';
 
             const selectedDepts = [];
             document.querySelectorAll('input[name="departments"]:checked').forEach(el => {
@@ -894,22 +914,22 @@
                 selectedCycles.push(el.value);
             });
 
-            if (selectedDepts.length === 0) selectedDepts.push('廚房');
-
+            const displayName = itemName || italianName;
             const newItem = {
                 restaurant_id: RESTAURANT_ID,
+                item_code: itemCode,
                 name: itemName, italian: italianName, spec: spec,
-                price: price, chef: chefName,
-                departments: selectedDepts,
+                price: price, supplier: supplier, model_no: modelNo,
+                departments: selectedDepts.length > 0 ? selectedDepts : ['廚房'],
                 cycle: selectedCycles.length > 0 ? selectedCycles : ['星期一'],
-                stock: stock, safety: '1', category: '普通物料'
+                stock: '1', safety: '1', category: category
             };
             try {
                 const res = await sbFetch('cucina_items', {method: 'POST', prefer: 'return=representation', body: JSON.stringify(newItem)});
                 const saved = await res.json();
-                database.push(Object.assign({id: saved[0].id, need: '', checked: false}, newItem));
+                database.push(Object.assign({id: saved[0].id, need: '', checked: false, chef: ''}, newItem));
                 document.getElementById('addItemForm').reset();
-                alert(t('successAdd', { name: itemName }));
+                alert('✅ 已新增：' + displayName);
                 AdminModeInit();
             } catch(e) { alert('錯誤: ' + e.message); }
         }
@@ -968,12 +988,23 @@
             let count = 0;
             for (const item of _pendingImport) {
                 try {
-                    const res = await sbFetch('cucina_items', {method: 'POST', prefer: 'return=representation', body: JSON.stringify(item)});
+                    // upsert：货物号相同则更新，否则插入
+                    const res = await fetch(SUPABASE_URL + '/rest/v1/cucina_items', {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': 'Bearer ' + SUPABASE_KEY,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'resolution=merge-duplicates,return=representation'
+                        },
+                        body: JSON.stringify(item)
+                    });
                     const saved = await res.json();
-                    database.push(Object.assign({id: saved[0].id, need: '', checked: false}, item));
                     count++;
                 } catch(e) { console.error('save error:', e); }
             }
+            // 重新从Supabase加载
+            await loadAllData();
             _pendingImport = [];
             const saveArea = document.getElementById('import-save-area');
             if (saveArea) saveArea.classList.add('hidden');
@@ -1000,26 +1031,26 @@
                     const row = rows[i];
                     if (!row || row.length === 0) continue;
 
-                    const italianName = row[0] || '';
-                    const chineseName = row[1] || '';
-                    const orderQuantity = row[2] || '';
-                    const spec = row[3] || '1';
-                    const priceVal = row[4];
-                    const price = typeof priceVal === 'number' ? priceVal.toFixed(2) : parseFloat((priceVal || '').toString().replace(',', '.')) || 0;
-                    const departmentRaw = row[7] || '';
-                    let departments = ['廚房'];
-                    if (departmentRaw) {
-                        departments = departmentRaw.toString().split('/').map(d => d.trim());
-                    }
-                    const category = row[8] || '其他';
+                    const itemCode    = row[0] !== undefined ? String(row[0]).trim() : '';
+                    const italianName = row[1] || '';
+                    const chineseName = row[2] || '';
+                    const spec        = row[3] ? String(row[3]).trim() : '';
+                    const priceVal    = row[4];
+                    const price       = typeof priceVal === 'number' ? priceVal.toFixed(2) : parseFloat((priceVal || '').toString().replace(',', '.')) || 0;
+                    const supplier    = row[5] ? String(row[5]).trim() : '';
+                    const modelNo     = row[6] ? String(row[6]).trim() : '';
+                    const deptRaw     = row[7] || '';
+                    let departments   = ['廚房'];
+                    if (deptRaw) departments = deptRaw.toString().split('/').map(d => d.trim());
+                    const category    = row[8] ? String(row[8]).trim() : '其他';
                     _pendingImport.push({
                         restaurant_id: RESTAURANT_ID,
+                        item_code: itemCode,
                         name: chineseName, italian: italianName, spec: spec,
-                        price: String(price), chef: '張師傅',
+                        price: String(price), supplier: supplier, model_no: modelNo,
                         departments: departments, cycle: ['星期一'],
                         stock: '1', safety: '1', category: category
                     });
-                }
                 // 显示保存按钮
                 const saveArea = document.getElementById('import-save-area');
                 const previewMsg = document.getElementById('import-preview-msg');
