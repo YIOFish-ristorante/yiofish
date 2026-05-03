@@ -649,6 +649,7 @@ var SETTINGS = {notify_enabled: false, takeaway_enabled: true, is_open: true};
 var TAGS = {"1":{"label":"Glutine","color":"#95a5a6","icon":"🌾"},"2":{"label":"Crostacei","color":"#2980b9","icon":"🦐"},"3":{"label":"Uova","color":"#f39c12","icon":"🥚"},"4":{"label":"Pesce","color":"#3498db","icon":"🐟"},"6":{"label":"Soia","color":"#16a085","icon":"🫘"},"7":{"label":"Latte","color":"#f1c40f","icon":"🥛"},"8":{"label":"Frutta a guscio","color":"#e74c3c","icon":"🌰"},"11":{"label":"Sesamo","color":"#e67e22","icon":"🌱"},"14":{"label":"Molluschi","color":"#2980b9","icon":"🦑"},"piccante":{"label":"Piccante","color":"#c0392b","icon":"🌶"},"vegano":{"label":"Vegano","color":"#27ae60","icon":"🌿"},"new":{"label":"Novità","color":"#8e44ad","icon":"✨"}};
 
 var MENU_CONFIGS = {}; // 从Supabase加载
+var MENU_CAT_LIMITS = {}; // {menuId: {catId: limit}}
 var MENU_CONFIG = {
   pranzo:   {label:'Pranzo',   emoji:'☀️',  color:'#f39c12'},
   cena:     {label:'Cena',     emoji:'🌙',  color:'#8e44ad'},
@@ -663,7 +664,35 @@ var MENU_CONFIG = {
 // ════════════════════════════════════
 var cart_dine = {};    // 堂食购物车
 var cart_asporto = {}; // 外卖购物车
+var cart_dine_sent = {}; // 已发送的堂食菜品（灰色显示）
 var guestCount = 1;  // 人数（服务员控制）
+
+// ── localStorage持久化 ──
+var LS_KEY_DINE = 'yiofish_cart_dine_carpi';
+var LS_KEY_SENT = 'yiofish_cart_sent_carpi';
+
+function saveCartToLS() {
+  try {
+    var now = Date.now();
+    localStorage.setItem(LS_KEY_DINE, JSON.stringify({data: cart_dine, ts: now}));
+    localStorage.setItem(LS_KEY_SENT, JSON.stringify({data: cart_dine_sent, ts: now}));
+  } catch(e) {}
+}
+
+function loadCartFromLS() {
+  try {
+    var FOUR_HOURS = 4 * 60 * 60 * 1000;
+    var now = Date.now();
+    var d = localStorage.getItem(LS_KEY_DINE);
+    if (d) { var obj = JSON.parse(d); if (now - obj.ts < FOUR_HOURS) cart_dine = obj.data || {}; }
+    var s = localStorage.getItem(LS_KEY_SENT);
+    if (s) { var obj2 = JSON.parse(s); if (now - obj2.ts < FOUR_HOURS) cart_dine_sent = obj2.data || {}; }
+  } catch(e) {}
+}
+
+function clearCartLS() {
+  try { localStorage.removeItem(LS_KEY_DINE); localStorage.removeItem(LS_KEY_SENT); } catch(e) {}
+}
 var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
 var _tableSession = null;  // 当前桌号的轮次状态
 var _roundCartCount = 0;   // 本轮已点道数
@@ -676,12 +705,13 @@ var isAsporto = false;
 async function loadAll() {
   try {
     // 并行加载
-    var [rRes, sRes, cRes, dRes, mcRes] = await Promise.all([
+    var [rRes, sRes, cRes, dRes, mcRes, mclRes] = await Promise.all([
       sbFetch('restaurants?id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('categories?select=*&order=sort_order'),
       sbFetch('dishes?select=*&order=id&limit=2000'),
-      sbFetch('menu_configs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
+      sbFetch('menu_configs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
+      sbFetch('menu_cat_limits?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
     ]);
 
     var rData = await rRes.json();
@@ -697,6 +727,12 @@ async function loadAll() {
     CATS = await cRes.json();
     var dishes = await dRes.json();
     var mcData = await mcRes.json();
+    var mclData = await mclRes.json();
+    MENU_CAT_LIMITS = {};
+    mclData.forEach(function(row) {
+      if (!MENU_CAT_LIMITS[row.menu_id]) MENU_CAT_LIMITS[row.menu_id] = {};
+      MENU_CAT_LIMITS[row.menu_id][row.cat_id] = row.cat_limit;
+    });
     // 存储每个菜单的excludeCats
     MENU_CONFIGS = {};
     mcData.forEach(function(mc) {
@@ -728,6 +764,7 @@ async function loadAll() {
     document.getElementById('loading-overlay').style.display = 'none';
     // 记录发布时间
     if (SETTINGS.published_at) _lastPublishedAt = SETTINGS.published_at;
+    loadCartFromLS();
     loadMenu();
     // 每30秒检查营业状态和新发布
     setInterval(function(){
@@ -1231,13 +1268,13 @@ function addItem(it) {
         }
       }
 
-      // 检查分类级别限制
-      var catLimit = getCatLimit(it.category);
+      // 检查分类级别限制（按菜单区分，从menu_cat_limits读取）
+      var catLimit = (currentMenuId && MENU_CAT_LIMITS[currentMenuId] && MENU_CAT_LIMITS[currentMenuId][it.category]) || 0;
       if (catLimit > 0) {
         var catTotal = 0;
         for (var k2 in cart_dine) {
           var kit2 = getItemById(k2);
-          if (kit2 && kit2.category === it.category) {
+          if (kit2 && String(kit2.category) === String(it.category)) {
             if ((parseFloat(kit2.menus && kit2.menus[currentMenuId] && kit2.menus[currentMenuId].price) || 0) === 0) {
               catTotal += cart_dine[k2];
             }
@@ -1300,16 +1337,35 @@ function updateItemUI(itemId) {
   var it = getItemForMenu(itemId);
   if (!it) return;
   var q = (isAsporto ? cart_asporto : cart_dine)[itemId] || 0;
+  var qs = (!isAsporto && cart_dine_sent[itemId]) || 0;
   el.innerHTML = '';
-  if (q === 0) {
+  if (q === 0 && qs === 0) {
     var btn = document.createElement('button');
     btn.className = 'add-btn';
     btn.textContent = '+';
     (function(i){ btn.onclick = function(){ addItem(i); }; })(it);
     el.appendChild(btn);
+  } else if (q === 0 && qs > 0) {
+    var div = document.createElement('div');
+    div.className = 'qctrl';
+    var sp = document.createElement('span');
+    sp.className = 'qnum';
+    sp.style.cssText = 'color:var(--muted);font-size:11px;padding:0 4px;';
+    sp.textContent = '✓' + qs;
+    var bp = document.createElement('button');
+    bp.className = 'qbtn';
+    bp.textContent = '+';
+    (function(i){ bp.onclick = function(){ addItem(i); }; })(it);
+    div.appendChild(sp);
+    div.appendChild(bp);
+    el.appendChild(div);
   } else {
     var div = document.createElement('div');
     div.className = 'qctrl';
+    div.style.flexDirection = 'column';
+    div.style.gap = '2px';
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:2px;';
     var bm = document.createElement('button');
     bm.className = 'qbtn';
     bm.textContent = '−';
@@ -1320,9 +1376,16 @@ function updateItemUI(itemId) {
     bp.className = 'qbtn';
     bp.textContent = '+';
     (function(i){ bm.onclick = function(){ changeQty(i,-1); }; bp.onclick = function(){ changeQty(i,+1); }; })(it);
-    div.appendChild(bm);
-    div.appendChild(sp);
-    div.appendChild(bp);
+    row.appendChild(bm);
+    row.appendChild(sp);
+    row.appendChild(bp);
+    div.appendChild(row);
+    if (qs > 0) {
+      var sent = document.createElement('div');
+      sent.style.cssText = 'font-size:10px;color:var(--muted);text-align:center;';
+      sent.textContent = '+' + qs + ' inviati';
+      div.appendChild(sent);
+    }
     el.appendChild(div);
   }
 }
@@ -1626,6 +1689,14 @@ function sendNotify() {
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
   if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
+  // 把已发送的菜品合并进sent记录，清空当前购物车
+  for (var sid in cart_dine) {
+    cart_dine_sent[sid] = (cart_dine_sent[sid] || 0) + cart_dine[sid];
+  }
+  cart_dine = {};
+  saveCartToLS();
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+  updateCartUI();
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
@@ -1717,6 +1788,8 @@ document.getElementById('cart-overlay').onclick = closeCart;
 var btnDine = document.getElementById('btn-clear-dine');
 if (btnDine) btnDine.onclick = function() {
   cart_dine = {};
+  cart_dine_sent = {};
+  clearCartLS();
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
 };
