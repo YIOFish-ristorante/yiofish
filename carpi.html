@@ -557,7 +557,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <!-- 按钮行 -->
       <div style="display:flex;gap:8px;margin-top:4px;">
         <button id="btn-order" onclick="sendOrder()" disabled
-          style="flex:1;background:#d4ab48;border:none;border-radius:var(--r);padding:12px 8px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-family:inherit;font-weight:500;">📦 ASPORTO</button>
+          style="flex:1;background:#d4ab48;border:none;border-radius:var(--r);padding:12px 8px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-family:inherit;font-weight:500;">📲 Invia su WhatsApp</button>
         <button id="btn-clear-asporto"
           style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:var(--r);padding:12px 8px;font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;">Svuota</button>
       </div>
@@ -665,6 +665,7 @@ var MENU_CONFIG = {
 var cart_dine = {};    // 堂食购物车
 var cart_asporto = {}; // 外卖购物车
 var cart_dine_sent = {}; // 已发送的堂食菜品（灰色显示）
+var cart_asporto_sent = {}; // 已发送的打包菜品（灰色显示）
 var guestCount = 1;  // 人数（服务员控制）
 
 // ── localStorage持久化 ──
@@ -678,6 +679,7 @@ function saveCartToLS() {
     localStorage.setItem(LS_KEY_DINE, JSON.stringify({data: cart_dine, ts: now}));
     localStorage.setItem(LS_KEY_SENT, JSON.stringify({data: cart_dine_sent, ts: now}));
     localStorage.setItem(LS_KEY_ASP, JSON.stringify({data: cart_asporto, ts: now}));
+    localStorage.setItem(LS_KEY_ASP+'_sent', JSON.stringify({data: cart_asporto_sent, ts: now}));
   } catch(e) {}
 }
 
@@ -691,11 +693,13 @@ function loadCartFromLS() {
     if (s) { var obj2 = JSON.parse(s); if (now - obj2.ts < FOUR_HOURS) cart_dine_sent = obj2.data || {}; }
     var a = localStorage.getItem(LS_KEY_ASP);
     if (a) { var obj3 = JSON.parse(a); if (now - obj3.ts < FOUR_HOURS) cart_asporto = obj3.data || {}; }
+    var as = localStorage.getItem(LS_KEY_ASP+'_sent');
+    if (as) { var obj4 = JSON.parse(as); if (now - obj4.ts < FOUR_HOURS) cart_asporto_sent = obj4.data || {}; }
   } catch(e) {}
 }
 
 function clearCartLS() {
-  try { localStorage.removeItem(LS_KEY_DINE); localStorage.removeItem(LS_KEY_SENT); localStorage.removeItem(LS_KEY_ASP); } catch(e) {}
+  try { localStorage.removeItem(LS_KEY_DINE); localStorage.removeItem(LS_KEY_SENT); localStorage.removeItem(LS_KEY_ASP); localStorage.removeItem(LS_KEY_ASP+'_sent'); } catch(e) {}
 }
 var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
 var _tableSession = null;  // 当前桌号的轮次状态
@@ -1276,11 +1280,14 @@ function addItem(it) {
       var catLimit = (currentMenuId && MENU_CAT_LIMITS[currentMenuId] && MENU_CAT_LIMITS[currentMenuId][String(it.category)]) || 0;
       if (catLimit > 0) {
         var catTotal = 0;
-        for (var k2 in cart_dine) {
-          var kit2 = getItemById(k2);
+        var allCounts2 = {};
+        for (var k2 in cart_dine) allCounts2[k2] = (allCounts2[k2]||0) + cart_dine[k2];
+        for (var k2s in cart_dine_sent) allCounts2[k2s] = (allCounts2[k2s]||0) + cart_dine_sent[k2s];
+        for (var kc2 in allCounts2) {
+          var kit2 = getItemById(kc2);
           if (kit2 && String(kit2.category) === String(it.category)) {
             if ((parseFloat(kit2.menus && kit2.menus[currentMenuId] && kit2.menus[currentMenuId].price) || 0) === 0) {
-              catTotal += cart_dine[k2];
+              catTotal += allCounts2[kc2];
             }
           }
         }
@@ -1367,7 +1374,7 @@ function updateItemUI(itemId) {
   var it = getItemForMenu(itemId);
   if (!it) return;
   var q = (isAsporto ? cart_asporto : cart_dine)[itemId] || 0;
-  var qs = (!isAsporto && cart_dine_sent[itemId]) || 0;
+  var qs = isAsporto ? (cart_asporto_sent[itemId] || 0) : (cart_dine_sent[itemId] || 0);
   el.innerHTML = '';
   if (q === 0 && qs === 0) {
     var btn = document.createElement('button');
@@ -1483,9 +1490,14 @@ function renderCartBody() {
   var el = document.getElementById('cart-body');
   if (!el) return;
   var n = cartCount();
-  if (!n) {
+  var sentCart0 = isAsporto ? cart_asporto_sent : cart_dine_sent;
+  var hasSent = Object.keys(sentCart0).length > 0;
+  if (!n && !hasSent) {
     el.innerHTML = '<div class="cempty"><div style="font-size:48px;margin-bottom:12px">🌱</div><p>Il carrello è vuoto</p></div>';
     return;
+  }
+  if (!n && hasSent) {
+    el.innerHTML = '';
   }
   el.innerHTML = '';
   var activeCart = isAsporto ? cart_asporto : cart_dine;
@@ -1522,6 +1534,43 @@ function renderCartBody() {
       el.appendChild(row);
     })(id, activeCart[id]);
   }
+  // 渲染已发送记录（灰色）
+  var sentCart = isAsporto ? cart_asporto_sent : cart_dine_sent;
+  var sentKeys = Object.keys(sentCart);
+  if (sentKeys.length > 0) {
+    var sep = document.createElement('div');
+    sep.style.cssText = 'font-size:11px;color:var(--muted);letter-spacing:1px;padding:10px 0 6px;border-top:1px solid var(--border);margin-top:8px;';
+    sep.textContent = '✓ GIÀ INVIATI';
+    el.appendChild(sep);
+    sentKeys.forEach(function(id) {
+      var qty = sentCart[id];
+      var it = getItemForMenu(id);
+      if (!it) return;
+      var cat = CATS.find(function(c){ return c.id === it.category; });
+      var icon = cat ? cat.icon : '🍽️';
+      var row = document.createElement('div');
+      row.className = 'ci';
+      row.style.opacity = '0.45';
+      var th = document.createElement('div');
+      th.className = 'ci-th';
+      th.textContent = icon;
+      var info2 = document.createElement('div');
+      info2.className = 'ci-info';
+      var p = it.sconto > 0 ? it.price * (1 - it.sconto/100) : it.price;
+      info2.innerHTML = '<div class="ci-name">' + it.name + '</div>' +
+        '<div class="ci-price">' + (p > 0 ? fmt(p) + ' × ' + qty + ' = ' + fmt(p * qty) : '× ' + qty) + '</div>';
+      var qc = document.createElement('div');
+      qc.className = 'ci-qty';
+      var sp2 = document.createElement('span');
+      sp2.className = 'qnum';
+      sp2.style.cssText = 'color:var(--muted);min-width:32px;text-align:center;';
+      sp2.textContent = qty;
+      qc.appendChild(sp2);
+      row.appendChild(th); row.appendChild(info2); row.appendChild(qc);
+      el.appendChild(row);
+    });
+  }
+
   // 更新合计
   var tot = document.getElementById('cart-total');
   if (tot) tot.textContent = fmt(cartTotal());
@@ -1795,6 +1844,14 @@ function sendOrder() {
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
   if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
+  // 把已发送菜品转移到sent记录，清空购物车
+  for (var sid in cart_asporto) {
+    cart_asporto_sent[sid] = (cart_asporto_sent[sid] || 0) + cart_asporto[sid];
+  }
+  cart_asporto = {};
+  saveCartToLS();
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+  updateCartUI();
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
@@ -1826,6 +1883,8 @@ if (btnDine) btnDine.onclick = function() {
 var btnAsp = document.getElementById('btn-clear-asporto');
 if (btnAsp) btnAsp.onclick = function() {
   cart_asporto = {};
+  cart_asporto_sent = {};
+  saveCartToLS();
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
 };
