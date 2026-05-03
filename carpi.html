@@ -1274,6 +1274,7 @@ function addItem(it) {
 
       // 检查分类级别限制（按菜单区分，从menu_cat_limits读取）
       var catLimit = (currentMenuId && MENU_CAT_LIMITS[currentMenuId] && MENU_CAT_LIMITS[currentMenuId][String(it.category)]) || 0;
+      console.log('[catLimit] category='+it.category+' menu='+currentMenuId+' limit='+catLimit+' guests='+guestCount);
       if (catLimit > 0) {
         var catTotal = 0;
         for (var k2 in cart_dine) {
@@ -1284,6 +1285,7 @@ function addItem(it) {
             }
           }
         }
+        console.log('[catLimit] catTotal='+catTotal+' limit*guests='+(catLimit*guestCount));
         if (catTotal >= catLimit * guestCount) {
           toast('⚠️ Limite categoria ' + getCatName(it.category) + ': max ' + (catLimit * guestCount) + ' piatti (' + catLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
           return;
