@@ -588,6 +588,26 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 </div>
 
 <!-- ══════════ 管理员弹窗 ══════════ -->
+<div class="admin-overlay" id="quickMenuModal">
+  <div class="admin-box">
+    <h4>MENU RAPIDO</h4>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;">
+      <button onclick="closeModal('quickMenuModal');openModal('adminModal');"
+        style="background:var(--gold);border:none;border-radius:var(--r);padding:14px;font-size:14px;color:#1a1510;cursor:pointer;font-family:inherit;letter-spacing:1px;">
+        🔐 ACCESSO ADMIN
+      </button>
+      <button onclick="closeModal('quickMenuModal');window.open('cucina.html','_blank');"
+        style="background:transparent;border:1px solid var(--gold);border-radius:var(--r);padding:14px;font-size:14px;color:var(--gold);cursor:pointer;font-family:inherit;letter-spacing:1px;">
+        📦 ORDINI FORNITORE
+      </button>
+      <button onclick="closeModal('quickMenuModal');"
+        style="background:transparent;border:none;padding:10px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;">
+        Annulla
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-overlay" id="adminModal">
   <div class="admin-box">
     <h4>ACCESSO ADMIN</h4>
@@ -2043,7 +2063,7 @@ document.querySelectorAll('.overlay').forEach(function(overlay) {
 document.getElementById('logoBtn').addEventListener('click', function() {
   logoClickCount++;
   clearTimeout(logoClickTimer);
-  if (logoClickCount >= CONFIG.LOGO_CLICKS) { logoClickCount = 0; openModal('adminModal'); return; }
+  if (logoClickCount >= CONFIG.LOGO_CLICKS) { logoClickCount = 0; openModal('quickMenuModal'); return; }
   logoClickTimer = setTimeout(function(){ logoClickCount = 0; }, CONFIG.CLICK_TIMEOUT);
 });
 function pinInput(digit) {
