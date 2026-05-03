@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="title-tag">後廚申購與管理系統</title>
+    <title id="title-tag">后厨申购与管理系统</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="bg-gray-50 font-sans transition-all duration-300">
 
     <header class="bg-teal-700 text-white p-4 shadow-md sticky top-0 z-20 flex justify-between items-center">
-        <h1 id="nav-title" class="text-md font-bold">🍳 後廚申購與管理系統</h1>
+        <h1 id="nav-title" class="text-md font-bold">🍳 后厨申购与管理系统</h1>
         <div class="flex items-center gap-3">
             <button onclick="downloadFrontend()" id="btn-download" class="bg-teal-800 text-white text-xs px-2 py-1 rounded border border-teal-600 hover:bg-teal-700 transition flex items-center gap-1">
-                💾 下載前端
+                💾 下载前端
             </button>
             <select id="langSelect" onchange="changeLanguage()" class="bg-teal-800 text-white text-xs px-2 py-1 rounded border border-teal-600 focus:outline-none">
                 <option value="zh">中文</option>
@@ -21,7 +21,7 @@
                 <option value="bn">বাংলা</option>
             </select>
             <div class="flex gap-1">
-                <button onclick="switchTab('chef')" id="btn-chef" class="bg-teal-900 text-xs px-3 py-1.5 rounded-md font-bold transition">員工端</button>
+                <button onclick="switchTab('chef')" id="btn-chef" class="bg-teal-900 text-xs px-3 py-1.5 rounded-md font-bold transition">员工端</button>
                 <button onclick="switchTab('admin')" id="btn-admin" class="bg-teal-600/50 text-xs px-3 py-1.5 rounded-md hover:bg-teal-600 transition">管理端</button>
             </div>
         </div>
@@ -29,8 +29,8 @@
 
     <main id="view-chef-login" class="p-6 max-w-md mx-auto mt-10">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
-            <h2 id="txt-login-title" class="text-lg font-bold text-gray-800 text-center mb-2">🧑‍🍳 員工登入 / 選擇身份</h2>
-            <p id="txt-login-desc" class="text-xs text-gray-500 text-center mb-6">請選擇您的名字並輸入密碼以記錄申購單。</p>
+            <h2 id="txt-login-title" class="text-lg font-bold text-gray-800 text-center mb-2">🧑‍🍳 员工登录 / 选择身份</h2>
+            <p id="txt-login-desc" class="text-xs text-gray-500 text-center mb-6">请选择您的名字并输入密码以记录申购单。</p>
             <div>
                 <label id="lbl-login-chef" class="block text-xs text-gray-600 mb-2">您的名字</label>
                 <select id="loginChefName" class="w-full p-3 border border-gray-300 rounded-lg text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
@@ -41,21 +41,21 @@
                 <input type="password" id="loginPassword" class="w-full p-3 border border-gray-300 rounded-lg text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="請輸入密碼">
             </div>
             <button onclick="loginAsChef()" id="btn-login" class="w-full bg-teal-600 text-white py-3 rounded-lg font-bold hover:bg-teal-700 transition shadow-sm">
-                進入員工端
+                進入员工端
             </button>
         </div>
     </main>
 
     <main id="view-admin-login" class="hidden p-6 max-w-md mx-auto mt-10">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
-            <h2 class="text-lg font-bold text-gray-800 text-center mb-2">🔑 管理員登入</h2>
-            <p class="text-xs text-gray-500 text-center mb-6">為了資料安全，請輸入管理員密碼以進入管理端。</p>
+            <h2 class="text-lg font-bold text-gray-800 text-center mb-2">🔑 管理员登录</h2>
+            <p class="text-xs text-gray-500 text-center mb-6">为了数据安全，请输入管理员密码以进入管理端。</p>
             <div>
-                <label class="block text-xs text-gray-600 mb-2">管理員密碼</label>
+                <label class="block text-xs text-gray-600 mb-2">管理员密码</label>
                 <input type="password" id="loginAdminPassword" class="w-full p-3 border border-gray-300 rounded-lg text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="請輸入管理密碼">
             </div>
             <button onclick="loginAsAdmin()" class="w-full bg-teal-600 text-white py-3 rounded-lg font-bold hover:bg-teal-700 transition shadow-sm">
-                進入管理端
+                进入管理端
             </button>
         </div>
     </main>
@@ -63,20 +63,20 @@
     <main id="view-chef" class="hidden p-4 max-w-md mx-auto mb-24 space-y-4">
         <div class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600">
             <div>
-                <span id="txt-login-as">當前身份：</span><strong id="currentChefName" class="text-teal-700">張師傅</strong>
+                <span id="txt-login-as">当前身份：</span><strong id="currentChefName" class="text-teal-700">張師傅</strong>
             </div>
             <button onclick="logoutChef()" class="text-red-500 font-semibold hover:underline">登出</button>
         </div>
 
         <div class="flex gap-2">
-            <input type="text" id="searchInput" oninput="filterItems()" placeholder="搜尋物料名稱、部門或義大利文..." 
+            <input type="text" id="searchInput" oninput="filterItems()" placeholder="搜索物料名称、部门或意大利文..." 
                    class="w-2/3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-sm">
             
             <select id="sortSelect" onchange="sortChefItems()" class="w-1/3 p-2 border border-gray-300 rounded-lg text-xs bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                <option id="opt-sort-default" value="default">預設排序</option>
-                <option id="opt-sort-name" value="name">按材料名稱</option>
-                <option id="opt-sort-chef" value="chef">按廚師姓名</option>
-                <option id="opt-sort-category" value="category">按材料類別</option>
+                <option id="opt-sort-default" value="default">默认排序</option>
+                <option id="opt-sort-name" value="name">按材料名称</option>
+                <option id="opt-sort-chef" value="chef">按订货人</option>
+                <option id="opt-sort-category" value="category">按材料类别</option>
             </select>
         </div>
 
@@ -84,12 +84,12 @@
 
         <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg max-w-md mx-auto">
             <div class="flex justify-between items-center mb-2 text-sm text-gray-600">
-                <span id="txt-selected">已選物料: <strong id="selectedCount" class="text-teal-600">0</strong> 項</span>
-                <button onclick="clearSelection()" id="txt-clear" class="text-red-500 text-xs">清空選擇</button>
+                <span id="txt-selected">已选物料: <strong id="selectedCount" class="text-teal-600">0</strong> 項</span>
+                <button onclick="clearSelection()" id="txt-clear" class="text-red-500 text-xs">清空选择</button>
             </div>
             <button id="btn-submit" onclick="submitOrder()" 
                     class="w-full bg-teal-600 text-white py-3 rounded-lg font-bold hover:bg-teal-700 transition shadow-sm">
-                確認提交申購
+                确认提交申购
             </button>
         </div>
     </main>
@@ -105,18 +105,18 @@
 
         <div class="grid grid-cols-2 gap-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
-                <span id="txt-pending-label" class="block text-xs text-gray-500 mb-1">今日待處理</span>
+                <span id="txt-pending-label" class="block text-xs text-gray-500 mb-1">今日待处理</span>
                 <span id="pendingCount" class="text-2xl font-bold text-orange-500">0</span>
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
-                <span id="txt-total-label" class="block text-xs text-gray-500 mb-1">總物料種類</span>
+                <span id="txt-total-label" class="block text-xs text-gray-500 mb-1">总物料种类</span>
                 <span id="totalItemsCount" class="text-2xl font-bold text-teal-600">0</span>
             </div>
         </div>
 
         <section class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h2 id="txt-import-title" class="text-md font-bold text-gray-800 mb-2">📥 匯入資料文件</h2>
-            <p id="txt-import-desc" class="text-xs text-gray-500 mb-3">支援從系統匯出的 Excel (.xlsx, .xls) 或 CSV 清單，一鍵建檔錄入。</p>
+            <h2 id="txt-import-title" class="text-md font-bold text-gray-800 mb-2">📥 导入数据文件</h2>
+            <p id="txt-import-desc" class="text-xs text-gray-500 mb-3">支持从系统导出的 Excel (.xlsx, .xls) 或 CSV 清单，一键录入。</p>
             <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" onchange="handleFileImport(this)"
                    class="w-full p-2 border border-gray-200 rounded-md text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer">
             <div id="import-save-area" class="hidden mt-3">
@@ -128,7 +128,7 @@
         </section>
 
         <section class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h2 id="txt-add-title" class="text-md font-bold text-gray-800 mb-3">➕ 建立/分配物料資訊</h2>
+            <h2 id="txt-add-title" class="text-md font-bold text-gray-800 mb-3">➕ 建立/分配物料信息</h2>
             <form id="addItemForm" onsubmit="handleAddItem(event)" class="space-y-3">
                 <div>
                     <label class="block text-xs text-gray-600 mb-1">貨物號</label>
@@ -136,7 +136,7 @@
                            class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
                 </div>
                 <div>
-                    <label id="lbl-italian" class="block text-xs text-gray-600 mb-1">義大利文名稱</label>
+                    <label id="lbl-italian" class="block text-xs text-gray-600 mb-1">意大利文名称</label>
                     <input type="text" id="formItalianName" required placeholder="例如：Involtino primavera"
                            class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
                 </div>
@@ -175,17 +175,17 @@
                     </div>
                 </div>
                 <div>
-                    <label id="lbl-dept" class="block text-xs text-gray-600 mb-1">使用單位 (可多選)</label>
+                    <label id="lbl-dept" class="block text-xs text-gray-600 mb-1">使用单位 (可多选)</label>
                     <div id="deptCheckboxes" class="grid grid-cols-3 gap-2 bg-gray-50 p-2 rounded-md border border-gray-200 text-xs text-gray-700">
                         </div>
                 </div>
                 <div>
-                    <label id="lbl-cycle" class="block text-xs text-gray-600 mb-1">進貨週期 (星期制，可多選)</label>
+                    <label id="lbl-cycle" class="block text-xs text-gray-600 mb-1">进货周期 (星期制，可多选)</label>
                     <div id="cycleCheckboxes" class="grid grid-cols-4 gap-1 text-[10px] bg-gray-50 p-2 rounded-md border border-gray-200 text-gray-700">
                         </div>
                 </div>
                 <button type="submit" id="btn-save" class="w-full bg-teal-600 text-white text-sm py-2 px-3 rounded-md hover:bg-teal-700 transition font-bold mt-1">
-                    儲存至物料庫
+                    保存到物料库
                 </button>
             </form>
         </section>
@@ -194,9 +194,9 @@
             <h2 class="text-md font-bold text-gray-800 mb-3">🔑 員工帳號與密碼管理</h2>
             <div id="chefAccountsContainer" class="space-y-2 text-sm text-gray-700 max-h-40 overflow-y-auto"></div>
             <form id="addChefForm" onsubmit="handleAddChef(event)" class="grid grid-cols-2 gap-2 mt-3">
-                <input type="text" id="newChefName" placeholder="員工姓名" required class="p-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-teal-500">
+                <input type="text" id="newChefName" placeholder="员工姓名" required class="p-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-teal-500">
                 <input type="text" id="newChefPass" placeholder="密碼" required class="p-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-teal-500">
-                <button type="submit" class="col-span-2 bg-teal-600 text-white text-xs py-1.5 px-3 rounded-md hover:bg-teal-700 transition font-bold">新增/修改員工密碼</button>
+                <button type="submit" class="col-span-2 bg-teal-600 text-white text-xs py-1.5 px-3 rounded-md hover:bg-teal-700 transition font-bold">新增/修改员工密碼</button>
             </form>
         </section>
 
@@ -223,30 +223,30 @@
         // --- 國際化字典 ---
         const i18n = {
             zh: {
-                title: "後廚申購與管理系統",
-                employeeTab: "員工端",
+                title: "后厨申购与管理系统",
+                employeeTab: "员工端",
                 adminTab: "管理端",
-                searchPlaceholder: "搜尋物料名稱、部門或義大利文...",
-                selected: "已選物料",
-                clear: "清空選擇",
-                submit: "確認提交申購",
-                pendingLabel: "今日待處理",
-                totalLabel: "總物料種類",
+                searchPlaceholder: "搜索物料名称、部门或意大利文...",
+                selected: "已选物料",
+                clear: "清空选择",
+                submit: "确认提交申购",
+                pendingLabel: "今日待处理",
+                totalLabel: "总物料种类",
                 export: "匯出採購單",
-                importTitle: "📥 匯入資料文件",
-                importDesc: "支援從系統匯出的 Excel (.xlsx, .xls) 或 CSV 清單，一鍵建檔錄入。",
-                addTitle: "➕ 建立/分配物料資訊",
-                chefName: "廚師姓名",
-                department: "使用部門 (可多選)",
-                departments: ["廚房", "壽司部", "酒吧", "前台", "倉庫"],
-                itemName: "物料名稱 (中文名)",
-                italianName: "義大利文名稱",
-                spec: "規格 (例如: 10X900G)",
-                stock: "目前庫存數量",
-                price: "價格 (參考價，如 3.20)",
-                cycle: "進貨週期 (星期制，可多選)",
+                importTitle: "📥 导入数据文件",
+                importDesc: "支持从系统导出的 Excel (.xlsx, .xls) 或 CSV 清单，一键录入。",
+                addTitle: "➕ 建立/分配物料信息",
+                chefName: "订货人",
+                department: "使用单位 (可多选)",
+                departments: ["厨房", "寿司部", "酒吧", "前台", "仓库"],
+                itemName: "中文名称",
+                italianName: "意大利文名称",
+                spec: "规格",
+                stock: "当前库存数量",
+                price: "价格",
+                cycle: "进货周期 (星期制，可多选)",
                 weekdays: ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"],
-                save: "儲存至物料庫",
+                save: "保存到物料库",
                 summary: "📦 待處理彙總",
                 db: "🗄️ 物料資料庫",
                 edit: "修改",
@@ -254,13 +254,13 @@
                 confirm: "確認已備貨",
                 successSubmit: "提交成功！即將開啟 WhatsApp 以發送採購單。",
                 successAdd: "已成功建立物料：“{name}”！",
-                emptyOrders: "暫無待處理訂單",
+                emptyOrders: "暫無待處理订单",
                 noExportData: "沒有需要匯出的採購單！",
-                sortDefault: "預設排序",
-                sortName: "按材料名稱",
-                sortChef: "按廚師姓名",
-                sortCategory: "按材料類別",
-                download: "下載前端"
+                sortDefault: "默认排序",
+                sortName: "按材料名称",
+                sortChef: "按订货人",
+                sortCategory: "按材料类别",
+                download: "下载前端"
             },
             it: {
                 title: "Sistema di Gestione e Approvvigionamento",
@@ -391,7 +391,8 @@
                         departments: r.departments || ['廚房'],
                         cycle: r.cycle || ['星期一'],
                         stock: r.stock||'1', safety: r.safety||'1',
-                        need: '', checked: false, category: r.category || '其他'
+                        need: '', checked: false, category: r.category || '其他',
+                        chef: r.chef || ''
                     };
                 });
 
@@ -506,7 +507,7 @@
             }
         }
 
-        // --- 員工帳號管理模組 ---
+        // --- 员工账号管理模組 ---
         function renderChefAccounts() {
             const container = document.getElementById('chefAccountsContainer');
             container.innerHTML = '';
@@ -515,7 +516,7 @@
                 div.className = "flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100 text-xs";
                 div.innerHTML = `
                     <span><strong>${name}</strong>: 密碼: <em>${pass}</em></span>
-                    <button onclick="deleteChef('${name}')" class="text-red-500 font-semibold hover:underline">刪除</button>
+                    <button onclick="deleteChef('${name}')" class="text-red-500 font-semibold hover:underline">删除</button>
                 `;
                 container.appendChild(div);
             }
@@ -543,12 +544,12 @@
                 document.getElementById('addChefForm').reset();
                 renderChefAccounts();
                 updateLoginSelect();
-                alert(`已新增/修改員工：${name}`);
+                alert(`已新增/修改员工：${name}`);
             } catch(e) { alert('錯誤: ' + e.message); }
         }
 
         async function deleteChef(name) {
-            if (!confirm('刪除員工 '+name+' ？')) return;
+            if (!confirm('删除員工 '+name+' ？')) return;
             try {
                 await sbFetch('cucina_chefs?restaurant_id=eq.'+RESTAURANT_ID+'&name=eq.'+encodeURIComponent(name), {method: 'DELETE'});
                 delete chefAccounts[name];
@@ -590,7 +591,7 @@
         function loginAsAdmin() {
             const enteredPass = document.getElementById('loginAdminPassword').value;
             if (enteredPass !== ADMIN_PASS) {
-                alert("管理員密碼錯誤，請重試！");
+                alert("管理员密码錯誤，請重試！");
                 return;
             }
 
@@ -655,7 +656,7 @@
             renderChefAccounts();
         }
 
-        // --- 員工端邏輯 ---
+        // --- 员工端邏輯 ---
         function renderChefItems(data) {
             const container = document.getElementById('chefItemsContainer');
             container.innerHTML = '';
@@ -776,13 +777,18 @@
         async function submitOrder() {
             const selected = database.filter(item => item.checked);
             if (selected.length === 0) {
-                alert("請先選擇或填寫需要補貨的物料！");
+                alert("请先选择或填写需要补货的物料！");
                 return;
             }
 
+            // 按进货单位排序
+            selected.sort(function(a, b) {
+                return (a.supplier||'').localeCompare(b.supplier||'');
+            });
             const orderItems = selected.map(i => ({
                 item_code: i.item_code || '',
                 name: i.name || i.italian || '',
+                supplier: i.supplier || '',
                 spec: i.spec || '',
                 need: i.need
             }));
@@ -804,15 +810,22 @@
             } catch(e) { console.error('submitOrder error:', e); }
             
             // 組合 WhatsApp 訊息格式
-            let message = `🍳 *後廚申購與管理系統*\n` +
-                          `🧑‍🍳 提報人: ${chefName}\n` +
+            let message = `🍳 *后厨申购与管理系统*\n` +
+                          `🧑‍🍳 提报人: ${chefName}\n` +
                           `📅 日期: ${new Date().toISOString().slice(0, 10)}\n\n` +
-                          `📦 採購清單:\n`;
+                          `📦 采购清单:\n`;
             
+            // 按供应商分组输出
+            let currentSupplier = null;
             orderItems.forEach(i => {
+                if (i.supplier && i.supplier !== currentSupplier) {
+                    currentSupplier = i.supplier;
+                    message += `\n📦 ${i.supplier.toUpperCase()}\n`;
+                }
                 const code = i.item_code ? i.item_code + ' / ' : '';
+                const sup = i.supplier ? '/' + i.supplier.toUpperCase() : '';
                 const spec = i.spec ? ' ' + i.spec : '';
-                message += `• ${code}${i.name} = ${i.need}${spec}\n`;
+                message += `• ${code}${i.name}${sup} = ${i.need}${spec}\n`;
             });
 
             const whatsappNumber = "393778826875";
@@ -950,9 +963,9 @@
                 return;
             }
             
-            let exportStr = "後廚採購清單\n==================\n";
+            let exportStr = "后厨采购清单\n==================\n";
             activeOrders.forEach(o => {
-                exportStr += `\n提報人: ${o.chef} (${o.date})\n`;
+                exportStr += `\n提报人: ${o.chef} (${o.date})\n`;
                 o.items.forEach(i => {
                     exportStr += `- ${i.name}: ${i.need}\n`;
                 });
@@ -978,7 +991,7 @@
                 }
             }
         }
-        // --- 批量匯入函數 ---
+        // --- 批量导入函數 ---
         async function saveImportedToSupabase() {
             if (!_pendingImport || _pendingImport.length === 0) { alert('沒有待保存的資料'); return; }
             const btn = document.querySelector('#import-save-area button');
@@ -1041,13 +1054,14 @@
                     let departments   = ['廚房'];
                     if (deptRaw) departments = deptRaw.toString().split('/').map(d => d.trim());
                     const category    = row[8] ? String(row[8]).trim() : '其他';
+                    const chefName    = row[9] ? String(row[9]).trim() : '';
                     _pendingImport.push({
                         restaurant_id: RESTAURANT_ID,
                         item_code: itemCode,
                         name: chineseName, italian: italianName, spec: spec,
                         price: String(price), supplier: supplier, model_no: modelNo,
                         departments: departments, cycle: ['星期一'],
-                        stock: '1', safety: '1', category: category
+                        stock: '1', safety: '1', category: category, chef: chefName
                     });
                 }
                 // 显示保存按钮
