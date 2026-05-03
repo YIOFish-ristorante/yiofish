@@ -119,6 +119,12 @@
             <p id="txt-import-desc" class="text-xs text-gray-500 mb-3">支援從系統匯出的 Excel (.xlsx, .xls) 或 CSV 清單，一鍵建檔錄入。</p>
             <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" onchange="handleFileImport(this)"
                    class="w-full p-2 border border-gray-200 rounded-md text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer">
+            <div id="import-save-area" class="hidden mt-3">
+                <p id="import-preview-msg" class="text-xs text-gray-500 mb-2"></p>
+                <button onclick="saveImportedToSupabase()" class="w-full bg-teal-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-teal-700 transition">
+                    💾 保存到 Supabase
+                </button>
+            </div>
         </section>
 
         <section class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
@@ -352,6 +358,7 @@
         let chefAccounts = {};
         let database = [];
         let pendingOrders = [];
+        let _pendingImport = []; // 待保存到Supabase的导入数据
 
         // ── 初始化：从Supabase加载数据 ──
         async function loadAllData() {
@@ -954,6 +961,27 @@
             }
         }
         // --- 批量匯入函數 ---
+        async function saveImportedToSupabase() {
+            if (!_pendingImport || _pendingImport.length === 0) { alert('沒有待保存的資料'); return; }
+            const btn = document.querySelector('#import-save-area button');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ 保存中...'; }
+            let count = 0;
+            for (const item of _pendingImport) {
+                try {
+                    const res = await sbFetch('cucina_items', {method: 'POST', prefer: 'return=representation', body: JSON.stringify(item)});
+                    const saved = await res.json();
+                    database.push(Object.assign({id: saved[0].id, need: '', checked: false}, item));
+                    count++;
+                } catch(e) { console.error('save error:', e); }
+            }
+            _pendingImport = [];
+            const saveArea = document.getElementById('import-save-area');
+            if (saveArea) saveArea.classList.add('hidden');
+            if (btn) { btn.disabled = false; btn.textContent = '💾 保存到 Supabase'; }
+            alert('✅ 成功保存 ' + count + ' 筆物料到資料庫！');
+            AdminModeInit();
+        }
+
         function handleFileImport(input) {
             const file = input.files[0];
             if (!file) return;
@@ -967,7 +995,7 @@
                 const worksheet = workbook.Sheets[firstSheetName];
                 const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                let toInsert = [];
+                _pendingImport = [];
                 for (let i = 1; i < rows.length; i++) {
                     const row = rows[i];
                     if (!row || row.length === 0) continue;
@@ -984,7 +1012,7 @@
                         departments = departmentRaw.toString().split('/').map(d => d.trim());
                     }
                     const category = row[8] || '其他';
-                    toInsert.push({
+                    _pendingImport.push({
                         restaurant_id: RESTAURANT_ID,
                         name: chineseName, italian: italianName, spec: spec,
                         price: String(price), chef: '張師傅',
@@ -992,18 +1020,11 @@
                         stock: '1', safety: '1', category: category
                     });
                 }
-                // 逐条插入Supabase
-                let count = 0;
-                for (const item of toInsert) {
-                    try {
-                        const res = await sbFetch('cucina_items', {method: 'POST', prefer: 'return=representation', body: JSON.stringify(item)});
-                        const saved = await res.json();
-                        database.push(Object.assign({id: saved[0].id, need: '', checked: false}, item));
-                        count++;
-                    } catch(e) { console.error('import item error:', e); }
-                }
-                alert(`成功匯入 ${count} 筆物料資料！`);
-                AdminModeInit();
+                // 显示保存按钮
+                const saveArea = document.getElementById('import-save-area');
+                const previewMsg = document.getElementById('import-preview-msg');
+                if (saveArea) saveArea.classList.remove('hidden');
+                if (previewMsg) previewMsg.textContent = '已解析 ' + _pendingImport.length + ' 筆物料，點擊下方按鈕保存到資料庫。';
             };
 
             reader.readAsArrayBuffer(file);
