@@ -292,6 +292,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     <button class="s-btn" id="nav-export" onclick="showPage('export')">
       <span class="s-ico">💾</span>导出菜单
     </button>
+    <button class="s-btn" id="nav-tables" onclick="showPage('tables')">
+      <span class="s-ico">🪑</span>桌号管理<span class="s-cnt" id="cnt-tb">0</span>
+    </button>
     <button class="s-btn" id="nav-settings" onclick="showPage('settings')">
       <span class="s-ico">⚙️</span>设置
     </button>
@@ -470,6 +473,7 @@ var I = [];
 var _SETTINGS = {notify_enabled:false, takeaway_enabled:true, is_open:true};
 var _loading = true;
 var _MENU_CONFIGS = {};
+var _TABLE_CONFIGS = []; // [{table_number, guest_count}]
 var _MENU_CAT_LIMITS = {}; // {menuId: {catId: limit}}
 var _dirty = false;
 var _page = 'dishes';
@@ -619,10 +623,12 @@ async function loadAll() {
     C = await cRes.json();
     var dishes = await dRes.json();
     // 加载菜单配置 + 分类限量
-    var [mcRes, mclRes] = await Promise.all([
+    var [mcRes, mclRes, tcRes] = await Promise.all([
       sbFetch('menu_configs?restaurant_id=eq.'+RESTAURANT_ID+'&select=*'),
-      sbFetch('menu_cat_limits?restaurant_id=eq.'+RESTAURANT_ID+'&select=*')
+      sbFetch('menu_cat_limits?restaurant_id=eq.'+RESTAURANT_ID+'&select=*'),
+      sbFetch('table_configs?restaurant_id=eq.'+RESTAURANT_ID+'&select=*&order=table_number')
     ]);
+    _TABLE_CONFIGS = await tcRes.json();
     var mcData = await mcRes.json();
     var mclData = await mclRes.json();
     _MENU_CONFIGS = {};
@@ -821,7 +827,7 @@ function closeModal(){
 // ════════════════════════════════════
 function showPage(p){
   _page = p;
-  ['dishes','cats','restaurant','export','settings'].forEach(function(x){
+  ['dishes','cats','restaurant','export','settings','tables'].forEach(function(x){
     var b = $('nav-'+x);
     if(b) b.className = 's-btn' + (x===p ? ' active' : '');
   });
@@ -836,6 +842,7 @@ function render(){
   else if(_page==='restaurant') renderRestaurant();
   else if(_page==='export') renderExport();
   else if(_page==='settings') renderSettings();
+  else if(_page==='tables') renderTables();
 }
 
 // ════════════════════════════════════
@@ -1886,6 +1893,85 @@ async function setMenuCatLimitDB(menuId, catId, val) {
     }
     toast('✅ 已保存');
   } catch(e) { toast('❌ 保存失败: '+e.message); }
+}
+
+// ════════════════════════════════════
+//  桌号管理页面
+// ════════════════════════════════════
+function renderTables() {
+  var rows = '';
+  _TABLE_CONFIGS.forEach(function(t) {
+    rows += '<tr>'      +'<td style="padding:10px 12px;font-weight:500;">'+t.table_number+'</td>'      +'<td style="padding:10px 12px;">'        +'<input type="number" min="1" max="20" value="'+t.guest_count+'" '        +'onchange="updateTableGuests(''+t.table_number+'', this.value)" '        +'style="width:60px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:4px 8px;color:var(--text);font-size:13px;text-align:center;">'      +'</td>'      +'<td style="padding:10px 12px;">'        +'<button class="btn btn-sm btn-red" onclick="deleteTable(''+t.table_number+'')">删除</button>'      +'</td>'    +'</tr>';
+  });
+  $('content').innerHTML =
+    '<div class="page-head"><div><h1>🪑 桌号管理</h1><p>共 '+_TABLE_CONFIGS.length+' 张桌子</p></div></div>'    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'      +'<div class="s-label" style="padding:0 0 12px">添加新桌号</div>'      +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">'        +'<input type="text" id="new-table-num" placeholder="桌号 (es. 1, A1, VIP)" '        +'style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-size:13px;">'        +'<input type="number" id="new-table-guests" min="1" max="20" value="2" placeholder="人数" '        +'style="width:80px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-size:13px;text-align:center;">'        +'<button class="btn btn-gold" onclick="addTable()">+ 添加</button>'        +'<button class="btn btn-ghost" onclick="addTablesBatch()">批量添加 1-140</button>'      +'</div>'    +'</div>'    +'<div class="card" style="padding:0;overflow:hidden;">'      +'<table style="width:100%;border-collapse:collapse;">'        +'<thead><tr style="background:var(--s2);border-bottom:1px solid var(--border);">'          +'<th style="padding:10px 12px;text-align:left;font-size:12px;color:var(--muted);">桌号</th>'          +'<th style="padding:10px 12px;text-align:left;font-size:12px;color:var(--muted);">人数</th>'          +'<th style="padding:10px 12px;text-align:left;font-size:12px;color:var(--muted);">操作</th>'        +'</tr></thead>'        +'<tbody>'+rows+'</tbody>'      +'</table>'    +'</div>';
+}
+
+async function addTable() {
+  var numEl = $('new-table-num');
+  var guestEl = $('new-table-guests');
+  var num = numEl ? numEl.value.trim() : '';
+  var guests = parseInt(guestEl ? guestEl.value : 2) || 2;
+  if (!num) { toast('⚠️ 请输入桌号'); return; }
+  if (_TABLE_CONFIGS.find(function(t){ return t.table_number === num; })) {
+    toast('⚠️ 桌号已存在'); return;
+  }
+  try {
+    await sbFetch('table_configs', {
+      method: 'POST',
+      body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: num, guest_count: guests})
+    });
+    _TABLE_CONFIGS.push({table_number: num, guest_count: guests});
+    _TABLE_CONFIGS.sort(function(a,b){ return a.table_number.localeCompare(b.table_number, undefined, {numeric:true}); });
+    if (numEl) numEl.value = '';
+    toast('✅ 已添加桌号 ' + num);
+    renderTables();
+  } catch(e) { toast('❌ 添加失败: '+e.message); }
+}
+
+async function addTablesBatch() {
+  if (!confirm('批量添加桌号 1-140（已存在的跳过）？')) return;
+  var added = 0;
+  for (var i = 1; i <= 140; i++) {
+    var num = String(i);
+    if (_TABLE_CONFIGS.find(function(t){ return t.table_number === num; })) continue;
+    try {
+      await sbFetch('table_configs', {
+        method: 'POST',
+        body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: num, guest_count: 2})
+      });
+      _TABLE_CONFIGS.push({table_number: num, guest_count: 2});
+      added++;
+    } catch(e) {}
+  }
+  _TABLE_CONFIGS.sort(function(a,b){ return a.table_number.localeCompare(b.table_number, undefined, {numeric:true}); });
+  toast('✅ 已添加 '+added+' 张桌子');
+  renderTables();
+}
+
+async function updateTableGuests(tableNum, val) {
+  var guests = parseInt(val) || 2;
+  try {
+    await sbFetch('table_configs?restaurant_id=eq.'+RESTAURANT_ID+'&table_number=eq.'+encodeURIComponent(tableNum), {
+      method: 'PATCH',
+      body: JSON.stringify({guest_count: guests})
+    });
+    var t = _TABLE_CONFIGS.find(function(x){ return x.table_number === tableNum; });
+    if (t) t.guest_count = guests;
+    toast('✅ 已保存');
+  } catch(e) { toast('❌ 保存失败: '+e.message); }
+}
+
+async function deleteTable(tableNum) {
+  if (!confirm('删除桌号 '+tableNum+' ？')) return;
+  try {
+    await sbFetch('table_configs?restaurant_id=eq.'+RESTAURANT_ID+'&table_number=eq.'+encodeURIComponent(tableNum), {
+      method: 'DELETE'
+    });
+    _TABLE_CONFIGS = _TABLE_CONFIGS.filter(function(t){ return t.table_number !== tableNum; });
+    toast('✅ 已删除');
+    renderTables();
+  } catch(e) { toast('❌ 删除失败: '+e.message); }
 }
 
 function makeSwitch(key, val, label, desc){

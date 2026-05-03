@@ -703,6 +703,21 @@ function clearCartLS() {
 }
 var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
 var _tableSession = null;  // 当前桌号的轮次状态
+var _clientId = null;      // 本机唯一ID
+var _tableConfig = null;   // 当前桌号配置（人数限制等）
+var _syncInterval = null;  // 轮询同步定时器
+
+// 生成或读取本机ID
+function getClientId() {
+  try {
+    var id = localStorage.getItem('yiofish_client_id');
+    if (!id) {
+      id = 'c' + Date.now() + Math.random().toString(36).substr(2,6);
+      localStorage.setItem('yiofish_client_id', id);
+    }
+    return id;
+  } catch(e) { return 'c' + Date.now(); }
+}
 var _roundCartCount = 0;   // 本轮已点道数
 var currentMenuId = null;
 var isAsporto = false;
@@ -773,6 +788,7 @@ async function loadAll() {
     // 记录发布时间
     if (SETTINGS.published_at) _lastPublishedAt = SETTINGS.published_at;
     loadCartFromLS();
+    _clientId = getClientId();
     loadMenu();
     // 每30秒检查营业状态和新发布
     setInterval(function(){
@@ -1588,8 +1604,14 @@ function renderCartBody() {
 // ════════════════════════════════════
 
 async function loadTableSession(tableNum) {
-  if (!tableNum) { _tableSession = null; _roundCartCount = 0; return; }
+  if (!tableNum) { _tableSession = null; return; }
   try {
+    // 加载桌号配置（人数限制）
+    var tcRes = await sbFetch('table_configs?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum) + '&select=*');
+    var tcData = await tcRes.json();
+    _tableConfig = tcData && tcData[0] ? tcData[0] : null;
+    if (_tableConfig) guestCount = _tableConfig.guest_count || 1;
+
     var res = await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum) + '&select=*');
     var data = await res.json();
     if (data && data[0]) {
@@ -1601,12 +1623,64 @@ async function loadTableSession(tableNum) {
         await resetTableSession(tableNum);
         return;
       }
+      // 检查active_ids人数限制
+      var maxIds = _tableConfig ? (_tableConfig.guest_count || 99) : 99;
+      var activeIds = s.active_ids || [];
+      if (activeIds.indexOf(_clientId) < 0) {
+        if (activeIds.length >= maxIds) {
+          toast('⚠️ Tavolo ' + tableNum + ' al completo (' + maxIds + ' persone)');
+          return;
+        }
+        // 注册本机ID
+        activeIds = activeIds.concat([_clientId]);
+        await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {
+          method: 'PATCH',
+          body: JSON.stringify({active_ids: activeIds})
+        });
+        s.active_ids = activeIds;
+      }
       _tableSession = s;
     } else {
-      _tableSession = null;
+      // 新建session
+      var now2 = new Date().toISOString();
+      await sbFetch('table_sessions', {
+        method: 'POST',
+        body: JSON.stringify({
+          restaurant_id: RESTAURANT_ID,
+          table_number: tableNum,
+          round_number: 1,
+          order_count: 0,
+          active_ids: [_clientId],
+          first_order_at: null
+        })
+      });
+      _tableSession = {round_number: 1, order_count: 0, active_ids: [_clientId], first_order_at: null};
     }
     updateRoundUI();
+    updateGuestCountUI();
+    // 启动同步轮询
+    startSyncInterval(tableNum);
   } catch(e) { console.log('loadTableSession error:', e); }
+}
+
+function startSyncInterval(tableNum) {
+  if (_syncInterval) clearInterval(_syncInterval);
+  _syncInterval = setInterval(async function() {
+    try {
+      var res = await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum) + '&select=*');
+      var data = await res.json();
+      if (data && data[0]) {
+        _tableSession = data[0];
+        updateRoundUI();
+      }
+    } catch(e) {}
+  }, 10000); // 每10秒同步一次
+}
+
+function updateGuestCountUI() {
+  if (_tableConfig) {
+    guestCount = _tableConfig.guest_count || 1;
+  }
 }
 
 async function resetTableSession(tableNum) {
@@ -1625,25 +1699,38 @@ async function recordRoundSent(tableNum) {
   if (!tableNum) return;
   var roundMax = SETTINGS.round_max || 0;
   var roundTotal = SETTINGS.round_total || 0;
-  if (roundMax === 0 && roundTotal === 0) return; // 未启用轮次控制
+  if (roundMax === 0 && roundTotal === 0) return;
   try {
     var now = new Date().toISOString();
+    // 计算本次发送的菜品数（price=0的菜）
+    var sentCount = 0;
+    for (var id in cart_dine) {
+      var it2 = getItemById(id);
+      if (it2) {
+        var hasP = false;
+        if (it2.menus) { for (var mid in it2.menus) { if ((parseFloat(it2.menus[mid].price)||0)>0){hasP=true;break;} } }
+        if (!hasP) sentCount += cart_dine[id];
+      }
+    }
     if (_tableSession) {
       var newRound = (_tableSession.round_number || 1) + 1;
+      var newCount = (_tableSession.order_count || 0) + sentCount;
+      var firstAt = _tableSession.first_order_at || now;
       await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {
         method: 'PATCH',
-        body: JSON.stringify({round_number: newRound, last_sent_at: now})
+        body: JSON.stringify({round_number: newRound, last_sent_at: now, order_count: newCount, first_order_at: firstAt})
       });
       _tableSession.round_number = newRound;
       _tableSession.last_sent_at = now;
+      _tableSession.order_count = newCount;
+      _tableSession.first_order_at = firstAt;
     } else {
       await sbFetch('table_sessions', {
         method: 'POST',
-        body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: tableNum, round_number: 1, last_sent_at: now})
+        body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: tableNum, round_number: 1, last_sent_at: now, order_count: sentCount, first_order_at: now, active_ids: [_clientId]})
       });
-      _tableSession = {round_number: 1, last_sent_at: now};
+      _tableSession = {round_number: 1, last_sent_at: now, order_count: sentCount, first_order_at: now};
     }
-    _roundCartCount = 0;
     updateRoundUI();
   } catch(e) { console.log('recordRoundSent error:', e); }
 }
@@ -1700,15 +1787,16 @@ function updateRoundUI() {
 
 function canAddItem() {
   var roundMax = SETTINGS.round_max || 0;
-  if (roundMax === 0) return {ok: true};
+  var roundTotal = SETTINGS.round_total || 0;
+  if (roundMax === 0 && roundTotal === 0) return {ok: true};
   var status = getRoundStatus();
   if (!status.ok) return {ok: false, msg: status.msg};
-  // 只计算price=0的菜（用该菜在其对应菜单里的price判断）
+
+  // 本轮已点（本机cart_dine里price=0的菜）
   var thisRoundCount = 0;
   for (var k in cart_dine) {
     var kit = getItemById(k);
     if (kit) {
-      // 检查该菜在任意菜单里的price是否>0
       var kitHasPrice = false;
       if (kit.menus) {
         for (var mid in kit.menus) {
@@ -1718,8 +1806,17 @@ function canAddItem() {
       if (!kitHasPrice) thisRoundCount += cart_dine[k];
     }
   }
-  if (thisRoundCount >= roundMax * guestCount) {
+  if (roundMax > 0 && thisRoundCount >= roundMax * guestCount) {
     return {ok: false, msg: 'Limite turno: max ' + (roundMax * guestCount) + ' piatti per questo turno'};
+  }
+
+  // 总量检查（跨设备）：order_count（已发送）+ 本轮cart_dine
+  if (roundMax > 0 && roundTotal > 0) {
+    var totalMax = roundMax * guestCount * roundTotal;
+    var alreadySent = _tableSession ? (_tableSession.order_count || 0) : 0;
+    if (alreadySent + thisRoundCount >= totalMax) {
+      return {ok: false, msg: 'Limite totale raggiunto: max ' + totalMax + ' piatti (' + roundMax + '/turno × ' + guestCount + ' persone × ' + roundTotal + ' turni)'};
+    }
   }
   return {ok: true};
 }
@@ -1744,6 +1841,15 @@ function changeGuestCount() {
   if (guestDisplay) guestDisplay.textContent = guestCount;
   updateCartUI();
   toast('👥 ' + guestCount + ' ' + (guestCount === 1 ? 'persona' : 'persone'));
+  // 同步到table_configs
+  var tableNum2 = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
+  if (tableNum2 && _tableConfig) {
+    sbFetch('table_configs?restaurant_id=eq.'+RESTAURANT_ID+'&table_number=eq.'+encodeURIComponent(tableNum2), {
+      method: 'PATCH',
+      body: JSON.stringify({guest_count: n})
+    }).catch(function(){});
+    _tableConfig.guest_count = n;
+  }
 }
 
 function confirmResetRound() {
