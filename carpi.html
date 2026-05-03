@@ -736,9 +736,7 @@ async function loadAll() {
     mclData.forEach(function(row) {
       if (!MENU_CAT_LIMITS[row.menu_id]) MENU_CAT_LIMITS[row.menu_id] = {};
       MENU_CAT_LIMITS[row.menu_id][String(row.cat_id)] = row.cat_limit;
-      MENU_CAT_LIMITS[row.menu_id][Number(row.cat_id)] = row.cat_limit;
     });
-    console.log('MENU_CAT_LIMITS loaded:', JSON.stringify(MENU_CAT_LIMITS));
     // 存储每个菜单的excludeCats
     MENU_CONFIGS = {};
     mcData.forEach(function(mc) {
@@ -1275,7 +1273,7 @@ function addItem(it) {
       }
 
       // 检查分类级别限制（按菜单区分，从menu_cat_limits读取）
-      var catLimit = (currentMenuId && MENU_CAT_LIMITS[currentMenuId] && (MENU_CAT_LIMITS[currentMenuId][it.category] || MENU_CAT_LIMITS[currentMenuId][String(it.category)] || MENU_CAT_LIMITS[currentMenuId][Number(it.category)])) || 0;
+      var catLimit = (currentMenuId && MENU_CAT_LIMITS[currentMenuId] && MENU_CAT_LIMITS[currentMenuId][String(it.category)]) || 0;
       if (catLimit > 0) {
         var catTotal = 0;
         for (var k2 in cart_dine) {
