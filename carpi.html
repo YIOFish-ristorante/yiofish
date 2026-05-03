@@ -671,11 +671,13 @@ var guestCount = 1;  // 人数（服务员控制）
 var LS_KEY_DINE = 'yiofish_cart_dine_carpi';
 var LS_KEY_SENT = 'yiofish_cart_sent_carpi';
 
+var LS_KEY_ASP = 'yiofish_cart_asporto_carpi';
 function saveCartToLS() {
   try {
     var now = Date.now();
     localStorage.setItem(LS_KEY_DINE, JSON.stringify({data: cart_dine, ts: now}));
     localStorage.setItem(LS_KEY_SENT, JSON.stringify({data: cart_dine_sent, ts: now}));
+    localStorage.setItem(LS_KEY_ASP, JSON.stringify({data: cart_asporto, ts: now}));
   } catch(e) {}
 }
 
@@ -687,11 +689,13 @@ function loadCartFromLS() {
     if (d) { var obj = JSON.parse(d); if (now - obj.ts < FOUR_HOURS) cart_dine = obj.data || {}; }
     var s = localStorage.getItem(LS_KEY_SENT);
     if (s) { var obj2 = JSON.parse(s); if (now - obj2.ts < FOUR_HOURS) cart_dine_sent = obj2.data || {}; }
+    var a = localStorage.getItem(LS_KEY_ASP);
+    if (a) { var obj3 = JSON.parse(a); if (now - obj3.ts < FOUR_HOURS) cart_asporto = obj3.data || {}; }
   } catch(e) {}
 }
 
 function clearCartLS() {
-  try { localStorage.removeItem(LS_KEY_DINE); localStorage.removeItem(LS_KEY_SENT); } catch(e) {}
+  try { localStorage.removeItem(LS_KEY_DINE); localStorage.removeItem(LS_KEY_SENT); localStorage.removeItem(LS_KEY_ASP); } catch(e) {}
 }
 var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
 var _tableSession = null;  // 当前桌号的轮次状态
@@ -731,8 +735,10 @@ async function loadAll() {
     MENU_CAT_LIMITS = {};
     mclData.forEach(function(row) {
       if (!MENU_CAT_LIMITS[row.menu_id]) MENU_CAT_LIMITS[row.menu_id] = {};
-      MENU_CAT_LIMITS[row.menu_id][row.cat_id] = row.cat_limit;
+      MENU_CAT_LIMITS[row.menu_id][String(row.cat_id)] = row.cat_limit;
+      MENU_CAT_LIMITS[row.menu_id][Number(row.cat_id)] = row.cat_limit;
     });
+    console.log('MENU_CAT_LIMITS loaded:', JSON.stringify(MENU_CAT_LIMITS));
     // 存储每个菜单的excludeCats
     MENU_CONFIGS = {};
     mcData.forEach(function(mc) {
@@ -1292,8 +1298,8 @@ function addItem(it) {
     cart_asporto[it.id] = (cart_asporto[it.id] || 0) + 1;
   } else {
     cart_dine[it.id] = (cart_dine[it.id] || 0) + 1;
-    saveCartToLS();
   }
+  saveCartToLS();
   updateItemUI(it.id);
   updateCartUI();
 }
@@ -1328,7 +1334,7 @@ function changeQty(it, d) {
   if (d > 0 && mq > 0 && nv > mq) nv = mq;
   c[it.id] = nv;
   if (c[it.id] === 0) delete c[it.id];
-  if (!isAsporto) saveCartToLS();
+  saveCartToLS();
   updateItemUI(it.id);
   updateCartUI();
 }
