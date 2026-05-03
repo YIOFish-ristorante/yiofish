@@ -435,46 +435,44 @@
             return str;
         }
 
+        function se(id, val, prop) {
+            const el = document.getElementById(id);
+            if (el) el[prop||'innerText'] = val;
+        }
         function updateUIStrings() {
-            document.getElementById('title-tag').innerText = t('title');
-            document.getElementById('nav-title').innerText = t('title');
-            
-            document.getElementById('btn-chef').innerText = t('employeeTab');
-            document.getElementById('btn-admin').innerText = t('adminTab');
-            document.getElementById('btn-download').innerHTML = `💾 ${t('download')}`;
-            
-            document.getElementById('searchInput').placeholder = t('searchPlaceholder');
+            se('title-tag', t('title'));
+            se('nav-title', t('title'));
+            se('btn-chef', t('employeeTab'));
+            se('btn-admin', t('adminTab'));
+            se('btn-download', '💾 ' + t('download'), 'innerHTML');
+            se('txt-clear', t('clear'));
+            se('btn-submit', t('submit'));
+            se('txt-pending-label', t('pendingLabel'));
+            se('txt-total-label', t('totalLabel'));
+            se('btn-export', t('export'));
+            se('txt-import-title', t('importTitle'));
+            se('txt-import-desc', t('importDesc'));
+            se('txt-add-title', t('addTitle'));
+            se('lbl-chef', t('chefName'));
+            se('lbl-dept', t('department'));
+            se('lbl-itemname', t('itemName'));
+            se('lbl-italian', t('italianName'));
+            se('lbl-spec', t('spec'));
+            se('lbl-stock', t('stock'));
+            se('lbl-price', t('price'));
+            se('lbl-cycle', t('cycle'));
+            se('btn-save', t('save'));
+            se('txt-summary', t('summary'));
+            se('txt-db', t('db'));
+            se('opt-sort-default', t('sortDefault'));
+            se('opt-sort-name', t('sortName'));
+            se('opt-sort-chef', t('sortChef'));
+            se('opt-sort-category', t('sortCategory'));
+            const si = document.getElementById('searchInput');
+            if (si) si.placeholder = t('searchPlaceholder');
             if (document.getElementById('txt-selected')) {
                 document.getElementById('txt-selected').childNodes[0].nodeValue = t('selected') + ": ";
             }
-            document.getElementById('txt-clear').innerText = t('clear');
-            document.getElementById('btn-submit').innerText = t('submit');
-            
-            document.getElementById('txt-pending-label').innerText = t('pendingLabel');
-            document.getElementById('txt-total-label').innerText = t('totalLabel');
-            document.getElementById('btn-export').innerText = t('export');
-            
-            document.getElementById('txt-import-title').innerText = t('importTitle');
-            document.getElementById('txt-import-desc').innerText = t('importDesc');
-            
-            document.getElementById('txt-add-title').innerText = t('addTitle');
-            document.getElementById('lbl-chef').innerText = t('chefName');
-            document.getElementById('lbl-dept').innerText = t('department');
-            document.getElementById('lbl-itemname').innerText = t('itemName');
-            document.getElementById('lbl-italian').innerText = t('italianName');
-            document.getElementById('lbl-spec').innerText = t('spec');
-            document.getElementById('lbl-stock').innerText = t('stock');
-            document.getElementById('lbl-price').innerText = t('price');
-            document.getElementById('lbl-cycle').innerText = t('cycle');
-            
-            document.getElementById('btn-save').innerText = t('save');
-            document.getElementById('txt-summary').innerText = t('summary');
-            document.getElementById('txt-db').innerText = t('db');
-
-            document.getElementById('opt-sort-default').innerText = t('sortDefault');
-            document.getElementById('opt-sort-name').innerText = t('sortName');
-            document.getElementById('opt-sort-chef').innerText = t('sortChef');
-            document.getElementById('opt-sort-category').innerText = t('sortCategory');
         }
 
         function renderFormOptions() {
@@ -1051,6 +1049,7 @@
                         departments: departments, cycle: ['星期一'],
                         stock: '1', safety: '1', category: category
                     });
+                }
                 // 显示保存按钮
                 const saveArea = document.getElementById('import-save-area');
                 const previewMsg = document.getElementById('import-preview-msg');
