@@ -1332,6 +1332,30 @@ function changeQty(it, d) {
   var mq = it.max_qty || 0;
   var nv = Math.max(0, (c[it.id] || 0) + d);
   if (d > 0 && mq > 0 && nv > mq) nv = mq;
+
+  // 加菜时检查分类限制
+  if (d > 0 && !isAsporto) {
+    var hasPrice = (parseFloat(it.price) || 0) > 0;
+    if (!hasPrice && currentMenuId) {
+      var catLimit = (MENU_CAT_LIMITS[currentMenuId] && MENU_CAT_LIMITS[currentMenuId][String(it.category)]) || 0;
+      if (catLimit > 0) {
+        var catTotal = 0;
+        for (var k2 in cart_dine) {
+          var kit2 = getItemById(k2);
+          if (kit2 && String(kit2.category) === String(it.category)) {
+            if ((parseFloat(kit2.menus && kit2.menus[currentMenuId] && kit2.menus[currentMenuId].price) || 0) === 0) {
+              catTotal += cart_dine[k2];
+            }
+          }
+        }
+        if (catTotal >= catLimit * guestCount) {
+          toast('⚠️ Limite categoria ' + getCatName(it.category) + ': max ' + (catLimit * guestCount) + ' piatti (' + catLimit + '/persona x ' + guestCount + (guestCount===1?' persona':' persone') + ')');
+          return;
+        }
+      }
+    }
+  }
+
   c[it.id] = nv;
   if (c[it.id] === 0) delete c[it.id];
   saveCartToLS();
