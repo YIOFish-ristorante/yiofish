@@ -1763,7 +1763,7 @@ function renderSettings(){
         +cat.icon+' '+cat.name
         +'</label>'
         +'<input type="number" min="0" step="1" value="'+catLimitVal+'" placeholder="∞"'
-        +' onchange="setMenuCatLimitDB(\'' + m.id + '\', ' + cat.id + ', this.value)"'
+        +' onchange="setMenuCatLimitDB(\'' + m.id + '\', \'' + cat.id + '\', this.value)"'
         +' style="width:38px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 4px;color:var(--text);font-size:11px;text-align:center;">'
         +'</div>';
     });
