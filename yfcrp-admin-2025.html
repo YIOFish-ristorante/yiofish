@@ -1901,7 +1901,18 @@ async function setMenuCatLimitDB(menuId, catId, val) {
 function renderTables() {
   var rows = '';
   _TABLE_CONFIGS.forEach(function(t) {
-    rows += '<tr>'      +'<td style="padding:10px 12px;font-weight:500;">'+t.table_number+'</td>'      +'<td style="padding:10px 12px;">'        +'<input type="number" min="1" max="20" value="'+t.guest_count+'" '        +'onchange="updateTableGuests(''+t.table_number+'', this.value)" '        +'style="width:60px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:4px 8px;color:var(--text);font-size:13px;text-align:center;">'      +'</td>'      +'<td style="padding:10px 12px;">'        +'<button class="btn btn-sm btn-red" onclick="deleteTable(''+t.table_number+'')">删除</button>'      +'</td>'    +'</tr>';
+    var tn = t.table_number;
+    rows += '<tr>'
+      +'<td style="padding:10px 12px;font-weight:500;">'+tn+'</td>'
+      +'<td style="padding:10px 12px;">'
+        +'<input type="number" min="1" max="20" value="'+t.guest_count+'"'
+        +' onchange="updateTableGuests(this.dataset.tn, this.value)" data-tn="'+tn+'"'
+        +' style="width:60px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:4px 8px;color:var(--text);font-size:13px;text-align:center;">'
+      +'</td>'
+      +'<td style="padding:10px 12px;">'
+        +'<button class="btn btn-sm btn-red" onclick="deleteTable(this.dataset.tn)" data-tn="'+tn+'">删除</button>'
+      +'</td>'
+    +'</tr>';
   });
   $('content').innerHTML =
     '<div class="page-head"><div><h1>🪑 桌号管理</h1><p>共 '+_TABLE_CONFIGS.length+' 张桌子</p></div></div>'    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'      +'<div class="s-label" style="padding:0 0 12px">添加新桌号</div>'      +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">'        +'<input type="text" id="new-table-num" placeholder="桌号 (es. 1, A1, VIP)" '        +'style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-size:13px;">'        +'<input type="number" id="new-table-guests" min="1" max="20" value="2" placeholder="人数" '        +'style="width:80px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--text);font-size:13px;text-align:center;">'        +'<button class="btn btn-gold" onclick="addTable()">+ 添加</button>'        +'<button class="btn btn-ghost" onclick="addTablesBatch()">批量添加 1-140</button>'      +'</div>'    +'</div>'    +'<div class="card" style="padding:0;overflow:hidden;">'      +'<table style="width:100%;border-collapse:collapse;">'        +'<thead><tr style="background:var(--s2);border-bottom:1px solid var(--border);">'          +'<th style="padding:10px 12px;text-align:left;font-size:12px;color:var(--muted);">桌号</th>'          +'<th style="padding:10px 12px;text-align:left;font-size:12px;color:var(--muted);">人数</th>'          +'<th style="padding:10px 12px;text-align:left;font-size:12px;color:var(--muted);">操作</th>'        +'</tr></thead>'        +'<tbody>'+rows+'</tbody>'      +'</table>'    +'</div>';
@@ -1931,18 +1942,36 @@ async function addTable() {
 
 async function addTablesBatch() {
   if (!confirm('批量添加桌号 1-140（已存在的跳过）？')) return;
-  var added = 0;
+  // 先收集所有不存在的桌号
+  var toAdd = [];
   for (var i = 1; i <= 140; i++) {
     var num = String(i);
-    if (_TABLE_CONFIGS.find(function(t){ return t.table_number === num; })) continue;
+    if (!_TABLE_CONFIGS.find(function(t){ return t.table_number === num; })) {
+      toAdd.push(num);
+    }
+  }
+  if (toAdd.length === 0) { toast('⚠️ 全部桌号已存在'); return; }
+  toast('⏳ 正在添加 ' + toAdd.length + ' 张桌子...');
+  // 逐条插入，每5条暂停200ms
+  var added = 0;
+  for (var j = 0; j < toAdd.length; j++) {
     try {
-      await sbFetch('table_configs', {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/table_configs', {
         method: 'POST',
-        body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: num, guest_count: 2})
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: toAdd[j], guest_count: 2})
       });
-      _TABLE_CONFIGS.push({table_number: num, guest_count: 2});
-      added++;
+      if (res.ok) {
+        _TABLE_CONFIGS.push({table_number: toAdd[j], guest_count: 2});
+        added++;
+      }
     } catch(e) {}
+    if ((j+1) % 5 === 0) await new Promise(function(r){ setTimeout(r, 200); });
   }
   _TABLE_CONFIGS.sort(function(a,b){ return a.table_number.localeCompare(b.table_number, undefined, {numeric:true}); });
   toast('✅ 已添加 '+added+' 张桌子');
