@@ -1269,7 +1269,7 @@ function addItem(it) {
       }
 
       // 检查分类级别限制（按菜单区分，从menu_cat_limits读取）
-      var catLimit = (currentMenuId && MENU_CAT_LIMITS[currentMenuId] && MENU_CAT_LIMITS[currentMenuId][it.category]) || 0;
+      var catLimit = (currentMenuId && MENU_CAT_LIMITS[currentMenuId] && (MENU_CAT_LIMITS[currentMenuId][it.category] || MENU_CAT_LIMITS[currentMenuId][String(it.category)] || MENU_CAT_LIMITS[currentMenuId][Number(it.category)])) || 0;
       if (catLimit > 0) {
         var catTotal = 0;
         for (var k2 in cart_dine) {
@@ -1292,6 +1292,7 @@ function addItem(it) {
     cart_asporto[it.id] = (cart_asporto[it.id] || 0) + 1;
   } else {
     cart_dine[it.id] = (cart_dine[it.id] || 0) + 1;
+    saveCartToLS();
   }
   updateItemUI(it.id);
   updateCartUI();
@@ -1327,6 +1328,7 @@ function changeQty(it, d) {
   if (d > 0 && mq > 0 && nv > mq) nv = mq;
   c[it.id] = nv;
   if (c[it.id] === 0) delete c[it.id];
+  if (!isAsporto) saveCartToLS();
   updateItemUI(it.id);
   updateCartUI();
 }

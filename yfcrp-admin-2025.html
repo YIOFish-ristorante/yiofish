@@ -184,10 +184,79 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 .loading-spinner{width:40px;height:40px;border:3px solid rgba(212,171,72,.2);border-top-color:#d4ab48;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{color:#d4ab48;font-size:13px;letter-spacing:2px;}
+
+/* ── 密码锁 ── */
+#lock-screen {
+  position: fixed; inset: 0; z-index: 99999;
+  background: #1a1510;
+  display: flex; align-items: center; justify-content: center;
+}
+.lock-box {
+  text-align: center; width: 85%; max-width: 320px;
+}
+.lock-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px; font-weight: 300; letter-spacing: 4px;
+  color: #d4ab48; margin-bottom: 6px;
+}
+.lock-sub {
+  font-size: 11px; color: rgba(244,241,236,.3);
+  letter-spacing: 2px; margin-bottom: 32px;
+}
+
+.lock-error { color: #c0392b; font-size: 11px; letter-spacing: 1px; margin-top: 14px; min-height: 16px; }
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
+
+
+<div id="lock-screen">
+  <div class="lock-box">
+    <div class="lock-logo">Yio Fish</div>
+    <div class="lock-sub">GESTIONE MENU</div>
+    <div style="position:relative;margin-bottom:12px;">
+      <input id="lock-input" type="password"
+        placeholder="Password"
+        autocomplete="off" autocorrect="off" autocapitalize="off"
+        onkeydown="if(event.key==='Enter')verifyLock()"
+        style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(212,171,72,.3);
+        border-radius:10px;padding:14px 48px 14px 16px;font-size:16px;color:#f4f1ec;
+        outline:none;letter-spacing:2px;font-family:inherit;">
+      <button onclick="toggleLockPwd()" id="lock-eye"
+        style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+        background:none;border:none;color:rgba(212,171,72,.6);cursor:pointer;font-size:18px;">👁</button>
+    </div>
+    <button onclick="verifyLock()"
+      style="width:100%;background:#d4ab48;border:none;border-radius:10px;
+      padding:14px;font-size:14px;letter-spacing:3px;color:#1a1510;
+      cursor:pointer;font-family:inherit;font-weight:500;margin-bottom:16px;">
+      ACCEDI
+    </button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.1);"></div>
+      <span style="font-size:11px;color:rgba(255,255,255,.3);letter-spacing:1px;">OPPURE</span>
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.1);"></div>
+    </div>
+    <div style="display:flex;justify-content:center;">
+      <div id="g_id_onload"
+        data-client_id="906430477271-9r4b8q4kojc8bg40k463eibu9fgij08a.apps.googleusercontent.com"
+        data-callback="handleGoogleLogin"
+        data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin"
+        data-type="standard"
+        data-size="medium"
+        data-theme="outline"
+        data-text="signin_with"
+        data-shape="rectangular"
+        data-logo_alignment="left">
+      </div>
+    </div>
+    <div class="lock-error" id="lock-error"></div>
+  </div>
+</div>
 
 <div id="loading-overlay"><div class="loading-spinner"></div><div class="loading-text">连接数据库中…</div></div>
 <div class="topbar">
@@ -413,6 +482,84 @@ var _fSearch = '', _fCat = '__all__', _fMenu = '__all__';
 // ════════════════════════════════════
 //  重新加载菜品数据（保存后调用）
 // ════════════════════════════════════
+
+// ════════════════════════════════════
+//  密码锁
+// ════════════════════════════════════
+var _lockSession = 'yf_admin_auth';
+var ADMIN_PASSWORD_HASH = '33991d1b60f039bcf43b395c087fe5fedfe898ed7e556b01665e73baafd63ae3';
+var ALLOWED_EMAILS = ['zhou136103031@gmail.com'];
+
+async function verifyLock() {
+  var input = document.getElementById('lock-input');
+  var val = input ? input.value : '';
+  var encoder = new TextEncoder();
+  var data = encoder.encode(val);
+  var hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  var hashArray = Array.from(new Uint8Array(hashBuffer));
+  var hashHex = hashArray.map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+  var errEl = document.getElementById('lock-error');
+  if (hashHex === ADMIN_PASSWORD_HASH) {
+    try { sessionStorage.setItem(_lockSession, 'pwd'); } catch(e) {}
+    document.getElementById('lock-screen').style.display = 'none';
+    loadAll();
+  } else {
+    if (errEl) errEl.textContent = 'PASSWORD ERRATA';
+    if (input) {
+      input.style.borderColor = '#c0392b';
+      input.value = '';
+      setTimeout(function() {
+        input.style.borderColor = 'rgba(212,171,72,.3)';
+        if (errEl) errEl.textContent = '';
+        input.focus();
+      }, 800);
+    }
+  }
+}
+
+function toggleLockPwd() {
+  var input = document.getElementById('lock-input');
+  var eye = document.getElementById('lock-eye');
+  if (input) {
+    input.type = input.type === 'password' ? 'text' : 'password';
+    if (eye) eye.textContent = input.type === 'password' ? '👁' : '🙈';
+  }
+}
+
+function handleGoogleLogin(response) {
+  try {
+    // 解析JWT token获取用户信息
+    var payload = JSON.parse(atob(response.credential.split('.')[1]));
+    var email = payload.email;
+    var errEl = document.getElementById('lock-error');
+
+    if (ALLOWED_EMAILS.length === 0 || ALLOWED_EMAILS.indexOf(email) >= 0) {
+      // 登录成功
+      try { sessionStorage.setItem(_lockSession, email); } catch(e) {}
+      document.getElementById('lock-screen').style.display = 'none';
+      loadAll();
+    } else {
+      // 邮箱不在白名单
+      if (errEl) errEl.textContent = 'ACCESSO NON AUTORIZZATO: ' + email;
+    }
+  } catch(e) {
+    var errEl = document.getElementById('lock-error');
+    if (errEl) errEl.textContent = 'ERRORE: ' + e.message;
+  }
+}
+
+// 检查是否已经登录
+(function() {
+  try {
+    if (sessionStorage.getItem(_lockSession)) {
+      document.getElementById('lock-screen').style.display = 'none';
+      document.addEventListener('DOMContentLoaded', function() { loadAll(); });
+      return;
+    }
+  } catch(e) {}
+})();
+
+
 async function reloadDishes() {
   try {
     var [dRes, dm1Res, dm2Res, dm3Res] = await Promise.all([
@@ -471,26 +618,24 @@ async function loadAll() {
     if (sData[0]) _SETTINGS = sData[0];
     C = await cRes.json();
     var dishes = await dRes.json();
-    // 加载菜单配置 + 分类限制
+    // 加载菜单配置 + 分类限量
     var [mcRes, mclRes] = await Promise.all([
       sbFetch('menu_configs?restaurant_id=eq.'+RESTAURANT_ID+'&select=*'),
       sbFetch('menu_cat_limits?restaurant_id=eq.'+RESTAURANT_ID+'&select=*')
     ]);
     var mcData = await mcRes.json();
     var mclData = await mclRes.json();
-    // 构建 _MENU_CAT_LIMITS = {menuId: {catId: limit}}
-    _MENU_CAT_LIMITS = {};
-    mclData.forEach(function(row) {
-      if (!_MENU_CAT_LIMITS[row.menu_id]) _MENU_CAT_LIMITS[row.menu_id] = {};
-      _MENU_CAT_LIMITS[row.menu_id][row.cat_id] = row.cat_limit;
-    });
     _MENU_CONFIGS = {};
     mcData.forEach(function(mc){
       _MENU_CONFIGS[mc.menu_id] = {
         excludeCats: mc.exclude_cats || [],
-        menuLimit: mc.menu_limit || 0,
-        catLimits: mc.cat_limits || {}
+        menuLimit: mc.menu_limit || 0
       };
+    });
+    _MENU_CAT_LIMITS = {};
+    mclData.forEach(function(row) {
+      if (!_MENU_CAT_LIMITS[row.menu_id]) _MENU_CAT_LIMITS[row.menu_id] = {};
+      _MENU_CAT_LIMITS[row.menu_id][row.cat_id] = row.cat_limit;
     });
     // 同步到MENUS
     MENUS.forEach(function(m){
@@ -893,6 +1038,12 @@ function renderCats(){
       +'<div style="color:var(--muted);font-size:18px;cursor:grab;padding:0 4px;flex-shrink:0">⠿</div>'
       +'<div class="cat-icon-box">'+cat.icon+'</div>'
       +'<div class="cat-info"><div class="cat-name-t">'+cat.name+'</div><div class="cat-id-t">id: '+cat.id+' · '+cnt+' piatti</div></div>'
+      +'<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">'
+        +'<span style="font-size:10px;color:var(--muted);letter-spacing:.5px;">限/人:</span>'
+        +'<input type="number" min="0" value="'+(cat.cat_limit||0)+'" '
+        +'onchange="saveCatLimit(\'' + cat.id + '\', this.value)" '
+        +'style="width:50px;background:var(--s2);border:1px solid var(--border2);border-radius:6px;padding:3px 6px;font-size:12px;color:var(--text2);text-align:center;outline:none;">'
+      +'</div>'
       +'<button class="btn btn-sm btn-gold-s" onclick="openEditCat('+i+')">编辑</button>'
       +'<button class="btn btn-sm btn-red" onclick="delCat('+i+')">删除</button>'
     +'</div>';
@@ -946,6 +1097,21 @@ function openEditCat(idx){
   $('fc-name').value=C[idx].name; $('fc-icon').value=C[idx].icon; $('fc-id').value=C[idx].id;
   openModal('cat-modal');
 }
+async function saveCatLimit(catId, val) {
+  var limit = parseInt(val) || 0;
+  // 更新本地C数组
+  for (var i = 0; i < C.length; i++) {
+    if (C[i].id === catId) { C[i].cat_limit = limit; break; }
+  }
+  try {
+    await sbFetch('categories?id=eq.' + catId, {
+      method: 'PATCH',
+      body: JSON.stringify({cat_limit: limit})
+    });
+    toast('✅ ' + catId + ' 限点: ' + (limit === 0 ? '无限制' : limit + '/人'));
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
+}
+
 async function saveCat(){
   var name=$('fc-name').value.trim();
   var icon=$('fc-icon').value.trim()||'🍽️';
@@ -1624,6 +1790,44 @@ function renderSettings(){
         +makeSwitch('is_open', s.is_open, '🟢 营业状态', '关闭后菜单顶部显示"已打烊"提示')
       +'</div>'
     +'</div>'
+    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+      +'<div class="s-label" style="padding:0 0 12px">🍽️ 点餐轮次控制</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">控制每桌客人的点餐节奏</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:8px;">'
+        +'<div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">每轮最多道数</div>'
+          +'<input id="round-max-input" type="number" min="0" value="'+(s.round_max||0)+'"'
+          +' style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 10px;font-size:14px;color:var(--text2);outline:none;text-align:center;">'
+        +'</div>'
+        +'<div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">总轮数</div>'
+          +'<input id="round-total-input" type="number" min="0" value="'+(s.round_total||0)+'"'
+          +' style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 10px;font-size:14px;color:var(--text2);outline:none;text-align:center;">'
+        +'</div>'
+        +'<div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">间隔分钟</div>'
+          +'<input id="round-interval-input" type="number" min="0" value="'+(s.round_interval||0)+'"'
+          +' style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 10px;font-size:14px;color:var(--text2);outline:none;text-align:center;">'
+        +'</div>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--muted);margin-bottom:10px;">设为0表示不限制</div>'
+      +'<button onclick="saveRoundSettings()" style="background:var(--gold);border:none;border-radius:var(--r);padding:8px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存轮次设置</button>'
+    +'</div>'
+    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+      +'<div class="s-label" style="padding:0 0 12px">🔑 服务员密码</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">客人修改人数时需要输入此密码（初始：5555）</div>'
+      +'<div style="display:flex;gap:8px;">'
+        +'<input id="waiter-pwd-input" type="text" value="'+(s.waiter_password||'5555')+'"'
+        +' style="flex:1;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;font-size:14px;color:var(--text2);outline:none;">'
+        +'<button onclick="saveWaiterPassword()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 16px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存</button>'
+      +'</div>'
+    +'</div>'
+    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+      +'<div class="s-label" style="padding:0 0 12px">📢 菜单公告栏</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">显示在每个菜单顶部，用于价格说明、特别通知等</div>'
+      +'<textarea id="announcement-input" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--text2);outline:none;resize:none;height:80px;font-family:inherit;">'+(s.announcement||'')+'</textarea>'
+      +'<button onclick="saveAnnouncement()" style="margin-top:8px;background:var(--gold);border:none;border-radius:var(--r);padding:8px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存公告</button>'
+    +'</div>'
     +'<div class="card" style="padding:20px 22px">'
       +'<div class="s-label" style="padding:0 0 12px">菜单分类控制（勾选=显示）</div>'
       +menuConfigHTML
@@ -1667,17 +1871,14 @@ async function setMenuCatLimitDB(menuId, catId, val) {
   if (!_MENU_CAT_LIMITS[menuId]) _MENU_CAT_LIMITS[menuId] = {};
   _MENU_CAT_LIMITS[menuId][catId] = limit;
   try {
-    // 先查是否已有记录
     var chkRes = await sbFetch('menu_cat_limits?restaurant_id=eq.'+RESTAURANT_ID+'&menu_id=eq.'+menuId+'&cat_id=eq.'+catId);
     var chkData = await chkRes.json();
     if (chkData && chkData.length > 0) {
-      // 有记录：PATCH
       await sbFetch('menu_cat_limits?restaurant_id=eq.'+RESTAURANT_ID+'&menu_id=eq.'+menuId+'&cat_id=eq.'+catId, {
         method: 'PATCH',
         body: JSON.stringify({cat_limit: limit})
       });
     } else {
-      // 没有记录：POST
       await sbFetch('menu_cat_limits', {
         method: 'POST',
         body: JSON.stringify({restaurant_id: RESTAURANT_ID, menu_id: menuId, cat_id: catId, cat_limit: limit})
@@ -1701,6 +1902,44 @@ function makeSwitch(key, val, label, desc){
   +'</div>';
 }
 
+async function saveRoundSettings() {
+  var max = parseInt(document.getElementById('round-max-input').value) || 0;
+  var total = parseInt(document.getElementById('round-total-input').value) || 0;
+  var interval = parseInt(document.getElementById('round-interval-input').value) || 0;
+  try {
+    markDirty();
+    await saveSettingsToDB({round_max: max, round_total: total, round_interval: interval});
+    _SETTINGS.round_max = max;
+    _SETTINGS.round_total = total;
+    _SETTINGS.round_interval = interval;
+    markSaved();
+    toast('✅ 轮次设置已保存');
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
+}
+
+async function saveWaiterPassword() {
+  var val = document.getElementById('waiter-pwd-input') ? document.getElementById('waiter-pwd-input').value.trim() : '';
+  if (!val) { toast('⚠️ 密码不能为空'); return; }
+  try {
+    markDirty();
+    await saveSettingsToDB({waiter_password: val});
+    _SETTINGS.waiter_password = val;
+    markSaved();
+    toast('✅ 服务员密码已保存');
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
+}
+
+async function saveAnnouncement() {
+  var val = document.getElementById('announcement-input') ? document.getElementById('announcement-input').value.trim() : '';
+  try {
+    markDirty();
+    await saveSettingsToDB({announcement: val});
+    _SETTINGS.announcement = val;
+    markSaved();
+    toast('✅ 公告已保存');
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
+}
+
 async function toggleSetting(key, val){
   _SETTINGS[key] = (val === true || val === 'true');
   try {
@@ -1720,5 +1959,5 @@ async function toggleSetting(key, val){
 // ════════════════════════════════════
 //  启动
 // ════════════════════════════════════
-loadAll();
+// loadAll() 由密码锁控制调用
 </script>
