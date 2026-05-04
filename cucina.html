@@ -943,10 +943,13 @@ function showApp() {
     const el = document.getElementById(id);
     if (el) el.style.display = isAdmin ? '' : 'none';
   });
-  if (!isAdmin) switchTab('order');
   // auto-select low stock items for ordering
   items.forEach(i=>{ i.checked = calcForecast(i)>0; i.need = calcForecast(i); });
-  switchTab('inventory');
+  if (!isAdmin) {
+    switchTab('order');
+  } else {
+    switchTab('inventory');
+  }
   updatePendingBadge();
 }
 
@@ -1734,12 +1737,15 @@ function changeLangModal() {
   document.getElementById('current-lang-lbl').textContent = langs[(idx+1)%langs.length].l;
   document.getElementById('lang-select').value = currentLang;
   toast('语言已切换 / Language changed');
+  switchTab(currentTab);
 }
 
 function changeLang(v) {
   currentLang = v;
   const labels = {zh:'中文',it:'Italiano',bn:'বাংলা'};
   document.getElementById('current-lang-lbl').textContent = labels[v]||v;
+  // 重新渲染当前页面
+  switchTab(currentTab);
 }
 
 // ════════════════════════════════════════
