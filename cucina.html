@@ -494,10 +494,45 @@ body {
 ══════════════════════════════════ -->
 <div id="screen-app" class="screen">
 
+  <!-- SIDE MENU OVERLAY -->
+  <div id="side-menu-overlay" onclick="hideSideMenu()"
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;"></div>
+  <div id="side-menu"
+    style="display:none;position:fixed;top:0;left:0;bottom:0;width:72%;max-width:280px;background:var(--surface);z-index:201;box-shadow:4px 0 20px rgba(0,0,0,.15);padding:20px 0;overflow-y:auto;transform:translateX(-100%);transition:transform .25s;">
+    <div style="padding:16px 20px 20px;border-bottom:1px solid var(--border);">
+      <div style="font-weight:600;font-size:15px;" id="side-user-name"></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px;" id="side-user-role"></div>
+    </div>
+    <div id="side-sort-section" style="display:none;padding:16px 20px;border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;color:var(--text3);letter-spacing:1px;margin-bottom:10px;">排序方式</div>
+      <select id="side-sort-select" onchange="applyOrderSort(this.value);hideSideMenu()"
+        style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:14px;background:var(--surface);color:var(--text);">
+        <option value="default">默认（今日优先）</option>
+        <option value="low">库存不足优先</option>
+        <option value="today">今日订货</option>
+        <option value="chef">按订货人</option>
+        <option value="supplier">按供货商</option>
+      </select>
+    </div>
+    <div style="padding:8px 0;">
+      <div onclick="showChangePass();hideSideMenu()"
+        style="display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;">
+        <span style="font-size:18px;">🔑</span>
+        <span style="font-size:14px;">修改密码</span>
+      </div>
+      <div onclick="doLogout();hideSideMenu()"
+        style="display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;color:var(--danger);">
+        <span style="font-size:18px;">🚪</span>
+        <span style="font-size:14px;">退出登录</span>
+      </div>
+    </div>
+  </div>
+
   <!-- TOP NAV -->
   <div class="top-nav" id="app-nav">
     <div class="nav-icon" onclick="showSideMenu()">☰</div>
     <div class="nav-title" id="nav-title">库存管理</div>
+
     <div class="nav-icon" id="nav-action">
       <select id="lang-select" class="lang-btn" onchange="changeLang(this.value)">
         <option value="zh">中文</option>
@@ -573,7 +608,7 @@ body {
 
     <div class="order-footer" style="padding:10px 12px;">
       <div style="display:flex;gap:8px;align-items:center;">
-        <input type="text" id="order-search" placeholder="搜索食材..." oninput="filterOrderList(this.value)"
+        <input type="text" id="order-search" placeholder="🔍 搜索食材..." oninput="filterOrderList(this.value)"
           style="flex:3;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;">
         <button class="btn btn-green" id="order-submit-btn" onclick="submitOrder()" style="flex:1;white-space:nowrap;">
           <span id="submit-btn-txt">提交</span>
@@ -649,11 +684,7 @@ body {
 
     <div class="menu-section">
       <div class="menu-section-title">账户设置</div>
-      <div class="menu-item" onclick="showChangePwd()">
-        <div class="menu-item-icon" style="background:#EBF0FF">🔑</div>
-        <div class="menu-item-text"><div class="title">修改密码</div><div class="sub">更改登录密码</div></div>
-        <span class="menu-item-arrow">›</span>
-      </div>
+
       <div class="menu-item" onclick="changeLangModal()">
         <div class="menu-item-icon" style="background:#FFF7E6">🌐</div>
         <div class="menu-item-text"><div class="title">语言设置</div><div class="sub" id="current-lang-lbl">中文</div></div>
@@ -796,7 +827,16 @@ body {
     <input type="file" id="import-file" accept=".xlsx,.xls,.csv" class="form-control" onchange="handleImport(this)" style="padding:8px">
     <div id="import-preview" style="display:none;margin-top:12px">
       <p id="import-preview-msg" style="font-size:13px;color:var(--text2);margin-bottom:10px"></p>
-      <button class="btn btn-primary" onclick="saveImport()">💾 保存到数据库</button>
+      <button class="btn btn-primary" id="save-import-btn" onclick="saveImport()">💾 保存到数据库</button>
+      <div id="import-progress" style="display:none;margin-top:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:6px;">
+          <span id="import-progress-txt">正在保存...</span>
+          <span id="import-progress-pct">0%</span>
+        </div>
+        <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;">
+          <div id="import-progress-bar" style="height:100%;background:var(--primary);border-radius:4px;width:0%;transition:width .2s;"></div>
+        </div>
+      </div>
     </div>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('modal-import')">取消</button>
   </div>
@@ -1116,7 +1156,7 @@ function showApp() {
     if (el) el.style.display = isAdmin ? '' : 'none';
   });
   // auto-select low stock items for ordering
-  items.forEach(i=>{ i.checked = calcForecast(i)>0; i.need = calcForecast(i); });
+  items.forEach(i=>{ i.checked = false; i.need = calcForecast(i); }); // 不自动选中
   // 员工隐藏底部导航，底部栏贴底
   const nav = document.querySelector('.bottom-nav');
   if (nav) nav.style.display = isAdmin ? 'flex' : 'none';
@@ -1143,6 +1183,7 @@ function switchTab(tab) {
   // 多语言标题
   const tabIdx = ['inventory','order','orders','report','profile'].indexOf(tab);
   document.getElementById('nav-title').textContent = tabIdx>=0 ? t('tabs')[tabIdx] : '';
+
   // 更新底部tab文字
   ['inventory','order','orders','report','profile'].forEach((tt,i)=>{
     const el = document.getElementById('nav-'+tt);
@@ -1240,6 +1281,7 @@ function renderInvTable() {
     const unit = item.spec ? item.spec.replace(/[0-9X×*]/gi,'').trim().substring(0,4) : 'kg';
     return `<tr onclick="showItemDetail(${item.id})">
       <td class="item-name-cell">
+        ${item.item_code?`<div style="font-size:10px;color:var(--text3);margin-bottom:1px;">${item.item_code}</div>`:''}
         <div class="name">${item.name||item.italian}</div>
         <div class="sub">${item.italian}</div>
       </td>
@@ -1400,36 +1442,47 @@ function renderOrderList() {
     }
   }
   // Sort: 今日周期+库存不足 → 最高优先级
-  const sorted = [...items].sort((a,b)=>{
-    const aToday = isTodayCycle(a), bToday = isTodayCycle(b);
-    const aLow = stockStatus(a)==='low', bLow = stockStatus(b)==='low';
-    const aMe = a.chef===currentUser, bMe = b.chef===currentUser;
-    // 今日周期+库存不足 → 最高优先级
-    const aPrio = aToday && aLow, bPrio = bToday && bLow;
-    if (aPrio && !bPrio) return -1;
-    if (!aPrio && bPrio) return 1;
-    // 今日周期
-    if (aToday && !bToday) return -1;
-    if (!aToday && bToday) return 1;
-    // 我的货
-    if (aMe && !bMe) return -1;
-    if (!aMe && bMe) return 1;
-    // 库存不足
-    if (aLow && !bLow) return -1;
-    if (!aLow && bLow) return 1;
-    return 0;
-  });
+  let sorted = [...items];
+  if (_orderSortMode === 'low') {
+    sorted.sort((a,b)=>{ const aL=stockStatus(a)==='low',bL=stockStatus(b)==='low'; return aL===bL?0:aL?-1:1; });
+  } else if (_orderSortMode === 'today') {
+    sorted.sort((a,b)=>{ const aT=isTodayCycle(a),bT=isTodayCycle(b); return aT===bT?0:aT?-1:1; });
+  } else if (_orderSortMode === 'chef') {
+    sorted.sort((a,b)=>(a.chef||'').localeCompare(b.chef||''));
+  } else if (_orderSortMode === 'supplier') {
+    sorted.sort((a,b)=>(a.supplier||'').localeCompare(b.supplier||''));
+  } else {
+    sorted.sort((a,b)=>{
+      const aToday=isTodayCycle(a),bToday=isTodayCycle(b);
+      const aLow=stockStatus(a)==='low',bLow=stockStatus(b)==='low';
+      const aMe=a.chef===currentUser,bMe=b.chef===currentUser;
+      const aPrio=aToday&&aLow,bPrio=bToday&&bLow;
+      if(aPrio&&!bPrio)return -1; if(!aPrio&&bPrio)return 1;
+      if(aToday&&!bToday)return -1; if(!aToday&&bToday)return 1;
+      if(aMe&&!bMe)return -1; if(!aMe&&bMe)return 1;
+      if(aLow&&!bLow)return -1; if(!aLow&&bLow)return 1;
+      return 0;
+    });
+  }
 
-  container.innerHTML = sorted.map(item=>{
+  // 搜索过滤
+  const display = _orderSearchQ ? sorted.filter(i=>
+    (i.name||'').toLowerCase().includes(_orderSearchQ)||
+    (i.italian||'').toLowerCase().includes(_orderSearchQ)||
+    (i.item_code||'').toLowerCase().includes(_orderSearchQ)||
+    (i.chef||'').toLowerCase().includes(_orderSearchQ)||
+    (i.supplier||'').toLowerCase().includes(_orderSearchQ)
+  ) : sorted;
+  if (!display.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);">无结果</div>'; return; }
+  container.innerHTML = display.map(item=>{
     const fc = calcForecast(item);
     const isLow = fc > 0;
     const checked = item.checked;
     return `
     <div class="order-item-card ${checked?(isLow?'selected-low':'selected'):''}" id="ocard-${item.id}" style="position:relative;">
-      <div class="order-item-info">
+      <div class="order-item-info" onclick="toggleOrderItem(${item.id},!${checked})" style="cursor:pointer;">
         ${item.item_code?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">${item.item_code}</div>`:''}
         <div class="name">${item.name||item.italian}</div>
-        <div class="sub">${item.italian} · ${item.spec||'-'}</div>
         ${item.chef?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">👤 ${item.chef}</div>`:''}
         <div class="stock-line" style="margin-top:4px;">
           ${t('colStock')}: <span class="${isLow?'low':''}">${item.stock}</span>
@@ -1445,18 +1498,14 @@ function renderOrderList() {
         </div>
       </div>
       <div class="order-qty-wrap" style="position:relative;">
-        <input type="checkbox" class="order-check" ${checked?'checked':''}
-               onchange="toggleOrderItem(${item.id},this.checked)"
-               onclick="event.stopPropagation()"
-               style="position:absolute;top:0;right:0;width:22px;height:22px;">
-        <div class="order-qty-lbl" style="padding-right:28px;">${t('suggestQty')}</div>
+        <div class="order-qty-lbl">${t('suggestQty')}</div>
         <div class="order-qty-row">
           <input class="qty-input" type="number" min="0" step="0.5"
                  value="${item.need||0}"
                  placeholder="${fc||0}"
                  onchange="updateOrderQty(${item.id},this.value)"
                  id="oqty-${item.id}">
-          <span class="qty-unit">${item.spec||item.supplier||''}</span>
+          <span class="qty-unit">${item.spec||''}</span>
         </div>
         ${fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:''}
       </div>
@@ -1464,6 +1513,12 @@ function renderOrderList() {
   }).join('');
   updateOrderFooter();
 }
+
+function applyOrderSort(v) {
+  _orderSortMode = v;
+  renderOrderList();
+}
+let _orderSortMode = 'default';
 
 function filterOrderList(q) {
   _orderSearchQ = (q||'').toLowerCase().trim();
@@ -2187,6 +2242,15 @@ function handleImport(input) {
 
 async function saveImport() {
   if(!pendingImport.length){toast('没有待保存数据','err');return;}
+  const total = pendingImport.length;
+  const btn = document.getElementById('save-import-btn');
+  const progressEl = document.getElementById('import-progress');
+  const barEl = document.getElementById('import-progress-bar');
+  const txtEl = document.getElementById('import-progress-txt');
+  const pctEl = document.getElementById('import-progress-pct');
+  // 显示进度条
+  if(btn) btn.disabled = true;
+  if(progressEl) progressEl.style.display = 'block';
   let count=0;
   for(const item of pendingImport){
     try {
@@ -2197,9 +2261,16 @@ async function saveImport() {
       });
       count++;
     } catch(e){}
+    // 更新进度
+    const pct = Math.round(count/total*100);
+    if(barEl) barEl.style.width = pct+'%';
+    if(pctEl) pctEl.textContent = pct+'%';
+    if(txtEl) txtEl.textContent = `正在保存 ${count} / ${total}`;
   }
   await init();
   pendingImport=[];
+  if(progressEl) progressEl.style.display = 'none';
+  if(btn) btn.disabled = false;
   document.getElementById('import-preview').style.display='none';
   closeModal('modal-import');
   renderInventory();
@@ -2230,7 +2301,29 @@ function downloadApp() {
   URL.revokeObjectURL(a.href);
 }
 
-function showSideMenu() { toast('语言切换：顶部下拉菜单'); }
+function showSideMenu() {
+  const overlay = document.getElementById('side-menu-overlay');
+  const menu = document.getElementById('side-menu');
+  const sortSection = document.getElementById('side-sort-section');
+  const nameEl = document.getElementById('side-user-name');
+  const roleEl = document.getElementById('side-user-role');
+  if (nameEl) nameEl.textContent = currentUser || '';
+  if (roleEl) roleEl.textContent = isAdmin ? '管理员' : '员工';
+  // 订货页面显示排序
+  if (sortSection) sortSection.style.display = currentTab === 'order' ? 'block' : 'none';
+  // 同步排序选择
+  const sortSel = document.getElementById('side-sort-select');
+  if (sortSel) sortSel.value = _orderSortMode || 'default';
+  overlay.style.display = 'block';
+  menu.style.display = 'block';
+  setTimeout(()=>{ menu.style.transform = 'translateX(0)'; }, 10);
+}
+function hideSideMenu() {
+  const overlay = document.getElementById('side-menu-overlay');
+  const menu = document.getElementById('side-menu');
+  menu.style.transform = 'translateX(-100%)';
+  setTimeout(()=>{ overlay.style.display='none'; menu.style.display='none'; }, 260);
+}
 
 // ════════════════════════════════════════
 // START
