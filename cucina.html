@@ -687,6 +687,11 @@ body {
         <div class="menu-item-text"><div class="title">下载前端备份</div><div class="sub">保存当前系统到本地</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="showChangePass()">
+        <div class="menu-item-icon" style="background:#F0F4FF">🔑</div>
+        <div class="menu-item-text"><div class="title">修改密码</div><div class="sub">更改登录密码</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
       <div class="menu-item" onclick="doLogout()" style="color:var(--danger)">
         <div class="menu-item-icon" style="background:#FFF5F5">🚪</div>
         <div class="menu-item-text"><div class="title" style="color:var(--danger)">退出登录</div><div class="sub">返回登录页面</div></div>
@@ -804,6 +809,7 @@ body {
     <div class="modal-title" id="edit-item-title">编辑食材</div>
     <div id="edit-item-form"></div>
     <button class="btn btn-primary" style="margin-top:16px" onclick="saveEditItem()">💾 保存</button>
+    <button class="btn btn-danger" id="edit-delete-btn" style="margin-top:8px" onclick="deleteEditItem()">🗑️ 删除此物料</button>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('modal-edit-item')">取消</button>
   </div>
 </div>
@@ -994,7 +1000,7 @@ async function init() {
       id:r.id, item_code:r.item_code||'', name:r.name||'', italian:r.italian||'',
       spec:r.spec||'', price:parseFloat(r.price)||0, supplier:r.supplier||'',
       model_no:r.model_no||'', departments:r.departments||['厨房'],
-      cycle:r.cycle||['星期一'], stock:parseFloat(r.stock)||0,
+      cycle:r.cycle||['星期日'], stock:parseFloat(r.stock)||0,
       safety:parseFloat(r.safety)||1,
       safety_by_day:r.safety_by_day||{"1":1,"2":1,"3":1,"4":1,"5":1,"6":1,"7":1},
       category:r.category||'其他',
@@ -1059,6 +1065,36 @@ function doAdminLogin() {
     currentUser = 'Admin';
     showApp();
   }
+}
+
+function showChangePass() {
+  const newPass = prompt('请输入新密码（至少4位）：');
+  if (!newPass || newPass.length < 4) { toast('密码太短，至少4位','err'); return; }
+  const confirm = prompt('请再次输入新密码：');
+  if (newPass !== confirm) { toast('两次密码不一致','err'); return; }
+  // 保存到Supabase
+  sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(currentUser), {
+    method:'PATCH', body:JSON.stringify({password:newPass})
+  }).then(()=>{
+    chefs[currentUser] = newPass;
+    try { localStorage.setItem('cucina_last_pass', newPass); } catch(e) {}
+    toast('✅ 密码修改成功');
+  }).catch(()=>toast('❌ 修改失败','err'));
+}
+
+async function deleteEditItem() {
+  if (!isAdmin) return;
+  const item = items.find(i=>i.id===editingItemId);
+  if (!item) return;
+  const name = item.name || item.italian;
+  if (!confirm(`确定删除「${name}」？此操作不可撤销。`)) return;
+  try {
+    await sb('cucina_items?id=eq.'+editingItemId, {method:'DELETE'});
+    items = items.filter(i=>i.id!==editingItemId);
+    closeModal('modal-edit-item');
+    renderInventory();
+    toast('✅ 已删除：'+name);
+  } catch(e) { toast('❌ 删除失败','err'); }
 }
 
 function doLogout() {
@@ -1389,13 +1425,13 @@ function renderOrderList() {
     const isLow = fc > 0;
     const checked = item.checked;
     return `
-    <div class="order-item-card ${checked?(isLow?'selected-low':'selected'):''}" id="ocard-${item.id}">
-      <input type="checkbox" class="order-check" ${checked?'checked':''}
-             onchange="toggleOrderItem(${item.id},this.checked)">
+    <div class="order-item-card ${checked?(isLow?'selected-low':'selected'):''}" id="ocard-${item.id}" style="position:relative;">
       <div class="order-item-info">
+        ${item.item_code?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">${item.item_code}</div>`:''}
         <div class="name">${item.name||item.italian}</div>
         <div class="sub">${item.italian} · ${item.spec||'-'}</div>
-        <div class="stock-line">
+        ${item.chef?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">👤 ${item.chef}</div>`:''}
+        <div class="stock-line" style="margin-top:4px;">
           ${t('colStock')}: <span class="${isLow?'low':''}">${item.stock}</span>
           · ${t('colSafe')}: ${getSafety(item)}
           ${isTodayCycle(item)?`<span style="background:#e6f4ea;color:#2e7d32;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:4px;">📅${t('todayTag')}</span>`:''}
@@ -1406,11 +1442,14 @@ function renderOrderList() {
             style="width:60px;border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-size:12px;"
             onchange="setConsume(${item.id},this.value)"
             onclick="event.stopPropagation()">
-          <span style="font-size:11px;color:var(--text3);margin-left:4px;">${t('consumeHint')}</span>
         </div>
       </div>
-      <div class="order-qty-wrap">
-        <div class="order-qty-lbl">${t('suggestQty')}</div>
+      <div class="order-qty-wrap" style="position:relative;">
+        <input type="checkbox" class="order-check" ${checked?'checked':''}
+               onchange="toggleOrderItem(${item.id},this.checked)"
+               onclick="event.stopPropagation()"
+               style="position:absolute;top:0;right:0;width:22px;height:22px;">
+        <div class="order-qty-lbl" style="padding-right:28px;">${t('suggestQty')}</div>
         <div class="order-qty-row">
           <input class="qty-input" type="number" min="0" step="0.5"
                  value="${item.need||0}"
