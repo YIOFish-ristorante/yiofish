@@ -1,1098 +1,1976 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="title-tag">后厨申购与管理系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>后厨管理系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #F5F7FA;
+  --surface: #FFFFFF;
+  --surface2: #F0F3F8;
+  --border: #E4E8F0;
+  --primary: #1A56DB;
+  --primary-light: #EBF0FF;
+  --primary-dark: #1040B0;
+  --danger: #E53E3E;
+  --danger-light: #FFF5F5;
+  --warn: #D97706;
+  --warn-light: #FFFBEB;
+  --ok: #059669;
+  --ok-light: #ECFDF5;
+  --text: #1A202C;
+  --text2: #4A5568;
+  --text3: #A0AEC0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --nav-h: 56px;
+  --bottom-h: 64px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── SCREENS ── */
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: block; }
+
+/* ── TOP NAV ── */
+.top-nav {
+  position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  height: var(--nav-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  z-index: 100;
+}
+.nav-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.nav-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; color: var(--text2); font-size: 18px; }
+.nav-icon:hover { background: var(--surface2); }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  height: var(--bottom-h);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex; z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  cursor: pointer; color: var(--text3); transition: color 0.2s;
+  padding: 6px 0;
+}
+.nav-item.active { color: var(--primary); }
+.nav-item svg { width: 22px; height: 22px; }
+.nav-item span { font-size: 10px; font-weight: 500; }
+.nav-badge {
+  position: absolute; top: 6px; right: calc(50% - 20px);
+  background: var(--danger); color: #fff;
+  font-size: 9px; font-weight: 700;
+  min-width: 16px; height: 16px;
+  border-radius: 8px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── PAGE CONTENT ── */
+.page-content {
+  padding-top: calc(var(--nav-h) + 12px);
+  padding-bottom: calc(var(--bottom-h) + 16px);
+  padding-left: 16px; padding-right: 16px;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-pad { padding: 16px; }
+
+/* ── STAT CARDS ── */
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+.stat-card {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 12px 10px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.stat-val { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; line-height: 1.2; }
+.stat-lbl { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* ── SEARCH ── */
+.search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.search-wrap input {
+  flex: 1; border: none; outline: none; font-size: 14px;
+  font-family: 'Noto Sans SC', sans-serif;
+  background: transparent; color: var(--text);
+}
+.search-wrap input::placeholder { color: var(--text3); }
+
+/* ── CATEGORY TABS ── */
+.cat-tabs {
+  display: flex; gap: 8px; overflow-x: auto; margin-bottom: 14px;
+  scrollbar-width: none; padding-bottom: 2px;
+}
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tab {
+  flex-shrink: 0; padding: 6px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  color: var(--text2); background: var(--surface);
+  border: 1px solid var(--border); transition: all 0.2s;
+  white-space: nowrap;
+}
+.cat-tab.active {
+  background: var(--primary); color: #fff; border-color: var(--primary);
+}
+
+/* ── INVENTORY TABLE ── */
+.inv-table { width: 100%; border-collapse: collapse; }
+.inv-table th {
+  font-size: 11px; color: var(--text3); font-weight: 500;
+  padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.inv-table td { padding: 11px 12px; font-size: 13px; border-bottom: 1px solid var(--border); }
+.inv-table tr:last-child td { border-bottom: none; }
+.inv-table tr { cursor: pointer; transition: background 0.15s; }
+.inv-table tr:hover td { background: var(--surface2); }
+.item-name-cell .name { font-weight: 500; font-size: 13px; }
+.item-name-cell .sub  { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+/* ── STATUS BADGES ── */
+.badge {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 600; padding: 3px 8px;
+  border-radius: 20px; white-space: nowrap;
+}
+.badge-ok   { background: var(--ok-light); color: var(--ok); }
+.badge-low  { background: var(--danger-light); color: var(--danger); }
+.badge-warn { background: var(--warn-light); color: var(--warn); }
+.badge-pending  { background: #FFF7E6; color: #B7791F; }
+.badge-done     { background: var(--ok-light); color: var(--ok); }
+.badge-cancel   { background: var(--danger-light); color: var(--danger); }
+
+/* ── ORDERING SCREEN ── */
+.order-hint {
+  background: #FFFBEB; border: 1px solid #FDE68A;
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  font-size: 12px; color: #92400E; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.order-item-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 12px;
+  transition: all 0.2s;
+}
+.order-item-card.selected { border: 1.5px solid var(--primary); }
+.order-item-card.selected-low { border: 1.5px solid var(--primary); background: var(--primary-light); }
+.order-check { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--primary); cursor: pointer; }
+.order-item-info { flex: 1; min-width: 0; }
+.order-item-info .name  { font-weight: 600; font-size: 14px; }
+.order-item-info .sub   { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.order-item-info .stock-line { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.order-item-info .stock-line .low { color: var(--danger); font-weight: 600; }
+.order-qty-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.order-qty-lbl { font-size: 11px; color: var(--text3); }
+.order-qty-row { display: flex; align-items: center; gap: 6px; }
+.qty-input {
+  width: 72px; padding: 6px 8px; text-align: center;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500;
+  background: var(--surface2); color: var(--text); outline: none;
+  transition: border-color 0.2s;
+}
+.qty-input:focus { border-color: var(--primary); background: #fff; }
+.qty-unit { font-size: 12px; color: var(--text3); }
+.forecast-tag {
+  font-size: 10px; font-weight: 600; color: var(--ok); background: var(--ok-light);
+  padding: 2px 6px; border-radius: 6px;
+}
+.order-footer {
+  position: fixed; bottom: var(--bottom-h); left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: var(--surface); border-top: 1px solid var(--border);
+  padding: 12px 16px; z-index: 90;
+}
+.order-footer-info { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 10px; }
+.order-footer-info .count { color: var(--text2); }
+.order-footer-info .total { color: var(--primary); font-weight: 600; font-family: 'DM Mono', monospace; }
+
+/* ── ORDERS LIST ── */
+.order-filter-tabs {
+  display: flex; gap: 6px; margin-bottom: 14px;
+}
+.order-filter-tab {
+  flex: 1; padding: 8px 4px; text-align: center;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  border-radius: 8px; color: var(--text2);
+  background: var(--surface); border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.order-filter-tab.active {
+  background: var(--primary); color: #fff; border-color: var(--primary);
+}
+.order-card {
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px; margin-bottom: 10px;
+  cursor: pointer; transition: all 0.2s;
+}
+.order-card:active { transform: scale(0.98); }
+.order-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.order-no { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--primary); font-weight: 500; }
+.order-meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; font-size: 12px; color: var(--text2); }
+.order-meta .icon { color: var(--text3); }
+.order-footer-row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.order-detail-link { font-size: 12px; color: var(--primary); font-weight: 500; display: flex; align-items: center; gap: 2px; }
+
+/* ── REPORT SCREEN ── */
+.report-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.report-tab {
+  flex: 1; padding: 10px 4px; text-align: center;
+  font-size: 12px; font-weight: 500; color: var(--text3);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; white-space: nowrap;
+}
+.report-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.kpi-card {
+  background: var(--surface); border-radius: var(--radius-sm);
+  padding: 14px; box-shadow: var(--shadow);
+}
+.kpi-val { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; color: var(--text); }
+.kpi-val.primary { color: var(--primary); }
+.kpi-val.warn    { color: var(--warn); }
+.kpi-val.ok      { color: var(--ok); }
+.kpi-lbl   { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+.kpi-trend { font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
+.kpi-trend.up   { color: var(--ok); }
+.kpi-trend.down { color: var(--danger); }
+.chart-wrap {
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px;
+}
+.chart-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.chart-sub   { font-size: 11px; color: var(--text3); margin-bottom: 16px; }
+.chart-area { position: relative; }
+
+/* SVG Chart */
+.chart-svg { width: 100%; overflow: visible; }
+.chart-line { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.chart-area-fill { fill: url(#areaGrad); opacity: 0.6; }
+.chart-dot { fill: var(--surface); stroke: var(--primary); stroke-width: 2; r: 4; transition: r 0.2s; }
+.chart-dot:hover { r: 6; }
+.chart-label { font-size: 10px; fill: var(--text3); font-family: 'Noto Sans SC', sans-serif; }
+.chart-axis-line { stroke: var(--border); stroke-width: 1; }
+
+/* Pie chart */
+.pie-wrap { display: flex; align-items: center; gap: 16px; }
+.pie-legend { flex: 1; }
+.pie-legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.pie-legend-item:last-child { border-bottom: none; }
+.pie-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-right: 6px; }
+.pie-name { display: flex; align-items: center; flex: 1; }
+.pie-pct { color: var(--text2); font-family: 'DM Mono', monospace; font-size: 12px; }
+
+/* Inventory warning table */
+.warn-table { width: 100%; border-collapse: collapse; }
+.warn-table th { font-size: 11px; color: var(--text3); padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.warn-table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid var(--border); }
+.warn-table tr:last-child td { border-bottom: none; }
+
+/* ── MY PROFILE ── */
+.profile-header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  border-radius: var(--radius); padding: 24px 16px 20px;
+  text-align: center; color: #fff; margin-bottom: 16px;
+}
+.avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(255,255,255,0.25); margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+.profile-name { font-size: 18px; font-weight: 700; }
+.profile-role { font-size: 13px; opacity: 0.8; margin-top: 3px; }
+.menu-section { margin-bottom: 16px; }
+.menu-section-title { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 0 4px; margin-bottom: 8px; }
+.menu-item {
+  background: var(--surface); display: flex; align-items: center;
+  padding: 14px 16px; gap: 12px; cursor: pointer;
+  border-bottom: 1px solid var(--border); transition: background 0.15s;
+}
+.menu-item:first-of-type { border-radius: var(--radius) var(--radius) 0 0; }
+.menu-item:last-of-type  { border-radius: 0 0 var(--radius) var(--radius); border-bottom: none; }
+.menu-item:hover { background: var(--surface2); }
+.menu-item-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.menu-item-text .title { font-size: 14px; font-weight: 500; }
+.menu-item-text .sub   { font-size: 12px; color: var(--text3); margin-top: 1px; }
+.menu-item-arrow { margin-left: auto; color: var(--text3); font-size: 16px; }
+
+/* ── LOGIN ── */
+.login-screen {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, #EBF0FF 0%, #F5F7FA 60%);
+}
+.login-logo { font-size: 48px; margin-bottom: 12px; }
+.login-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.login-sub   { font-size: 14px; color: var(--text2); margin-bottom: 32px; text-align: center; }
+.login-card  { background: var(--surface); border-radius: 20px; padding: 24px; width: 100%; max-width: 360px; box-shadow: var(--shadow-md); }
+.form-group  { margin-bottom: 16px; }
+.form-label  { font-size: 12px; font-weight: 600; color: var(--text2); display: block; margin-bottom: 6px; }
+.form-control {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 14px; font-family: 'Noto Sans SC', sans-serif;
+  background: var(--surface2); color: var(--text); outline: none;
+  transition: border-color 0.2s;
+}
+.form-control:focus { border-color: var(--primary); background: #fff; }
+.form-error { font-size: 12px; color: var(--danger); margin-top: 6px; display: none; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 13px 20px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  border: none; outline: none; font-family: 'Noto Sans SC', sans-serif;
+  transition: all 0.2s; width: 100%;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:active:not(:disabled) { background: var(--primary-dark); }
+.btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+.btn-danger  { background: var(--danger); color: #fff; }
+.btn-ghost   { background: var(--surface2); color: var(--text2); }
+.btn-sm { padding: 8px 14px; font-size: 13px; width: auto; border-radius: var(--radius-sm); }
+.btn-green { background: #059669; color: #fff; }
+.btn-green:active { background: #047857; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  z-index: 200; display: none; align-items: flex-end;
+  justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 480px;
+  max-height: 92vh; overflow-y: auto;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  animation: slideUp 0.25s ease-out;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: calc(var(--bottom-h) + 16px); left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: #1A202C; color: #fff;
+  padding: 10px 20px; border-radius: 30px;
+  font-size: 13px; font-weight: 500;
+  opacity: 0; transition: all 0.3s; z-index: 999;
+  white-space: nowrap; pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err  { background: var(--danger); }
+
+/* ── ADMIN BADGE ── */
+.admin-section-title {
+  font-size: 12px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin: 16px 0 8px;
+}
+
+/* ── MISC ── */
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+.spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.6s linear infinite; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tag {
+  display: inline-block; font-size: 10px; font-weight: 500;
+  padding: 2px 6px; border-radius: 4px; margin-right: 4px;
+}
+.tag-dept { background: #EBF0FF; color: var(--primary); }
+.tag-cat  { background: #FFF7E6; color: var(--warn); }
+
+.section-card {
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden;
+}
+.section-card-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.section-card-header .title { font-size: 14px; font-weight: 600; }
+
+/* Lang selector */
+.lang-btn {
+  padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+  font-size: 12px; background: var(--surface2); color: var(--text2);
+  cursor: pointer; font-family: 'Noto Sans SC', sans-serif;
+}
+</style>
 </head>
-<body class="bg-gray-50 font-sans transition-all duration-300">
+<body>
 
-    <header class="bg-teal-700 text-white p-4 shadow-md sticky top-0 z-20 flex justify-between items-center">
-        <h1 id="nav-title" class="text-md font-bold">🍳 后厨申购与管理系统</h1>
-        <div class="flex items-center gap-3">
-            <button onclick="downloadFrontend()" id="btn-download" class="bg-teal-800 text-white text-xs px-2 py-1 rounded border border-teal-600 hover:bg-teal-700 transition flex items-center gap-1">
-                💾 下载前端
-            </button>
-            <select id="langSelect" onchange="changeLanguage()" class="bg-teal-800 text-white text-xs px-2 py-1 rounded border border-teal-600 focus:outline-none">
-                <option value="zh">中文</option>
-                <option value="it">Italiano</option>
-                <option value="bn">বাংলা</option>
-            </select>
-            <div class="flex gap-1">
-                <button onclick="switchTab('chef')" id="btn-chef" class="bg-teal-900 text-xs px-3 py-1.5 rounded-md font-bold transition">员工端</button>
-                <button onclick="switchTab('admin')" id="btn-admin" class="bg-teal-600/50 text-xs px-3 py-1.5 rounded-md hover:bg-teal-600 transition">管理端</button>
-            </div>
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════ -->
+<div id="screen-login" class="screen active">
+  <div class="login-screen">
+    <div class="login-logo">🍳</div>
+    <div class="login-title">后厨管理系统</div>
+    <div class="login-sub">Cucina Management · Carpi</div>
+    <div class="login-card">
+      <div class="form-group">
+        <label class="form-label">选择员工 / Seleziona</label>
+        <select id="login-name" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">密码 / Password</label>
+        <input type="password" id="login-pass" class="form-control" placeholder="••••••"
+               onkeydown="if(event.key==='Enter')doLogin()">
+        <div class="form-error" id="login-err">密码错误，请重试</div>
+      </div>
+      <button class="btn btn-primary" id="login-btn" onclick="doLogin()">进入系统</button>
+      <div style="text-align:center;margin-top:12px">
+        <span style="font-size:12px;color:var(--text3)">管理员？</span>
+        <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MAIN APP
+══════════════════════════════════ -->
+<div id="screen-app" class="screen">
+
+  <!-- TOP NAV -->
+  <div class="top-nav" id="app-nav">
+    <div class="nav-icon" onclick="showSideMenu()">☰</div>
+    <div class="nav-title" id="nav-title">库存管理</div>
+    <div class="nav-icon" id="nav-action">
+      <select id="lang-select" class="lang-btn" onchange="changeLang(this.value)">
+        <option value="zh">中文</option>
+        <option value="it">IT</option>
+        <option value="bn">বাং</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ── TAB: 库存管理 ── -->
+  <div id="tab-inventory" class="page-content tab-page active">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val" id="inv-total">0</div>
+        <div class="stat-lbl">全部食材</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="inv-low" style="color:var(--danger)">0</div>
+        <div class="stat-lbl">低于安全库存</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val primary" id="inv-value" style="font-size:15px;color:var(--primary)">€0</div>
+        <div class="stat-lbl">总库存价值</div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <span style="color:var(--text3);font-size:16px">🔍</span>
+      <input id="inv-search" type="text" placeholder="搜索食材..." oninput="filterInventory()">
+      <span style="color:var(--text3);font-size:16px;cursor:pointer" onclick="showInvFilter()">⚙️</span>
+    </div>
+
+    <!-- Category tabs -->
+    <div class="cat-tabs" id="inv-cat-tabs">
+      <div class="cat-tab active" data-cat="all" onclick="selectCat(this,'all')">全部</div>
+    </div>
+
+    <!-- Table -->
+    <div class="section-card">
+      <table class="inv-table" id="inv-table">
+        <thead>
+          <tr>
+            <th>食材</th>
+            <th>当前库存</th>
+            <th>安全库存</th>
+            <th>单位</th>
+            <th>状态</th>
+          </tr>
+        </thead>
+        <tbody id="inv-tbody"></tbody>
+      </table>
+    </div>
+
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="showImportModal()">
+      <span>☁️</span> 导入CSV / Excel
+    </button>
+  </div>
+
+  <!-- ── TAB: 订货系统 ── -->
+  <div id="tab-order" class="page-content tab-page" style="display:none">
+
+    <div class="order-hint">
+      <span>💡</span>
+      <span>建议订货：系统根据当前库存和安全库存自动计算</span>
+    </div>
+
+    <div id="order-list"></div>
+
+    <div style="height:110px"></div><!-- spacer for footer -->
+
+    <div class="order-footer">
+      <div class="order-footer-info">
+        <span class="count">已选择 <strong id="sel-count">0</strong> 种食材</span>
+        <span class="total">预计总数量：<span id="sel-total">0</span></span>
+      </div>
+      <button class="btn btn-green" id="order-submit-btn" onclick="submitOrder()">
+        提交订单
+      </button>
+    </div>
+  </div>
+
+  <!-- ── TAB: 订单系统 ── -->
+  <div id="tab-orders" class="page-content tab-page" style="display:none">
+
+    <div class="order-filter-tabs">
+      <div class="order-filter-tab active" data-f="all"    onclick="setOrderFilter(this,'all')">全部订单</div>
+      <div class="order-filter-tab"        data-f="待處理" onclick="setOrderFilter(this,'待處理')">待处理</div>
+      <div class="order-filter-tab"        data-f="已確認" onclick="setOrderFilter(this,'已確認')">已完成</div>
+    </div>
+
+    <div id="orders-list"></div>
+
+    <button class="btn btn-outline" style="margin-top:8px" onclick="exportOrders()">
+      ⬇ 导出订单报表
+    </button>
+  </div>
+
+  <!-- ── TAB: 报表分析 ── -->
+  <div id="tab-report" class="page-content tab-page" style="display:none">
+
+    <div class="report-tabs">
+      <div class="report-tab active" data-r="overview"  onclick="setReportTab(this,'overview')">概览</div>
+      <div class="report-tab"        data-r="inventory" onclick="setReportTab(this,'inventory')">库存分析</div>
+      <div class="report-tab"        data-r="consume"   onclick="setReportTab(this,'consume')">消耗分析</div>
+    </div>
+
+    <div id="report-overview">
+      <!-- KPI cards -->
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <!-- Trend chart -->
+      <div class="chart-wrap">
+        <div class="chart-title">消耗趋势（近7天）</div>
+        <div class="chart-sub">金额（€）</div>
+        <div class="chart-area" id="trend-chart"></div>
+      </div>
+      <!-- Pie chart -->
+      <div class="chart-wrap">
+        <div class="chart-title">食材消耗占比（金额）</div>
+        <div class="pie-wrap" id="pie-wrap"></div>
+      </div>
+      <!-- Warning table -->
+      <div class="chart-wrap" id="warn-table-wrap">
+        <div class="chart-title" style="margin-bottom:12px">库存预警（低于安全库存）</div>
+        <table class="warn-table" id="warn-table">
+          <thead><tr><th>食材</th><th>当前库存</th><th>安全库存</th><th>状态</th></tr></thead>
+          <tbody id="warn-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="report-inventory" style="display:none"></div>
+    <div id="report-consume"   style="display:none"></div>
+  </div>
+
+  <!-- ── TAB: 我的 ── -->
+  <div id="tab-profile" class="page-content tab-page" style="display:none">
+    <div class="profile-header">
+      <div class="avatar">👤</div>
+      <div class="profile-name" id="profile-name">-</div>
+      <div class="profile-role" id="profile-role">员工</div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">账户设置</div>
+      <div class="menu-item" onclick="showChangePwd()">
+        <div class="menu-item-icon" style="background:#EBF0FF">🔑</div>
+        <div class="menu-item-text"><div class="title">修改密码</div><div class="sub">更改登录密码</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item" onclick="changeLangModal()">
+        <div class="menu-item-icon" style="background:#FFF7E6">🌐</div>
+        <div class="menu-item-text"><div class="title">语言设置</div><div class="sub" id="current-lang-lbl">中文</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+    </div>
+
+    <div class="menu-section" id="admin-menu" style="display:none">
+      <div class="menu-section-title">管理员功能</div>
+      <div class="menu-item" onclick="showAdminPanel('staff')">
+        <div class="menu-item-icon" style="background:#ECFDF5">👥</div>
+        <div class="menu-item-text"><div class="title">员工账号管理</div><div class="sub">新增、修改、删除员工</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item" onclick="showAdminPanel('items')">
+        <div class="menu-item-icon" style="background:#FFF5F5">📦</div>
+        <div class="menu-item-text"><div class="title">物料管理</div><div class="sub">新增、编辑物料信息</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item" onclick="showAdminPanel('pending')">
+        <div class="menu-item-icon" style="background:#FFFBEB">📋</div>
+        <div class="menu-item-text"><div class="title">审批订单</div><div class="sub" id="pending-badge-text">查看待处理订单</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">系统</div>
+      <div class="menu-item" onclick="downloadApp()">
+        <div class="menu-item-icon" style="background:#F0F3F8">💾</div>
+        <div class="menu-item-text"><div class="title">下载前端备份</div><div class="sub">保存当前系统到本地</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item" onclick="doLogout()" style="color:var(--danger)">
+        <div class="menu-item-icon" style="background:#FFF5F5">🚪</div>
+        <div class="menu-item-text"><div class="title" style="color:var(--danger)">退出登录</div><div class="sub">返回登录页面</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-inventory" onclick="switchTab('inventory')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <span>库存管理</span>
+    </div>
+    <div class="nav-item" id="nav-order" onclick="switchTab('order')" style="position:relative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <span>订货系统</span>
+    </div>
+    <div class="nav-item" id="nav-orders" onclick="switchTab('orders')" style="position:relative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>订单系统</span>
+    </div>
+    <div class="nav-item" id="nav-report" onclick="switchTab('report')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>报表分析</span>
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="switchTab('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>我的</span>
+    </div>
+  </div>
+
+</div><!-- end screen-app -->
+
+<!-- ══════════════════════════════════
+     MODALS
+══════════════════════════════════ -->
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" id="modal-order-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">订单详情</div>
+    <div id="modal-order-detail-content"></div>
+    <button class="btn btn-ghost" style="margin-top:16px" onclick="closeModal('modal-order-detail')">关闭</button>
+  </div>
+</div>
+
+<!-- Admin Login Modal -->
+<div class="modal-overlay" id="modal-admin-login">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔑 管理员登录</div>
+    <div class="form-group">
+      <label class="form-label">管理员密码</label>
+      <input type="password" id="admin-pass-input" class="form-control" placeholder="请输入管理密码"
+             onkeydown="if(event.key==='Enter')doAdminLogin()">
+    </div>
+    <button class="btn btn-primary" onclick="doAdminLogin()">登录管理端</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('modal-admin-login')">取消</button>
+  </div>
+</div>
+
+<!-- Admin Panel Modal -->
+<div class="modal-overlay" id="modal-admin-panel">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="admin-panel-title">管理</div>
+    <div id="admin-panel-content"></div>
+    <button class="btn btn-ghost" style="margin-top:16px" onclick="closeModal('modal-admin-panel')">关闭</button>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="modal-change-pwd">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">修改密码</div>
+    <div class="form-group">
+      <label class="form-label">当前密码</label>
+      <input type="password" id="pwd-old" class="form-control" placeholder="当前密码">
+    </div>
+    <div class="form-group">
+      <label class="form-label">新密码</label>
+      <input type="password" id="pwd-new" class="form-control" placeholder="新密码">
+    </div>
+    <div class="form-group">
+      <label class="form-label">确认新密码</label>
+      <input type="password" id="pwd-confirm" class="form-control" placeholder="再次输入新密码">
+    </div>
+    <button class="btn btn-primary" onclick="doChangePwd()">确认修改</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('modal-change-pwd')">取消</button>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📥 导入食材数据</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">支持 Excel (.xlsx, .xls) 或 CSV，格式：货物号 / 意大利文 / 中文名 / 规格 / 价格 / 进货单位 / 型号 / 使用单位 / 类别 / 订货人</p>
+    <input type="file" id="import-file" accept=".xlsx,.xls,.csv" class="form-control" onchange="handleImport(this)" style="padding:8px">
+    <div id="import-preview" style="display:none;margin-top:12px">
+      <p id="import-preview-msg" style="font-size:13px;color:var(--text2);margin-bottom:10px"></p>
+      <button class="btn btn-primary" onclick="saveImport()">💾 保存到数据库</button>
+    </div>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('modal-import')">取消</button>
+  </div>
+</div>
+
+<!-- Edit Item Modal -->
+<div class="modal-overlay" id="modal-edit-item">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="edit-item-title">编辑食材</div>
+    <div id="edit-item-form"></div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="saveEditItem()">💾 保存</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('modal-edit-item')">取消</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// SUPABASE
+// ════════════════════════════════════════
+const SB_URL  = 'https://cnavkgfrqvfuafcbmldg.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYXZrZ2ZycXZmdWFmY2JtbGRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MTE1MjIsImV4cCI6MjA5MzA4NzUyMn0.JX0ECOAVy-BVklCSsJE5n3j-owz1Ti-GOV4MtrWYlPI';
+const REST_ID = 'carpi';
+const ADMIN_PASS = 'admin123';
+const WA_NUM  = '393778826875';
+
+function sb(path, opts={}) {
+  return fetch(SB_URL+'/rest/v1/'+path, {
+    method: opts.method||'GET',
+    headers: {
+      'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer||'return=minimal'
+    },
+    body: opts.body
+  });
+}
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let currentUser = null;
+let isAdmin     = false;
+let items       = [];      // cucina_items
+let orders      = [];      // cucina_orders
+let chefs       = {};      // {name: pass}
+let currentTab  = 'inventory';
+let invCat      = 'all';
+let invSearch   = '';
+let orderFilter = 'all';
+let reportTab   = 'overview';
+let pendingImport = [];
+let editingItemId = null;
+let currentLang = 'zh';
+
+// ════════════════════════════════════════
+// I18N (minimal — key strings)
+// ════════════════════════════════════════
+const i18n = {
+  zh: { tabs:['库存管理','订货系统','订单系统','报表分析','我的'], submit:'提交订单', pending:'待处理', done:'已完成', all:'全部', lowStock:'库存不足', ok:'正常', warn:'预警' },
+  it: { tabs:['Magazzino','Ordini','Storico','Report','Profilo'], submit:'Invia ordine', pending:'In attesa', done:'Completato', all:'Tutto', lowStock:'Scorta bassa', ok:'OK', warn:'Attenzione' },
+  bn: { tabs:['ইনভেন্টরি','অর্ডার','অর্ডার তালিকা','রিপোর্ট','আমার'], submit:'জমা দিন', pending:'অপেক্ষমান', done:'সম্পন্ন', all:'সব', lowStock:'কম স্টক', ok:'স্বাভাবিক', warn:'সতর্কতা' }
+};
+const t = k => (i18n[currentLang]||i18n.zh)[k] || k;
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+async function init() {
+  try {
+    const [iRes, oRes, cRes] = await Promise.all([
+      sb('cucina_items?restaurant_id=eq.'+REST_ID+'&select=*&order=id'),
+      sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc'),
+      sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&select=*')
+    ]);
+    items  = (await iRes.json()).map(r=>({
+      id:r.id, item_code:r.item_code||'', name:r.name||'', italian:r.italian||'',
+      spec:r.spec||'', price:parseFloat(r.price)||0, supplier:r.supplier||'',
+      model_no:r.model_no||'', departments:r.departments||['厨房'],
+      cycle:r.cycle||['星期一'], stock:parseFloat(r.stock)||0,
+      safety:parseFloat(r.safety)||1,
+      safety_by_day:r.safety_by_day||{"1":1,"2":1,"3":1,"4":1,"5":1,"6":1,"7":1},
+      category:r.category||'其他',
+      chef:r.chef||'', need:0, checked:false
+    }));
+    orders = (await oRes.json()).map(r=>({
+      id:r.id, chef:r.chef, date:r.date, items:r.items||[],
+      status:r.status, created_at:r.created_at
+    }));
+    chefs = {};
+    (await cRes.json()).forEach(c=>{ chefs[c.name]=c.password; });
+    populateLoginSelect();
+  } catch(e) {
+    toast('数据库连接失败','err');
+  }
+}
+
+function populateLoginSelect() {
+  const sel = document.getElementById('login-name');
+  sel.innerHTML = '';
+  Object.keys(chefs).forEach(n=>{
+    sel.innerHTML += `<option value="${n}">${n}</option>`;
+  });
+}
+
+// ════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════
+function doLogin() {
+  const name = document.getElementById('login-name').value;
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  if (chefs[name] !== pass) {
+    errEl.style.display='block';
+    return;
+  }
+  errEl.style.display='none';
+  currentUser = name;
+  showApp();
+}
+
+function showAdminLogin() { openModal('modal-admin-login'); }
+
+function doAdminLogin() {
+  const p = document.getElementById('admin-pass-input').value;
+  if (p !== ADMIN_PASS) { toast('管理员密码错误','err'); return; }
+  isAdmin = true;
+  closeModal('modal-admin-login');
+  // if already in app, show admin menu
+  if (currentUser) { document.getElementById('admin-menu').style.display='block'; }
+  else {
+    // login as admin without chef account
+    currentUser = 'Admin';
+    showApp();
+  }
+}
+
+function doLogout() {
+  currentUser=null; isAdmin=false;
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('login-pass').value='';
+}
+
+function showApp() {
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  document.getElementById('profile-name').textContent = currentUser;
+  document.getElementById('profile-role').textContent = isAdmin ? '管理员 · Admin' : '员工';
+  if (isAdmin) document.getElementById('admin-menu').style.display='block';
+  // 员工只显示订货系统，管理员显示全部
+  ['nav-inventory','nav-orders','nav-report','nav-profile'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdmin ? '' : 'none';
+  });
+  if (!isAdmin) switchTab('order');
+  // auto-select low stock items for ordering
+  items.forEach(i=>{ i.checked = calcForecast(i)>0; i.need = calcForecast(i); });
+  switchTab('inventory');
+  updatePendingBadge();
+}
+
+// ════════════════════════════════════════
+// TAB NAVIGATION
+// ════════════════════════════════════════
+const tabs = ['inventory','order','orders','report','profile'];
+function switchTab(tab) {
+  currentTab = tab;
+  tabs.forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block':'none';
+    document.getElementById('nav-'+t).classList.toggle('active', t===tab);
+  });
+  const titles = {inventory:'库存管理',order:'订货系统',orders:'订单系统',report:'报表分析',profile:'我的'};
+  document.getElementById('nav-title').textContent = titles[tab]||'';
+  if (tab==='inventory') renderInventory();
+  if (tab==='order')     renderOrderList();
+  if (tab==='orders')    renderOrders();
+  if (tab==='report')    renderReport();
+  if (tab==='profile')   renderProfile();
+}
+
+// ════════════════════════════════════════
+// FORECAST
+// ════════════════════════════════════════
+function getTodayKey() {
+  // JS getDay(): 0=Sun,1=Mon,...,6=Sat → map to 1=Mon...7=Sun
+  const d = new Date().getDay();
+  return String(d === 0 ? 7 : d);
+}
+function getSafety(item) {
+  const sbd = item.safety_by_day;
+  if (sbd && typeof sbd === 'object') {
+    const key = getTodayKey();
+    const v = parseFloat(sbd[key]);
+    if (!isNaN(v)) return v;
+  }
+  return parseFloat(item.safety) || 1;
+}
+function isTodayCycle(item) {
+  if (!item.cycle || item.cycle.length === 0) return true;
+  const dayNames = ['','星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
+  const todayName = dayNames[parseInt(getTodayKey())];
+  // 支持月订：cycle包含'每月'或'月'
+  if (item.cycle.some(c => c.includes('月'))) return new Date().getDate() <= 3;
+  return item.cycle.includes(todayName);
+}
+function calcForecast(item) {
+  const safety = getSafety(item);
+  if (item.stock < safety) return Math.max(1, Math.ceil(safety - item.stock));
+  return 0;
+}
+function stockStatus(item) {
+  const safety = getSafety(item);
+  const r = item.stock / Math.max(safety, 0.001);
+  if (r < 1)   return 'low';
+  if (r < 1.5) return 'warn';
+  return 'ok';
+}
+
+// ════════════════════════════════════════
+// INVENTORY TAB
+// ════════════════════════════════════════
+function renderInventory() {
+  // Stats
+  const total = items.length;
+  const low   = items.filter(i=>stockStatus(i)==='low').length;
+  const val   = items.reduce((s,i)=>s+i.stock*i.price,0);
+  document.getElementById('inv-total').textContent = total;
+  document.getElementById('inv-low').textContent   = low;
+  document.getElementById('inv-value').textContent = '€'+val.toFixed(0);
+
+  // Category tabs
+  const cats = ['all', ...new Set(items.map(i=>i.category).filter(Boolean))];
+  const tabWrap = document.getElementById('inv-cat-tabs');
+  tabWrap.innerHTML = cats.map(c=>`
+    <div class="cat-tab ${c===invCat?'active':''}" onclick="selectCat(this,'${c}')">
+      ${c==='all'?'全部':c}
+    </div>`).join('');
+
+  renderInvTable();
+}
+
+function renderInvTable() {
+  let data = items;
+  if (invCat !== 'all') data = data.filter(i=>i.category===invCat);
+  if (invSearch) data = data.filter(i=>
+    i.name.toLowerCase().includes(invSearch) ||
+    i.italian.toLowerCase().includes(invSearch) ||
+    i.item_code.toLowerCase().includes(invSearch)
+  );
+
+  const tbody = document.getElementById('inv-tbody');
+  if (!data.length) {
+    tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text3)">暂无数据</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(item=>{
+    const st = stockStatus(item);
+    const badge = st==='low'
+      ? `<span class="badge badge-low">不足</span>`
+      : st==='warn'
+      ? `<span class="badge badge-warn">预警</span>`
+      : `<span class="badge badge-ok">正常</span>`;
+    const unit = item.spec ? item.spec.replace(/[0-9X×*]/gi,'').trim().substring(0,4) : 'kg';
+    return `<tr onclick="showItemDetail(${item.id})">
+      <td class="item-name-cell">
+        <div class="name">${item.name||item.italian}</div>
+        <div class="sub">${item.italian}</div>
+      </td>
+      <td style="font-family:'DM Mono',monospace;font-weight:500">${item.stock}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--text3)">${item.safety}</td>
+      <td style="color:var(--text3)">${item.supplier||'-'}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function selectCat(el, cat) {
+  invCat = cat;
+  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderInvTable();
+}
+function filterInventory() {
+  invSearch = document.getElementById('inv-search').value.toLowerCase();
+  renderInvTable();
+}
+function showInvFilter() {
+  // sort by low stock first
+  items.sort((a,b)=>{
+    const sa=stockStatus(a), sb=stockStatus(b);
+    const o={low:0,warn:1,ok:2};
+    return o[sa]-o[sb];
+  });
+  renderInvTable();
+  toast('已按库存状态排序');
+}
+
+function showItemDetail(id) {
+  const item = items.find(i=>i.id===id);
+  if (!item) return;
+  const fc = calcForecast(item);
+  document.getElementById('edit-item-title').textContent = item.name||item.italian;
+  document.getElementById('edit-item-form').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group"><label class="form-label">货物号</label><input class="form-control" id="ei-code" value="${item.item_code}"></div>
+      <div class="form-group"><label class="form-label">材料类型</label><input class="form-control" id="ei-cat" value="${item.category}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">意大利文名称</label><input class="form-control" id="ei-italian" value="${item.italian}"></div>
+    <div class="form-group"><label class="form-label">中文名称</label><input class="form-control" id="ei-name" value="${item.name}"></div>
+    <div class="form-group"><label class="form-label">规格</label><input class="form-control" id="ei-spec" value="${item.spec}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label class="form-label">价格 (€)</label><input class="form-control" id="ei-price" type="number" step="0.01" value="${item.price}"></div>
+      <div class="form-group"><label class="form-label">进货单位</label><input class="form-control" id="ei-supplier" value="${item.supplier}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label class="form-label">当前库存</label><input class="form-control" id="ei-stock" type="number" step="0.1" value="${item.stock}"></div>
+      <div class="form-group"><label class="form-label">安全库存(默认)</label><input class="form-control" id="ei-safety" type="number" step="0.1" value="${item.safety}"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">安全库存（按星期）</label>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+        ${['一','二','三','四','五','六','日'].map((d,i)=>{
+          const key=String(i+1);
+          const val=(item.safety_by_day&&item.safety_by_day[key]!=null)?item.safety_by_day[key]:item.safety;
+          return `<div style="text-align:center;"><div style="font-size:10px;color:var(--text3);margin-bottom:2px;">周${d}</div>
+          <input type="number" min="0" step="0.1" value="${val}" id="ei-sbd-${key}"
+            style="width:100%;border:1px solid #ddd;border-radius:4px;padding:3px;font-size:12px;text-align:center;"></div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">订货人</label><input class="form-control" id="ei-chef" value="${item.chef}"></div>
+    ${fc>0?`<div style="background:var(--warn-light);border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:var(--warn)">💡 建议补货：<strong>${fc}</strong> 单位</div>`:''}
+    ${!isAdmin?'<p style="font-size:12px;color:var(--text3);margin-top:8px">（仅管理员可保存修改）</p>':''}
+  `;
+  editingItemId = id;
+  openModal('modal-edit-item');
+  document.querySelector('#modal-edit-item .btn-primary').style.display = isAdmin?'flex':'none';
+}
+
+async function saveEditItem() {
+  if (!isAdmin) return;
+  const u = {
+    item_code: document.getElementById('ei-code').value,
+    category:  document.getElementById('ei-cat').value,
+    italian:   document.getElementById('ei-italian').value,
+    name:      document.getElementById('ei-name').value,
+    spec:      document.getElementById('ei-spec').value,
+    price:     document.getElementById('ei-price').value,
+    supplier:  document.getElementById('ei-supplier').value,
+    stock:     document.getElementById('ei-stock').value,
+    safety:    document.getElementById('ei-safety').value,
+    safety_by_day: {"1":parseFloat(document.getElementById('ei-sbd-1').value)||0,
+                    "2":parseFloat(document.getElementById('ei-sbd-2').value)||0,
+                    "3":parseFloat(document.getElementById('ei-sbd-3').value)||0,
+                    "4":parseFloat(document.getElementById('ei-sbd-4').value)||0,
+                    "5":parseFloat(document.getElementById('ei-sbd-5').value)||0,
+                    "6":parseFloat(document.getElementById('ei-sbd-6').value)||0,
+                    "7":parseFloat(document.getElementById('ei-sbd-7').value)||0},
+    chef:      document.getElementById('ei-chef').value,
+  };
+  try {
+    await sb('cucina_items?id=eq.'+editingItemId,{method:'PATCH',body:JSON.stringify(u)});
+    const item = items.find(i=>i.id===editingItemId);
+    Object.assign(item, u, {stock:parseFloat(u.stock),safety:parseFloat(u.safety),price:parseFloat(u.price),safety_by_day:u.safety_by_day});
+    closeModal('modal-edit-item');
+    renderInventory();
+    toast('✅ 已更新');
+  } catch(e) { toast('更新失败','err'); }
+}
+
+// ════════════════════════════════════════
+// ORDER TAB
+// ════════════════════════════════════════
+function renderOrderList() {
+  const container = document.getElementById('order-list');
+  // 今日待订提示
+  const todayItems = items.filter(i=>isTodayCycle(i));
+  const todayLow = todayItems.filter(i=>stockStatus(i)==='low');
+  const dayNames = ['','星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
+  const todayName = dayNames[parseInt(getTodayKey())];
+  const hintEl = document.getElementById('order-hint');
+  if (hintEl) {
+    if (todayLow.length > 0) {
+      hintEl.innerHTML = `📅 <strong>${todayName}</strong> · 今日需订货 <strong style="color:var(--danger)">${todayLow.length}</strong> 种食材库存不足`;
+      hintEl.style.background = 'var(--warn-light)';
+      hintEl.style.color = 'var(--warn)';
+    } else {
+      hintEl.innerHTML = `📅 <strong>${todayName}</strong> · 今日共 <strong>${todayItems.length}</strong> 种食材需订货，库存充足`;
+      hintEl.style.background = 'var(--ok-light,#e8f5e9)';
+      hintEl.style.color = 'var(--ok,#2e7d32)';
+    }
+  }
+  // Sort: 今日周期+库存不足 → 最高优先级
+  const sorted = [...items].sort((a,b)=>{
+    const aToday = isTodayCycle(a), bToday = isTodayCycle(b);
+    const aLow = stockStatus(a)==='low', bLow = stockStatus(b)==='low';
+    const aMe = a.chef===currentUser, bMe = b.chef===currentUser;
+    // 今日周期+库存不足 → 最高优先级
+    const aPrio = aToday && aLow, bPrio = bToday && bLow;
+    if (aPrio && !bPrio) return -1;
+    if (!aPrio && bPrio) return 1;
+    // 今日周期
+    if (aToday && !bToday) return -1;
+    if (!aToday && bToday) return 1;
+    // 我的货
+    if (aMe && !bMe) return -1;
+    if (!aMe && bMe) return 1;
+    // 库存不足
+    if (aLow && !bLow) return -1;
+    if (!aLow && bLow) return 1;
+    return 0;
+  });
+
+  container.innerHTML = sorted.map(item=>{
+    const fc = calcForecast(item);
+    const isLow = fc > 0;
+    const checked = item.checked;
+    return `
+    <div class="order-item-card ${checked?(isLow?'selected-low':'selected'):''}" id="ocard-${item.id}">
+      <input type="checkbox" class="order-check" ${checked?'checked':''}
+             onchange="toggleOrderItem(${item.id},this.checked)">
+      <div class="order-item-info">
+        <div class="name">${item.name||item.italian}</div>
+        <div class="sub">${item.italian} · ${item.spec||'-'}</div>
+        <div class="stock-line">
+          库存: <span class="${isLow?'low':''}">${item.stock}</span>
+          · 安全库存(今): ${getSafety(item)}
+          ${isTodayCycle(item)?'<span style="background:#e6f4ea;color:#2e7d32;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:4px;">📅今日</span>':''}
+          ${item.supplier?`· <span style="color:var(--text3)">${item.supplier}</span>`:''}
         </div>
-    </header>
-
-    <main id="view-chef-login" class="p-6 max-w-md mx-auto mt-10">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
-            <h2 id="txt-login-title" class="text-lg font-bold text-gray-800 text-center mb-2">🧑‍🍳 员工登录 / 选择身份</h2>
-            <p id="txt-login-desc" class="text-xs text-gray-500 text-center mb-6">请选择您的名字并输入密码以记录申购单。</p>
-            <div>
-                <label id="lbl-login-chef" class="block text-xs text-gray-600 mb-2">您的名字</label>
-                <select id="loginChefName" class="w-full p-3 border border-gray-300 rounded-lg text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                    </select>
-            </div>
-            <div>
-                <label class="block text-xs text-gray-600 mb-2">密碼</label>
-                <input type="password" id="loginPassword" class="w-full p-3 border border-gray-300 rounded-lg text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="請輸入密碼">
-            </div>
-            <button onclick="loginAsChef()" id="btn-login" class="w-full bg-teal-600 text-white py-3 rounded-lg font-bold hover:bg-teal-700 transition shadow-sm">
-                進入员工端
-            </button>
+        <div class="stock-line" style="margin-top:4px;">
+          消耗量: <input type="number" min="0" step="0.1" value="${item.consume||0}"
+            style="width:60px;border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-size:12px;"
+            onchange="setConsume(${item.id},this.value)"
+            onclick="event.stopPropagation()">
+          <span style="font-size:11px;color:var(--text3);margin-left:4px;">提交后扣减库存</span>
         </div>
-    </main>
-
-    <main id="view-admin-login" class="hidden p-6 max-w-md mx-auto mt-10">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
-            <h2 class="text-lg font-bold text-gray-800 text-center mb-2">🔑 管理员登录</h2>
-            <p class="text-xs text-gray-500 text-center mb-6">为了数据安全，请输入管理员密码以进入管理端。</p>
-            <div>
-                <label class="block text-xs text-gray-600 mb-2">管理员密码</label>
-                <input type="password" id="loginAdminPassword" class="w-full p-3 border border-gray-300 rounded-lg text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="請輸入管理密碼">
-            </div>
-            <button onclick="loginAsAdmin()" class="w-full bg-teal-600 text-white py-3 rounded-lg font-bold hover:bg-teal-700 transition shadow-sm">
-                进入管理端
-            </button>
+      </div>
+      <div class="order-qty-wrap">
+        <div class="order-qty-lbl">建议订货量</div>
+        <div class="order-qty-row">
+          <input class="qty-input" type="number" min="0" step="0.5"
+                 value="${item.need||0}"
+                 placeholder="${fc||0}"
+                 onchange="updateOrderQty(${item.id},this.value)"
+                 id="oqty-${item.id}">
+          <span class="qty-unit">${item.supplier||'kg'}</span>
         </div>
-    </main>
+        ${fc>0?`<span class="forecast-tag">建议 ${fc}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  updateOrderFooter();
+}
 
-    <main id="view-chef" class="hidden p-4 max-w-md mx-auto mb-24 space-y-4">
-        <div class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600">
-            <div>
-                <span id="txt-login-as">当前身份：</span><strong id="currentChefName" class="text-teal-700">張師傅</strong>
+function setConsume(id, val) {
+  const item = items.find(i=>i.id===id);
+  if (item) item.consume = parseFloat(val)||0;
+}
+
+function toggleOrderItem(id, checked) {
+  const item = items.find(i=>i.id===id);
+  if (!item) return;
+  item.checked = checked;
+  if (checked && !item.need) item.need = calcForecast(item)||0;
+  updateOrderFooter();
+  // update card class
+  const fc = calcForecast(item);
+  const card = document.getElementById('ocard-'+id);
+  card.className = `order-item-card ${checked?(fc>0?'selected-low':'selected'):''}`;
+}
+
+function updateOrderQty(id, val) {
+  const item = items.find(i=>i.id===id);
+  if (item) { item.need = parseFloat(val)||0; if(item.need>0)item.checked=true; }
+  updateOrderFooter();
+}
+
+function updateOrderFooter() {
+  const sel = items.filter(i=>i.checked&&i.need>0);
+  document.getElementById('sel-count').textContent = sel.length;
+  document.getElementById('sel-total').textContent =
+    sel.reduce((s,i)=>s+i.need,0).toFixed(1) + ' 单位';
+}
+
+async function submitOrder() {
+  const sel = items.filter(i=>i.checked&&i.need>0);
+  if (!sel.length) { toast('请先选择需要订购的食材','err'); return; }
+
+  const btn = document.getElementById('order-submit-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 提交中';
+
+  // 先处理消耗记录并扣减库存
+  const toConsume = items.filter(i=>i.consume && i.consume>0);
+  for (const item of toConsume) {
+    try {
+      await sb('cucina_consume',{method:'POST',body:JSON.stringify({
+        restaurant_id:REST_ID, item_id:item.id,
+        item_name:item.name||item.italian,
+        quantity:item.consume, chef:currentUser
+      })});
+      const newStock = Math.max(0, item.stock - item.consume);
+      await sb('cucina_items?id=eq.'+item.id,{method:'PATCH',body:JSON.stringify({stock:newStock})});
+      item.stock = newStock;
+      item.consume = 0;
+    } catch(e) { console.error('consume error:', e); }
+  }
+
+  sel.sort((a,b)=>(a.supplier||'').localeCompare(b.supplier||''));
+  const orderItems = sel.map(i=>({
+    item_code:i.item_code, name:i.name||i.italian,
+    supplier:i.supplier, spec:i.spec, need:i.need
+  }));
+
+  const newOrder = {
+    restaurant_id: REST_ID,
+    chef: currentUser,
+    date: new Date().toISOString().slice(0,10),
+    items: orderItems,
+    status: '待處理'
+  };
+
+  try {
+    const r = await sb('cucina_orders',{method:'POST',prefer:'return=representation',body:JSON.stringify(newOrder)});
+    const saved = await r.json();
+    orders.unshift({id:saved[0]?.id||Date.now(), ...newOrder});
+
+    // WhatsApp message
+    let msg = `🍳 *后厨申购单*\n🧑‍🍳 ${currentUser}\n📅 ${newOrder.date}\n\n`;
+    let curSup = null;
+    orderItems.forEach(i=>{
+      if(i.supplier&&i.supplier!==curSup){curSup=i.supplier;msg+=`\n📦 ${i.supplier.toUpperCase()}\n`;}
+      msg+=`• ${i.item_code?i.item_code+' / ':''}${i.name} = ${i.need}${i.spec?' '+i.spec:''}\n`;
+    });
+    window.open(`https://wa.me/${WA_NUM}?text=${encodeURIComponent(msg)}`,'_blank');
+
+    items.forEach(i=>{ i.checked=false; i.need=0; });
+    toast('✅ 订单已提交');
+    switchTab('orders');
+    updatePendingBadge();
+  } catch(e) { toast('提交失败：'+e.message,'err'); }
+  finally { btn.disabled=false; btn.innerHTML=t('submit'); }
+}
+
+// ════════════════════════════════════════
+// ORDERS TAB
+// ════════════════════════════════════════
+function setOrderFilter(el, f) {
+  orderFilter = f;
+  document.querySelectorAll('.order-filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderOrders();
+}
+
+function renderOrders() {
+  let data = orders;
+  if (!isAdmin) data = data.filter(o=>o.chef===currentUser);
+  if (orderFilter!=='all') data = data.filter(o=>o.status===orderFilter);
+
+  const container = document.getElementById('orders-list');
+  if (!data.length) {
+    container.innerHTML=`<div class="empty-state"><div class="icon">📋</div><p>暂无订单记录</p></div>`;
+    return;
+  }
+  container.innerHTML = data.map((o,idx)=>{
+    const st = o.status==='已確認'
+      ? `<span class="badge badge-done">已完成</span>`
+      : `<span class="badge badge-pending">待处理</span>`;
+    const no = `#${o.date?o.date.replace(/-/g,''):''}-${String(idx+1).padStart(3,'0')}`;
+    const itemCount = o.items?.length||0;
+    const totalQty  = o.items?.reduce((s,i)=>s+(parseFloat(i.need)||0),0)||0;
+    return `
+    <div class="order-card" onclick="showOrderDetail('${o.id}')">
+      <div class="order-card-header">
+        <span class="order-no">${no}</span>
+        ${st}
+      </div>
+      <div class="order-meta">
+        <span class="icon">📅</span><span>${o.date||'-'}</span>
+        <span class="icon">👤</span><span>${o.chef||'-'}</span>
+      </div>
+      <div class="order-footer-row">
+        <span style="font-size:12px;color:var(--text2)">食材 <strong>${itemCount}</strong> 种 · 总量 <strong>${totalQty.toFixed(1)}</strong></span>
+        <span class="order-detail-link">查看详情 ›</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showOrderDetail(id) {
+  const order = orders.find(o=>String(o.id)===String(id));
+  if (!order) return;
+  const st = order.status==='已確認'
+    ? `<span class="badge badge-done">已完成</span>`
+    : `<span class="badge badge-pending">待处理</span>`;
+  document.getElementById('modal-order-detail-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:13px;color:var(--text2)">📅 ${order.date} &nbsp; 👤 ${order.chef}</div>
+      </div>${st}
+    </div>
+    <div style="background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:14px">
+      ${(order.items||[]).map(i=>`
+        <div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px">
+          <span>
+            ${i.item_code?`<span style="color:var(--text3);font-size:11px">${i.item_code} · </span>`:''}
+            ${i.name}
+            ${i.supplier?`<span style="color:var(--text3);font-size:11px"> · ${i.supplier}</span>`:''}
+          </span>
+          <strong>${i.need} ${i.spec||''}</strong>
+        </div>`).join('')}
+    </div>
+    ${isAdmin&&order.status==='待處理'?`
+      <button class="btn btn-green" onclick="confirmOrder('${order.id}')">✓ 确认已备货</button>
+    `:''}
+  `;
+  openModal('modal-order-detail');
+}
+
+async function confirmOrder(id) {
+  try {
+    await sb('cucina_orders?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'已確認'})});
+    const o = orders.find(o=>String(o.id)===String(id));
+    if(o) o.status='已確認';
+    closeModal('modal-order-detail');
+    renderOrders();
+    updatePendingBadge();
+    toast('✅ 订单已确认');
+  } catch(e){ toast('操作失败','err'); }
+}
+
+function exportOrders() {
+  const data = isAdmin ? orders : orders.filter(o=>o.chef===currentUser);
+  if(!data.length){toast('暂无订单','err');return;}
+  let txt = '后厨采购清单\n================\n';
+  data.forEach(o=>{
+    txt+=`\n提报人: ${o.chef} (${o.date}) [${o.status}]\n`;
+    (o.items||[]).forEach(i=>{ txt+=`  - ${i.name}: ${i.need}\n`; });
+  });
+  const b=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`采购单_${new Date().toISOString().slice(0,10)}.txt`; a.click();
+}
+
+function updatePendingBadge() {
+  const cnt = orders.filter(o=>o.status==='待處理').length;
+  document.getElementById('pending-badge-text').textContent =
+    cnt>0 ? `${cnt} 条待处理订单` : '查看待处理订单';
+}
+
+// ════════════════════════════════════════
+// REPORT TAB
+// ════════════════════════════════════════
+function setReportTab(el, tab) {
+  reportTab = tab;
+  document.querySelectorAll('.report-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['overview','inventory','consume'].forEach(r=>{
+    document.getElementById('report-'+r).style.display = r===tab?'block':'none';
+  });
+  if(tab==='inventory') renderReportInventory();
+  if(tab==='consume')   renderReportConsume();
+}
+
+function renderReport() {
+  renderKPI();
+  renderTrendChart();
+  renderPieChart();
+  renderWarnTable();
+}
+
+function renderKPI() {
+  // Calculate from orders
+  const now = new Date();
+  const weekAgo = new Date(now-7*864e5);
+  const monthAgo= new Date(now-30*864e5);
+
+  const ordersThisMonth = orders.filter(o=>o.created_at && new Date(o.created_at)>monthAgo);
+  const ordersPrevMonth = orders.filter(o=>o.created_at && new Date(o.created_at)<=monthAgo && new Date(o.created_at)>new Date(now-60*864e5));
+
+  function orderValue(arr) {
+    return arr.reduce((s,o)=>{
+      return s+(o.items||[]).reduce((ss,i)=>{
+        const dbItem = items.find(it=>it.name===i.name||it.item_code===i.item_code);
+        return ss+(parseFloat(i.need)||0)*(dbItem?dbItem.price:0);
+      },0);
+    },0);
+  }
+
+  const valThis = orderValue(ordersThisMonth);
+  const valPrev = orderValue(ordersPrevMonth);
+  const trend   = valPrev>0 ? ((valThis-valPrev)/valPrev*100).toFixed(1) : 0;
+  const invVal  = items.reduce((s,i)=>s+i.stock*i.price,0);
+  const lowCount= items.filter(i=>stockStatus(i)==='low').length;
+
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-lbl">总订货金额（本月）</div>
+      <div class="kpi-val primary">€${valThis.toFixed(2)}</div>
+      <div class="kpi-trend ${trend>=0?'up':'down'}">
+        ${trend>=0?'↑':'↓'} ${Math.abs(trend)}% 较上周期
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">总订单数</div>
+      <div class="kpi-val">${ordersThisMonth.length}</div>
+      <div class="kpi-trend" style="color:var(--text3)">本月</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">预估库存价值</div>
+      <div class="kpi-val warn">€${invVal.toFixed(0)}</div>
+      <div class="kpi-trend" style="color:var(--text3)">当前</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">低库存预警</div>
+      <div class="kpi-val" style="color:${lowCount>0?'var(--danger)':'var(--ok)'}">${lowCount}</div>
+      <div class="kpi-trend" style="color:var(--text3)">种食材</div>
+    </div>
+  `;
+}
+
+function renderTrendChart() {
+  // Build 7-day data from orders
+  const days = [];
+  for(let i=6;i>=0;i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    const dayOrders = orders.filter(o=>o.date===ds);
+    const val = dayOrders.reduce((s,o)=>{
+      return s+(o.items||[]).reduce((ss,it)=>{
+        const db=items.find(x=>x.name===it.name||x.item_code===it.item_code);
+        return ss+(parseFloat(it.need)||0)*(db?db.price:0);
+      },0);
+    },0);
+    days.push({label:ds.slice(5), val: parseFloat(val.toFixed(2))});
+  }
+
+  const maxVal = Math.max(...days.map(d=>d.val), 100);
+  const W=320, H=140, padL=36, padB=24, padT=10, padR=10;
+  const chartW=W-padL-padR, chartH=H-padT-padB;
+  const pts = days.map((d,i)=>({
+    x: padL + i*(chartW/6),
+    y: padT + chartH - (d.val/maxVal)*chartH,
+    val: d.val, label: d.label
+  }));
+  const pathD = pts.map((p,i)=>`${i===0?'M':'L'}${p.x},${p.y}`).join(' ');
+  const areaD = `${pathD} L${pts[pts.length-1].x},${padT+chartH} L${pts[0].x},${padT+chartH} Z`;
+
+  // Y axis labels
+  const yLabels = [0, Math.round(maxVal/2), Math.round(maxVal)].map(v=>({
+    y: padT + chartH - (v/maxVal)*chartH, v
+  }));
+
+  document.getElementById('trend-chart').innerHTML = `
+    <svg class="chart-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#1A56DB" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#1A56DB" stop-opacity="0.0"/>
+        </linearGradient>
+      </defs>
+      <!-- Y grid -->
+      ${yLabels.map(l=>`
+        <line x1="${padL}" y1="${l.y}" x2="${W-padR}" y2="${l.y}" class="chart-axis-line"/>
+        <text x="${padL-4}" y="${l.y+3}" class="chart-label" text-anchor="end">${l.v}</text>
+      `).join('')}
+      <!-- Area -->
+      <path d="${areaD}" class="chart-area-fill"/>
+      <!-- Line -->
+      <path d="${pathD}" class="chart-line"/>
+      <!-- Dots & labels -->
+      ${pts.map(p=>`
+        <circle cx="${p.x}" cy="${p.y}" r="4" class="chart-dot"/>
+        <text x="${p.x}" y="${padT+chartH+14}" class="chart-label" text-anchor="middle">${p.label}</text>
+      `).join('')}
+    </svg>
+  `;
+}
+
+function renderPieChart() {
+  // Calculate total value per item from orders
+  const itemTotals = {};
+  orders.forEach(o=>{
+    (o.items||[]).forEach(i=>{
+      const db = items.find(x=>x.name===i.name||x.item_code===i.item_code);
+      const v = (parseFloat(i.need)||0)*(db?db.price:0);
+      itemTotals[i.name] = (itemTotals[i.name]||0)+v;
+    });
+  });
+
+  const sorted = Object.entries(itemTotals).sort((a,b)=>b[1]-a[1]);
+  const top5   = sorted.slice(0,5);
+  const other  = sorted.slice(5).reduce((s,[,v])=>s+v,0);
+  const allData= other>0 ? [...top5,['其他',other]] : top5;
+  const total  = allData.reduce((s,[,v])=>s+v,0)||1;
+
+  const colors = ['#1A56DB','#F59E0B','#059669','#8B5CF6','#06B6D4','#9CA3AF'];
+  const R=56, cx=68, cy=68;
+  let angle = -Math.PI/2;
+  const slices = allData.map(([name,val],i)=>{
+    const pct = val/total;
+    const a1=angle, a2=angle+pct*Math.PI*2;
+    angle=a2;
+    const x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
+    const x2=cx+R*Math.cos(a2), y2=cy+R*Math.sin(a2);
+    const large=pct>0.5?1:0;
+    return {name,val,pct,path:`M${cx},${cy} L${x1},${y1} A${R},${R} 0 ${large},1 ${x2},${y2} Z`,color:colors[i]};
+  });
+
+  document.getElementById('pie-wrap').innerHTML = `
+    <svg width="136" height="136" viewBox="0 0 136 136" style="flex-shrink:0">
+      ${slices.map(s=>`<path d="${s.path}" fill="${s.color}"/>`).join('')}
+      <circle cx="68" cy="68" r="36" fill="white"/>
+      <text x="68" y="65" text-anchor="middle" font-size="9" fill="#718096">总金额</text>
+      <text x="68" y="77" text-anchor="middle" font-size="10" font-weight="600" fill="#1A202C">€${total.toFixed(0)}</text>
+    </svg>
+    <div class="pie-legend">
+      ${slices.map(s=>`
+        <div class="pie-legend-item">
+          <div class="pie-name">
+            <div class="pie-dot" style="background:${s.color}"></div>
+            <span>${s.name}</span>
+          </div>
+          <span class="pie-pct">${(s.pct*100).toFixed(1)}%</span>
+        </div>`).join('')}
+    </div>
+  `;
+}
+
+function renderWarnTable() {
+  const lowItems = items.filter(i=>stockStatus(i)==='low'||stockStatus(i)==='warn');
+  const tbody = document.getElementById('warn-tbody');
+  if(!lowItems.length){
+    document.getElementById('warn-table-wrap').style.display='none';
+    return;
+  }
+  document.getElementById('warn-table-wrap').style.display='block';
+  tbody.innerHTML = lowItems.map(i=>`
+    <tr>
+      <td><div style="font-weight:500">${i.name||i.italian}</div><div style="font-size:11px;color:var(--text3)">${i.italian}</div></td>
+      <td style="font-family:'DM Mono',monospace">${i.stock} ${i.supplier||'kg'}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--text3)">${i.safety} ${i.supplier||'kg'}</td>
+      <td>${stockStatus(i)==='low'?`<span class="badge badge-low">不足</span>`:`<span class="badge badge-warn">预警</span>`}</td>
+    </tr>`).join('');
+}
+
+function renderReportInventory() {
+  const el = document.getElementById('report-inventory');
+  const bycat = {};
+  items.forEach(i=>{ (bycat[i.category]=bycat[i.category]||[]).push(i); });
+  el.innerHTML = Object.entries(bycat).map(([cat,arr])=>`
+    <div class="chart-wrap">
+      <div class="chart-title">${cat}</div>
+      ${arr.map(i=>{
+        const pct = Math.min(100,(i.stock/Math.max(i.safety*2,0.001))*100);
+        const color = stockStatus(i)==='low'?'var(--danger)':stockStatus(i)==='warn'?'var(--warn)':'var(--ok)';
+        return `<div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span>${i.name||i.italian}</span>
+            <span style="color:var(--text3);font-family:'DM Mono',monospace">${i.stock} / ${i.safety*2}</span>
+          </div>
+          <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${color};border-radius:4px;transition:width 0.5s"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+function renderReportConsume() {
+  const el = document.getElementById('report-consume');
+  // Top ordered items
+  const freq = {};
+  orders.forEach(o=>{
+    (o.items||[]).forEach(i=>{
+      freq[i.name] = (freq[i.name]||{name:i.name,count:0,total:0});
+      freq[i.name].count++;
+      freq[i.name].total += parseFloat(i.need)||0;
+    });
+  });
+  const sorted = Object.values(freq).sort((a,b)=>b.total-a.total).slice(0,10);
+  const maxT = sorted[0]?.total||1;
+
+  el.innerHTML = `
+    <div class="chart-wrap">
+      <div class="chart-title">申购频率（前10）</div>
+      <div style="margin-top:12px">
+        ${sorted.map(s=>`
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+              <span>${s.name}</span>
+              <span style="color:var(--text2);font-family:'DM Mono',monospace">×${s.count} · 共${s.total.toFixed(1)}</span>
             </div>
-            <button onclick="logoutChef()" class="text-red-500 font-semibold hover:underline">登出</button>
-        </div>
-
-        <div class="flex gap-2">
-            <input type="text" id="searchInput" oninput="filterItems()" placeholder="搜索物料名称、部门或意大利文..." 
-                   class="w-2/3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-sm">
-            
-            <select id="sortSelect" onchange="sortChefItems()" class="w-1/3 p-2 border border-gray-300 rounded-lg text-xs bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                <option id="opt-sort-default" value="default">默认排序</option>
-                <option id="opt-sort-name" value="name">按材料名称</option>
-                <option id="opt-sort-chef" value="chef">按订货人</option>
-                <option id="opt-sort-category" value="category">按材料类别</option>
-            </select>
-        </div>
-
-        <div id="chefItemsContainer" class="space-y-3"></div>
-
-        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg max-w-md mx-auto">
-            <div class="flex justify-between items-center mb-2 text-sm text-gray-600">
-                <span id="txt-selected">已选物料: <strong id="selectedCount" class="text-teal-600">0</strong> 項</span>
-                <button onclick="clearSelection()" id="txt-clear" class="text-red-500 text-xs">清空选择</button>
+            <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden">
+              <div style="width:${(s.total/maxT*100).toFixed(1)}%;height:100%;background:var(--primary);border-radius:4px"></div>
             </div>
-            <button id="btn-submit" onclick="submitOrder()" 
-                    class="w-full bg-teal-600 text-white py-3 rounded-lg font-bold hover:bg-teal-700 transition shadow-sm">
-                确认提交申购
-            </button>
-        </div>
-    </main>
-
-    <main id="view-admin" class="hidden p-4 max-w-md mx-auto mb-10 space-y-6">
-        
-        <div class="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600">
-            <div>
-                <span>當前模式：<strong>管理端</strong></span>
-            </div>
-            <button onclick="logoutAdmin()" class="text-red-500 font-semibold hover:underline">退出管理端</button>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
-                <span id="txt-pending-label" class="block text-xs text-gray-500 mb-1">今日待处理</span>
-                <span id="pendingCount" class="text-2xl font-bold text-orange-500">0</span>
-            </div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
-                <span id="txt-total-label" class="block text-xs text-gray-500 mb-1">总物料种类</span>
-                <span id="totalItemsCount" class="text-2xl font-bold text-teal-600">0</span>
-            </div>
-        </div>
-
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h2 id="txt-import-title" class="text-md font-bold text-gray-800 mb-2">📥 导入数据文件</h2>
-            <p id="txt-import-desc" class="text-xs text-gray-500 mb-3">支持从系统导出的 Excel (.xlsx, .xls) 或 CSV 清单，一键录入。</p>
-            <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" onchange="handleFileImport(this)"
-                   class="w-full p-2 border border-gray-200 rounded-md text-xs file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer">
-            <div id="import-save-area" class="hidden mt-3">
-                <p id="import-preview-msg" class="text-xs text-gray-500 mb-2"></p>
-                <button onclick="saveImportedToSupabase()" class="w-full bg-teal-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-teal-700 transition">
-                    💾 保存到 Supabase
-                </button>
-            </div>
-        </section>
-
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h2 id="txt-add-title" class="text-md font-bold text-gray-800 mb-3">➕ 建立/分配物料信息</h2>
-            <form id="addItemForm" onsubmit="handleAddItem(event)" class="space-y-3">
-                <div>
-                    <label class="block text-xs text-gray-600 mb-1">貨物號</label>
-                    <input type="text" id="formItemCode" placeholder="例如：001"
-                           class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                </div>
-                <div>
-                    <label id="lbl-italian" class="block text-xs text-gray-600 mb-1">意大利文名称</label>
-                    <input type="text" id="formItalianName" required placeholder="例如：Involtino primavera"
-                           class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                </div>
-                <div>
-                    <label id="lbl-itemname" class="block text-xs text-gray-600 mb-1">中文名稱</label>
-                    <input type="text" id="formItemName" placeholder="例如：青島素春捲"
-                           class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                </div>
-                <div>
-                    <label id="lbl-spec" class="block text-xs text-gray-600 mb-1">規格</label>
-                    <input type="text" id="formSpec" placeholder="例如：10X900G"
-                           class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label id="lbl-price" class="block text-xs text-gray-600 mb-1">價格</label>
-                        <input type="number" id="formPrice" step="0.01" placeholder="0.00"
-                               class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">進貨單位</label>
-                        <input type="text" id="formSupplier" placeholder="例如：jfc"
-                               class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">產品型號</label>
-                        <input type="text" id="formModelNo" placeholder="例如：A9013"
-                               class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">材料類型</label>
-                        <input type="text" id="formCategory" placeholder="例如：salsa"
-                               class="w-full p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
-                    </div>
-                </div>
-                <div>
-                    <label id="lbl-dept" class="block text-xs text-gray-600 mb-1">使用单位 (可多选)</label>
-                    <div id="deptCheckboxes" class="grid grid-cols-3 gap-2 bg-gray-50 p-2 rounded-md border border-gray-200 text-xs text-gray-700">
-                        </div>
-                </div>
-                <div>
-                    <label id="lbl-cycle" class="block text-xs text-gray-600 mb-1">进货周期 (星期制，可多选)</label>
-                    <div id="cycleCheckboxes" class="grid grid-cols-4 gap-1 text-[10px] bg-gray-50 p-2 rounded-md border border-gray-200 text-gray-700">
-                        </div>
-                </div>
-                <button type="submit" id="btn-save" class="w-full bg-teal-600 text-white text-sm py-2 px-3 rounded-md hover:bg-teal-700 transition font-bold mt-1">
-                    保存到物料库
-                </button>
-            </form>
-        </section>
-
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h2 class="text-md font-bold text-gray-800 mb-3">🔑 員工帳號與密碼管理</h2>
-            <div id="chefAccountsContainer" class="space-y-2 text-sm text-gray-700 max-h-40 overflow-y-auto"></div>
-            <form id="addChefForm" onsubmit="handleAddChef(event)" class="grid grid-cols-2 gap-2 mt-3">
-                <input type="text" id="newChefName" placeholder="员工姓名" required class="p-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-teal-500">
-                <input type="text" id="newChefPass" placeholder="密碼" required class="p-2 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-teal-500">
-                <button type="submit" class="col-span-2 bg-teal-600 text-white text-xs py-1.5 px-3 rounded-md hover:bg-teal-700 transition font-bold">新增/修改员工密碼</button>
-            </form>
-        </section>
-
-        <section>
-            <div class="flex justify-between items-center mb-3">
-                <h2 id="txt-summary" class="text-md font-bold text-gray-800">📦 待處理彙總</h2>
-                <button id="btn-export" onclick="exportOrders()" class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-md hover:bg-blue-700 transition">
-                    匯出採購單
-                </button>
-            </div>
-            <div id="adminOrdersContainer" class="space-y-3"></div>
-        </section>
-
-        <hr class="border-gray-200 my-2">
-
-        <section>
-            <h2 id="txt-db" class="text-md font-bold text-gray-800 mb-3">🗄️ 物料資料庫</h2>
-            <div id="adminItemsContainer" class="space-y-2"></div>
-        </section>
-
-    </main>
-
-    <script>
-        // --- 國際化字典 ---
-        const i18n = {
-            zh: {
-                title: "后厨申购与管理系统",
-                employeeTab: "员工端",
-                adminTab: "管理端",
-                searchPlaceholder: "搜索物料名称、部门或意大利文...",
-                selected: "已选物料",
-                clear: "清空选择",
-                submit: "确认提交申购",
-                pendingLabel: "今日待处理",
-                totalLabel: "总物料种类",
-                export: "匯出採購單",
-                importTitle: "📥 导入数据文件",
-                importDesc: "支持从系统导出的 Excel (.xlsx, .xls) 或 CSV 清单，一键录入。",
-                addTitle: "➕ 建立/分配物料信息",
-                chefName: "订货人",
-                department: "使用单位 (可多选)",
-                departments: ["厨房", "寿司部", "酒吧", "前台", "仓库"],
-                itemName: "中文名称",
-                italianName: "意大利文名称",
-                spec: "规格",
-                stock: "当前库存数量",
-                price: "价格",
-                cycle: "进货周期 (星期制，可多选)",
-                weekdays: ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"],
-                save: "保存到物料库",
-                summary: "📦 待處理彙總",
-                db: "🗄️ 物料資料庫",
-                edit: "修改",
-                ordered: "需補",
-                confirm: "確認已備貨",
-                successSubmit: "提交成功！即將開啟 WhatsApp 以發送採購單。",
-                successAdd: "已成功建立物料：“{name}”！",
-                emptyOrders: "暫無待處理订单",
-                noExportData: "沒有需要匯出的採購單！",
-                sortDefault: "默认排序",
-                sortName: "按材料名称",
-                sortChef: "按订货人",
-                sortCategory: "按材料类别",
-                download: "下载前端"
-            },
-            it: {
-                title: "Sistema di Gestione e Approvvigionamento",
-                employeeTab: "Utente",
-                adminTab: "Admin",
-                searchPlaceholder: "Cerca nome articolo, reparto o nome italiano...",
-                selected: "Articoli selezionati",
-                clear: "Cancella selezione",
-                submit: "Conferma richiesta",
-                pendingLabel: "In attesa",
-                totalLabel: "Totale articoli",
-                export: "Esporta ordine",
-                importTitle: "📥 Importa dati",
-                importDesc: "Carica il file in formato Excel o CSV per importare i dati.",
-                addTitle: "➕ Aggiungi / Assegna articolo",
-                chefName: "Nome dello chef",
-                department: "Reparti di utilizzo",
-                departments: ["Cucina", "Sushi", "Bar", "Sala", "Magazzino"],
-                itemName: "Nome dell'articolo (Cinese)",
-                italianName: "Nome in italiano",
-                spec: "Specifiche",
-                stock: "Inventario attuale",
-                price: "Prezzo (es. 3.20)",
-                cycle: "Ciclo di arrivo",
-                weekdays: ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"],
-                save: "Salva",
-                summary: "📦 Riepilogo in attesa",
-                db: "️ Database articoli",
-                edit: "Modifica",
-                ordered: "Quantità",
-                confirm: "Conferma",
-                successSubmit: "Inviato con successo! Apertura di WhatsApp in corso.",
-                successAdd: "Articolo aggiunto con successo: “{name}”!",
-                emptyOrders: "Nessun ordine in attesa",
-                noExportData: "Nessun dato da esportare!",
-                sortDefault: "Predefinito",
-                sortName: "Nome articolo",
-                sortChef: "Chef",
-                sortCategory: "Categoria",
-                download: "Scarica"
-            },
-            bn: {
-                title: "কিচেন ম্যানেজমেন্ট সিস্টেম",
-                employeeTab: "কর্মী",
-                adminTab: "প্রশাসক",
-                searchPlaceholder: "আইটেমের নাম বা বিভাগ দিয়ে খুঁজুন...",
-                selected: "নির্বাচিত আইটেম",
-                clear: "খালি করুন",
-                submit: "জমা দিন",
-                pendingLabel: "অপেক্ষমান",
-                totalLabel: "মোট আইটেম",
-                export: "অর্ডার রপ্তানি",
-                importTitle: "📥 ডেটা ইমপোর্ট",
-                importDesc: "সিস্টেম থেকে Excel বা CSV ফাইল আপলোড করুন।",
-                addTitle: "➕ নতুন আইটেম যুক্ত করুন",
-                chefName: "শেফের নাম",
-                department: "বিভাগ নির্বাচন",
-                departments: ["রান্নাঘর", "সুশি", "বার", "হল", "অন্যান্য"],
-                itemName: "আইটেমের নাম (চীনা)",
-                italianName: "ইতালীয় নাম",
-                spec: "স্পেসিফিকেশন",
-                stock: "বর্তমান ইনভেন্টরি",
-                price: "মূল্য",
-                cycle: "ডেলিভারি চক্র",
-                weekdays: ["সোম", "মঙ্গল", "বুধ", "বৃহঃ", "শুক্র", "শনি", "রবি"],
-                save: "সংরক্ষণ করুন",
-                summary: "📦 অপেক্ষমান সারাংশ",
-                db: "️ আইটেম ডাটাবেস",
-                edit: "সম্পাদনা",
-                ordered: "অর্ডারকৃত",
-                confirm: "নিশ্চিত করুন",
-                successSubmit: "জমা দেওয়া সম্পন্ন হয়েছে! WhatsApp এ পাঠানো হচ্ছে।",
-                successAdd: "আইটেম যুক্ত হয়েছে: “{name}”!",
-                emptyOrders: "কোনো অপেক্ষমান অর্ডার নেই",
-                noExportData: "রপ্তানি করার মতো কোনো তথ্য নেই!",
-                sortDefault: "ডিফল্ট",
-                sortName: "নাম",
-                sortChef: "শেফের নাম",
-                sortCategory: "ক্যাটাগরি",
-                download: "ডাউনলোড"
-            }
-        };
-
-        let currentLang = 'zh';
-        // ── Supabase配置 ──
-        const SUPABASE_URL = 'https://cnavkgfrqvfuafcbmldg.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYXZrZ2ZycXZmdWFmY2JtbGRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MTE1MjIsImV4cCI6MjA5MzA4NzUyMn0.JX0ECOAVy-BVklCSsJE5n3j-owz1Ti-GOV4MtrWYlPI';
-        const RESTAURANT_ID = 'carpi';
-
-        function sbFetch(path, opts) {
-            opts = opts || {};
-            return fetch(SUPABASE_URL + '/rest/v1/' + path, {
-                method: opts.method || 'GET',
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': 'Bearer ' + SUPABASE_KEY,
-                    'Content-Type': 'application/json',
-                    'Prefer': opts.prefer || 'return=minimal'
-                },
-                body: opts.body || undefined
-            });
-        }
-
-        let loggedInChef = null;
-        let isAdminLoggedIn = false;
-        const ADMIN_PASS = "admin123";
-        let chefAccounts = {};
-        let database = [];
-        let pendingOrders = [];
-        let _pendingImport = []; // 待保存到Supabase的导入数据
-
-        // ── 初始化：从Supabase加载数据 ──
-        async function loadAllData() {
-            try {
-                const [itemsRes, ordersRes, chefsRes] = await Promise.all([
-                    sbFetch('cucina_items?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id'),
-                    sbFetch('cucina_orders?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=created_at.desc'),
-                    sbFetch('cucina_chefs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
-                ]);
-                const items = await itemsRes.json();
-                const orders = await ordersRes.json();
-                const chefs = await chefsRes.json();
-
-                database = items.map(function(r) {
-                    return {
-                        id: r.id, item_code: r.item_code||'', name: r.name||'', italian: r.italian||'',
-                        spec: r.spec||'', price: r.price||'', supplier: r.supplier||'', model_no: r.model_no||'',
-                        departments: r.departments || ['廚房'],
-                        cycle: r.cycle || ['星期一'],
-                        stock: r.stock||'1', safety: r.safety||'1',
-                        need: '', checked: false, category: r.category || '其他',
-                        chef: r.chef || ''
-                    };
-                });
-
-                pendingOrders = orders.map(function(r) {
-                    return { id: r.id, chef: r.chef, date: r.date, items: r.items || [], status: r.status };
-                });
-
-                chefAccounts = {};
-                chefs.forEach(function(c) { chefAccounts[c.name] = c.password; });
-
-                updateLoginSelect();
-                changeLanguage();
-                renderFormOptions();
-            } catch(e) {
-                console.error('loadAllData error:', e);
-                alert('Errore di connessione al database');
-            }
-        }
-
-        function changeLanguage() {
-            currentLang = document.getElementById('langSelect').value;
-            updateUIStrings();
-            
-            if (document.getElementById('view-admin').classList.contains('hidden')) {
-                if (loggedInChef) {
-                    renderChefItems(database);
-                }
-            } else {
-                renderAdminItems();
-                renderAdminOrders();
-                renderChefAccounts();
-            }
-            renderFormOptions();
-        }
-
-        function t(key, params = {}) {
-            let str = i18n[currentLang][key] || key;
-            for (let k in params) {
-                str = str.replace(`{${k}}`, params[k]);
-            }
-            return str;
-        }
-
-        function se(id, val, prop) {
-            const el = document.getElementById(id);
-            if (el) el[prop||'innerText'] = val;
-        }
-        function updateUIStrings() {
-            se('title-tag', t('title'));
-            se('nav-title', t('title'));
-            se('btn-chef', t('employeeTab'));
-            se('btn-admin', t('adminTab'));
-            se('btn-download', '💾 ' + t('download'), 'innerHTML');
-            se('txt-clear', t('clear'));
-            se('btn-submit', t('submit'));
-            se('txt-pending-label', t('pendingLabel'));
-            se('txt-total-label', t('totalLabel'));
-            se('btn-export', t('export'));
-            se('txt-import-title', t('importTitle'));
-            se('txt-import-desc', t('importDesc'));
-            se('txt-add-title', t('addTitle'));
-            se('lbl-chef', t('chefName'));
-            se('lbl-dept', t('department'));
-            se('lbl-itemname', t('itemName'));
-            se('lbl-italian', t('italianName'));
-            se('lbl-spec', t('spec'));
-            se('lbl-stock', t('stock'));
-            se('lbl-price', t('price'));
-            se('lbl-cycle', t('cycle'));
-            se('btn-save', t('save'));
-            se('txt-summary', t('summary'));
-            se('txt-db', t('db'));
-            se('opt-sort-default', t('sortDefault'));
-            se('opt-sort-name', t('sortName'));
-            se('opt-sort-chef', t('sortChef'));
-            se('opt-sort-category', t('sortCategory'));
-            const si = document.getElementById('searchInput');
-            if (si) si.placeholder = t('searchPlaceholder');
-            if (document.getElementById('txt-selected')) {
-                document.getElementById('txt-selected').childNodes[0].nodeValue = t('selected') + ": ";
-            }
-        }
-
-        function renderFormOptions() {
-            const deptContainer = document.getElementById('deptCheckboxes');
-            deptContainer.innerHTML = '';
-            t('departments').forEach((dept, index) => {
-                const label = document.createElement('label');
-                label.className = "flex items-center gap-1 p-1 text-xs";
-                label.innerHTML = `<input type="checkbox" name="departments" value="${dept}" class="text-teal-600"> ${dept}`;
-                deptContainer.appendChild(label);
-            });
-
-            const cycleContainer = document.getElementById('cycleCheckboxes');
-            cycleContainer.innerHTML = '';
-            t('weekdays').forEach((day, index) => {
-                const label = document.createElement('label');
-                label.className = "flex items-center gap-0.5 p-0.5";
-                label.innerHTML = `<input type="checkbox" name="cycles" value="${day}" class="text-teal-600"> ${day}`;
-                cycleContainer.appendChild(label);
-            });
-        }
-
-        function updateLoginSelect() {
-            const select = document.getElementById('loginChefName');
-            select.innerHTML = '';
-            for (const name of Object.keys(chefAccounts)) {
-                const opt = document.createElement('option');
-                opt.value = name;
-                opt.innerText = name;
-                select.appendChild(opt);
-            }
-        }
-
-        // --- 员工账号管理模組 ---
-        function renderChefAccounts() {
-            const container = document.getElementById('chefAccountsContainer');
-            container.innerHTML = '';
-            for (const [name, pass] of Object.entries(chefAccounts)) {
-                const div = document.createElement('div');
-                div.className = "flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100 text-xs";
-                div.innerHTML = `
-                    <span><strong>${name}</strong>: 密碼: <em>${pass}</em></span>
-                    <button onclick="deleteChef('${name}')" class="text-red-500 font-semibold hover:underline">删除</button>
-                `;
-                container.appendChild(div);
-            }
-        }
-
-        async function handleAddChef(event) {
-            event.preventDefault();
-            const name = document.getElementById('newChefName').value.trim();
-            const pass = document.getElementById('newChefPass').value.trim();
-            if (!name || !pass) return;
-            try {
-                // 检查是否已存在
-                const chkRes = await sbFetch('cucina_chefs?restaurant_id=eq.'+RESTAURANT_ID+'&name=eq.'+encodeURIComponent(name));
-                const chkData = await chkRes.json();
-                if (chkData && chkData.length > 0) {
-                    await sbFetch('cucina_chefs?restaurant_id=eq.'+RESTAURANT_ID+'&name=eq.'+encodeURIComponent(name), {
-                        method: 'PATCH', body: JSON.stringify({password: pass})
-                    });
-                } else {
-                    await sbFetch('cucina_chefs', {
-                        method: 'POST', body: JSON.stringify({restaurant_id: RESTAURANT_ID, name: name, password: pass})
-                    });
-                }
-                chefAccounts[name] = pass;
-                document.getElementById('addChefForm').reset();
-                renderChefAccounts();
-                updateLoginSelect();
-                alert(`已新增/修改员工：${name}`);
-            } catch(e) { alert('錯誤: ' + e.message); }
-        }
-
-        async function deleteChef(name) {
-            if (!confirm('删除員工 '+name+' ？')) return;
-            try {
-                await sbFetch('cucina_chefs?restaurant_id=eq.'+RESTAURANT_ID+'&name=eq.'+encodeURIComponent(name), {method: 'DELETE'});
-                delete chefAccounts[name];
-                renderChefAccounts();
-                updateLoginSelect();
-            } catch(e) { alert('錯誤: ' + e.message); }
-        }
-
-        // --- 登入與視圖切換 ---
-        function loginAsChef() {
-            const selectedName = document.getElementById('loginChefName').value;
-            const enteredPass = document.getElementById('loginPassword').value;
-
-            if (chefAccounts[selectedName] !== enteredPass) {
-                alert("密碼錯誤，請重新輸入！");
-                return;
-            }
-
-            loggedInChef = selectedName;
-            document.getElementById('currentChefName').innerText = loggedInChef;
-
-            document.getElementById('view-chef-login').classList.add('hidden');
-            document.getElementById('view-chef').classList.remove('hidden');
-            
-            renderChefItems(database);
-        }
-
-        function logoutChef() {
-            loggedInChef = null;
-            document.getElementById('view-chef').classList.add('hidden');
-            document.getElementById('view-chef-login').classList.remove('hidden');
-            document.getElementById('view-admin').classList.add('hidden');
-            document.getElementById('view-admin-login').classList.add('hidden');
-            
-            document.getElementById('btn-chef').className = "bg-teal-900 text-xs px-3 py-1.5 rounded-md font-bold";
-            document.getElementById('btn-admin').className = "bg-teal-600/50 text-xs px-3 py-1.5 rounded-md hover:bg-teal-600";
-        }
-
-        function loginAsAdmin() {
-            const enteredPass = document.getElementById('loginAdminPassword').value;
-            if (enteredPass !== ADMIN_PASS) {
-                alert("管理员密码錯誤，請重試！");
-                return;
-            }
-
-            isAdminLoggedIn = true;
-            document.getElementById('view-admin-login').classList.add('hidden');
-            document.getElementById('view-admin').classList.remove('hidden');
-            AdminModeInit();
-        }
-
-        function logoutAdmin() {
-            isAdminLoggedIn = false;
-            document.getElementById('view-admin').classList.add('hidden');
-            document.getElementById('view-admin-login').classList.add('hidden');
-            
-            if (loggedInChef) {
-                document.getElementById('view-chef').classList.remove('hidden');
-            } else {
-                document.getElementById('view-chef-login').classList.remove('hidden');
-            }
-
-            document.getElementById('btn-admin').className = "bg-teal-600/50 text-xs px-3 py-1.5 rounded-md hover:bg-teal-600";
-            document.getElementById('btn-chef').className = "bg-teal-900 text-xs px-3 py-1.5 rounded-md font-bold";
-        }
-
-        function switchTab(viewName) {
-            if (viewName === 'chef') {
-                document.getElementById('view-admin').classList.add('hidden');
-                document.getElementById('view-admin-login').classList.add('hidden');
-                
-                if (loggedInChef) {
-                    document.getElementById('view-chef').classList.remove('hidden');
-                    document.getElementById('view-chef-login').classList.add('hidden');
-                } else {
-                    document.getElementById('view-chef-login').classList.remove('hidden');
-                    document.getElementById('view-chef').classList.add('hidden');
-                }
-                
-                document.getElementById('btn-chef').className = "bg-teal-900 text-xs px-3 py-1.5 rounded-md font-bold";
-                document.getElementById('btn-admin').className = "bg-teal-600/50 text-xs px-3 py-1.5 rounded-md hover:bg-teal-600";
-                
-            } else {
-                document.getElementById('view-chef').classList.add('hidden');
-                document.getElementById('view-chef-login').classList.add('hidden');
-                
-                if (isAdminLoggedIn) {
-                    document.getElementById('view-admin-login').classList.add('hidden');
-                    document.getElementById('view-admin').classList.remove('hidden');
-                    AdminModeInit();
-                } else {
-                    document.getElementById('view-admin').classList.add('hidden');
-                    document.getElementById('view-admin-login').classList.remove('hidden');
-                }
-                
-                document.getElementById('btn-chef').className = "bg-teal-600/50 text-xs px-3 py-1.5 rounded-md hover:bg-teal-600";
-                document.getElementById('btn-admin').className = "bg-teal-900 text-xs px-3 py-1.5 rounded-md font-bold";
-            }
-        }
-
-        function AdminModeInit() {
-            renderAdminOrders();
-            renderAdminItems();
-            renderChefAccounts();
-        }
-
-        // --- 员工端邏輯 ---
-        function renderChefItems(data) {
-            const container = document.getElementById('chefItemsContainer');
-            container.innerHTML = '';
-            
-            // 將登入員工的貨物置於最前
-            const sortedData = [...data].sort((a, b) => {
-                const aIsChef = a.chef === loggedInChef;
-                const bIsChef = b.chef === loggedInChef;
-                if (aIsChef && !bIsChef) return -1;
-                if (!aIsChef && bIsChef) return 1;
-                return 0;
-            });
-
-            sortedData.forEach(item => {
-                const card = document.createElement('div');
-                card.className = `bg-white p-4 rounded-xl shadow-sm border ${item.checked ? 'border-teal-500 bg-teal-50/30' : 'border-gray-200'} transition-all duration-150`;
-                
-                const cycleList = item.cycle ? item.cycle.join('、') : '-';
-                const categoryStr = item.category || '-';
-
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h3 class="font-bold text-gray-800">${item.name}</h3>
-                            <p class="text-xs text-gray-400">原名: ${item.italian}</p>
-                            <p class="text-xs text-gray-500 mt-0.5">規格: ${item.spec} | 廚師: ${item.chef}</p>
-                            <span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded mt-1">${cycleList}</span>
-                            <div class="mt-1 flex flex-wrap gap-1 items-center">
-                                ${item.departments.map(d => `<span class="bg-teal-50 text-teal-700 font-medium text-[10px] px-1 rounded">${d}</span>`).join('')}
-                                <span class="bg-orange-50 text-orange-700 font-medium text-[10px] px-1 rounded">類別: ${categoryStr}</span>
-                            </div>
-                        </div>
-                        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheck(${item.id})" 
-                               class="w-5 h-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500">
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 mt-3">
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">目前庫存</label>
-                            <input type="number" value="${item.stock}" onchange="updateStock(${item.id}, this.value)" 
-                                   class="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">本次申購數量</label>
-                            <input type="number" placeholder="0" value="${item.need}" onchange="updateNeed(${item.id}, this.value)" 
-                                   class="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 text-sm">
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-            updateSelectedCount();
-        }
-
-        function updateStock(id, value) {
-            const item = database.find(i => i.id === id);
-            if (item) item.stock = value;
-        }
-
-        function updateNeed(id, value) {
-            const item = database.find(i => i.id === id);
-            if (item) {
-                item.need = value;
-                if (value && value > 0) {
-                    item.checked = true;
-                    renderChefItems(database);
-                }
-            }
-        }
-
-        function toggleCheck(id) {
-            const item = database.find(i => i.id === id);
-            if (item) {
-                item.checked = !item.checked;
-                renderChefItems(database);
-            }
-        }
-
-        function updateSelectedCount() {
-            const checkedCount = database.filter(i => i.checked).length;
-            document.getElementById('selectedCount').innerText = checkedCount;
-        }
-
-        function filterItems() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = database.filter(item => 
-                item.name.toLowerCase().includes(query) || 
-                item.italian.toLowerCase().includes(query) || 
-                item.chef.toLowerCase().includes(query) ||
-                (item.departments && item.departments.some(d => d.toLowerCase().includes(query)))
-            );
-            renderChefItems(filtered);
-        }
-
-        function sortChefItems() {
-            const sortType = document.getElementById('sortSelect').value;
-            let sortedData = [...database];
-
-            if (sortType === 'name') {
-                sortedData.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
-            } else if (sortType === 'chef') {
-                sortedData.sort((a, b) => a.chef.localeCompare(b.chef, 'zh-TW'));
-            } else if (sortType === 'category') {
-                sortedData.sort((a, b) => (a.category || '').localeCompare(b.category || '', 'zh-TW'));
-            } else {
-                sortedData = [...database];
-            }
-            renderChefItems(sortedData);
-        }
-
-        function clearSelection() {
-            database.forEach(item => {
-                item.checked = false;
-                item.need = "";
-            });
-            renderChefItems(database);
-        }
-
-        async function submitOrder() {
-            const selected = database.filter(item => item.checked);
-            if (selected.length === 0) {
-                alert("请先选择或填写需要补货的物料！");
-                return;
-            }
-
-            // 按进货单位排序
-            selected.sort(function(a, b) {
-                return (a.supplier||'').localeCompare(b.supplier||'');
-            });
-            const orderItems = selected.map(i => ({
-                item_code: i.item_code || '',
-                name: i.name || i.italian || '',
-                supplier: i.supplier || '',
-                spec: i.spec || '',
-                need: i.need
-            }));
-            const chefName = loggedInChef || "張師傅";
-
-            // 在系統內部暫存
-            const newOrder = {
-                restaurant_id: RESTAURANT_ID,
-                chef: chefName,
-                date: new Date().toISOString().slice(0, 10),
-                items: orderItems,
-                status: "待處理"
-            };
-            try {
-                const res = await sbFetch('cucina_orders', {method: 'POST', prefer: 'return=representation', body: JSON.stringify(newOrder)});
-                const saved = await res.json();
-                const savedId = saved && saved[0] ? saved[0].id : pendingOrders.length + 1;
-                pendingOrders.unshift({id: savedId, chef: chefName, date: newOrder.date, items: orderItems, status: "待處理"});
-            } catch(e) { console.error('submitOrder error:', e); }
-            
-            // 組合 WhatsApp 訊息格式
-            let message = `🍳 *后厨申购与管理系统*\n` +
-                          `🧑‍🍳 提报人: ${chefName}\n` +
-                          `📅 日期: ${new Date().toISOString().slice(0, 10)}\n\n` +
-                          `📦 采购清单:\n`;
-            
-            // 按供应商分组输出
-            let currentSupplier = null;
-            orderItems.forEach(i => {
-                if (i.supplier && i.supplier !== currentSupplier) {
-                    currentSupplier = i.supplier;
-                    message += `\n📦 ${i.supplier.toUpperCase()}\n`;
-                }
-                const code = i.item_code ? i.item_code + ' / ' : '';
-                const sup = i.supplier ? '/' + i.supplier.toUpperCase() : '';
-                const spec = i.spec ? ' ' + i.spec : '';
-                message += `• ${code}${i.name}${sup} = ${i.need}${spec}\n`;
-            });
-
-            const whatsappNumber = "393778826875";
-            const encodedMessage = encodeURIComponent(message);
-            const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-
-            alert(t('successSubmit'));
-            window.open(whatsappUrl, '_blank');
-
-            clearSelection();
-            renderChefItems(database);
-        }
-
-        // --- 管理端邏輯 ---
-        function renderAdminOrders() {
-            const container = document.getElementById('adminOrdersContainer');
-            container.innerHTML = '';
-            
-            const activeOrders = pendingOrders.filter(o => o.status === '待處理');
-            document.getElementById('pendingCount').innerText = activeOrders.length;
-            document.getElementById('totalItemsCount').innerText = database.length;
-
-            if (activeOrders.length === 0) {
-                container.innerHTML = `<p class="text-center text-gray-500 text-sm py-4 bg-white rounded-lg border border-dashed">${t('emptyOrders')}</p>`;
-                return;
-            }
-
-            activeOrders.forEach(order => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-200";
-
-                let itemsHtml = order.items.map(i => `<li class="text-sm text-gray-600 flex justify-between"><span>${i.name}</span> <span>${t('ordered')}：${i.need}</span></li>`).join('');
-
-                card.innerHTML = `
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold text-gray-800">${order.chef}</span>
-                        <span class="text-xs text-gray-400">${order.date}</span>
-                    </div>
-                    <ul class="space-y-1 bg-gray-50 p-2 rounded-md mb-3 border-l-4 border-orange-500">
-                        ${itemsHtml}
-                    </ul>
-                    <div class="flex justify-end gap-2">
-                        <button onclick="processOrder(${order.id})" class="bg-teal-600 text-white text-xs px-3 py-1.5 rounded hover:bg-teal-700 transition">
-                            ${t('confirm')}
-                        </button>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function renderAdminItems() {
-            const container = document.getElementById('adminItemsContainer');
-            container.innerHTML = '';
-
-            database.forEach(item => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center";
-
-                const deptList = item.departments ? item.departments.join(', ') : '';
-                const cycleList = item.cycle ? item.cycle.join(', ') : '';
-                const categoryStr = item.category || '-';
-
-                card.innerHTML = `
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-700">${item.name} (${item.italian})</h3>
-                        <p class="text-xs text-gray-400 mt-0.5">規格: ${item.spec} | 價格: ${item.price ? item.price : '-'}</p>
-                        <p class="text-xs text-gray-400">部門: ${deptList} | 週期: ${cycleList} | 類別: ${categoryStr}</p>
-                        <p class="text-xs text-gray-400 font-semibold mt-1">目前庫存: ${item.stock}</p>
-                    </div>
-                    <button onclick="editItem(${item.id})" class="text-xs text-teal-600 border border-teal-500 px-2 py-1 rounded hover:bg-teal-700 transition">
-                        ${t('edit')}
-                    </button>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        async function handleAddItem(event) {
-            event.preventDefault();
-            const itemCode = (document.getElementById('formItemCode')||{}).value || '';
-            const italianName = document.getElementById('formItalianName').value;
-            const itemName = document.getElementById('formItemName').value;
-            const spec = document.getElementById('formSpec').value;
-            const price = document.getElementById('formPrice').value;
-            const supplier = (document.getElementById('formSupplier')||{}).value || '';
-            const modelNo = (document.getElementById('formModelNo')||{}).value || '';
-            const category = (document.getElementById('formCategory')||{}).value || '';
-
-            const selectedDepts = [];
-            document.querySelectorAll('input[name="departments"]:checked').forEach(el => {
-                selectedDepts.push(el.value);
-            });
-
-            const selectedCycles = [];
-            document.querySelectorAll('input[name="cycles"]:checked').forEach(el => {
-                selectedCycles.push(el.value);
-            });
-
-            const displayName = itemName || italianName;
-            const newItem = {
-                restaurant_id: RESTAURANT_ID,
-                item_code: itemCode,
-                name: itemName, italian: italianName, spec: spec,
-                price: price, supplier: supplier, model_no: modelNo,
-                departments: selectedDepts.length > 0 ? selectedDepts : ['廚房'],
-                cycle: selectedCycles.length > 0 ? selectedCycles : ['星期一'],
-                stock: '1', safety: '1', category: category
-            };
-            try {
-                const res = await sbFetch('cucina_items', {method: 'POST', prefer: 'return=representation', body: JSON.stringify(newItem)});
-                const saved = await res.json();
-                database.push(Object.assign({id: saved[0].id, need: '', checked: false, chef: ''}, newItem));
-                document.getElementById('addItemForm').reset();
-                alert('✅ 已新增：' + displayName);
-                AdminModeInit();
-            } catch(e) { alert('錯誤: ' + e.message); }
-        }
-
-        async function processOrder(id) {
-            const order = pendingOrders.find(o => o.id === id);
-            if (order) {
-                try {
-                    await sbFetch('cucina_orders?id=eq.'+id, {method: 'PATCH', body: JSON.stringify({status: '已確認'})});
-                    order.status = '已確認';
-                    renderAdminOrders();
-                } catch(e) { alert('錯誤: ' + e.message); }
-            }
-        }
-
-        function exportOrders() {
-            const activeOrders = pendingOrders.filter(o => o.status === '待處理');
-            if (activeOrders.length === 0) {
-                alert(t('noExportData'));
-                return;
-            }
-            
-            let exportStr = "后厨采购清单\n==================\n";
-            activeOrders.forEach(o => {
-                exportStr += `\n提报人: ${o.chef} (${o.date})\n`;
-                o.items.forEach(i => {
-                    exportStr += `- ${i.name}: ${i.need}\n`;
-                });
-            });
-
-            const blob = new Blob([exportStr], { type: "text/plain;charset=utf-8" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `採購單_${new Date().toISOString().slice(0, 10)}.txt`;
-            link.click();
-        }
-
-        async function editItem(id) {
-            const item = database.find(i => i.id === id);
-            if (item) {
-                const newStock = prompt(`修改物料"${item.name}"的目前庫存:`, item.stock);
-                if (newStock !== null) {
-                    try {
-                        await sbFetch('cucina_items?id=eq.'+id, {method: 'PATCH', body: JSON.stringify({stock: newStock})});
-                        item.stock = newStock;
-                        renderAdminItems();
-                    } catch(e) { alert('錯誤: ' + e.message); }
-                }
-            }
-        }
-        // --- 批量导入函數 ---
-        async function saveImportedToSupabase() {
-            if (!_pendingImport || _pendingImport.length === 0) { alert('沒有待保存的資料'); return; }
-            const btn = document.querySelector('#import-save-area button');
-            if (btn) { btn.disabled = true; btn.textContent = '⏳ 保存中...'; }
-            let count = 0;
-            for (const item of _pendingImport) {
-                try {
-                    // upsert：货物号相同则更新，否则插入
-                    const res = await fetch(SUPABASE_URL + '/rest/v1/cucina_items', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_KEY,
-                            'Authorization': 'Bearer ' + SUPABASE_KEY,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'resolution=merge-duplicates,return=representation'
-                        },
-                        body: JSON.stringify(item)
-                    });
-                    const saved = await res.json();
-                    count++;
-                } catch(e) { console.error('save error:', e); }
-            }
-            // 重新从Supabase加载
-            await loadAllData();
-            _pendingImport = [];
-            const saveArea = document.getElementById('import-save-area');
-            if (saveArea) saveArea.classList.add('hidden');
-            if (btn) { btn.disabled = false; btn.textContent = '💾 保存到 Supabase'; }
-            alert('✅ 成功保存 ' + count + ' 筆物料到資料庫！');
-            AdminModeInit();
-        }
-
-        function handleFileImport(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            
-            reader.onload = async function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                _pendingImport = [];
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i];
-                    if (!row || row.length === 0) continue;
-
-                    const itemCode    = row[0] !== undefined ? String(row[0]).trim() : '';
-                    const italianName = row[1] || '';
-                    const chineseName = row[2] || '';
-                    const spec        = row[3] ? String(row[3]).trim() : '';
-                    const priceVal    = row[4];
-                    const price       = typeof priceVal === 'number' ? priceVal.toFixed(2) : parseFloat((priceVal || '').toString().replace(',', '.')) || 0;
-                    const supplier    = row[5] ? String(row[5]).trim() : '';
-                    const modelNo     = row[6] ? String(row[6]).trim() : '';
-                    const deptRaw     = row[7] || '';
-                    let departments   = ['廚房'];
-                    if (deptRaw) departments = deptRaw.toString().split('/').map(d => d.trim());
-                    const category    = row[8] ? String(row[8]).trim() : '其他';
-                    const chefName    = row[9] ? String(row[9]).trim() : '';
-                    _pendingImport.push({
-                        restaurant_id: RESTAURANT_ID,
-                        item_code: itemCode,
-                        name: chineseName, italian: italianName, spec: spec,
-                        price: String(price), supplier: supplier, model_no: modelNo,
-                        departments: departments, cycle: ['星期一'],
-                        stock: '1', safety: '1', category: category, chef: chefName
-                    });
-                }
-                // 显示保存按钮
-                const saveArea = document.getElementById('import-save-area');
-                const previewMsg = document.getElementById('import-preview-msg');
-                if (saveArea) saveArea.classList.remove('hidden');
-                if (previewMsg) previewMsg.textContent = '已解析 ' + _pendingImport.length + ' 筆物料，點擊下方按鈕保存到資料庫。';
-            };
-
-            reader.readAsArrayBuffer(file);
-        }
-
-        function downloadFrontend() {
-            const htmlContent = document.documentElement.outerHTML;
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `Kitchen_App_${new Date().toISOString().slice(0, 10)}.html`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
-
-        // --- 初始化執行 ---
-        // 初始顯示員工登入頁
-        document.getElementById('view-chef').classList.add('hidden');
-        document.getElementById('view-admin').classList.add('hidden');
-        document.getElementById('view-admin-login').classList.add('hidden');
-        document.getElementById('view-chef-login').classList.remove('hidden');
-        // 从Supabase加载数据
-        loadAllData();
-    </script>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ════════════════════════════════════════
+// PROFILE TAB
+// ════════════════════════════════════════
+function renderProfile() {
+  document.getElementById('profile-name').textContent = currentUser;
+  document.getElementById('profile-role').textContent = isAdmin ? '管理员 · Admin' : '员工';
+  updatePendingBadge();
+}
+
+function showChangePwd() {
+  document.getElementById('pwd-old').value='';
+  document.getElementById('pwd-new').value='';
+  document.getElementById('pwd-confirm').value='';
+  openModal('modal-change-pwd');
+}
+
+async function doChangePwd() {
+  const old = document.getElementById('pwd-old').value;
+  const nw  = document.getElementById('pwd-new').value;
+  const cf  = document.getElementById('pwd-confirm').value;
+  if (chefs[currentUser] !== old) { toast('当前密码错误','err'); return; }
+  if (nw !== cf) { toast('两次密码不一致','err'); return; }
+  if (!nw) { toast('新密码不能为空','err'); return; }
+  try {
+    const ch = Object.entries(chefs).find(([n])=>n===currentUser);
+    const r = await fetch(SB_URL+'/rest/v1/cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(currentUser), {
+      method:'PATCH', headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({password:nw})
+    });
+    chefs[currentUser]=nw;
+    closeModal('modal-change-pwd');
+    toast('✅ 密码已修改');
+  } catch(e){ toast('修改失败','err'); }
+}
+
+function changeLangModal() {
+  const langs = [{v:'zh',l:'中文'},{v:'it',l:'Italiano'},{v:'bn',l:'বাংলা'}];
+  const curr = langs.find(l=>l.v===currentLang);
+  // cycle through
+  const idx = langs.findIndex(l=>l.v===currentLang);
+  currentLang = langs[(idx+1)%langs.length].v;
+  document.getElementById('current-lang-lbl').textContent = langs[(idx+1)%langs.length].l;
+  document.getElementById('lang-select').value = currentLang;
+  toast('语言已切换 / Language changed');
+}
+
+function changeLang(v) {
+  currentLang = v;
+  const labels = {zh:'中文',it:'Italiano',bn:'বাংলা'};
+  document.getElementById('current-lang-lbl').textContent = labels[v]||v;
+}
+
+// ════════════════════════════════════════
+// ADMIN PANEL
+// ════════════════════════════════════════
+function showAdminPanel(type) {
+  if (!isAdmin) { toast('需要管理员权限','err'); return; }
+  const titles = {staff:'员工账号管理',items:'物料管理',pending:'待处理订单'};
+  document.getElementById('admin-panel-title').textContent = titles[type]||'管理';
+  document.getElementById('admin-panel-content').innerHTML = '';
+
+  if (type==='staff') renderStaffPanel();
+  if (type==='items') renderItemsPanel();
+  if (type==='pending') renderPendingPanel();
+  openModal('modal-admin-panel');
+}
+
+function renderStaffPanel() {
+  const html = `
+    <div id="staff-list" style="margin-bottom:16px"></div>
+    <div class="divider"></div>
+    <p style="font-size:13px;font-weight:600;margin-bottom:10px">新增 / 修改员工</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <input id="new-staff-name" class="form-control" placeholder="员工姓名">
+      <input id="new-staff-pass" class="form-control" placeholder="密码">
+    </div>
+    <button class="btn btn-primary btn-sm" style="width:100%" onclick="saveStaff()">保存员工</button>
+  `;
+  document.getElementById('admin-panel-content').innerHTML = html;
+  renderStaffList();
+}
+
+function renderStaffList() {
+  document.getElementById('staff-list').innerHTML =
+    Object.entries(chefs).map(([n,p])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;font-size:13px">
+        <span><strong>${n}</strong> · 密码：${p}</span>
+        <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);padding:4px 10px" onclick="deleteStaff('${n}')">删除</button>
+      </div>`).join('');
+}
+
+async function saveStaff() {
+  const n=document.getElementById('new-staff-name').value.trim();
+  const p=document.getElementById('new-staff-pass').value.trim();
+  if(!n||!p){toast('请填写姓名和密码','err');return;}
+  try {
+    const chk=await(await fetch(SB_URL+'/rest/v1/cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(n),{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})).json();
+    if(chk.length>0){
+      await fetch(SB_URL+'/rest/v1/cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(n),{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({password:p})});
+    } else {
+      await sb('cucina_chefs',{method:'POST',body:JSON.stringify({restaurant_id:REST_ID,name:n,password:p})});
+    }
+    chefs[n]=p;
+    populateLoginSelect();
+    renderStaffList();
+    toast('✅ 已保存：'+n);
+  } catch(e){ toast('保存失败','err'); }
+}
+
+async function deleteStaff(n) {
+  if(!confirm('删除员工 '+n+' ？')) return;
+  try {
+    await fetch(SB_URL+'/rest/v1/cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(n),{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    delete chefs[n];
+    populateLoginSelect();
+    renderStaffList();
+    toast('已删除：'+n);
+  } catch(e){ toast('删除失败','err'); }
+}
+
+function renderItemsPanel() {
+  document.getElementById('admin-panel-content').innerHTML = `
+    <p style="font-size:13px;font-weight:600;margin-bottom:12px">新增物料</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="form-group"><label class="form-label">货物号</label><input id="ni-code" class="form-control" placeholder="001"></div>
+      <div class="form-group"><label class="form-label">材料类型</label><input id="ni-cat" class="form-control" placeholder="salsa"></div>
+    </div>
+    <div class="form-group"><label class="form-label">意大利文名称 *</label><input id="ni-italian" class="form-control" required placeholder="Involtino primavera"></div>
+    <div class="form-group"><label class="form-label">中文名称</label><input id="ni-name" class="form-control" placeholder="春卷"></div>
+    <div class="form-group"><label class="form-label">规格</label><input id="ni-spec" class="form-control" placeholder="10x900G"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="form-group"><label class="form-label">价格 (€)</label><input id="ni-price" class="form-control" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="form-group"><label class="form-label">进货单位/供应商</label><input id="ni-supplier" class="form-control" placeholder="jfc"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="form-group"><label class="form-label">当前库存</label><input id="ni-stock" class="form-control" type="number" step="0.1" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">安全库存</label><input id="ni-safety" class="form-control" type="number" step="0.1" placeholder="1"></div>
+    </div>
+    <div class="form-group"><label class="form-label">订货人</label><input id="ni-chef" class="form-control" placeholder="张师傅"></div>
+    <button class="btn btn-primary" onclick="saveNewItem()">➕ 添加到物料库</button>
+    <div class="divider"></div>
+    <button class="btn btn-ghost" onclick="showImportModal()">📥 批量导入 Excel/CSV</button>
+  `;
+}
+
+async function saveNewItem() {
+  const italian = document.getElementById('ni-italian').value;
+  if(!italian){toast('请填写意大利文名称','err');return;}
+  const newItem = {
+    restaurant_id:REST_ID,
+    item_code:document.getElementById('ni-code').value,
+    category:document.getElementById('ni-cat').value||'其他',
+    italian, name:document.getElementById('ni-name').value,
+    spec:document.getElementById('ni-spec').value,
+    price:document.getElementById('ni-price').value||'0',
+    supplier:document.getElementById('ni-supplier').value,
+    stock:document.getElementById('ni-stock').value||'0',
+    safety:document.getElementById('ni-safety').value||'1',
+    chef:document.getElementById('ni-chef').value,
+    departments:['厨房'], cycle:['星期一']
+  };
+  try {
+    const r=await sb('cucina_items',{method:'POST',prefer:'return=representation',body:JSON.stringify(newItem)});
+    const saved=await r.json();
+    items.push({...newItem,id:saved[0].id,price:parseFloat(newItem.price),stock:parseFloat(newItem.stock),safety:parseFloat(newItem.safety),need:0,checked:false});
+    toast('✅ 已添加：'+(newItem.name||italian));
+    closeModal('modal-admin-panel');
+    renderInventory();
+  } catch(e){ toast('添加失败','err'); }
+}
+
+function renderPendingPanel() {
+  const pending = orders.filter(o=>o.status==='待處理');
+  if(!pending.length){
+    document.getElementById('admin-panel-content').innerHTML=`<div class="empty-state"><div class="icon">✅</div><p>暂无待处理订单</p></div>`;
+    return;
+  }
+  document.getElementById('admin-panel-content').innerHTML = pending.map(o=>`
+    <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">
+        <strong>${o.chef}</strong><span style="color:var(--text3)">${o.date}</span>
+      </div>
+      ${(o.items||[]).map(i=>`
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
+          <span>${i.name}</span><span style="font-family:'DM Mono',monospace">${i.need}</span>
+        </div>`).join('')}
+      <button class="btn btn-green btn-sm" style="margin-top:10px;width:100%" onclick="confirmOrder('${o.id}');renderPendingPanel()">✓ 确认已备货</button>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════
+// IMPORT
+// ════════════════════════════════════════
+function showImportModal() { openModal('modal-import'); }
+
+function handleImport(input) {
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const data=new Uint8Array(e.target.result);
+    const wb=XLSX.read(data,{type:'array'});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+    pendingImport=[];
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i]; if(!r||!r.length)continue;
+      const priceVal=r[4];
+      const price=typeof priceVal==='number'?priceVal.toFixed(2):parseFloat((priceVal||'').toString().replace(',','.'))||0;
+      const deptRaw=r[7]||'';
+      let depts=['厨房'];
+      if(deptRaw) depts=deptRaw.toString().split('/').map(d=>d.trim());
+      pendingImport.push({
+        restaurant_id:REST_ID,
+        item_code:r[0]!==undefined?String(r[0]).trim():'',
+        italian:r[1]||'', name:r[2]||'',
+        spec:r[3]?String(r[3]).trim():'',
+        price:String(price), supplier:r[5]?String(r[5]).trim():'',
+        model_no:r[6]?String(r[6]).trim():'',
+        departments:depts, cycle:['星期一'],
+        stock:'0', safety:'1',
+        category:r[8]?String(r[8]).trim():'其他',
+        chef:r[9]?String(r[9]).trim():''
+      });
+    }
+    document.getElementById('import-preview-msg').textContent=`已解析 ${pendingImport.length} 条物料，点击保存`;
+    document.getElementById('import-preview').style.display='block';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function saveImport() {
+  if(!pendingImport.length){toast('没有待保存数据','err');return;}
+  let count=0;
+  for(const item of pendingImport){
+    try {
+      await fetch(SB_URL+'/rest/v1/cucina_items',{
+        method:'POST',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=representation'},
+        body:JSON.stringify(item)
+      });
+      count++;
+    } catch(e){}
+  }
+  await init();
+  pendingImport=[];
+  document.getElementById('import-preview').style.display='none';
+  closeModal('modal-import');
+  renderInventory();
+  toast(`✅ 成功导入 ${count} 条物料`);
+}
+
+// ════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('show'); });
+});
+
+function toast(msg, type='') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show'+(type?' '+type:'');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.className='',2800);
+}
+
+function downloadApp() {
+  const b=new Blob([document.documentElement.outerHTML],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`CucinaApp_${new Date().toISOString().slice(0,10)}.html`; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function showSideMenu() { toast('语言切换：顶部下拉菜单'); }
+
+// ════════════════════════════════════════
+// START
+// ════════════════════════════════════════
+init();
+</script>
 </body>
 </html>
