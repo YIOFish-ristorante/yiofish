@@ -571,14 +571,18 @@ body {
 
     <div style="height:110px"></div><!-- spacer for footer -->
 
-    <div class="order-footer">
-      <div class="order-footer-info">
-        <span class="count" id="sel-count-lbl">已选择 <strong id="sel-count">0</strong> 种食材</span>
-        <span class="total"><span id="sel-total-lbl">预计总数量：</span><span id="sel-total">0</span></span>
+    <div class="order-footer" style="padding:10px 12px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="order-search" placeholder="搜索食材..." oninput="filterOrderList(this.value)"
+          style="flex:3;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;">
+        <button class="btn btn-green" id="order-submit-btn" onclick="submitOrder()" style="flex:1;white-space:nowrap;">
+          <span id="submit-btn-txt">提交</span>
+        </button>
       </div>
-      <button class="btn btn-green" id="order-submit-btn" onclick="submitOrder()">
-        <span id="submit-btn-txt">提交订单</span>
-      </button>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-top:6px;">
+        <span id="sel-count-lbl">已选择 <strong id="sel-count" style="color:var(--primary)">0</strong> 种食材</span>
+        <span><span id="sel-total-lbl">合计：</span><span id="sel-total" style="color:var(--primary);font-weight:600;">0.0</span></span>
+      </div>
     </div>
   </div>
 
@@ -833,6 +837,7 @@ let currentUser = null;
 let isAdmin     = false;
 let items       = [];      // cucina_items
 let orders      = [];      // cucina_orders
+let _orderSearchQ = '';    // 订货搜索关键词
 let chefs       = {};      // {name: pass}
 let currentTab  = 'inventory';
 let invCat      = 'all';
@@ -1013,6 +1018,13 @@ function populateLoginSelect() {
   Object.keys(chefs).forEach(n=>{
     sel.innerHTML += `<option value="${n}">${n}</option>`;
   });
+  // 自动填入上次登录信息
+  try {
+    const lastUser = localStorage.getItem('cucina_last_user');
+    const lastPass = localStorage.getItem('cucina_last_pass');
+    if (lastUser) sel.value = lastUser;
+    if (lastPass) document.getElementById('login-pass').value = lastPass;
+  } catch(e) {}
 }
 
 // ════════════════════════════════════════
@@ -1027,6 +1039,8 @@ function doLogin() {
     return;
   }
   errEl.style.display='none';
+  // 记住登录信息
+  try { localStorage.setItem('cucina_last_user', name); localStorage.setItem('cucina_last_pass', pass); } catch(e) {}
   currentUser = name;
   showApp();
 }
@@ -1051,7 +1065,7 @@ function doLogout() {
   currentUser=null; isAdmin=false;
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
-  document.getElementById('login-pass').value='';
+  // 保留密码不清空（记住登录）
 }
 
 function showApp() {
@@ -1067,6 +1081,11 @@ function showApp() {
   });
   // auto-select low stock items for ordering
   items.forEach(i=>{ i.checked = calcForecast(i)>0; i.need = calcForecast(i); });
+  // 员工隐藏底部导航，底部栏贴底
+  const nav = document.querySelector('.bottom-nav');
+  if (nav) nav.style.display = isAdmin ? 'flex' : 'none';
+  const footer = document.querySelector('.order-footer');
+  if (footer) footer.style.bottom = isAdmin ? 'var(--bottom-h)' : '0';
   if (!isAdmin) {
     switchTab('order');
   } else {
@@ -1239,18 +1258,44 @@ function showItemDetail(id) {
       <div class="form-group"><label class="form-label">安全库存(默认)</label><input class="form-control" id="ei-safety" type="number" step="0.1" value="${item.safety}"></div>
     </div>
     <div class="form-group">
-      <label class="form-label">安全库存（按星期）</label>
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <label class="form-label" style="margin:0;">安全库存（按星期）</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text2);">
+          <span id="ei-sbd-toggle-lbl">关闭</span>
+          <input type="checkbox" id="ei-sbd-toggle" ${(()=>{const sbd=item.safety_by_day;return sbd&&Object.values(sbd).some(v=>v>0)?'checked':''})()}
+            onchange="document.getElementById('ei-sbd-grid').style.display=this.checked?'grid':'none';document.getElementById('ei-sbd-toggle-lbl').textContent=this.checked?'开启':'关闭';"
+            style="width:18px;height:18px;accent-color:var(--primary);">
+        </label>
+      </div>
+      <div id="ei-sbd-grid" style="display:${(()=>{const sbd=item.safety_by_day;return sbd&&Object.values(sbd).some(v=>v>0)?'grid':'none'})()};grid-template-columns:repeat(7,1fr);gap:4px;">
         ${['一','二','三','四','五','六','日'].map((d,i)=>{
           const key=String(i+1);
-          const val=(item.safety_by_day&&item.safety_by_day[key]!=null)?item.safety_by_day[key]:item.safety;
+          const val=(item.safety_by_day&&item.safety_by_day[key]!=null)?item.safety_by_day[key]:0;
           return `<div style="text-align:center;"><div style="font-size:10px;color:var(--text3);margin-bottom:2px;">周${d}</div>
           <input type="number" min="0" step="0.1" value="${val}" id="ei-sbd-${key}"
             style="width:100%;border:1px solid #ddd;border-radius:4px;padding:3px;font-size:12px;text-align:center;"></div>`;
         }).join('')}
       </div>
     </div>
-    <div class="form-group"><label class="form-label">订货人</label><input class="form-control" id="ei-chef" value="${item.chef}"></div>
+    <div class="form-group"><label class="form-label">${t('editChef')}</label>
+    <select class="form-control" id="ei-chef">
+      <option value="">-- 选择订货人 --</option>
+      ${Object.keys(chefs).map(n=>`<option value="${n}" ${n===item.chef?'selected':''}>${n}</option>`).join('')}
+    </select></div>
+    <div class="form-group">
+      <label class="form-label">订货周期</label>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:4px;">
+        ${['一','二','三','四','五','六','日'].map((d,i)=>{
+          const dayName='星期'+d;
+          const checked=(item.cycle||[]).includes(dayName)?'checked':'';
+          return `<label style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;">
+            <span style="font-size:11px;color:var(--text3);">周${d}</span>
+            <input type="checkbox" value="${dayName}" id="ei-cycle-${i+1}" ${checked}
+              style="width:18px;height:18px;accent-color:var(--primary);">
+          </label>`;
+        }).join('')}
+      </div>
+    </div>
     ${fc>0?`<div style="background:var(--warn-light);border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:var(--warn)">💡 建议补货：<strong>${fc}</strong> 单位</div>`:''}
     ${!isAdmin?`<p style="font-size:12px;color:var(--text3);margin-top:8px">${t('adminOnly')}</p>`:''}
   `;
@@ -1271,14 +1316,17 @@ async function saveEditItem() {
     supplier:  document.getElementById('ei-supplier').value,
     stock:     document.getElementById('ei-stock').value,
     safety:    document.getElementById('ei-safety').value,
-    safety_by_day: {"1":parseFloat(document.getElementById('ei-sbd-1').value)||0,
-                    "2":parseFloat(document.getElementById('ei-sbd-2').value)||0,
-                    "3":parseFloat(document.getElementById('ei-sbd-3').value)||0,
-                    "4":parseFloat(document.getElementById('ei-sbd-4').value)||0,
-                    "5":parseFloat(document.getElementById('ei-sbd-5').value)||0,
-                    "6":parseFloat(document.getElementById('ei-sbd-6').value)||0,
-                    "7":parseFloat(document.getElementById('ei-sbd-7').value)||0},
+    safety_by_day: document.getElementById('ei-sbd-toggle').checked
+                    ? {"1":parseFloat(document.getElementById('ei-sbd-1').value)||0,
+                       "2":parseFloat(document.getElementById('ei-sbd-2').value)||0,
+                       "3":parseFloat(document.getElementById('ei-sbd-3').value)||0,
+                       "4":parseFloat(document.getElementById('ei-sbd-4').value)||0,
+                       "5":parseFloat(document.getElementById('ei-sbd-5').value)||0,
+                       "6":parseFloat(document.getElementById('ei-sbd-6').value)||0,
+                       "7":parseFloat(document.getElementById('ei-sbd-7').value)||0}
+                    : {"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0},
     chef:      document.getElementById('ei-chef').value,
+    cycle:     ['一','二','三','四','五','六','日'].map((d,i)=>'星期'+d).filter((_,i)=>document.getElementById('ei-cycle-'+(i+1))&&document.getElementById('ei-cycle-'+(i+1)).checked),
   };
   try {
     await sb('cucina_items?id=eq.'+editingItemId,{method:'PATCH',body:JSON.stringify(u)});
@@ -1295,6 +1343,9 @@ async function saveEditItem() {
 // ════════════════════════════════════════
 function renderOrderList() {
   const container = document.getElementById('order-list');
+  // 恢复搜索框内容
+  const searchEl = document.getElementById('order-search');
+  if (searchEl && _orderSearchQ) searchEl.value = _orderSearchQ;
   // 今日待订提示
   const todayItems = items.filter(i=>isTodayCycle(i));
   const todayLow = todayItems.filter(i=>stockStatus(i)==='low');
@@ -1373,6 +1424,11 @@ function renderOrderList() {
     </div>`;
   }).join('');
   updateOrderFooter();
+}
+
+function filterOrderList(q) {
+  _orderSearchQ = (q||'').toLowerCase().trim();
+  renderOrderList();
 }
 
 function setConsume(id, val) {
@@ -1983,7 +2039,11 @@ function renderItemsPanel() {
       <div class="form-group"><label class="form-label">当前库存</label><input id="ni-stock" class="form-control" type="number" step="0.1" placeholder="0"></div>
       <div class="form-group"><label class="form-label">安全库存</label><input id="ni-safety" class="form-control" type="number" step="0.1" placeholder="1"></div>
     </div>
-    <div class="form-group"><label class="form-label">订货人</label><input id="ni-chef" class="form-control" placeholder="张师傅"></div>
+    <div class="form-group"><label class="form-label">${t('editChef')}</label>
+    <select id="ni-chef" class="form-control">
+      <option value="">-- 选择订货人 --</option>
+      ${Object.keys(chefs).map(n=>`<option value="${n}">${n}</option>`).join('')}
+    </select></div>
     <button class="btn btn-primary" onclick="saveNewItem()">➕ 添加到物料库</button>
     <div class="divider"></div>
     <button class="btn btn-ghost" onclick="showImportModal()">📥 批量导入 Excel/CSV</button>
@@ -2140,17 +2200,26 @@ init();
 
 // ── 防侧滑返回 ──
 (function() {
-  // 压入一个历史记录，让浏览器后退时不会退出应用
-  function pushDummy() {
-    try { history.pushState({app:true}, '', location.href); } catch(e) {}
+  function pushDummy(state) {
+    try { history.pushState(state||{app:true}, '', location.href); } catch(e) {}
   }
   pushDummy();
+
   window.addEventListener('popstate', function(e) {
-    // 拦截后退
-    if (document.getElementById('screen-app').classList.contains('active')) {
-      // 重新压入，防止再次后退
-      pushDummy();
-    }
+    const appActive = document.getElementById('screen-app').classList.contains('active');
+    if (!appActive) return;
+
+    // 如果有模态框打开，关闭它而不是退出
+    const modals = document.querySelectorAll('.modal-overlay.active, [id$="-modal"]');
+    let closedModal = false;
+    modals.forEach(function(m) {
+      if (m.style.display !== 'none' && m.style.display !== '') {
+        m.style.display = 'none';
+        closedModal = true;
+      }
+    });
+    // 不管怎样都重新压入，保持在应用内
+    pushDummy();
   });
 })();
 </script>
