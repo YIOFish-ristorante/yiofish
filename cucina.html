@@ -891,6 +891,7 @@ let invSearch   = '';
 let orderFilter = 'all';
 let reportTab   = 'overview';
 let pendingImport = [];
+let _importFileName = '';
 let editingItemId = null;
 let currentLang = 'zh';
 
@@ -2221,6 +2222,7 @@ function handleImport(input) {
       }
       pendingImport.push({
         restaurant_id:REST_ID,
+        source_file:_importFileName,
         item_code:r[0]!==undefined?String(r[0]).trim():'',
         italian:r[1]||'', name:r[2]||'',
         spec:r[3]?String(r[3]).trim():'',
@@ -2234,7 +2236,7 @@ function handleImport(input) {
         cycle:cycle
       });
     }
-    document.getElementById('import-preview-msg').textContent=`已解析 ${pendingImport.length} 条物料，点击保存`;
+    document.getElementById('import-preview-msg').textContent=`📄 ${_importFileName} · 已解析 ${pendingImport.length} 条物料，点击保存`;
     document.getElementById('import-preview').style.display='block';
   };
   reader.readAsArrayBuffer(file);
@@ -2248,20 +2250,27 @@ async function saveImport() {
   const barEl = document.getElementById('import-progress-bar');
   const txtEl = document.getElementById('import-progress-txt');
   const pctEl = document.getElementById('import-progress-pct');
-  // 显示进度条
   if(btn) btn.disabled = true;
   if(progressEl) progressEl.style.display = 'block';
+  if(txtEl) txtEl.textContent = `正在删除旧数据（${_importFileName}）...`;
+  // 先删除同文件名的旧数据
+  try {
+    await fetch(SB_URL+'/rest/v1/cucina_items?restaurant_id=eq.'+REST_ID+'&source_file=eq.'+encodeURIComponent(_importFileName),{
+      method:'DELETE',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'}
+    });
+  } catch(e){ console.error('delete error:', e); }
+  // 逐条插入新数据
   let count=0;
   for(const item of pendingImport){
     try {
       await fetch(SB_URL+'/rest/v1/cucina_items',{
         method:'POST',
-        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=representation'},
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
         body:JSON.stringify(item)
       });
       count++;
     } catch(e){}
-    // 更新进度
     const pct = Math.round(count/total*100);
     if(barEl) barEl.style.width = pct+'%';
     if(pctEl) pctEl.textContent = pct+'%';
@@ -2269,6 +2278,7 @@ async function saveImport() {
   }
   await init();
   pendingImport=[];
+  _importFileName='';
   if(progressEl) progressEl.style.display = 'none';
   if(btn) btn.disabled = false;
   document.getElementById('import-preview').style.display='none';
