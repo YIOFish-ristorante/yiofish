@@ -543,11 +543,11 @@ body {
       <table class="inv-table" id="inv-table">
         <thead>
           <tr>
-            <th>食材</th>
-            <th>当前库存</th>
-            <th>安全库存</th>
-            <th>单位</th>
-            <th>状态</th>
+            <th id="th-food">食材</th>
+            <th id="th-stock">当前库存</th>
+            <th id="th-safe">安全库存</th>
+            <th id="th-unit">单位</th>
+            <th id="th-status">状态</th>
           </tr>
         </thead>
         <tbody id="inv-tbody"></tbody>
@@ -564,7 +564,7 @@ body {
 
     <div class="order-hint">
       <span>💡</span>
-      <span>建议订货：系统根据当前库存和安全库存自动计算</span>
+      <span id="order-hint-txt">系统根据当前库存和安全库存自动计算</span>
     </div>
 
     <div id="order-list"></div>
@@ -573,11 +573,11 @@ body {
 
     <div class="order-footer">
       <div class="order-footer-info">
-        <span class="count">已选择 <strong id="sel-count">0</strong> 种食材</span>
-        <span class="total">预计总数量：<span id="sel-total">0</span></span>
+        <span class="count" id="sel-count-lbl">已选择 <strong id="sel-count">0</strong> 种食材</span>
+        <span class="total"><span id="sel-total-lbl">预计总数量：</span><span id="sel-total">0</span></span>
       </div>
       <button class="btn btn-green" id="order-submit-btn" onclick="submitOrder()">
-        提交订单
+        <span id="submit-btn-txt">提交订单</span>
       </button>
     </div>
   </div>
@@ -625,7 +625,7 @@ body {
       <div class="chart-wrap" id="warn-table-wrap">
         <div class="chart-title" style="margin-bottom:12px">库存预警（低于安全库存）</div>
         <table class="warn-table" id="warn-table">
-          <thead><tr><th>食材</th><th>当前库存</th><th>安全库存</th><th>状态</th></tr></thead>
+          <thead><tr><th>${t('colFood')}</th><th>当前库存</th><th>安全库存</th><th>状态</th></tr></thead>
           <tbody id="warn-tbody"></tbody>
         </table>
       </div>
@@ -847,9 +847,131 @@ let currentLang = 'zh';
 // I18N (minimal — key strings)
 // ════════════════════════════════════════
 const i18n = {
-  zh: { tabs:['库存管理','订货系统','订单系统','报表分析','我的'], submit:'提交订单', pending:'待处理', done:'已完成', all:'全部', lowStock:'库存不足', ok:'正常', warn:'预警' },
-  it: { tabs:['Magazzino','Ordini','Storico','Report','Profilo'], submit:'Invia ordine', pending:'In attesa', done:'Completato', all:'Tutto', lowStock:'Scorta bassa', ok:'OK', warn:'Attenzione' },
-  bn: { tabs:['ইনভেন্টরি','অর্ডার','অর্ডার তালিকা','রিপোর্ট','আমার'], submit:'জমা দিন', pending:'অপেক্ষমান', done:'সম্পন্ন', all:'সব', lowStock:'কম স্টক', ok:'স্বাভাবিক', warn:'সতর্কতা' }
+  zh: {
+    tabs:['库存管理','订货系统','订单系统','报表分析','我的'],
+    submit:'提交订单', pending:'待处理', done:'已完成', all:'全部',
+    lowStock:'库存不足', ok:'正常', warn:'预警',
+    // 登录
+    loginTitle:'后厨管理系统', loginSub:'Cucina Management · Carpi',
+    loginSelect:'选择员工 / Seleziona', loginPass:'密码 / Password',
+    loginBtn:'进入系统', loginErr:'密码错误，请重试',
+    // 库存
+    invTitle:'库存管理', allFood:'全部食材', lowSafeStock:'低于安全库存',
+    totalVal:'总库存价值', searchFood:'搜索食材...',
+    colFood:'食材', colStock:'当前库存', colSafe:'安全库存',
+    colUnit:'单位', colStatus:'状态',
+    importBtn:'批量导入 Excel/CSV',
+    // 订货
+    orderHint:'系统根据当前库存和安全库存自动计算',
+    orderSelected:'已选择', orderKinds:'种食材',
+    orderTotal:'预计总数量：', orderSubmit:'提交订单',
+    suggestQty:'建议订货量', consume:'消耗量',
+    consumeHint:'提交后扣减库存', todayTag:'今日',
+    // 订单
+    ordersTitle:'订单系统', allOrders:'全部订单',
+    filterPending:'待处理', filterDone:'已完成',
+    exportBtn:'导出采购清单',
+    // 报表
+    reportTitle:'报表分析', overview:'概览',
+    invAnalysis:'库存分析', consumeAnalysis:'消耗分析',
+    // 我的
+    profileTitle:'我的', role:'角色',
+    admin:'管理员 · Admin', staff:'员工',
+    langLabel:'语言',
+    logout:'退出登录',
+    // 编辑
+    editItem:'编辑食材', editCode:'货物号', editCat:'材料类型',
+    editItalian:'意大利文名称', editName:'中文名称',
+    editSpec:'规格', editPrice:'价格 (€)', editSupplier:'进货单位',
+    editStock:'当前库存', editSafety:'安全库存(默认)',
+    editSafetyDay:'安全库存（按星期）',
+    editChef:'订货人', editSave:'💾 保存', editCancel:'取消',
+    suggestRestock:'建议补货',
+    adminOnly:'（仅管理员可保存修改）',
+    // 新增
+    newItem:'新增食材', addItem:'添加食材',
+    // 导入
+    importTitle:'导入数据', importSave:'保存到数据库',
+    importPreview:'预览', importCancel:'取消',
+    // 周
+    days:['','周一','周二','周三','周四','周五','周六','周日'],
+  },
+  it: {
+    tabs:['Magazzino','Ordini','Storico','Report','Profilo'],
+    submit:'Invia ordine', pending:'In attesa', done:'Completato', all:'Tutto',
+    lowStock:'Scorta bassa', ok:'OK', warn:'Attenzione',
+    loginTitle:'Sistema Gestione Cucina', loginSub:'Cucina Management · Carpi',
+    loginSelect:'Seleziona dipendente', loginPass:'Password',
+    loginBtn:'Accedi', loginErr:'Password errata, riprova',
+    invTitle:'Magazzino', allFood:'Tutti gli alimenti', lowSafeStock:'Sotto scorta minima',
+    totalVal:'Valore totale magazzino', searchFood:'Cerca alimento...',
+    colFood:'Alimento', colStock:'Scorta attuale', colSafe:'Scorta min.',
+    colUnit:'Fornitore', colStatus:'Stato',
+    importBtn:'Importa Excel/CSV',
+    orderHint:'Calcolo automatico basato su scorte attuali e minime',
+    orderSelected:'Selezionati', orderKinds:'articoli',
+    orderTotal:'Quantità totale: ', orderSubmit:'Invia ordine',
+    suggestQty:'Qtà consigliata', consume:'Consumo',
+    consumeHint:'Verrà scalato dalla scorta', todayTag:'Oggi',
+    ordersTitle:'Ordini', allOrders:'Tutti',
+    filterPending:'In attesa', filterDone:'Completato',
+    exportBtn:'Esporta lista acquisti',
+    reportTitle:'Report', overview:'Panoramica',
+    invAnalysis:'Analisi magazzino', consumeAnalysis:'Analisi consumi',
+    profileTitle:'Profilo', role:'Ruolo',
+    admin:'Amministratore', staff:'Dipendente',
+    langLabel:'Lingua', logout:'Esci',
+    editItem:'Modifica alimento', editCode:'Codice', editCat:'Categoria',
+    editItalian:'Nome italiano', editName:'Nome cinese',
+    editSpec:'Formato', editPrice:'Prezzo (€)', editSupplier:'Fornitore',
+    editStock:'Scorta attuale', editSafety:'Scorta minima (default)',
+    editSafetyDay:'Scorta minima (per giorno)',
+    editChef:'Responsabile', editSave:'💾 Salva', editCancel:'Annulla',
+    suggestRestock:'Rifornimento consigliato',
+    adminOnly:'(Solo amministratore può salvare)',
+    newItem:'Nuovo alimento', addItem:'Aggiungi',
+    importTitle:'Importa dati', importSave:'Salva nel database',
+    importPreview:'Anteprima', importCancel:'Annulla',
+    days:['','Lun','Mar','Mer','Gio','Ven','Sab','Dom'],
+  },
+  bn: {
+    tabs:['ইনভেন্টরি','অর্ডার','অর্ডার তালিকা','রিপোর্ট','আমার'],
+    submit:'জমা দিন', pending:'অপেক্ষমান', done:'সম্পন্ন', all:'সব',
+    lowStock:'কম স্টক', ok:'স্বাভাবিক', warn:'সতর্কতা',
+    loginTitle:'রান্নাঘর ব্যবস্থাপনা', loginSub:'Cucina Management · Carpi',
+    loginSelect:'কর্মী নির্বাচন করুন', loginPass:'পাসওয়ার্ড',
+    loginBtn:'প্রবেশ করুন', loginErr:'পাসওয়ার্ড ভুল, আবার চেষ্টা করুন',
+    invTitle:'ইনভেন্টরি', allFood:'সব খাবার', lowSafeStock:'নিরাপদ মজুদের নিচে',
+    totalVal:'মোট মজুদ মূল্য', searchFood:'খাবার খুঁজুন...',
+    colFood:'খাবার', colStock:'বর্তমান মজুদ', colSafe:'নিরাপদ মজুদ',
+    colUnit:'সরবরাহকারী', colStatus:'অবস্থা',
+    importBtn:'Excel/CSV আমদানি',
+    orderHint:'বর্তমান ও নিরাপদ মজুদের উপর ভিত্তি করে স্বয়ংক্রিয় হিসাব',
+    orderSelected:'নির্বাচিত', orderKinds:'ধরনের খাবার',
+    orderTotal:'মোট পরিমাণ: ', orderSubmit:'অর্ডার জমা দিন',
+    suggestQty:'প্রস্তাবিত পরিমাণ', consume:'ব্যবহার',
+    consumeHint:'জমা দেওয়ার পর মজুদ থেকে বাদ যাবে', todayTag:'আজ',
+    ordersTitle:'অর্ডার', allOrders:'সব',
+    filterPending:'অপেক্ষমান', filterDone:'সম্পন্ন',
+    exportBtn:'ক্রয় তালিকা রপ্তানি',
+    reportTitle:'রিপোর্ট', overview:'সংক্ষিপ্ত',
+    invAnalysis:'মজুদ বিশ্লেষণ', consumeAnalysis:'ব্যবহার বিশ্লেষণ',
+    profileTitle:'আমার', role:'ভূমিকা',
+    admin:'প্রশাসক', staff:'কর্মী',
+    langLabel:'ভাষা', logout:'প্রস্থান',
+    editItem:'খাবার সম্পাদনা', editCode:'কোড', editCat:'বিভাগ',
+    editItalian:'ইতালীয় নাম', editName:'চীনা নাম',
+    editSpec:'বিশেষত্ব', editPrice:'মূল্য (€)', editSupplier:'সরবরাহকারী',
+    editStock:'বর্তমান মজুদ', editSafety:'নিরাপদ মজুদ (ডিফল্ট)',
+    editSafetyDay:'নিরাপদ মজুদ (দিন অনুযায়ী)',
+    editChef:'দায়িত্বশীল', editSave:'💾 সংরক্ষণ', editCancel:'বাতিল',
+    suggestRestock:'পুনরায় মজুদের পরামর্শ',
+    adminOnly:'(শুধুমাত্র প্রশাসক সংরক্ষণ করতে পারবেন)',
+    newItem:'নতুন খাবার', addItem:'যোগ করুন',
+    importTitle:'ডেটা আমদানি', importSave:'ডেটাবেসে সংরক্ষণ',
+    importPreview:'পূর্বদর্শন', importCancel:'বাতিল',
+    days:['','সোম','মঙ্গল','বুধ','বৃহ','শুক্র','শনি','রবি'],
+  }
 };
 const t = k => (i18n[currentLang]||i18n.zh)[k] || k;
 
@@ -963,8 +1085,14 @@ function switchTab(tab) {
     document.getElementById('tab-'+t).style.display = t===tab ? 'block':'none';
     document.getElementById('nav-'+t).classList.toggle('active', t===tab);
   });
-  const titles = {inventory:'库存管理',order:'订货系统',orders:'订单系统',report:'报表分析',profile:'我的'};
-  document.getElementById('nav-title').textContent = titles[tab]||'';
+  // 多语言标题
+  const tabIdx = ['inventory','order','orders','report','profile'].indexOf(tab);
+  document.getElementById('nav-title').textContent = tabIdx>=0 ? t('tabs')[tabIdx] : '';
+  // 更新底部tab文字
+  ['inventory','order','orders','report','profile'].forEach((tt,i)=>{
+    const el = document.getElementById('nav-'+tt);
+    if (el) { const sp = el.querySelector('span'); if (sp) sp.textContent = t('tabs')[i]; }
+  });
   if (tab==='inventory') renderInventory();
   if (tab==='order')     renderOrderList();
   if (tab==='orders')    renderOrders();
@@ -1124,7 +1252,7 @@ function showItemDetail(id) {
     </div>
     <div class="form-group"><label class="form-label">订货人</label><input class="form-control" id="ei-chef" value="${item.chef}"></div>
     ${fc>0?`<div style="background:var(--warn-light);border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:var(--warn)">💡 建议补货：<strong>${fc}</strong> 单位</div>`:''}
-    ${!isAdmin?'<p style="font-size:12px;color:var(--text3);margin-top:8px">（仅管理员可保存修改）</p>':''}
+    ${!isAdmin?`<p style="font-size:12px;color:var(--text3);margin-top:8px">${t('adminOnly')}</p>`:''}
   `;
   editingItemId = id;
   openModal('modal-edit-item');
@@ -1217,30 +1345,30 @@ function renderOrderList() {
         <div class="name">${item.name||item.italian}</div>
         <div class="sub">${item.italian} · ${item.spec||'-'}</div>
         <div class="stock-line">
-          库存: <span class="${isLow?'low':''}">${item.stock}</span>
-          · 安全库存(今): ${getSafety(item)}
-          ${isTodayCycle(item)?'<span style="background:#e6f4ea;color:#2e7d32;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:4px;">📅今日</span>':''}
+          ${t('colStock')}: <span class="${isLow?'low':''}">${item.stock}</span>
+          · ${t('colSafe')}: ${getSafety(item)}
+          ${isTodayCycle(item)?`<span style="background:#e6f4ea;color:#2e7d32;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:4px;">📅${t('todayTag')}</span>`:''}
           ${item.supplier?`· <span style="color:var(--text3)">${item.supplier}</span>`:''}
         </div>
         <div class="stock-line" style="margin-top:4px;">
-          消耗量: <input type="number" min="0" step="0.1" value="${item.consume||0}"
+          ${t('consume')}: <input type="number" min="0" step="0.1" value="${item.consume||0}"
             style="width:60px;border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-size:12px;"
             onchange="setConsume(${item.id},this.value)"
             onclick="event.stopPropagation()">
-          <span style="font-size:11px;color:var(--text3);margin-left:4px;">提交后扣减库存</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:4px;">${t('consumeHint')}</span>
         </div>
       </div>
       <div class="order-qty-wrap">
-        <div class="order-qty-lbl">建议订货量</div>
+        <div class="order-qty-lbl">${t('suggestQty')}</div>
         <div class="order-qty-row">
           <input class="qty-input" type="number" min="0" step="0.5"
                  value="${item.need||0}"
                  placeholder="${fc||0}"
                  onchange="updateOrderQty(${item.id},this.value)"
                  id="oqty-${item.id}">
-          <span class="qty-unit">${item.supplier||'kg'}</span>
+          <span class="qty-unit">${item.spec||item.supplier||''}</span>
         </div>
-        ${fc>0?`<span class="forecast-tag">建议 ${fc}</span>`:''}
+        ${fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1744,6 +1872,27 @@ function changeLang(v) {
   currentLang = v;
   const labels = {zh:'中文',it:'Italiano',bn:'বাংলা'};
   document.getElementById('current-lang-lbl').textContent = labels[v]||v;
+  // 更新登录页文字
+  const se = (id,val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+  se('login-btn', t('loginBtn'));
+  se('login-err', t('loginErr'));
+  // 更新库存表头
+  se('th-food', t('colFood'));
+  se('th-stock', t('colStock'));
+  se('th-safe', t('colSafe'));
+  se('th-unit', t('colUnit'));
+  se('th-status', t('colStatus'));
+  // 更新订货底栏
+  se('order-hint-txt', t('orderHint'));
+  se('sel-total-lbl', t('orderTotal'));
+  se('submit-btn-txt', t('submit'));
+  // sel-count-lbl需要保留strong
+  const scl = document.getElementById('sel-count-lbl');
+  if (scl) {
+    const cnt = document.getElementById('sel-count');
+    const n = cnt ? cnt.textContent : '0';
+    scl.innerHTML = t('orderSelected')+' <strong id="sel-count">'+n+'</strong> '+t('orderKinds');
+  }
   // 重新渲染当前页面
   switchTab(currentTab);
 }
@@ -1902,22 +2051,33 @@ function handleImport(input) {
     pendingImport=[];
     for(let i=1;i<rows.length;i++){
       const r=rows[i]; if(!r||!r.length)continue;
+      // A=货物号 B=意文 C=中文 D=规格 E=价格 F=进货单位 G=使用单位 H=当前库存 I=安全库存 J=材料类型 K=订货员 L=订货周期
       const priceVal=r[4];
       const price=typeof priceVal==='number'?priceVal.toFixed(2):parseFloat((priceVal||'').toString().replace(',','.'))||0;
-      const deptRaw=r[7]||'';
+      const deptRaw=r[6]||'';
       let depts=['厨房'];
       if(deptRaw) depts=deptRaw.toString().split('/').map(d=>d.trim());
+      // 解析订货周期：1,2,3 → ['星期一','星期二','星期三']
+      const dayNames=['','星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
+      const cycleRaw=r[11]!==undefined?String(r[11]).trim():'';
+      let cycle=['星期一'];
+      if(cycleRaw){
+        cycle=cycleRaw.split(/[,，\s]+/).map(n=>parseInt(n.trim())).filter(n=>n>=1&&n<=7).map(n=>dayNames[n]);
+        if(!cycle.length) cycle=['星期一'];
+      }
       pendingImport.push({
         restaurant_id:REST_ID,
         item_code:r[0]!==undefined?String(r[0]).trim():'',
         italian:r[1]||'', name:r[2]||'',
         spec:r[3]?String(r[3]).trim():'',
-        price:String(price), supplier:r[5]?String(r[5]).trim():'',
-        model_no:r[6]?String(r[6]).trim():'',
-        departments:depts, cycle:['星期一'],
-        stock:'0', safety:'1',
-        category:r[8]?String(r[8]).trim():'其他',
-        chef:r[9]?String(r[9]).trim():''
+        price:String(price),
+        supplier:r[5]?String(r[5]).trim():'',
+        departments:depts,
+        stock:r[7]!==undefined?String(r[7]):'0',
+        safety:r[8]!==undefined?String(r[8]):'1',
+        category:r[9]?String(r[9]).trim():'其他',
+        chef:r[10]?String(r[10]).trim():'',
+        cycle:cycle
       });
     }
     document.getElementById('import-preview-msg').textContent=`已解析 ${pendingImport.length} 条物料，点击保存`;
@@ -1977,6 +2137,22 @@ function showSideMenu() { toast('语言切换：顶部下拉菜单'); }
 // START
 // ════════════════════════════════════════
 init();
+
+// ── 防侧滑返回 ──
+(function() {
+  // 压入一个历史记录，让浏览器后退时不会退出应用
+  function pushDummy() {
+    try { history.pushState({app:true}, '', location.href); } catch(e) {}
+  }
+  pushDummy();
+  window.addEventListener('popstate', function(e) {
+    // 拦截后退
+    if (document.getElementById('screen-app').classList.contains('active')) {
+      // 重新压入，防止再次后退
+      pushDummy();
+    }
+  });
+})();
 </script>
 </body>
 </html>
