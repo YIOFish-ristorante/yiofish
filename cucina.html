@@ -189,20 +189,24 @@ body {
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 14px;
+  padding: 14px 130px 14px 14px;
   margin-bottom: 10px;
-  display: flex; align-items: center; gap: 12px;
+  position: relative;
   transition: all 0.2s;
 }
 .order-item-card.selected { border: 1.5px solid var(--primary); }
 .order-item-card.selected-low { border: 1.5px solid var(--primary); background: var(--primary-light); }
 .order-check { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--primary); cursor: pointer; }
-.order-item-info { flex: 1; min-width: 0; }
+.order-item-info { min-width: 0; }
 .order-item-info .name  { font-weight: 600; font-size: 14px; }
 .order-item-info .sub   { font-size: 11px; color: var(--text3); margin-top: 2px; }
 .order-item-info .stock-line { font-size: 12px; color: var(--text2); margin-top: 4px; }
 .order-item-info .stock-line .low { color: var(--danger); font-weight: 600; }
-.order-qty-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.order-qty-wrap {
+  position: absolute; top: 10px; right: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 115px;
+}
 .order-qty-lbl { font-size: 11px; color: var(--text3); }
 .order-qty-row { display: flex; align-items: center; gap: 6px; }
 .qty-input {
@@ -2245,6 +2249,7 @@ function showImportModal() { openModal('modal-import'); }
 
 function handleImport(input) {
   const file=input.files[0]; if(!file)return;
+  _importFileName = file.name;
   const reader=new FileReader();
   reader.onload=e=>{
     const data=new Uint8Array(e.target.result);
@@ -2277,8 +2282,8 @@ function handleImport(input) {
         price:String(price),
         supplier:r[5]?String(r[5]).trim():'',
         departments:depts,
-        stock:r[7]!==undefined&&r[7]!==''?String(r[7]):'0',
-        safety:r[8]!==undefined&&r[8]!==''?String(r[8]):'1',
+        stock:String(parseFloat(r[7])||0),
+        safety:String(parseFloat(r[8])||1),
         category:r[9]?String(r[9]).trim():'其他',
         chef:r[10]?String(r[10]).trim():'',
         cycle:cycle
@@ -2293,6 +2298,7 @@ function handleImport(input) {
 
 async function saveImport() {
   if(!pendingImport.length){toast('没有待保存数据','err');return;}
+  if(!_importFileName){toast('文件名丢失，请重新选择文件','err');return;}
   const total = pendingImport.length;
   const btn = document.getElementById('save-import-btn');
   const progressEl = document.getElementById('import-progress');
