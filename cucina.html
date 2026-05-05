@@ -601,10 +601,7 @@ body {
   <!-- ── TAB: 订货系统 ── -->
   <div id="tab-order" class="page-content tab-page" style="display:none">
 
-    <div class="order-hint">
-      <span>💡</span>
-      <span id="order-hint-txt">系统根据当前库存和安全库存自动计算</span>
-    </div>
+
 
     <div id="order-list"></div>
 
@@ -1758,8 +1755,11 @@ async function submitOrder() {
   toast(msg2);
   switchTab('orders');
   updatePendingBadge();
-  const backBtn = document.getElementById('back-to-order-btn');
-  if (backBtn) backBtn.style.display = isAdmin ? 'none' : 'block';
+  // 延迟一帧确保tab切换完成后再显示返回按钮
+  setTimeout(()=>{
+    const backBtn = document.getElementById('back-to-order-btn');
+    if (backBtn) backBtn.style.display = isAdmin ? 'none' : 'block';
+  }, 50);
   btn.disabled=false; btn.innerHTML=t('submit');
 }
 
@@ -1963,7 +1963,7 @@ function showSubmitConfirm(orderItems, today) {
     const waNum = supInfo?.wa_number || WA_NUM;
     const hasWa = !!(supInfo?.wa_number);
 
-    let msg = `🍳 *后厨申购单*\n🧑‍🍳 ${currentUser}\n📅 ${today}\n📦 ${supName.toUpperCase()}\n\n`;
+    let msg = `🍳 *YioFish 后厨申购单*\n🧑‍🍳 ${currentUser}\n📅 ${today}\n📦 ${supName.toUpperCase()}\n\n`;
     supItems.forEach(i=>{
       msg+=`• ${i.item_code?i.item_code+' / ':''}${i.name} = ${i.need}${i.spec?' '+i.spec:''}\n`;
     });
@@ -2030,12 +2030,28 @@ async function addSupplier() {
   const wa = document.getElementById('new-sup-wa').value.trim();
   if (!name) { toast('请输入供应商名称','err'); return; }
   try {
-    const res = await sb('cucina_suppliers',{method:'POST',
-      prefer:'resolution=merge-duplicates,return=representation',
-      body:JSON.stringify({restaurant_id:REST_ID,name,wa_number:wa})});
-    if (!res.ok) { const err=await res.text(); throw new Error(err); }
-    const saved = await res.json();
-    suppliers.push(saved[0]);
+    // 先查是否已存在
+    const chk = await sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name));
+    const chkData = await chk.json();
+    let saved;
+    if (chkData && chkData.length > 0) {
+      // 已存在则更新
+      const upd = await sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name),
+        {method:'PATCH', prefer:'return=representation', body:JSON.stringify({wa_number:wa})});
+      if (!upd.ok) { const err=await upd.text(); throw new Error(err); }
+      saved = await upd.json();
+      // 更新本地
+      const existing = suppliers.find(s=>s.name===name);
+      if (existing) existing.wa_number = wa;
+      else suppliers.push(saved[0]);
+    } else {
+      // 新增
+      const res = await sb('cucina_suppliers',{method:'POST', prefer:'return=representation',
+        body:JSON.stringify({restaurant_id:REST_ID,name,wa_number:wa})});
+      if (!res.ok) { const err=await res.text(); throw new Error(err); }
+      saved = await res.json();
+      suppliers.push(saved[0]);
+    }
     document.getElementById('new-sup-name').value='';
     document.getElementById('new-sup-wa').value='';
     renderSupplierList();
