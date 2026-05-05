@@ -1456,11 +1456,25 @@ function renderOrderList() {
     sorted.sort((a,b)=>{
       const aToday=isTodayCycle(a),bToday=isTodayCycle(b);
       const aLow=stockStatus(a)==='low',bLow=stockStatus(b)==='low';
-      const aMe=a.chef===currentUser,bMe=b.chef===currentUser;
+      const _cu=(currentUser||'').toLowerCase().trim();
+      const aMe=(a.chef||'').toLowerCase().trim()===_cu,bMe=(b.chef||'').toLowerCase().trim()===_cu;
+      // 1. 我的货+今日+库存不足 → 最高优先
+      const aBest=aMe&&aToday&&aLow, bBest=bMe&&bToday&&bLow;
+      if(aBest&&!bBest)return -1; if(!aBest&&bBest)return 1;
+      // 2. 我的货+今日
+      const aMeToday=aMe&&aToday, bMeToday=bMe&&bToday;
+      if(aMeToday&&!bMeToday)return -1; if(!aMeToday&&bMeToday)return 1;
+      // 3. 我的货+库存不足
+      const aMeLow=aMe&&aLow, bMeLow=bMe&&bLow;
+      if(aMeLow&&!bMeLow)return -1; if(!aMeLow&&bMeLow)return 1;
+      // 4. 我的货
+      if(aMe&&!bMe)return -1; if(!aMe&&bMe)return 1;
+      // 5. 其他今日+库存不足
       const aPrio=aToday&&aLow,bPrio=bToday&&bLow;
       if(aPrio&&!bPrio)return -1; if(!aPrio&&bPrio)return 1;
+      // 6. 其他今日
       if(aToday&&!bToday)return -1; if(!aToday&&bToday)return 1;
-      if(aMe&&!bMe)return -1; if(!aMe&&bMe)return 1;
+      // 7. 库存不足
       if(aLow&&!bLow)return -1; if(!aLow&&bLow)return 1;
       return 0;
     });
@@ -1627,7 +1641,7 @@ function setOrderFilter(el, f) {
 
 function renderOrders() {
   let data = orders;
-  if (!isAdmin) data = data.filter(o=>o.chef===currentUser);
+  if (!isAdmin) data = data.filter(o=>(o.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim());
   if (orderFilter!=='all') data = data.filter(o=>o.status===orderFilter);
 
   const container = document.getElementById('orders-list');
