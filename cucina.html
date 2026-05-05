@@ -1797,7 +1797,17 @@ let _selectedOrderIds = new Set();
 function renderOrders() {
   let data = orders;
   if (!isAdmin) data = data.filter(o=>(o.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim());
-  if (orderFilter!=='all') data = data.filter(o=>o.status===orderFilter);
+  if (orderFilter!=='all') {
+    if (orderFilter==='待处理') {
+      data = data.filter(o=>o.status==='待处理'||o.status==='待處理');
+    } else if (orderFilter==='已確認') {
+      data = data.filter(o=>o.status==='已確認'||o.status==='已确认');
+    } else if (orderFilter==='消耗记录') {
+      data = data.filter(o=>o.status==='消耗记录'||o.status==='消耗記錄'||o.type==='consume');
+    } else {
+      data = data.filter(o=>o.status===orderFilter);
+    }
+  }
 
   // 日期筛选
   const dateF = document.getElementById('order-date-filter');
@@ -1865,7 +1875,14 @@ function renderOrders() {
         </div>
         <div class="order-footer-row">
           <span style="font-size:12px;color:var(--text2)">食材 <strong>${itemCount}</strong> 种 · 总量 <strong>${totalQty.toFixed(1)}</strong></span>
-          <span class="order-detail-link">查看详情 ›</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${isAdmin?(o.status==='已確認'||o.status==='已确认'
+              ? `<span style="font-size:11px;padding:3px 10px;border-radius:6px;background:#25D366;color:#fff;">✓ 已确认</span>`
+              : `<button onclick="event.stopPropagation();confirmOrder('${o.id}')"
+                  style="font-size:11px;padding:3px 10px;border:none;border-radius:6px;background:#FF8C00;color:#fff;cursor:pointer;">✓ 确认</button>`)
+              :''}
+            <span class="order-detail-link">查看详情 ›</span>
+          </div>
         </div>
       </div>
     </div>`;
@@ -2098,7 +2115,7 @@ async function deleteSupplier(id) {
 }
 
 function updatePendingBadge() {
-  const cnt = orders.filter(o=>o.status==='待處理').length;
+  const cnt = orders.filter(o=>o.status==='待處理'||o.status==='待处理').length;
   document.getElementById('pending-badge-text').textContent =
     cnt>0 ? `${cnt} 条待处理订单` : '查看待处理订单';
 }
