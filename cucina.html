@@ -628,6 +628,13 @@ body {
   <!-- ── TAB: 订单系统 ── -->
   <div id="tab-orders" class="page-content tab-page" style="display:none">
 
+    <!-- 返回订货按钮（提交后显示） -->
+    <div id="back-to-order-btn" style="display:none;padding:0 0 10px;">
+      <button onclick="switchTab('order')" class="btn btn-outline" style="width:100%;">
+        ← 返回订货系统
+      </button>
+    </div>
+
     <div class="order-filter-tabs">
       <div class="order-filter-tab active" data-f="all"    onclick="setOrderFilter(this,'all')">全部</div>
       <div class="order-filter-tab"        data-f="待处理" onclick="setOrderFilter(this,'待处理')">待处理</div>
@@ -792,6 +799,16 @@ body {
   </div>
 
 </div><!-- end screen-app -->
+
+<!-- 提交订单确认Modal -->
+<div class="modal-overlay" id="modal-submit-confirm">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📋 确认并发送订单</div>
+    <div id="submit-confirm-content"></div>
+    <button class="btn btn-ghost" style="margin-top:12px;width:100%" onclick="closeModal('modal-submit-confirm')">取消</button>
+  </div>
+</div>
 
 <!-- 供应商WhatsApp管理Modal -->
 <div class="modal-overlay" id="modal-suppliers">
@@ -1730,25 +1747,8 @@ async function submitOrder() {
       const r = await sb('cucina_orders',{method:'POST',prefer:'return=representation',body:JSON.stringify(newOrder)});
       const saved = await r.json();
       orders.unshift({id:saved[0]?.id||Date.now(), ...newOrder});
-      // 按供应商分组发WhatsApp
-      const supGroups = {};
-      orderItems.forEach(i=>{
-        const supKey = (i.supplier||'').toLowerCase().trim() || '__default__';
-        if (!supGroups[supKey]) supGroups[supKey] = [];
-        supGroups[supKey].push(i);
-      });
-      for (const [supKey, supItems] of Object.entries(supGroups)) {
-        // 找对应供应商的WhatsApp号码
-        const supInfo = suppliers.find(s=>(s.name||'').toLowerCase().trim()===supKey);
-        const waNum = supInfo?.wa_number || WA_NUM;
-        let msg = `🍳 *后厨申购单*\n🧑‍🍳 ${currentUser}\n📅 ${today}\n`;
-        if (supKey!=='__default__') msg += `📦 ${supKey.toUpperCase()}\n`;
-        msg += '\n';
-        supItems.forEach(i=>{
-          msg+=`• ${i.item_code?i.item_code+' / ':''}${i.name} = ${i.need}${i.spec?' '+i.spec:''}\n`;
-        });
-        window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`,'_blank');
-      }
+      // 弹出确认界面，按供应商分组让用户逐个发送
+      showSubmitConfirm(orderItems, today);
     } catch(e) { toast('订货提交失败：'+e.message,'err'); }
   }
 
@@ -1946,6 +1946,52 @@ function exportOrders() {
   a.download=`采购单_${new Date().toISOString().slice(0,10)}.txt`; a.click();
 }
 
+function showSubmitConfirm(orderItems, today) {
+  // 按供应商分组
+  const supGroups = {};
+  orderItems.forEach(i=>{
+    const supKey = (i.supplier||'').trim() || '其他';
+    if (!supGroups[supKey]) supGroups[supKey] = [];
+    supGroups[supKey].push(i);
+  });
+
+  let html = `<p style="font-size:12px;color:var(--text3);margin-bottom:12px;">
+    点击各供应商的发送按钮，逐个发送WhatsApp</p>`;
+
+  Object.entries(supGroups).forEach(([supName, supItems])=>{
+    const supInfo = suppliers.find(s=>(s.name||'').toLowerCase()===supName.toLowerCase());
+    const waNum = supInfo?.wa_number || WA_NUM;
+    const hasWa = !!(supInfo?.wa_number);
+
+    let msg = `🍳 *后厨申购单*\n🧑‍🍳 ${currentUser}\n📅 ${today}\n📦 ${supName.toUpperCase()}\n\n`;
+    supItems.forEach(i=>{
+      msg+=`• ${i.item_code?i.item_code+' / ':''}${i.name} = ${i.need}${i.spec?' '+i.spec:''}\n`;
+    });
+    const encoded = encodeURIComponent(msg);
+
+    html += `<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+          <span style="font-weight:600;font-size:14px;">📦 ${supName.toUpperCase()}</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:6px;">${supItems.length}种食材</span>
+        </div>
+        <a href="https://wa.me/${waNum}?text=${encoded}" target="_blank"
+          style="background:${hasWa?'#25D366':'var(--text3)'};color:#fff;border:none;border-radius:8px;
+          padding:6px 14px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-block;">
+          ${hasWa?'📲 发送':'📲 发送（默认号）'}
+        </a>
+      </div>
+      <div style="font-size:12px;color:var(--text2);">
+        ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name} = ${i.need}${i.spec?' '+i.spec:''}`).join('<br>')}
+      </div>
+      ${!hasWa?`<div style="font-size:11px;color:var(--warn);margin-top:4px;">⚠️ 未设置此供应商WhatsApp</div>`:''}
+    </div>`;
+  });
+
+  document.getElementById('submit-confirm-content').innerHTML = html;
+  openModal('modal-submit-confirm');
+}
+
 function showSupplierModal() {
   renderSupplierList();
   // 从items里提取所有不重复供应商填入下拉
@@ -1984,15 +2030,17 @@ async function addSupplier() {
   const wa = document.getElementById('new-sup-wa').value.trim();
   if (!name) { toast('请输入供应商名称','err'); return; }
   try {
-    const res = await sb('cucina_suppliers',{method:'POST',prefer:'return=representation',
+    const res = await sb('cucina_suppliers',{method:'POST',
+      prefer:'resolution=merge-duplicates,return=representation',
       body:JSON.stringify({restaurant_id:REST_ID,name,wa_number:wa})});
+    if (!res.ok) { const err=await res.text(); throw new Error(err); }
     const saved = await res.json();
     suppliers.push(saved[0]);
     document.getElementById('new-sup-name').value='';
     document.getElementById('new-sup-wa').value='';
     renderSupplierList();
     toast('✅ 已添加');
-  } catch(e){ toast('添加失败','err'); }
+  } catch(e){ toast('添加失败: '+e.message,'err'); console.error('addSupplier error:',e); }
 }
 
 async function updateSupplierWa(id, wa) {
