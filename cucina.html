@@ -1591,7 +1591,7 @@ function renderOrderList() {
             <span style="font-size:13px;color:var(--text3);min-width:48px;">${t('consume')}:</span>
             <button onclick="event.stopPropagation();stepConsume(${item.id},-1)"
               style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-            <input type="number" min="0" step="1" value="${item.consume||0}"
+            <input type="number" step="1" value="${item.consume||0}"
               style="width:48px;border:1px solid #ddd;border-radius:8px;padding:4px 2px;font-size:14px;text-align:center;"
               onchange="setConsume(${item.id},this.value)"
               onclick="event.stopPropagation()"
@@ -1602,13 +1602,7 @@ function renderOrderList() {
         </div>
       </div>
       <div class="order-qty-wrap">
-        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
-          <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${t('suggestQty')}</div>
-          <input type="checkbox" ${(item.need>0||item.consume>0)?'checked':''}
-            onchange="toggleOrderItem(${item.id},this.checked)"
-            onclick="event.stopPropagation()"
-            style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;">
-        </div>
+        <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${t('suggestQty')}</div>
         <div style="display:flex;align-items:center;gap:4px;">
           <button onclick="event.stopPropagation();stepQty(${item.id},-1)"
             style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
@@ -1617,12 +1611,18 @@ function renderOrderList() {
                  placeholder="${fc||0}"
                  onchange="updateOrderQty(${item.id},this.value)"
                  id="oqty-${item.id}"
-                 style="width:48px;text-align:center;">
+                 style="width:48px;text-align:center;color:${item.orderModified?'var(--primary)':'var(--text3)'};background:${item.orderModified?'#f0f7ff':'#f5f5f5'};">
           <button onclick="event.stopPropagation();stepQty(${item.id},+1)"
             style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
         </div>
         <span class="qty-unit" style="font-size:12px;color:var(--text3);">${item.spec||''}</span>
-        ${fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+          ${fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:'<span></span>'}
+          <input type="checkbox" ${(item.orderModified||item.consume>0)?'checked':''}
+            onchange="toggleOrderItem(${item.id},this.checked)"
+            onclick="event.stopPropagation()"
+            style="width:22px;height:22px;accent-color:var(--primary);cursor:pointer;">
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1645,16 +1645,21 @@ function stepQty(id, d) {
   const item = items.find(i=>i.id===id);
   if (!item) return;
   item.need = Math.max(0, (parseInt(item.need)||0) + d);
+  item.orderModified = true;
+  item.checked = item.need > 0;
   const el = document.getElementById('oqty-'+id);
-  if (el) el.value = item.need;
-  if (item.need > 0) { item.checked = true; }
+  if (el) {
+    el.value = item.need;
+    el.style.color = 'var(--primary)';
+    el.style.background = '#f0f7ff';
+  }
   updateOrderFooter();
 }
 
 function stepConsume(id, d) {
   const item = items.find(i=>i.id===id);
   if (!item) return;
-  item.consume = Math.max(0, (parseInt(item.consume)||0) + d);
+  item.consume = (parseInt(item.consume)||0) + d;
   const el = document.getElementById('oconsume-'+id);
   if (el) el.value = item.consume;
 }
@@ -1678,12 +1683,16 @@ function toggleOrderItem(id, checked) {
 
 function updateOrderQty(id, val) {
   const item = items.find(i=>i.id===id);
-  if (item) { item.need = parseFloat(val)||0; if(item.need>0)item.checked=true; }
+  if (item) {
+    item.need = parseFloat(val)||0;
+    item.orderModified = true;
+    item.checked = item.need > 0;
+  }
   updateOrderFooter();
 }
 
 function updateOrderFooter() {
-  const sel = items.filter(i=>i.checked&&i.need>0);
+  const sel = items.filter(i=>i.orderModified&&i.need>0);
   document.getElementById('sel-count').textContent = sel.length;
   document.getElementById('sel-total').textContent =
     sel.reduce((s,i)=>s+i.need,0).toFixed(1) + ' 单位';
@@ -1691,11 +1700,11 @@ function updateOrderFooter() {
 
 async function submitOrder() {
   const sel = items.filter(i=>i.checked&&i.need>0);
-  const toConsume = items.filter(i=>i.consume&&i.consume>0);
+  const toConsume = items.filter(i=>i.consume&&i.consume!==0);
 
   // 必须至少有订货或消耗
   if (!sel.length && !toConsume.length) {
-    toast('请先填写订货量或消耗量','err'); return;
+    toast('请先修改订货量或填写消耗量','err'); return;
   }
 
   const btn = document.getElementById('order-submit-btn');
@@ -1726,13 +1735,15 @@ async function submitOrder() {
           item_name:item.name||item.italian,
           quantity:item.consume, chef:currentUser
         })});
-        const newStock = Math.max(0, item.stock - item.consume);
+        const newStock = Math.max(0, parseFloat(item.stock) - parseFloat(item.consume));
         await sb('cucina_items?id=eq.'+item.id,{method:'PATCH',body:JSON.stringify({stock:newStock})});
         item.stock = newStock;
         item.consume = 0;
       }
     } catch(e) { console.error('consume error:', e); }
   }
+  // 刷新订货列表显示最新库存
+  renderOrderList();
 
   // ── 处理订货记录 ──
   if (sel.length > 0) {
@@ -1755,17 +1766,19 @@ async function submitOrder() {
     } catch(e) { toast('订货提交失败：'+e.message,'err'); }
   }
 
-  items.forEach(i=>{ i.checked=false; i.need=0; i.consume=0; });
+  items.forEach(i=>{ i.checked=false; i.need=calcForecast(i); i.orderModified=false; i.consume=0; });
   const msg2 = sel.length>0&&toConsume.length>0 ? '✅ 订单已提交，消耗已记录' :
                sel.length>0 ? '✅ 订单已提交' : '✅ 消耗已记录';
   toast(msg2);
-  switchTab('orders');
-  updatePendingBadge();
-  // 延迟一帧确保tab切换完成后再显示返回按钮
-  setTimeout(()=>{
-    const backBtn = document.getElementById('back-to-order-btn');
-    if (backBtn) backBtn.style.display = isAdmin ? 'none' : 'block';
-  }, 50);
+  // 只有订货时才跳转到订单系统
+  if (sel.length > 0) {
+    switchTab('orders');
+    updatePendingBadge();
+    setTimeout(()=>{
+      const backBtn = document.getElementById('back-to-order-btn');
+      if (backBtn) backBtn.style.display = isAdmin ? 'none' : 'block';
+    }, 50);
+  }
   btn.disabled=false; btn.innerHTML=t('submit');
 }
 
