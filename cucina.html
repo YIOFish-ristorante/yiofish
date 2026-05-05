@@ -366,6 +366,18 @@ body {
 .form-control:focus { border-color: var(--primary); background: #fff; }
 .form-error { font-size: 12px; color: var(--danger); margin-top: 6px; display: none; }
 
+/* ── PASSWORD EYE TOGGLE ── */
+.pass-wrap { position: relative; display: flex; align-items: center; }
+.pass-wrap .form-control { padding-right: 42px; width: 100%; }
+.pass-eye {
+  position: absolute; right: 12px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); padding: 0; display: flex;
+  align-items: center; justify-content: center;
+  transition: color 0.2s;
+}
+.pass-eye:hover { color: var(--text2); }
+
 /* ── BUTTONS ── */
 .btn {
   display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -480,8 +492,13 @@ body {
       </div>
       <div class="form-group">
         <label class="form-label">密码 / Password</label>
-        <input type="password" id="login-pass" class="form-control" placeholder="••••••"
-               onkeydown="if(event.key==='Enter')doLogin()">
+        <div class="pass-wrap">
+          <input type="password" id="login-pass" class="form-control" placeholder="••••••"
+                 onkeydown="if(event.key==='Enter')doLogin()">
+          <button type="button" class="pass-eye" onclick="togglePass('login-pass',this)" tabindex="-1">
+            <svg id="eye-login-pass" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
         <div class="form-error" id="login-err">密码错误，请重试</div>
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="doLogin()">进入系统</button>
@@ -845,8 +862,13 @@ body {
     <div class="modal-title">🔑 管理员登录</div>
     <div class="form-group">
       <label class="form-label">管理员密码</label>
-      <input type="password" id="admin-pass-input" class="form-control" placeholder="请输入管理密码"
-             onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <div class="pass-wrap">
+        <input type="password" id="admin-pass-input" class="form-control" placeholder="请输入管理密码"
+               onkeydown="if(event.key==='Enter')doAdminLogin()">
+        <button type="button" class="pass-eye" onclick="togglePass('admin-pass-input',this)" tabindex="-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
     </div>
     <button class="btn btn-primary" onclick="doAdminLogin()">登录管理端</button>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('modal-admin-login')">取消</button>
@@ -870,15 +892,30 @@ body {
     <div class="modal-title">修改密码</div>
     <div class="form-group">
       <label class="form-label">当前密码</label>
-      <input type="password" id="pwd-old" class="form-control" placeholder="当前密码">
+      <div class="pass-wrap">
+        <input type="password" id="pwd-old" class="form-control" placeholder="当前密码">
+        <button type="button" class="pass-eye" onclick="togglePass('pwd-old',this)" tabindex="-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">新密码</label>
-      <input type="password" id="pwd-new" class="form-control" placeholder="新密码">
+      <div class="pass-wrap">
+        <input type="password" id="pwd-new" class="form-control" placeholder="新密码">
+        <button type="button" class="pass-eye" onclick="togglePass('pwd-new',this)" tabindex="-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">确认新密码</label>
-      <input type="password" id="pwd-confirm" class="form-control" placeholder="再次输入新密码">
+      <div class="pass-wrap">
+        <input type="password" id="pwd-confirm" class="form-control" placeholder="再次输入新密码">
+        <button type="button" class="pass-eye" onclick="togglePass('pwd-confirm',this)" tabindex="-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
     </div>
     <button class="btn btn-primary" onclick="doChangePwd()">确认修改</button>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal('modal-change-pwd')">取消</button>
@@ -1107,12 +1144,11 @@ const t = k => (i18n[currentLang]||i18n.zh)[k] || k;
 // ════════════════════════════════════════
 async function init() {
   try {
-    const [iRes, oRes, cRes, sRes, settRes] = await Promise.all([
+    const [iRes, oRes, cRes, sRes] = await Promise.all([
       sb('cucina_items?restaurant_id=eq.'+REST_ID+'&select=*&order=id'),
       sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc'),
-      sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&select=name,password'),  // 只取name和password哈希
-      sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&select=*&order=name'),
-      sb('cucina_settings?restaurant_id=eq.'+REST_ID+'&key=eq.admin_pass_hash&select=value')
+      sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&select=name,password'),
+      sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&select=*&order=name')
     ]);
     items  = (await iRes.json()).map(r=>({
       id:r.id, item_code:r.item_code||'', name:r.name||'', italian:r.italian||'',
@@ -1128,15 +1164,19 @@ async function init() {
       id:r.id, chef:r.chef, date:r.date, items:r.items||[],
       status:r.status, created_at:r.created_at
     }));
-    // 只存哈希值，不存明文密码
     chefs = {};
     (await cRes.json()).forEach(c=>{ chefs[c.name] = c.password; });
-    // 读取管理员密码哈希
-    const settData = await settRes.json();
-    _adminPassHash = settData.length > 0 ? settData[0].value : null;
     populateLoginSelect();
   } catch(e) {
     toast('数据库连接失败','err');
+  }
+  // 单独读取管理员密码哈希，出错不影响主流程
+  try {
+    const settRes = await sb('cucina_settings?restaurant_id=eq.'+REST_ID+'&key=eq.admin_pass_hash&select=value');
+    const settData = await settRes.json();
+    _adminPassHash = settData.length > 0 ? settData[0].value : null;
+  } catch(e) {
+    console.error('读取管理员密码失败:', e);
   }
 }
 
@@ -2717,6 +2757,15 @@ async function saveImport() {
 // ════════════════════════════════════════
 function openModal(id)  { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function togglePass(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.innerHTML = show
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+}
 
 // close modal on overlay click
 document.querySelectorAll('.modal-overlay').forEach(el=>{
