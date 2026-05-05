@@ -215,8 +215,16 @@ body {
   font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500;
   background: var(--surface2); color: var(--text); outline: none;
   transition: border-color 0.2s;
+  -moz-appearance: textfield;
 }
 .qty-input:focus { border-color: var(--primary); background: #fff; }
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* 所有number输入框去掉上下箭头 */
+input[type=number] { -moz-appearance: textfield; }
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .qty-unit { font-size: 12px; color: var(--text3); }
 .forecast-tag {
   font-size: 10px; font-weight: 600; color: var(--ok); background: var(--ok-light);
@@ -628,6 +636,7 @@ body {
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" id="order-search" placeholder="🔍 搜索食材..." oninput="filterOrderList(this.value)"
           style="flex:3;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;">
+        <button class="btn btn-ghost" onclick="resetOrder()" style="flex:0 0 auto;white-space:nowrap;padding:10px 8px;min-width:0;width:auto;font-size:13px;">重置</button>
         <button class="btn btn-green" id="order-submit-btn" onclick="submitOrder()" style="flex:1;white-space:nowrap;">
           <span id="submit-btn-txt">提交</span>
         </button>
@@ -1713,15 +1722,41 @@ function stepQty(id, d) {
     el.style.color = 'var(--primary)';
     el.style.background = '#f0f7ff';
   }
+  // 问题2：同步激活右边的checkbox
+  const cb = document.querySelector(`#ocard-${id} input[type="checkbox"]`);
+  if (cb) cb.checked = item.checked;
+  const card = document.getElementById('ocard-'+id);
+  if (card) {
+    const fc = calcForecast(item);
+    card.className = `order-item-card ${item.checked?(fc>0?'selected-low':'selected'):''}`;
+  }
   updateOrderFooter();
+}
+
+// 问题1：重置所有订货量和消耗量
+function resetOrder() {
+  if (!confirm('确定重置所有订货量和消耗量？')) return;
+  items.forEach(i=>{ i.checked=false; i.need=0; i.orderModified=false; i.consume=0; });
+  renderOrderList();
+  toast('已重置');
 }
 
 function stepConsume(id, d) {
   const item = items.find(i=>i.id===id);
   if (!item) return;
-  item.consume = (parseInt(item.consume)||0) + d;
+  item.consume = Math.max(0, (parseInt(item.consume)||0) + d);
   const el = document.getElementById('oconsume-'+id);
   if (el) el.value = item.consume;
+  // 问题2：消耗量>0时也激活checkbox和卡片
+  item.checked = item.consume > 0 || item.need > 0;
+  const cb = document.querySelector(`#ocard-${id} input[type="checkbox"]`);
+  if (cb) cb.checked = item.checked;
+  const card = document.getElementById('ocard-'+id);
+  if (card) {
+    const fc = calcForecast(item);
+    card.className = `order-item-card ${item.checked?(fc>0?'selected-low':'selected'):''}`;
+  }
+  updateOrderFooter();
 }
 
 function setConsume(id, val) {
@@ -1989,8 +2024,10 @@ function exportSelectedOrders() {
 function showOrderDetail(id) {
   const order = orders.find(o=>String(o.id)===String(id));
   if (!order) return;
-  const st = order.status==='已確認'
+  const st = order.status==='已確認'||order.status==='已确认'
     ? `<span class="badge badge-done">已完成</span>`
+    : order.status==='消耗记录'||order.type==='consume'
+    ? `<span class="badge" style="background:#e8f5e9;color:#2e7d32;">消耗记录</span>`
     : `<span class="badge badge-pending">待处理</span>`;
   document.getElementById('modal-order-detail-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
@@ -2018,9 +2055,9 @@ function showOrderDetail(id) {
 
 async function confirmOrder(id) {
   try {
-    await sb('cucina_orders?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'已確認'})});
+    await sb('cucina_orders?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'已确认'})});
     const o = orders.find(o=>String(o.id)===String(id));
-    if(o) o.status='已確認';
+    if(o) o.status='已确认';
     closeModal('modal-order-detail');
     renderOrders();
     updatePendingBadge();
@@ -2124,35 +2161,32 @@ function renderSupplierList() {
 async function addSupplier() {
   const name = document.getElementById('new-sup-name').value.trim();
   const wa = document.getElementById('new-sup-wa').value.trim();
-  if (!name) { toast('请输入供应商名称','err'); return; }
+  if (!name) { toast('请选择供应商名称','err'); return; }
   try {
-    // 先查是否已存在
     const chk = await sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name));
+    if (!chk.ok) { const err=await chk.text(); throw new Error('查询失败: '+err); }
     const chkData = await chk.json();
     let saved;
     if (chkData && chkData.length > 0) {
-      // 已存在则更新
       const upd = await sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name),
         {method:'PATCH', prefer:'return=representation', body:JSON.stringify({wa_number:wa})});
-      if (!upd.ok) { const err=await upd.text(); throw new Error(err); }
+      if (!upd.ok) { const err=await upd.text(); throw new Error('更新失败: '+err); }
       saved = await upd.json();
-      // 更新本地
       const existing = suppliers.find(s=>s.name===name);
       if (existing) existing.wa_number = wa;
       else suppliers.push(saved[0]);
     } else {
-      // 新增
       const res = await sb('cucina_suppliers',{method:'POST', prefer:'return=representation',
         body:JSON.stringify({restaurant_id:REST_ID,name,wa_number:wa})});
-      if (!res.ok) { const err=await res.text(); throw new Error(err); }
+      if (!res.ok) { const err=await res.text(); throw new Error('新增失败: '+err); }
       saved = await res.json();
       suppliers.push(saved[0]);
     }
     document.getElementById('new-sup-name').value='';
     document.getElementById('new-sup-wa').value='';
     renderSupplierList();
-    toast('✅ 已添加');
-  } catch(e){ toast('添加失败: '+e.message,'err'); console.error('addSupplier error:',e); }
+    toast('✅ 已保存：'+name);
+  } catch(e){ toast('保存失败: '+e.message,'err'); console.error('addSupplier error:',e); }
 }
 
 async function updateSupplierWa(id, wa) {
@@ -2634,7 +2668,7 @@ async function saveNewItem() {
 }
 
 function renderPendingPanel() {
-  const pending = orders.filter(o=>o.status==='待處理');
+  const pending = orders.filter(o=>o.status==='待处理'||o.status==='待處理');
   if(!pending.length){
     document.getElementById('admin-panel-content').innerHTML=`<div class="empty-state"><div class="icon">✅</div><p>暂无待处理订单</p></div>`;
     return;
