@@ -1047,7 +1047,7 @@ async function init() {
       model_no:r.model_no||'', departments:r.departments||['厨房'],
       cycle:r.cycle||['星期日'], stock:parseFloat(r.stock)||0,
       safety:parseFloat(r.safety)||1,
-      safety_by_day:r.safety_by_day||{"1":1,"2":1,"3":1,"4":1,"5":1,"6":1,"7":1},
+      safety_by_day:r.safety_by_day||{},
       category:r.category||'其他',
       chef:r.chef||'', need:0, checked:false
     }));
@@ -1524,7 +1524,7 @@ function renderOrderList() {
           </div>
         </div>
       </div>
-      <div class="order-qty-wrap" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="order-qty-wrap">
         <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${t('suggestQty')}</div>
         <div style="display:flex;align-items:center;gap:4px;">
           <button onclick="event.stopPropagation();stepQty(${item.id},-1)"
