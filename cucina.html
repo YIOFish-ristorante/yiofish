@@ -1506,22 +1506,35 @@ function renderOrderList() {
           ${item.supplier?`· <span style="color:var(--text3)">${item.supplier}</span>`:''}
         </div>
         <div class="stock-line" style="margin-top:4px;">
-          ${t('consume')}: <input type="number" min="0" step="0.1" value="${item.consume||0}"
-            style="width:80px;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:15px;"
-            onchange="setConsume(${item.id},this.value)"
-            onclick="event.stopPropagation()">
+          <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+            <span style="font-size:13px;color:var(--text3);min-width:48px;">${t('consume')}:</span>
+            <button onclick="event.stopPropagation();stepConsume(${item.id},-1)"
+              style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+            <input type="number" min="0" step="1" value="${item.consume||0}"
+              style="width:48px;border:1px solid #ddd;border-radius:8px;padding:4px 2px;font-size:14px;text-align:center;"
+              onchange="setConsume(${item.id},this.value)"
+              onclick="event.stopPropagation()"
+              id="oconsume-${item.id}">
+            <button onclick="event.stopPropagation();stepConsume(${item.id},+1)"
+              style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+          </div>
         </div>
       </div>
-      <div class="order-qty-wrap" style="position:relative;">
-        <div class="order-qty-lbl">${t('suggestQty')}</div>
-        <div class="order-qty-row">
-          <input class="qty-input" type="number" min="0" step="0.5"
+      <div class="order-qty-wrap" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${t('suggestQty')}</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button onclick="event.stopPropagation();stepQty(${item.id},-1)"
+            style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+          <input class="qty-input" type="number" min="0" step="1"
                  value="${item.need||0}"
                  placeholder="${fc||0}"
                  onchange="updateOrderQty(${item.id},this.value)"
-                 id="oqty-${item.id}">
-          <span class="qty-unit">${item.spec||''}</span>
+                 id="oqty-${item.id}"
+                 style="width:48px;text-align:center;">
+          <button onclick="event.stopPropagation();stepQty(${item.id},+1)"
+            style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
         </div>
+        <span class="qty-unit" style="font-size:12px;color:var(--text3);">${item.spec||''}</span>
         ${fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:''}
       </div>
     </div>`;
@@ -1538,6 +1551,24 @@ let _orderSortMode = 'default';
 function filterOrderList(q) {
   _orderSearchQ = (q||'').toLowerCase().trim();
   renderOrderList();
+}
+
+function stepQty(id, d) {
+  const item = items.find(i=>i.id===id);
+  if (!item) return;
+  item.need = Math.max(0, (parseInt(item.need)||0) + d);
+  const el = document.getElementById('oqty-'+id);
+  if (el) el.value = item.need;
+  if (item.need > 0) { item.checked = true; }
+  updateOrderFooter();
+}
+
+function stepConsume(id, d) {
+  const item = items.find(i=>i.id===id);
+  if (!item) return;
+  item.consume = Math.max(0, (parseInt(item.consume)||0) + d);
+  const el = document.getElementById('oconsume-'+id);
+  if (el) el.value = item.consume;
 }
 
 function setConsume(id, val) {
@@ -1625,6 +1656,8 @@ async function submitOrder() {
     toast('✅ 订单已提交');
     switchTab('orders');
     updatePendingBadge();
+    const backBtn = document.getElementById('back-to-order-btn');
+    if (backBtn) backBtn.style.display = isAdmin ? 'none' : 'block';
   } catch(e) { toast('提交失败：'+e.message,'err'); }
   finally { btn.disabled=false; btn.innerHTML=t('submit'); }
 }
@@ -1724,7 +1757,8 @@ function exportOrders() {
     txt+=`\n提报人: ${o.chef} (${o.date}) [${o.status}]\n`;
     (o.items||[]).forEach(i=>{ txt+=`  - ${i.name}: ${i.need}\n`; });
   });
-  const b=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  const BOM = '\uFEFF';
+  const b=new Blob([BOM+txt],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download=`采购单_${new Date().toISOString().slice(0,10)}.txt`; a.click();
 }
@@ -2243,13 +2277,14 @@ function handleImport(input) {
         price:String(price),
         supplier:r[5]?String(r[5]).trim():'',
         departments:depts,
-        stock:r[7]!==undefined?String(r[7]):'0',
-        safety:r[8]!==undefined?String(r[8]):'1',
+        stock:r[7]!==undefined&&r[7]!==''?String(r[7]):'0',
+        safety:r[8]!==undefined&&r[8]!==''?String(r[8]):'1',
         category:r[9]?String(r[9]).trim():'其他',
         chef:r[10]?String(r[10]).trim():'',
         cycle:cycle
       });
     }
+    if(pendingImport.length>0) console.log('第一行数据:', JSON.stringify(pendingImport[0]));
     document.getElementById('import-preview-msg').textContent=`📄 ${_importFileName} · 已解析 ${pendingImport.length} 条物料，点击保存`;
     document.getElementById('import-preview').style.display='block';
   };
