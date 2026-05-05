@@ -629,16 +629,43 @@ body {
   <div id="tab-orders" class="page-content tab-page" style="display:none">
 
     <div class="order-filter-tabs">
-      <div class="order-filter-tab active" data-f="all"    onclick="setOrderFilter(this,'all')">全部订单</div>
-      <div class="order-filter-tab"        data-f="待處理" onclick="setOrderFilter(this,'待處理')">待处理</div>
+      <div class="order-filter-tab active" data-f="all"    onclick="setOrderFilter(this,'all')">全部</div>
+      <div class="order-filter-tab"        data-f="待处理" onclick="setOrderFilter(this,'待处理')">待处理</div>
       <div class="order-filter-tab"        data-f="已確認" onclick="setOrderFilter(this,'已確認')">已完成</div>
+      <div class="order-filter-tab"        data-f="消耗记录" onclick="setOrderFilter(this,'消耗记录')">消耗记录</div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px 0 8px;">
+      <select id="order-date-filter" onchange="renderOrders()"
+        style="flex:1;min-width:100px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);">
+        <option value="all">全部日期</option>
+        <option value="today">今天</option>
+        <option value="yesterday">昨天</option>
+        <option value="custom">自定义</option>
+      </select>
+      <select id="order-chef-filter" onchange="renderOrders()"
+        style="flex:1;min-width:100px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);">
+        <option value="all">全部员工</option>
+      </select>
+    </div>
+    <div id="order-custom-date" style="display:none;gap:8px;padding-bottom:8px;display:none;">
+      <input type="date" id="order-date-from" onchange="renderOrders()"
+        style="flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;">
+      <input type="date" id="order-date-to" onchange="renderOrders()"
+        style="flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;">
+    </div>
+
+    <!-- 批量操作栏 -->
+    <div id="order-bulk-bar" style="display:none;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--primary-light);border-radius:8px;margin-bottom:8px;">
+      <span id="order-selected-count" style="font-size:13px;color:var(--primary);">已选 0 条</span>
+      <div style="display:flex;gap:8px;">
+        <button onclick="selectAllOrders()" style="font-size:12px;padding:4px 10px;border:1px solid var(--primary);border-radius:6px;background:transparent;color:var(--primary);cursor:pointer;">全选</button>
+        <button onclick="exportSelectedOrders()" style="font-size:12px;padding:4px 10px;border:none;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;">⬇ 导出</button>
+      </div>
     </div>
 
     <div id="orders-list"></div>
-
-    <button class="btn btn-outline" style="margin-top:8px" onclick="exportOrders()">
-      ⬇ 导出订单报表
-    </button>
   </div>
 
   <!-- ── TAB: 报表分析 ── -->
@@ -708,6 +735,11 @@ body {
         <div class="menu-item-text"><div class="title">物料管理</div><div class="sub">新增、编辑物料信息</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="showSupplierModal()">
+        <div class="menu-item-icon" style="background:#E6F4FF">📱</div>
+        <div class="menu-item-text"><div class="title">供应商 WhatsApp</div><div class="sub">设置各供应商联系方式</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
       <div class="menu-item" onclick="showAdminPanel('pending')">
         <div class="menu-item-icon" style="background:#FFFBEB">📋</div>
         <div class="menu-item-text"><div class="title">审批订单</div><div class="sub" id="pending-badge-text">查看待处理订单</div></div>
@@ -760,6 +792,23 @@ body {
   </div>
 
 </div><!-- end screen-app -->
+
+<!-- 供应商WhatsApp管理Modal -->
+<div class="modal-overlay" id="modal-suppliers">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📱 供应商 WhatsApp</div>
+    <div id="supplier-list-ui" style="max-height:300px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <select id="new-sup-name" class="form-control" style="flex:1;">
+        <option value="">-- 选择供应商 --</option>
+      </select>
+      <input id="new-sup-wa" class="form-control" placeholder="号码 (如: 3912345678)" style="flex:1;">
+    </div>
+    <button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="addSupplier()">+ 添加</button>
+    <button class="btn btn-ghost" style="margin-top:8px;width:100%" onclick="closeModal('modal-suppliers')">关闭</button>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════
      MODALS
@@ -1036,10 +1085,11 @@ const t = k => (i18n[currentLang]||i18n.zh)[k] || k;
 // ════════════════════════════════════════
 async function init() {
   try {
-    const [iRes, oRes, cRes] = await Promise.all([
+    const [iRes, oRes, cRes, sRes] = await Promise.all([
       sb('cucina_items?restaurant_id=eq.'+REST_ID+'&select=*&order=id'),
       sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc'),
-      sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&select=*')
+      sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&select=*'),
+      sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&select=*&order=name')
     ]);
     items  = (await iRes.json()).map(r=>({
       id:r.id, item_code:r.item_code||'', name:r.name||'', italian:r.italian||'',
@@ -1204,6 +1254,18 @@ function switchTab(tab) {
 // ════════════════════════════════════════
 // FORECAST
 // ════════════════════════════════════════
+// 根据登录名语言判断显示食材名称
+function isChinese(str) {
+  return /[一-鿿]/.test(str||'');
+}
+function displayName(item) {
+  if (isChinese(currentUser)) {
+    return item.name || item.italian || '';
+  } else {
+    return item.italian || item.name || '';
+  }
+}
+
 function getTodayKey() {
   // JS getDay(): 0=Sun,1=Mon,...,6=Sat → map to 1=Mon...7=Sun
   const d = new Date().getDay();
@@ -1287,8 +1349,8 @@ function renderInvTable() {
     return `<tr onclick="showItemDetail(${item.id})">
       <td class="item-name-cell">
         ${item.item_code?`<div style="font-size:10px;color:var(--text3);margin-bottom:1px;">${item.item_code}</div>`:''}
-        <div class="name">${item.name||item.italian}</div>
-        <div class="sub">${item.italian}</div>
+        <div class="name">${displayName(item)}</div>
+        <div class="sub">${isChinese(currentUser)?item.italian:(item.name||'')}</div>
       </td>
       <td style="font-family:'DM Mono',monospace;font-weight:500">${item.stock}</td>
       <td style="font-family:'DM Mono',monospace;color:var(--text3)">${item.safety}</td>
@@ -1501,7 +1563,7 @@ function renderOrderList() {
     <div class="order-item-card ${checked?(isLow?'selected-low':'selected'):''}" id="ocard-${item.id}" style="position:relative;">
       <div class="order-item-info" onclick="toggleOrderItem(${item.id},!${checked})" style="cursor:pointer;">
         ${item.item_code?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">${item.item_code}</div>`:''}
-        <div class="name">${item.name||item.italian}</div>
+        <div class="name">${displayName(item)}</div>
         ${item.chef?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">👤 ${item.chef}</div>`:''}
         <div class="stock-line" style="margin-top:4px;">
           ${t('colStock')}: <span class="${isLow?'low':''}">${item.stock}</span>
@@ -1510,6 +1572,7 @@ function renderOrderList() {
           ${item.supplier?`· <span style="color:var(--text3)">${item.supplier}</span>`:''}
         </div>
         <div class="stock-line" style="margin-top:4px;">
+          ${(isAdmin||(item.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim())?`
           <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
             <span style="font-size:13px;color:var(--text3);min-width:48px;">${t('consume')}:</span>
             <button onclick="event.stopPropagation();stepConsume(${item.id},-1)"
@@ -1521,7 +1584,7 @@ function renderOrderList() {
               id="oconsume-${item.id}">
             <button onclick="event.stopPropagation();stepConsume(${item.id},+1)"
               style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
-          </div>
+          </div>`:''}
         </div>
       </div>
       <div class="order-qty-wrap">
@@ -1551,6 +1614,7 @@ function applyOrderSort(v) {
   renderOrderList();
 }
 let _orderSortMode = 'default';
+let suppliers = []; // {name, wa_number}
 
 function filterOrderList(q) {
   _orderSearchQ = (q||'').toLowerCase().trim();
@@ -1607,63 +1671,96 @@ function updateOrderFooter() {
 
 async function submitOrder() {
   const sel = items.filter(i=>i.checked&&i.need>0);
-  if (!sel.length) { toast('请先选择需要订购的食材','err'); return; }
+  const toConsume = items.filter(i=>i.consume&&i.consume>0);
+
+  // 必须至少有订货或消耗
+  if (!sel.length && !toConsume.length) {
+    toast('请先填写订货量或消耗量','err'); return;
+  }
 
   const btn = document.getElementById('order-submit-btn');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 提交中';
 
-  // 先处理消耗记录并扣减库存
-  const toConsume = items.filter(i=>i.consume && i.consume>0);
-  for (const item of toConsume) {
+  const today = new Date().toISOString().slice(0,10);
+
+  // ── 处理消耗记录 ──
+  if (toConsume.length > 0) {
+    const consumeItems = toConsume.map(i=>({
+      item_code:i.item_code, name:i.name||i.italian,
+      supplier:i.supplier, spec:i.spec, need:i.consume
+    }));
     try {
-      await sb('cucina_consume',{method:'POST',body:JSON.stringify({
-        restaurant_id:REST_ID, item_id:item.id,
-        item_name:item.name||item.italian,
-        quantity:item.consume, chef:currentUser
-      })});
-      const newStock = Math.max(0, item.stock - item.consume);
-      await sb('cucina_items?id=eq.'+item.id,{method:'PATCH',body:JSON.stringify({stock:newStock})});
-      item.stock = newStock;
-      item.consume = 0;
+      // 保存消耗订单到cucina_orders（type=消耗）
+      const consumeOrder = {
+        restaurant_id:REST_ID, chef:currentUser,
+        date:today, items:consumeItems,
+        status:'消耗记录', type:'consume'
+      };
+      const cr = await sb('cucina_orders',{method:'POST',prefer:'return=representation',body:JSON.stringify(consumeOrder)});
+      const csaved = await cr.json();
+      orders.unshift({id:csaved[0]?.id||Date.now(), ...consumeOrder});
+      // 扣减库存并记录到cucina_consume
+      for (const item of toConsume) {
+        await sb('cucina_consume',{method:'POST',body:JSON.stringify({
+          restaurant_id:REST_ID, item_id:item.id,
+          item_name:item.name||item.italian,
+          quantity:item.consume, chef:currentUser
+        })});
+        const newStock = Math.max(0, item.stock - item.consume);
+        await sb('cucina_items?id=eq.'+item.id,{method:'PATCH',body:JSON.stringify({stock:newStock})});
+        item.stock = newStock;
+        item.consume = 0;
+      }
     } catch(e) { console.error('consume error:', e); }
   }
 
-  sel.sort((a,b)=>(a.supplier||'').localeCompare(b.supplier||''));
-  const orderItems = sel.map(i=>({
-    item_code:i.item_code, name:i.name||i.italian,
-    supplier:i.supplier, spec:i.spec, need:i.need
-  }));
+  // ── 处理订货记录 ──
+  if (sel.length > 0) {
+    sel.sort((a,b)=>(a.supplier||'').localeCompare(b.supplier||''));
+    const orderItems = sel.map(i=>({
+      item_code:i.item_code, name:i.name||i.italian,
+      supplier:i.supplier, spec:i.spec, need:i.need
+    }));
+    const newOrder = {
+      restaurant_id:REST_ID, chef:currentUser,
+      date:today, items:orderItems,
+      status:'待处理', type:'order'
+    };
+    try {
+      const r = await sb('cucina_orders',{method:'POST',prefer:'return=representation',body:JSON.stringify(newOrder)});
+      const saved = await r.json();
+      orders.unshift({id:saved[0]?.id||Date.now(), ...newOrder});
+      // 按供应商分组发WhatsApp
+      const supGroups = {};
+      orderItems.forEach(i=>{
+        const supKey = (i.supplier||'').toLowerCase().trim() || '__default__';
+        if (!supGroups[supKey]) supGroups[supKey] = [];
+        supGroups[supKey].push(i);
+      });
+      for (const [supKey, supItems] of Object.entries(supGroups)) {
+        // 找对应供应商的WhatsApp号码
+        const supInfo = suppliers.find(s=>(s.name||'').toLowerCase().trim()===supKey);
+        const waNum = supInfo?.wa_number || WA_NUM;
+        let msg = `🍳 *后厨申购单*\n🧑‍🍳 ${currentUser}\n📅 ${today}\n`;
+        if (supKey!=='__default__') msg += `📦 ${supKey.toUpperCase()}\n`;
+        msg += '\n';
+        supItems.forEach(i=>{
+          msg+=`• ${i.item_code?i.item_code+' / ':''}${i.name} = ${i.need}${i.spec?' '+i.spec:''}\n`;
+        });
+        window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`,'_blank');
+      }
+    } catch(e) { toast('订货提交失败：'+e.message,'err'); }
+  }
 
-  const newOrder = {
-    restaurant_id: REST_ID,
-    chef: currentUser,
-    date: new Date().toISOString().slice(0,10),
-    items: orderItems,
-    status: '待處理'
-  };
-
-  try {
-    const r = await sb('cucina_orders',{method:'POST',prefer:'return=representation',body:JSON.stringify(newOrder)});
-    const saved = await r.json();
-    orders.unshift({id:saved[0]?.id||Date.now(), ...newOrder});
-
-    // WhatsApp message
-    let msg = `🍳 *后厨申购单*\n🧑‍🍳 ${currentUser}\n📅 ${newOrder.date}\n\n`;
-    let curSup = null;
-    orderItems.forEach(i=>{
-      if(i.supplier&&i.supplier!==curSup){curSup=i.supplier;msg+=`\n📦 ${i.supplier.toUpperCase()}\n`;}
-      msg+=`• ${i.item_code?i.item_code+' / ':''}${i.name} = ${i.need}${i.spec?' '+i.spec:''}\n`;
-    });
-    window.open(`https://wa.me/${WA_NUM}?text=${encodeURIComponent(msg)}`,'_blank');
-
-    items.forEach(i=>{ i.checked=false; i.need=0; });
-    toast('✅ 订单已提交');
-    switchTab('orders');
-    updatePendingBadge();
-    const backBtn = document.getElementById('back-to-order-btn');
-    if (backBtn) backBtn.style.display = isAdmin ? 'none' : 'block';
-  } catch(e) { toast('提交失败：'+e.message,'err'); }
-  finally { btn.disabled=false; btn.innerHTML=t('submit'); }
+  items.forEach(i=>{ i.checked=false; i.need=0; i.consume=0; });
+  const msg2 = sel.length>0&&toConsume.length>0 ? '✅ 订单已提交，消耗已记录' :
+               sel.length>0 ? '✅ 订单已提交' : '✅ 消耗已记录';
+  toast(msg2);
+  switchTab('orders');
+  updatePendingBadge();
+  const backBtn = document.getElementById('back-to-order-btn');
+  if (backBtn) backBtn.style.display = isAdmin ? 'none' : 'block';
+  btn.disabled=false; btn.innerHTML=t('submit');
 }
 
 // ════════════════════════════════════════
@@ -1676,10 +1773,46 @@ function setOrderFilter(el, f) {
   renderOrders();
 }
 
+let _selectedOrderIds = new Set();
+
 function renderOrders() {
   let data = orders;
   if (!isAdmin) data = data.filter(o=>(o.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim());
   if (orderFilter!=='all') data = data.filter(o=>o.status===orderFilter);
+
+  // 日期筛选
+  const dateF = document.getElementById('order-date-filter');
+  const dateVal = dateF ? dateF.value : 'all';
+  const today = new Date().toISOString().slice(0,10);
+  const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  const customDiv = document.getElementById('order-custom-date');
+  if (customDiv) customDiv.style.display = dateVal==='custom' ? 'flex' : 'none';
+  if (dateVal==='today') data = data.filter(o=>o.date===today);
+  else if (dateVal==='yesterday') data = data.filter(o=>o.date===yesterday);
+  else if (dateVal==='custom') {
+    const from = document.getElementById('order-date-from')?.value;
+    const to = document.getElementById('order-date-to')?.value;
+    if (from) data = data.filter(o=>o.date>=from);
+    if (to) data = data.filter(o=>o.date<=to);
+  }
+
+  // 员工筛选
+  const chefF = document.getElementById('order-chef-filter');
+  const chefVal = chefF ? chefF.value : 'all';
+  // 更新员工下拉列表
+  if (chefF && isAdmin) {
+    const chefs = [...new Set(orders.map(o=>o.chef).filter(Boolean))];
+    const cur = chefF.value;
+    chefF.innerHTML = '<option value="all">全部员工</option>' +
+      chefs.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  }
+  if (chefVal!=='all') data = data.filter(o=>o.chef===chefVal);
+
+  // 批量栏
+  const bulkBar = document.getElementById('order-bulk-bar');
+  const selCount = document.getElementById('order-selected-count');
+  if (bulkBar) bulkBar.style.display = data.length ? 'flex' : 'none';
+  if (selCount) selCount.textContent = `已选 ${_selectedOrderIds.size} 条`;
 
   const container = document.getElementById('orders-list');
   if (!data.length) {
@@ -1687,28 +1820,74 @@ function renderOrders() {
     return;
   }
   container.innerHTML = data.map((o,idx)=>{
-    const st = o.status==='已確認'
+    const st = o.status==='已確認'||o.status==='已确认'
       ? `<span class="badge badge-done">已完成</span>`
+      : o.status==='消耗记录'||o.type==='consume'
+      ? `<span class="badge" style="background:#e8f5e9;color:#2e7d32;">消耗记录</span>`
       : `<span class="badge badge-pending">待处理</span>`;
     const no = `#${o.date?o.date.replace(/-/g,''):''}-${String(idx+1).padStart(3,'0')}`;
     const itemCount = o.items?.length||0;
     const totalQty  = o.items?.reduce((s,i)=>s+(parseFloat(i.need)||0),0)||0;
+    const checked = _selectedOrderIds.has(String(o.id)) ? 'checked' : '';
     return `
-    <div class="order-card" onclick="showOrderDetail('${o.id}')">
-      <div class="order-card-header">
-        <span class="order-no">${no}</span>
-        ${st}
+    <div class="order-card" style="position:relative;">
+      <div style="position:absolute;top:12px;right:12px;z-index:2;">
+        <input type="checkbox" ${checked} style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer;"
+          onchange="toggleOrderSelect('${o.id}',this.checked)" onclick="event.stopPropagation()">
       </div>
-      <div class="order-meta">
-        <span class="icon">📅</span><span>${o.date||'-'}</span>
-        <span class="icon">👤</span><span>${o.chef||'-'}</span>
-      </div>
-      <div class="order-footer-row">
-        <span style="font-size:12px;color:var(--text2)">食材 <strong>${itemCount}</strong> 种 · 总量 <strong>${totalQty.toFixed(1)}</strong></span>
-        <span class="order-detail-link">查看详情 ›</span>
+      <div onclick="showOrderDetail('${o.id}')" style="padding-right:28px;">
+        <div class="order-card-header">
+          <span class="order-no">${no}</span>
+          ${st}
+        </div>
+        <div class="order-meta">
+          <span class="icon">📅</span><span>${o.date||'-'}</span>
+          <span class="icon">👤</span><span>${o.chef||'-'}</span>
+        </div>
+        <div class="order-footer-row">
+          <span style="font-size:12px;color:var(--text2)">食材 <strong>${itemCount}</strong> 种 · 总量 <strong>${totalQty.toFixed(1)}</strong></span>
+          <span class="order-detail-link">查看详情 ›</span>
+        </div>
       </div>
     </div>`;
   }).join('');
+}
+
+function toggleOrderSelect(id, checked) {
+  if (checked) _selectedOrderIds.add(String(id));
+  else _selectedOrderIds.delete(String(id));
+  const selCount = document.getElementById('order-selected-count');
+  if (selCount) selCount.textContent = `已选 ${_selectedOrderIds.size} 条`;
+}
+
+function selectAllOrders() {
+  const checkboxes = document.querySelectorAll('#orders-list input[type=checkbox]');
+  const allChecked = [...checkboxes].every(c=>c.checked);
+  checkboxes.forEach(c=>{
+    c.checked = !allChecked;
+    const id = c.closest('.order-card')?.querySelector('[onclick]')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (id) { if(!allChecked) _selectedOrderIds.add(id); else _selectedOrderIds.delete(id); }
+  });
+  const selCount = document.getElementById('order-selected-count');
+  if (selCount) selCount.textContent = `已选 ${_selectedOrderIds.size} 条`;
+}
+
+function exportSelectedOrders() {
+  const toExport = _selectedOrderIds.size > 0
+    ? orders.filter(o=>_selectedOrderIds.has(String(o.id)))
+    : orders;
+  if (!toExport.length) { toast('请先勾选要导出的订单','err'); return; }
+  let txt = '后厨采购清单\n================\n';
+  toExport.forEach(o=>{
+    const typeLabel = o.type==='consume'?'[消耗记录]':'[订货]';
+    txt+=`\n${typeLabel} 提报人: ${o.chef} (${o.date}) [${o.status}]\n`;
+    (o.items||[]).forEach(i=>{ txt+=`  - ${i.item_code?i.item_code+' / ':''}${i.name}: ${i.need}${i.spec?' '+i.spec:''}\n`; });
+  });
+  const BOM = '\uFEFF';
+  const b = new Blob([BOM+txt],{type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`采购单_${new Date().toISOString().slice(0,10)}.txt`; a.click();
+  toast('✅ 导出成功');
 }
 
 function showOrderDetail(id) {
@@ -1734,7 +1913,7 @@ function showOrderDetail(id) {
           <strong>${i.need} ${i.spec||''}</strong>
         </div>`).join('')}
     </div>
-    ${isAdmin&&order.status==='待處理'?`
+    ${isAdmin&&order.status!=='消耗记录'&&order.type!=='consume'&&(order.status==='待处理'||order.status==='待處理')?`
       <button class="btn btn-green" onclick="confirmOrder('${order.id}')">✓ 确认已备货</button>
     `:''}
   `;
@@ -1765,6 +1944,74 @@ function exportOrders() {
   const b=new Blob([BOM+txt],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download=`采购单_${new Date().toISOString().slice(0,10)}.txt`; a.click();
+}
+
+function showSupplierModal() {
+  renderSupplierList();
+  // 从items里提取所有不重复供应商填入下拉
+  const sel = document.getElementById('new-sup-name');
+  if (sel) {
+    const existing = suppliers.map(s=>s.name.toLowerCase());
+    const supNames = [...new Set(items.map(i=>i.supplier).filter(s=>s&&s.trim()))]
+      .filter(s=>!existing.includes(s.toLowerCase()))
+      .sort();
+    sel.innerHTML = '<option value="">-- 选择供应商 --</option>' +
+      supNames.map(s=>`<option value="${s}">${s}</option>`).join('');
+  }
+  openModal('modal-suppliers');
+}
+
+function renderSupplierList() {
+  const el = document.getElementById('supplier-list-ui');
+  if (!el) return;
+  if (!suppliers.length) { el.innerHTML='<p style="font-size:13px;color:var(--text3);padding:8px 0;">暂无供应商，请添加</p>'; return; }
+  el.innerHTML = suppliers.map(s=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${s.name}</div>
+        <div style="font-size:12px;color:var(--text3);">${s.wa_number||'未设置'}</div>
+      </div>
+      <input type="text" value="${s.wa_number||''}" placeholder="WhatsApp号码"
+        style="width:140px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;"
+        onchange="updateSupplierWa(${s.id},this.value)">
+      <button onclick="deleteSupplier(${s.id})"
+        style="border:none;background:transparent;color:var(--danger);font-size:18px;cursor:pointer;">×</button>
+    </div>`).join('');
+}
+
+async function addSupplier() {
+  const name = document.getElementById('new-sup-name').value.trim();
+  const wa = document.getElementById('new-sup-wa').value.trim();
+  if (!name) { toast('请输入供应商名称','err'); return; }
+  try {
+    const res = await sb('cucina_suppliers',{method:'POST',prefer:'return=representation',
+      body:JSON.stringify({restaurant_id:REST_ID,name,wa_number:wa})});
+    const saved = await res.json();
+    suppliers.push(saved[0]);
+    document.getElementById('new-sup-name').value='';
+    document.getElementById('new-sup-wa').value='';
+    renderSupplierList();
+    toast('✅ 已添加');
+  } catch(e){ toast('添加失败','err'); }
+}
+
+async function updateSupplierWa(id, wa) {
+  try {
+    await sb('cucina_suppliers?id=eq.'+id,{method:'PATCH',body:JSON.stringify({wa_number:wa})});
+    const s = suppliers.find(s=>s.id===id);
+    if (s) s.wa_number = wa;
+    toast('✅ 已保存');
+  } catch(e){ toast('保存失败','err'); }
+}
+
+async function deleteSupplier(id) {
+  if (!confirm('删除此供应商？')) return;
+  try {
+    await sb('cucina_suppliers?id=eq.'+id,{method:'DELETE'});
+    suppliers = suppliers.filter(s=>s.id!==id);
+    renderSupplierList();
+    toast('✅ 已删除');
+  } catch(e){ toast('删除失败','err'); }
 }
 
 function updatePendingBadge() {
@@ -1981,7 +2228,7 @@ function renderReportInventory() {
         const color = stockStatus(i)==='low'?'var(--danger)':stockStatus(i)==='warn'?'var(--warn)':'var(--ok)';
         return `<div style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-            <span>${i.name||i.italian}</span>
+            <span>${isChinese(currentUser)?(i.name||i.italian):(i.italian||i.name)}</span>
             <span style="color:var(--text3);font-family:'DM Mono',monospace">${i.stock} / ${i.safety*2}</span>
           </div>
           <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden">
@@ -2284,6 +2531,7 @@ function handleImport(input) {
         departments:depts,
         stock:String(parseFloat(r[7])||0),
         safety:String(parseFloat(r[8])||1),
+        safety_by_day:{},
         category:r[9]?String(r[9]).trim():'其他',
         chef:r[10]?String(r[10]).trim():'',
         cycle:cycle
