@@ -1602,7 +1602,13 @@ function renderOrderList() {
         </div>
       </div>
       <div class="order-qty-wrap">
-        <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${t('suggestQty')}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+          <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${t('suggestQty')}</div>
+          <input type="checkbox" ${(item.need>0||item.consume>0)?'checked':''}
+            onchange="toggleOrderItem(${item.id},this.checked)"
+            onclick="event.stopPropagation()"
+            style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;">
+        </div>
         <div style="display:flex;align-items:center;gap:4px;">
           <button onclick="event.stopPropagation();stepQty(${item.id},-1)"
             style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
