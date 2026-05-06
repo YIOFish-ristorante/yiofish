@@ -1184,6 +1184,7 @@ async function init() {
     }));
     chefs = {};
     (await cRes.json()).forEach(c=>{ chefs[c.name] = c.password; });
+    suppliers = await sRes.json();
     populateLoginSelect();
   } catch(e) {
     toast('数据库连接失败','err');
