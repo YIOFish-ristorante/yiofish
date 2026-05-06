@@ -390,6 +390,8 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   color: var(--text2); cursor: pointer; transition: all 0.15s;
 }
 .weekday-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.weekday-btn.today-day { border-color: #27ae60; color: #27ae60; font-weight: 600; }
+.weekday-btn.today-day.active { background: #27ae60; border-color: #27ae60; color: #fff; }
 
 /* ── PASSWORD EYE TOGGLE ── */
 .pass-wrap { position: relative; display: flex; align-items: center; }
@@ -1358,6 +1360,13 @@ function showApp() {
   } else {
     switchTab('inventory');
   }
+  // 标记今天是星期几（绿色）
+  const todayDay = getTodayWeekday();
+  document.querySelectorAll('.weekday-btn').forEach(btn=>{
+    const day = btn.getAttribute('data-day');
+    if (day === todayDay) btn.classList.add('today-day');
+    else btn.classList.remove('today-day');
+  });
   updatePendingBadge();
 }
 
@@ -1628,7 +1637,10 @@ function renderOrderList() {
   const searchEl = document.getElementById('order-search');
   if (searchEl && _orderSearchQ) searchEl.value = _orderSearchQ;
   // 今日待订提示
-  const todayItems = items.filter(i=>isTodayCycle(i));
+  const myItems = (!isAdmin && currentUserRole==='staff')
+    ? items.filter(i=>(i.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim())
+    : items;
+  const todayItems = myItems.filter(i=>isTodayCycle(i));
   const todayLow = todayItems.filter(i=>stockStatus(i)==='low');
   const dayNames = ['','星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
   const todayName = dayNames[parseInt(getTodayKey())];
@@ -1680,6 +1692,12 @@ function renderOrderList() {
       if(aLow&&!bLow)return -1; if(!aLow&&bLow)return 1;
       return 0;
     });
+  }
+
+  // 角色过滤：普通员工只看自己负责的物料
+  const _cu = (currentUser||'').toLowerCase().trim();
+  if (!isAdmin && currentUserRole==='staff') {
+    sorted = sorted.filter(i=>(i.chef||'').toLowerCase().trim()===_cu);
   }
 
   // 搜索过滤
@@ -1944,11 +1962,13 @@ async function submitOrder() {
         });
       }
       if (isAdmin || currentUserRole==='buyer') {
-        const allOrderItems = sel.map(i=>({
-          item_code:i.item_code, name:i.name||i.italian,
-          supplier:i.supplier, spec:i.spec, need:i.need
-        }));
-        showSubmitConfirm(allOrderItems, today);
+        // 不直接发送，统一在订单系统里合并发送
+        switchTab('orders');
+        updatePendingBadge();
+        setTimeout(()=>{
+          const backBtn = document.getElementById('back-to-order-btn');
+          if (backBtn) backBtn.style.display = 'block';
+        }, 50);
       }
     }
 
@@ -2054,39 +2074,70 @@ async function mergeSendOrders() {
     return;
   }
 
-  // 逐个供应商发送WhatsApp
+  // 显示每个供应商的发送按钮
   const today = new Date().toLocaleDateString('zh-CN');
-  let sentCount = 0;
+  let html = `<p style="font-size:12px;color:var(--text3);margin-bottom:12px;">点击各供应商的发送按钮，逐个发送 WhatsApp</p>`;
+
   for (const [supName, supItems] of Object.entries(merged)) {
     const supInfo = suppliers.find(s=>(s.name||'').toLowerCase()===supName.toLowerCase());
-    if (!supInfo || !supInfo.wa_number) {
-      toast(`⚠️ ${supName} 没有WhatsApp号码，已跳过`, 'err');
-      continue;
-    }
-    let msg = `*订货单 ${today}*\n`;
-    supItems.forEach(item=>{
-      msg += `• ${item.name||item.italian} ${item.spec||''} × ${item.need}\n`;
+    const waNum = supInfo?.wa_number || '';
+    const hasWa = !!waNum;
+
+    let msg = `🍳 *YioFish 订货单*\n📅 ${today}\n📦 ${supName.toUpperCase()}\n\n`;
+    supItems.forEach(i=>{
+      msg += `• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} ${i.spec||''} × ${i.need}\n`;
     });
-    const waUrl = `https://wa.me/${supInfo.wa_number}?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, '_blank');
-    sentCount++;
-    await new Promise(r=>setTimeout(r,500)); // 间隔0.5秒避免被拦截
+    const encoded = encodeURIComponent(msg);
+
+    html += `
+    <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+          <span style="font-weight:600;font-size:14px;">📦 ${supName.toUpperCase()}</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:6px;">${supItems.length}种食材</span>
+        </div>
+        ${hasWa
+          ? `<a href="https://wa.me/${waNum}?text=${encoded}" target="_blank"
+              style="background:#25D366;color:#fff;border:none;border-radius:8px;
+              padding:6px 14px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-block;">
+              📲 发送
+            </a>`
+          : `<span style="font-size:11px;color:var(--danger);">⚠️ 未设置WA号码</span>`}
+      </div>
+      <div style="font-size:12px;color:var(--text2);">
+        ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} ${i.spec||''} × ${i.need}`).join('<br>')}
+      </div>
+    </div>`;
   }
 
-  if (sentCount > 0) {
-    // 更新已选订单状态为已确认
-    for (const o of selected) {
-      try {
-        await sb('cucina_orders?id=eq.'+o.id, {method:'PATCH', body:JSON.stringify({status:'已确认'})});
-        const local = orders.find(x=>String(x.id)===String(o.id));
-        if (local) local.status='已确认';
-      } catch(e) {}
-    }
-    _selectedOrderIds.clear();
-    renderOrders();
-    updatePendingBadge();
-    toast(`✅ 已发送给 ${sentCount} 个供应商`);
+  // 确认按钮
+  html += `
+    <button onclick="confirmMergedOrders()" class="btn btn-primary" style="width:100%;margin-top:8px;">
+      ✅ 确认已发送，标记为已完成
+    </button>`;
+
+  document.getElementById('submit-confirm-content').innerHTML = html;
+  openModal('modal-submit-confirm');
+
+  // 保存当前selected供订货员确认用
+  window._pendingConfirmOrders = selected.map(o=>o.id);
+}
+
+async function confirmMergedOrders() {
+  const ids = window._pendingConfirmOrders || [];
+  for (const id of ids) {
+    try {
+      await sb('cucina_orders?id=eq.'+id, {method:'PATCH', body:JSON.stringify({status:'已确认'})});
+      const local = orders.find(x=>String(x.id)===String(id));
+      if (local) local.status='已确认';
+    } catch(e) {}
   }
+  _selectedOrderIds.clear();
+  window._pendingConfirmOrders = [];
+  closeModal('modal-submit-confirm');
+  renderOrders();
+  updatePendingBadge();
+  toast(`✅ 订单已标记为已完成`);
 }
 
 
@@ -2171,7 +2222,7 @@ function renderOrders() {
     return `
     <div class="order-card" style="position:relative;">
       <div style="position:absolute;top:12px;right:12px;z-index:2;">
-        <input type="checkbox" ${checked} style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer;"
+        <input type="checkbox" ${checked} data-id="${o.id}" style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer;"
           onchange="toggleOrderSelect('${o.id}',this.checked)" onclick="event.stopPropagation()">
       </div>
       <div onclick="showOrderDetail('${o.id}')" style="padding-right:28px;">
@@ -2209,11 +2260,11 @@ function toggleOrderSelect(id, checked) {
 }
 
 function selectAllOrders() {
-  const checkboxes = document.querySelectorAll('#orders-list input[type=checkbox]');
+  const checkboxes = document.querySelectorAll('#orders-list input[type=checkbox][data-id]');
   const allChecked = [...checkboxes].every(c=>c.checked);
   checkboxes.forEach(c=>{
     c.checked = !allChecked;
-    const id = c.closest('.order-card')?.querySelector('[onclick]')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    const id = c.getAttribute('data-id');
     if (id) { if(!allChecked) _selectedOrderIds.add(id); else _selectedOrderIds.delete(id); }
   });
   const selCount = document.getElementById('order-selected-count');
