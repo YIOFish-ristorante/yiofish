@@ -383,6 +383,14 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 .form-control:focus { border-color: var(--primary); background: #fff; }
 .form-error { font-size: 12px; color: var(--danger); margin-top: 6px; display: none; }
 
+/* ── WEEKDAY BUTTONS ── */
+.weekday-btn {
+  padding: 4px 10px; font-size: 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text2); cursor: pointer; transition: all 0.15s;
+}
+.weekday-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
 /* ── PASSWORD EYE TOGGLE ── */
 .pass-wrap { position: relative; display: flex; align-items: center; }
 .pass-wrap .form-control { padding-right: 42px; width: 100%; }
@@ -665,6 +673,26 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       <button onclick="switchTab('order')" class="btn btn-outline" style="width:100%;">
         ← 返回订货系统
       </button>
+    </div>
+
+    <!-- 订货员发送区域（只有buyer角色显示） -->
+    <div id="buyer-send-panel" style="display:none;background:var(--surface2);border-radius:12px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;">📦 合并发送订单</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--text3);">按星期发送：</span>
+        <div id="weekday-tabs" style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="weekday-btn active" data-day="" onclick="setWeekdayFilter(this,'')">今天</button>
+          <button class="weekday-btn" data-day="星期一" onclick="setWeekdayFilter(this,'星期一')">一</button>
+          <button class="weekday-btn" data-day="星期二" onclick="setWeekdayFilter(this,'星期二')">二</button>
+          <button class="weekday-btn" data-day="星期三" onclick="setWeekdayFilter(this,'星期三')">三</button>
+          <button class="weekday-btn" data-day="星期四" onclick="setWeekdayFilter(this,'星期四')">四</button>
+          <button class="weekday-btn" data-day="星期五" onclick="setWeekdayFilter(this,'星期五')">五</button>
+          <button class="weekday-btn" data-day="星期六" onclick="setWeekdayFilter(this,'星期六')">六</button>
+          <button class="weekday-btn" data-day="星期日" onclick="setWeekdayFilter(this,'星期日')">日</button>
+        </div>
+      </div>
+      <div id="buyer-merge-preview" style="margin-top:10px;font-size:12px;color:var(--text3);">勾选待处理订单后，点"合并发送"</div>
+      <button onclick="mergeSendOrders()" class="btn btn-primary btn-sm" style="margin-top:8px;width:100%;">📱 按供应商合并发送 WhatsApp</button>
     </div>
 
     <div class="order-filter-tabs">
@@ -1015,6 +1043,7 @@ let items       = [];      // cucina_items
 let orders      = [];      // cucina_orders
 let _orderSearchQ = '';    // 订货搜索关键词
 let chefs       = {};      // {name: passHash}  — 哈希值，不存明文
+let currentUserRole = 'staff'; // staff / supervisor / buyer
 let currentTab  = 'inventory';
 let invCat      = 'all';
 let invSearch   = '';
@@ -1047,8 +1076,8 @@ const i18n = {
     orderHint:'系统根据当前库存和安全库存自动计算',
     orderSelected:'已选择', orderKinds:'种食材',
     orderTotal:'预计总数量：', orderSubmit:'提交订单',
-    suggestQty:'建议订货量', consume:'消耗量',
-    consumeHint:'提交后扣减库存', todayTag:'今日',
+    suggestQty:'建议订货量', consume:'库存调整',
+    consumeHint:'负数=消耗，正数=补货', todayTag:'今日',
     // 订单
     ordersTitle:'订单系统', allOrders:'全部订单',
     filterPending:'待处理', filterDone:'已完成',
@@ -1093,8 +1122,8 @@ const i18n = {
     orderHint:'Calcolo automatico basato su scorte attuali e minime',
     orderSelected:'Selezionati', orderKinds:'articoli',
     orderTotal:'Quantità totale: ', orderSubmit:'Invia ordine',
-    suggestQty:'Qtà consigliata', consume:'Consumo',
-    consumeHint:'Verrà scalato dalla scorta', todayTag:'Oggi',
+    suggestQty:'Qtà consigliata', consume:'Rettifica magazzino',
+    consumeHint:'Negativo=consumo, positivo=carico', todayTag:'Oggi',
     ordersTitle:'Ordini', allOrders:'Tutti',
     filterPending:'In attesa', filterDone:'Completato',
     exportBtn:'Esporta lista acquisti',
@@ -1183,7 +1212,7 @@ async function init() {
       status:r.status, created_at:r.created_at
     }));
     chefs = {};
-    (await cRes.json()).forEach(c=>{ chefs[c.name] = c.password; });
+    (await cRes.json()).forEach(c=>{ chefs[c.name] = {hash: c.password, role: c.role||'staff'}; });
     suppliers = await sRes.json();
     populateLoginSelect();
   } catch(e) {
@@ -1223,17 +1252,17 @@ async function doLogin() {
   if (!pass) { errEl.style.display='block'; return; }
   btn.disabled = true;
   const passHash = await sha256(pass);
-  if (chefs[name] !== passHash) {
+  const chef = chefs[name];
+  if (!chef || chef.hash !== passHash) {
     errEl.style.display='block';
     btn.disabled = false;
     return;
   }
   errEl.style.display='none';
-  // 只记住用户名，不存密码
   try { localStorage.setItem('cucina_last_user', name); } catch(e) {}
-  // 清除旧版可能残留的明文密码
   try { localStorage.removeItem('cucina_last_pass'); } catch(e) {}
   currentUser = name;
+  currentUserRole = chef.role || 'staff';
   btn.disabled = false;
   showApp();
 }
@@ -1265,7 +1294,7 @@ async function showChangePass() {
   sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(currentUser), {
     method:'PATCH', body:JSON.stringify({password:newHash})
   }).then(()=>{
-    chefs[currentUser] = newHash;
+    if (chefs[currentUser]) chefs[currentUser].hash = newHash;
     toast('✅ 密码修改成功');
   }).catch(()=>toast('❌ 修改失败','err'));
 }
@@ -1296,20 +1325,26 @@ function showApp() {
   document.getElementById('screen-login').classList.remove('active');
   document.getElementById('screen-app').classList.add('active');
   document.getElementById('profile-name').textContent = currentUser;
-  document.getElementById('profile-role').textContent = isAdmin ? '管理员 · Admin' : '员工';
+  const roleLabel = {staff:'员工', supervisor:'主管', buyer:'订货员', admin:'管理员'};
+  document.getElementById('profile-role').textContent = isAdmin ? '管理员 · Admin' : (roleLabel[currentUserRole]||'员工');
   if (isAdmin) document.getElementById('admin-menu').style.display='block';
-  // 员工只显示订货系统，管理员显示全部
-  ['nav-inventory','nav-orders','nav-report','nav-profile'].forEach(id=>{
+  // 库存/报表只有管理员看
+  ['nav-inventory','nav-report'].forEach(id=>{
     const el = document.getElementById(id);
     if (el) el.style.display = isAdmin ? '' : 'none';
   });
-  // auto-select low stock items for ordering
-  items.forEach(i=>{ i.checked = false; i.need = calcForecast(i); }); // 不自动选中
-  // 员工隐藏底部导航，底部栏贴底
+  ['nav-orders','nav-profile'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.style.display = '';
+  });
+  // 订货员发送面板
+  const buyerPanel = document.getElementById('buyer-send-panel');
+  if (buyerPanel) buyerPanel.style.display = (isAdmin || currentUserRole==='buyer') ? 'block' : 'none';
+  items.forEach(i=>{ i.checked = false; i.need = calcForecast(i); });
   const nav = document.querySelector('.bottom-nav');
-  if (nav) nav.style.display = isAdmin ? 'flex' : 'none';
+  if (nav) nav.style.display = 'flex';
   const footer = document.querySelector('.order-footer');
-  if (footer) footer.style.bottom = isAdmin ? 'var(--bottom-h)' : '0';
+  if (footer) footer.style.bottom = 'var(--bottom-h)';
   if (!isAdmin) {
     switchTab('order');
   } else {
@@ -1745,7 +1780,7 @@ function stepQty(id, d) {
 
 // 问题1：重置所有订货量和消耗量
 function resetOrder() {
-  if (!confirm('确定重置所有订货量和消耗量？')) return;
+  if (!confirm('确定重置所有订货量和库存调整？')) return;
   items.forEach(i=>{ i.checked=false; i.need=0; i.orderModified=false; i.consume=0; });
   renderOrderList();
   toast('已重置');
@@ -1756,9 +1791,14 @@ function stepConsume(id, d) {
   if (!item) return;
   item.consume = (parseInt(item.consume)||0) + d;
   const el = document.getElementById('oconsume-'+id);
-  if (el) el.value = item.consume;
-  // 问题2：消耗量>0时也激活checkbox和卡片
-  item.checked = item.consume > 0 || item.need > 0;
+  if (el) {
+    el.value = item.consume;
+    // 颜色提示：负数=消耗（红），正数=补货（绿），零=默认
+    el.style.color = item.consume < 0 ? 'var(--danger)' : item.consume > 0 ? '#27ae60' : '';
+    el.style.background = item.consume !== 0 ? (item.consume < 0 ? '#fff5f5' : '#f0fff4') : '';
+  }
+  // 非零就激活checkbox和卡片
+  item.checked = item.consume !== 0 || item.need > 0;
   const cb = document.querySelector(`#ocard-${id} input[type="checkbox"]`);
   if (cb) cb.checked = item.checked;
   const card = document.getElementById('ocard-'+id);
@@ -1807,84 +1847,104 @@ async function submitOrder() {
   const sel = items.filter(i=>i.checked&&i.need>0);
   const toConsume = items.filter(i=>i.consume&&i.consume!==0);
 
-  // 必须至少有订货或消耗
   if (!sel.length && !toConsume.length) {
-    toast('请先修改订货量或填写消耗量','err'); return;
+    toast('请先修改订货量或填写库存调整','err'); return;
   }
 
   const btn = document.getElementById('order-submit-btn');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 提交中';
 
   const today = new Date().toISOString().slice(0,10);
+  const headers = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 
-  // ── 处理消耗记录 ──
-  if (toConsume.length > 0) {
-    const consumeItems = toConsume.map(i=>({
-      item_code:i.item_code, name:i.name||i.italian,
-      supplier:i.supplier, spec:i.spec, need:i.consume
-    }));
-    try {
-      // 保存消耗订单到cucina_orders（type=消耗）
+  try {
+    // ── 处理库存调整记录 ──
+    if (toConsume.length > 0) {
+      const consumeItems = toConsume.map(i=>({
+        item_code:i.item_code, name:i.name||i.italian,
+        supplier:i.supplier, spec:i.spec, need:i.consume,
+        type: i.consume < 0 ? '消耗' : '补货'
+      }));
       const consumeOrder = {
         restaurant_id:REST_ID, chef:currentUser,
         date:today, items:consumeItems,
         status:'消耗记录', type:'consume'
       };
-      const cr = await sb('cucina_orders',{method:'POST',prefer:'return=representation',body:JSON.stringify(consumeOrder)});
+      const cr = await fetch(SB_URL+'/rest/v1/cucina_orders', {method:'POST', headers, body:JSON.stringify(consumeOrder)});
       const csaved = await cr.json();
       orders.unshift({id:csaved[0]?.id||Date.now(), ...consumeOrder});
-      // 扣减库存并记录到cucina_consume
+
       for (const item of toConsume) {
-        await sb('cucina_consume',{method:'POST',body:JSON.stringify({
-          restaurant_id:REST_ID, item_id:item.id,
-          item_name:item.name||item.italian,
-          quantity:item.consume, chef:currentUser
-        })});
-        const newStock = Math.max(0, parseFloat(item.stock) - parseFloat(item.consume));
-        await sb('cucina_items?id=eq.'+item.id,{method:'PATCH',body:JSON.stringify({stock:newStock})});
-        item.stock = newStock;
+        try {
+          await fetch(SB_URL+'/rest/v1/cucina_consume', {method:'POST',
+            headers:{...headers,'Prefer':'return=minimal'},
+            body:JSON.stringify({restaurant_id:REST_ID, item_id:item.id,
+              item_name:item.name||item.italian, quantity:item.consume, chef:currentUser})});
+        } catch(e) { console.warn('cucina_consume write failed:', e); }
+        const newStock = parseFloat(item.stock) + parseFloat(item.consume);
+        await fetch(SB_URL+'/rest/v1/cucina_items?id=eq.'+item.id, {method:'PATCH',
+          headers:{...headers,'Prefer':'return=minimal'}, body:JSON.stringify({stock:Math.max(0,newStock)})});
+        item.stock = Math.max(0, newStock);
         item.consume = 0;
       }
-    } catch(e) { console.error('consume error:', e); }
-  }
-  // 刷新订货列表显示最新库存
-  renderOrderList();
+    }
 
-  // ── 处理订货记录 ──
-  if (sel.length > 0) {
-    sel.sort((a,b)=>(a.supplier||'').localeCompare(b.supplier||''));
-    const orderItems = sel.map(i=>({
-      item_code:i.item_code, name:i.name||i.italian,
-      supplier:i.supplier, spec:i.spec, need:i.need
-    }));
-    const newOrder = {
-      restaurant_id:REST_ID, chef:currentUser,
-      date:today, items:orderItems,
-      status:'待处理', type:'order'
-    };
-    try {
-      const r = await sb('cucina_orders',{method:'POST',prefer:'return=representation',body:JSON.stringify(newOrder)});
-      const saved = await r.json();
-      orders.unshift({id:saved[0]?.id||Date.now(), ...newOrder});
-      // 弹出确认界面，按供应商分组让用户逐个发送
-      showSubmitConfirm(orderItems, today);
-    } catch(e) { toast('订货提交失败：'+e.message,'err'); }
-  }
+    // ── 处理订货记录：按供应商拆分，各带buyer字段 ──
+    if (sel.length > 0) {
+      // 按供应商分组
+      const supGroups = {};
+      sel.forEach(i=>{
+        const sup = i.supplier||'其他';
+        if (!supGroups[sup]) supGroups[sup] = [];
+        supGroups[sup].push(i);
+      });
 
-  items.forEach(i=>{ i.checked=false; i.need=calcForecast(i); i.orderModified=false; i.consume=0; });
-  const msg2 = sel.length>0&&toConsume.length>0 ? '✅ 订单已提交，消耗已记录' :
-               sel.length>0 ? '✅ 订单已提交' : '✅ 消耗已记录';
-  toast(msg2);
-  // 只有订货时才跳转到订单系统
-  if (sel.length > 0) {
-    switchTab('orders');
-    updatePendingBadge();
-    setTimeout(()=>{
-      const backBtn = document.getElementById('back-to-order-btn');
-      if (backBtn) backBtn.style.display = isAdmin ? 'none' : 'block';
-    }, 50);
+      for (const [supName, supItems] of Object.entries(supGroups)) {
+        const supInfo = suppliers.find(s=>(s.name||'').toLowerCase()===supName.toLowerCase());
+        const buyer = supInfo?.buyer || null;
+        const orderItems = supItems.map(i=>({
+          item_code:i.item_code, name:i.name||i.italian,
+          supplier:i.supplier, spec:i.spec, need:i.need
+        }));
+        const newOrder = {
+          restaurant_id:REST_ID, chef:currentUser,
+          date:today, items:orderItems,
+          status:'待处理', type:'order',
+          buyer: buyer
+        };
+        const r = await fetch(SB_URL+'/rest/v1/cucina_orders', {method:'POST', headers, body:JSON.stringify(newOrder)});
+        const saved = await r.json();
+        orders.unshift({id:saved[0]?.id||Date.now(), ...newOrder});
+      }
+      if (isAdmin || currentUserRole==='buyer') {
+        const allOrderItems = sel.map(i=>({
+          item_code:i.item_code, name:i.name||i.italian,
+          supplier:i.supplier, spec:i.spec, need:i.need
+        }));
+        showSubmitConfirm(allOrderItems, today);
+      }
+    }
+
+    // ── 完成 ──
+    renderOrderList();
+    items.forEach(i=>{ i.checked=false; i.need=calcForecast(i); i.orderModified=false; i.consume=0; });
+    const msg2 = sel.length>0&&toConsume.length>0 ? '✅ 订单已提交，消耗已记录' :
+                 sel.length>0 ? '✅ 订单已提交' : '✅ 库存调整已记录';
+    toast(msg2);
+    if (sel.length > 0) {
+      switchTab('orders');
+      updatePendingBadge();
+      setTimeout(()=>{
+        const backBtn = document.getElementById('back-to-order-btn');
+        if (backBtn) backBtn.style.display = 'block';
+      }, 50);
+    }
+  } catch(e) {
+    toast('提交失败：'+e.message,'err');
+    console.error('submitOrder error:', e);
+  } finally {
+    btn.disabled=false; btn.innerHTML=t('submit');
   }
-  btn.disabled=false; btn.innerHTML=t('submit');
 }
 
 // ════════════════════════════════════════
@@ -1897,11 +1957,128 @@ function setOrderFilter(el, f) {
   renderOrders();
 }
 
-let _selectedOrderIds = new Set();
+let _weekdayFilter = ''; // 空=今天
+
+function setWeekdayFilter(btn, day) {
+  _weekdayFilter = day;
+  document.querySelectorAll('.weekday-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  updateBuyerMergePreview();
+}
+
+function getTodayWeekday() {
+  const days = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  return days[new Date().getDay()];
+}
+
+function updateBuyerMergePreview() {
+  const preview = document.getElementById('buyer-merge-preview');
+  if (!preview) return;
+  const targetDay = _weekdayFilter || getTodayWeekday();
+  const selected = orders.filter(o=>_selectedOrderIds.has(String(o.id)) && (o.status==='待处理'||o.status==='待處理') && o.type!=='consume');
+  if (!selected.length) {
+    preview.textContent = `今天是${getTodayWeekday()}，勾选待处理订单后点"合并发送"`;
+    return;
+  }
+  // 按供应商合并，过滤订货周期
+  const merged = {};
+  selected.forEach(order=>{
+    (order.items||[]).forEach(item=>{
+      const sup = item.supplier||'未知';
+      // 检查订货周期
+      const itemInfo = items.find(i=>i.item_code===item.item_code||i.name===item.name||i.italian===item.name);
+      const cycle = itemInfo ? (itemInfo.cycle||[]) : [];
+      if (cycle.length > 0 && !cycle.includes(targetDay)) return; // 不在今天订货周期内
+      if (!merged[sup]) merged[sup] = [];
+      const exist = merged[sup].find(x=>x.item_code===item.item_code);
+      if (exist) exist.need += item.need;
+      else merged[sup].push({...item});
+    });
+  });
+  const supCount = Object.keys(merged).length;
+  const itemCount = Object.values(merged).flat().length;
+  preview.textContent = supCount > 0
+    ? `将发送给 ${supCount} 个供应商，共 ${itemCount} 种物料（已按${targetDay}订货周期过滤）`
+    : `所选订单中无${targetDay}可订的物料`;
+}
+
+async function mergeSendOrders() {
+  const targetDay = _weekdayFilter || getTodayWeekday();
+  const selected = orders.filter(o=>_selectedOrderIds.has(String(o.id)) && (o.status==='待处理'||o.status==='待處理') && o.type!=='consume');
+  if (!selected.length) { toast('请先勾选待处理订单','err'); return; }
+
+  // 按供应商合并，过滤订货周期
+  const merged = {};
+  selected.forEach(order=>{
+    (order.items||[]).forEach(item=>{
+      const sup = item.supplier||'未知';
+      const itemInfo = items.find(i=>i.item_code===item.item_code||i.name===item.name||i.italian===item.name);
+      const cycle = itemInfo ? (itemInfo.cycle||[]) : [];
+      if (cycle.length > 0 && !cycle.includes(targetDay)) return;
+      if (!merged[sup]) merged[sup] = [];
+      const exist = merged[sup].find(x=>x.item_code===item.item_code);
+      if (exist) exist.need += item.need;
+      else merged[sup].push({...item});
+    });
+  });
+
+  if (!Object.keys(merged).length) {
+    toast(`${targetDay}没有可发送的物料`, 'err');
+    return;
+  }
+
+  // 逐个供应商发送WhatsApp
+  const today = new Date().toLocaleDateString('zh-CN');
+  let sentCount = 0;
+  for (const [supName, supItems] of Object.entries(merged)) {
+    const supInfo = suppliers.find(s=>(s.name||'').toLowerCase()===supName.toLowerCase());
+    if (!supInfo || !supInfo.wa_number) {
+      toast(`⚠️ ${supName} 没有WhatsApp号码，已跳过`, 'err');
+      continue;
+    }
+    let msg = `*订货单 ${today}*\n`;
+    supItems.forEach(item=>{
+      msg += `• ${item.name||item.italian} ${item.spec||''} × ${item.need}\n`;
+    });
+    const waUrl = `https://wa.me/${supInfo.wa_number}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+    sentCount++;
+    await new Promise(r=>setTimeout(r,500)); // 间隔0.5秒避免被拦截
+  }
+
+  if (sentCount > 0) {
+    // 更新已选订单状态为已确认
+    for (const o of selected) {
+      try {
+        await sb('cucina_orders?id=eq.'+o.id, {method:'PATCH', body:JSON.stringify({status:'已确认'})});
+        const local = orders.find(x=>String(x.id)===String(o.id));
+        if (local) local.status='已确认';
+      } catch(e) {}
+    }
+    _selectedOrderIds.clear();
+    renderOrders();
+    updatePendingBadge();
+    toast(`✅ 已发送给 ${sentCount} 个供应商`);
+  }
+}
+
+
 
 function renderOrders() {
   let data = orders;
-  if (!isAdmin) data = data.filter(o=>(o.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim());
+  // 角色过滤
+  if (isAdmin || currentUserRole==='supervisor') {
+    // 看全部
+  } else if (currentUserRole==='buyer') {
+    // 订货员只看分配给自己的待处理订单，或自己提交的
+    data = data.filter(o=>
+      o.buyer===currentUser ||
+      (o.chef||'').toLowerCase()===currentUser.toLowerCase()
+    );
+  } else {
+    // 普通员工只看自己提交的
+    data = data.filter(o=>(o.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim());
+  }
   if (orderFilter!=='all') {
     if (orderFilter==='待处理') {
       data = data.filter(o=>o.status==='待处理'||o.status==='待處理');
@@ -1933,8 +2110,9 @@ function renderOrders() {
   // 员工筛选
   const chefF = document.getElementById('order-chef-filter');
   const chefVal = chefF ? chefF.value : 'all';
-  // 更新员工下拉列表
-  if (chefF && isAdmin) {
+  const canSeeAll = isAdmin || currentUserRole==='supervisor' || currentUserRole==='buyer';
+  if (chefF) chefF.style.display = canSeeAll ? '' : 'none';
+  if (chefF && canSeeAll) {
     const chefs = [...new Set(orders.map(o=>o.chef).filter(Boolean))];
     const cur = chefF.value;
     chefF.innerHTML = '<option value="all">全部员工</option>' +
@@ -1999,6 +2177,7 @@ function toggleOrderSelect(id, checked) {
   else _selectedOrderIds.delete(String(id));
   const selCount = document.getElementById('order-selected-count');
   if (selCount) selCount.textContent = `已选 ${_selectedOrderIds.size} 条`;
+  updateBuyerMergePreview();
 }
 
 function selectAllOrders() {
@@ -2011,6 +2190,7 @@ function selectAllOrders() {
   });
   const selCount = document.getElementById('order-selected-count');
   if (selCount) selCount.textContent = `已选 ${_selectedOrderIds.size} 条`;
+  updateBuyerMergePreview();
 }
 
 function exportSelectedOrders() {
@@ -2151,18 +2331,42 @@ function renderSupplierList() {
   const el = document.getElementById('supplier-list-ui');
   if (!el) return;
   if (!suppliers.length) { el.innerHTML='<p style="font-size:13px;color:var(--text3);padding:8px 0;">暂无供应商，请添加</p>'; return; }
+  const buyerNames = Object.entries(chefs).filter(([n,v])=>(v.role||'staff')==='buyer').map(([n])=>n);
   el.innerHTML = suppliers.map(s=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;">${s.name}</div>
-        <div style="font-size:12px;color:var(--text3);">${s.wa_number||'未设置'}</div>
+    <div style="padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;">${s.name}</div>
+          <div style="font-size:11px;color:var(--text3);">${s.wa_number||'未设置WA'}</div>
+        </div>
+        <input type="text" value="${s.wa_number||''}" placeholder="WhatsApp号码"
+          style="width:120px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;"
+          onchange="updateSupplierWa(${s.id},this.value)">
+        <button onclick="deleteSupplier(${s.id})"
+          style="border:none;background:transparent;color:var(--danger);font-size:18px;cursor:pointer;">×</button>
       </div>
-      <input type="text" value="${s.wa_number||''}" placeholder="WhatsApp号码"
-        style="width:140px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;"
-        onchange="updateSupplierWa(${s.id},this.value)">
-      <button onclick="deleteSupplier(${s.id})"
-        style="border:none;background:transparent;color:var(--danger);font-size:18px;cursor:pointer;">×</button>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+        <span style="font-size:11px;color:var(--text3);">负责订货员：</span>
+        <select onchange="updateSupplierBuyer(${s.id},this.value)"
+          style="flex:1;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px;background:var(--surface);">
+          <option value="">-- 未指定 --</option>
+          ${buyerNames.map(b=>`<option value="${b}" ${s.buyer===b?'selected':''}>${b}</option>`).join('')}
+        </select>
+      </div>
     </div>`).join('');
+}
+
+async function updateSupplierBuyer(id, buyer) {
+  try {
+    await fetch(SB_URL+'/rest/v1/cucina_suppliers?id=eq.'+id, {
+      method:'PATCH',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({buyer: buyer||null})
+    });
+    const s = suppliers.find(s=>s.id===id);
+    if (s) s.buyer = buyer||null;
+    toast('✅ 已更新');
+  } catch(e){ toast('保存失败','err'); }
 }
 
 async function addSupplier() {
@@ -2493,7 +2697,7 @@ async function doChangePwd() {
   const cf  = document.getElementById('pwd-confirm').value;
   if (!old || !nw) { toast('请填写所有字段','err'); return; }
   const oldHash = await sha256(old);
-  if (chefs[currentUser] !== oldHash) { toast('当前密码错误','err'); return; }
+  if (!chefs[currentUser] || chefs[currentUser].hash !== oldHash) { toast('当前密码错误','err'); return; }
   if (nw !== cf) { toast('两次密码不一致','err'); return; }
   const newHash = await sha256(nw);
   try {
@@ -2501,7 +2705,7 @@ async function doChangePwd() {
       method:'PATCH', headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
       body:JSON.stringify({password:newHash})
     });
-    chefs[currentUser] = newHash;
+    if (chefs[currentUser]) chefs[currentUser].hash = newHash;
     closeModal('modal-change-pwd');
     toast('✅ 密码已修改');
   } catch(e){ toast('修改失败','err'); }
@@ -2564,6 +2768,7 @@ function showAdminPanel(type) {
 }
 
 function renderStaffPanel() {
+  const roleLabel = {staff:'员工', supervisor:'主管', buyer:'订货员'};
   const html = `
     <div id="staff-list" style="margin-bottom:16px"></div>
     <div class="divider"></div>
@@ -2573,6 +2778,11 @@ function renderStaffPanel() {
       <input id="new-staff-name" class="form-control" placeholder="员工姓名">
       <input id="new-staff-pass" class="form-control" placeholder="密码">
     </div>
+    <select id="new-staff-role" class="form-control" style="margin-bottom:8px">
+      <option value="staff">员工（只看自己订单）</option>
+      <option value="supervisor">主管（看全部订单）</option>
+      <option value="buyer">订货员（可发送给供应商）</option>
+    </select>
     <button class="btn btn-primary btn-sm" style="width:100%" onclick="saveStaff()">保存员工</button>
   `;
   document.getElementById('admin-panel-content').innerHTML = html;
@@ -2580,27 +2790,74 @@ function renderStaffPanel() {
 }
 
 function renderStaffList() {
+  const roleLabel = {staff:'员工', supervisor:'主管', buyer:'订货员'};
+  const roleColor = {staff:'var(--text3)', supervisor:'var(--primary)', buyer:'#e67e22'};
   document.getElementById('staff-list').innerHTML =
-    Object.keys(chefs).map(n=>`
+    Object.entries(chefs).map(([n,v])=>`
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;font-size:13px">
-        <span><strong>${n}</strong></span>
+        <span onclick="showStaffSetting('${n}')" style="cursor:pointer;flex:1;">
+          <strong style="color:var(--primary);text-decoration:underline dotted;">${n}</strong>
+          <span style="margin-left:8px;font-size:11px;padding:2px 7px;border-radius:10px;background:var(--surface);color:${roleColor[v.role||'staff']};border:1px solid currentColor">
+            ${roleLabel[v.role||'staff']||v.role}
+          </span>
+        </span>
         <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);padding:4px 10px" onclick="deleteStaff('${n}')">删除</button>
       </div>`).join('');
+}
+
+function showStaffSetting(name) {
+  const chef = chefs[name];
+  if (!chef) return;
+  const roleLabel = {staff:'普通员工', supervisor:'主管', buyer:'订货员'};
+  const current = chef.role || 'staff';
+  const html = `
+    <div style="padding:16px 0;">
+      <p style="font-size:15px;font-weight:600;margin-bottom:16px;">⚙️ ${name} 的设置</p>
+      <div class="form-group">
+        <label class="form-label">角色</label>
+        <select id="staff-role-select" class="form-control">
+          <option value="staff"    ${current==='staff'   ?'selected':''}>普通员工（只看自己订单）</option>
+          <option value="supervisor" ${current==='supervisor'?'selected':''}>主管（看全部订单）</option>
+          <option value="buyer"   ${current==='buyer'  ?'selected':''}>订货员（可发送给供应商）</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-primary" style="flex:1" onclick="saveStaffRole('${name}')">保存</button>
+        <button class="btn btn-ghost" style="flex:1" onclick="renderStaffPanel()">取消</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('admin-panel-content').innerHTML = html;
+}
+
+async function saveStaffRole(name) {
+  const role = document.getElementById('staff-role-select').value;
+  try {
+    await fetch(SB_URL+'/rest/v1/cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name), {
+      method:'PATCH',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({role})
+    });
+    if (chefs[name]) chefs[name].role = role;
+    renderStaffPanel();
+    toast('✅ 已更新：'+name);
+  } catch(e) { toast('保存失败','err'); }
 }
 
 async function saveStaff() {
   const n=document.getElementById('new-staff-name').value.trim();
   const p=document.getElementById('new-staff-pass').value.trim();
+  const r=document.getElementById('new-staff-role').value||'staff';
   if(!n||!p){toast('请填写姓名和密码','err');return;}
   const pHash = await sha256(p);
   try {
     const chk=await(await fetch(SB_URL+'/rest/v1/cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(n),{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})).json();
     if(chk.length>0){
-      await fetch(SB_URL+'/rest/v1/cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(n),{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({password:pHash})});
+      await fetch(SB_URL+'/rest/v1/cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(n),{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({password:pHash,role:r})});
     } else {
-      await sb('cucina_chefs',{method:'POST',body:JSON.stringify({restaurant_id:REST_ID,name:n,password:pHash})});
+      await sb('cucina_chefs',{method:'POST',body:JSON.stringify({restaurant_id:REST_ID,name:n,password:pHash,role:r})});
     }
-    chefs[n]=pHash;
+    chefs[n]={hash:pHash,role:r};
     populateLoginSelect();
     renderStaffList();
     toast('✅ 已保存：'+n);
