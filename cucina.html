@@ -708,10 +708,10 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     </div>
 
     <div class="order-filter-tabs">
-      <div class="order-filter-tab active" data-f="all"    onclick="setOrderFilter(this,'all')">全部</div>
-      <div class="order-filter-tab"        data-f="待处理" onclick="setOrderFilter(this,'待处理')">待处理</div>
-      <div class="order-filter-tab"        data-f="已確認" onclick="setOrderFilter(this,'已確認')">已完成</div>
-      <div class="order-filter-tab"        data-f="消耗记录" onclick="setOrderFilter(this,'消耗记录')">消耗记录</div>
+      <div class="order-filter-tab active" data-f="all"    onclick="setOrderFilter(this,'all')" id="filter-all">全部</div>
+      <div class="order-filter-tab"        data-f="待处理" onclick="setOrderFilter(this,'待处理')" id="filter-pending">待处理</div>
+      <div class="order-filter-tab"        data-f="已確認" onclick="setOrderFilter(this,'已確認')" id="filter-done">已完成</div>
+      <div class="order-filter-tab"        data-f="消耗记录" onclick="setOrderFilter(this,'消耗记录')" id="filter-consume">消耗记录</div>
     </div>
 
     <!-- 筛选栏 -->
@@ -793,54 +793,48 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     </div>
 
     <div class="menu-section">
-      <div class="menu-section-title">账户设置</div>
-
+      <div class="menu-section-title" id="lbl-account-settings">账户设置</div>
       <div class="menu-item" onclick="changeLangModal()">
         <div class="menu-item-icon" style="background:#FFF7E6">🌐</div>
-        <div class="menu-item-text"><div class="title">语言设置</div><div class="sub" id="current-lang-lbl">中文</div></div>
+        <div class="menu-item-text"><div class="title" id="lbl-lang-settings">语言设置</div><div class="sub" id="current-lang-lbl">中文</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
     </div>
 
     <div class="menu-section" id="admin-menu" style="display:none">
-      <div class="menu-section-title">管理员功能</div>
+      <div class="menu-section-title" id="lbl-admin-func">管理员功能</div>
       <div class="menu-item" onclick="showAdminPanel('staff')">
         <div class="menu-item-icon" style="background:#ECFDF5">👥</div>
-        <div class="menu-item-text"><div class="title">员工账号管理</div><div class="sub">新增、修改、删除员工</div></div>
+        <div class="menu-item-text"><div class="title" id="lbl-staff-mgmt">员工账号管理</div><div class="sub" id="lbl-staff-sub">新增、修改、删除员工</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
       <div class="menu-item" onclick="showAdminPanel('items')">
         <div class="menu-item-icon" style="background:#FFF5F5">📦</div>
-        <div class="menu-item-text"><div class="title">物料管理</div><div class="sub">新增、编辑物料信息</div></div>
+        <div class="menu-item-text"><div class="title" id="lbl-item-mgmt">物料管理</div><div class="sub" id="lbl-item-sub">新增、编辑物料信息</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
       <div class="menu-item" onclick="showSupplierModal()">
         <div class="menu-item-icon" style="background:#E6F4FF">📱</div>
-        <div class="menu-item-text"><div class="title">供应商 WhatsApp</div><div class="sub">设置各供应商联系方式</div></div>
+        <div class="menu-item-text"><div class="title" id="lbl-supplier">供应商 WhatsApp</div><div class="sub" id="lbl-supplier-sub">设置各供应商联系方式</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
       <div class="menu-item" onclick="showAdminPanel('pending')">
         <div class="menu-item-icon" style="background:#FFFBEB">📋</div>
-        <div class="menu-item-text"><div class="title">审批订单</div><div class="sub" id="pending-badge-text">查看待处理订单</div></div>
+        <div class="menu-item-text"><div class="title" id="lbl-approve">审批订单</div><div class="sub" id="pending-badge-text">查看待处理订单</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
     </div>
 
     <div class="menu-section">
-      <div class="menu-section-title">系统</div>
-      <div class="menu-item" onclick="downloadApp()">
-        <div class="menu-item-icon" style="background:#F0F3F8">💾</div>
-        <div class="menu-item-text"><div class="title">下载前端备份</div><div class="sub">保存当前系统到本地</div></div>
-        <span class="menu-item-arrow">›</span>
-      </div>
+      <div class="menu-section-title" id="lbl-system">系统</div>
       <div class="menu-item" onclick="showChangePass()">
         <div class="menu-item-icon" style="background:#F0F4FF">🔑</div>
-        <div class="menu-item-text"><div class="title">修改密码</div><div class="sub">更改登录密码</div></div>
+        <div class="menu-item-text"><div class="title" id="lbl-change-pass">修改密码</div><div class="sub" id="lbl-change-pass-sub">更改登录密码</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
       <div class="menu-item" onclick="doLogout()" style="color:var(--danger)">
         <div class="menu-item-icon" style="background:#FFF5F5">🚪</div>
-        <div class="menu-item-text"><div class="title" style="color:var(--danger)">退出登录</div><div class="sub">返回登录页面</div></div>
+        <div class="menu-item-text"><div class="title" id="lbl-logout" style="color:var(--danger)">退出登录</div><div class="sub" id="lbl-logout-sub">返回登录页面</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
     </div>
@@ -850,11 +844,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   <div class="bottom-nav">
     <div class="nav-item active" id="nav-inventory" onclick="switchTab('inventory')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-      <span>库存管理</span>
+      <span id="nav-lbl-inventory">库存管理</span>
     </div>
     <div class="nav-item" id="nav-order" onclick="switchTab('order')" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-      <span>订货系统</span>
+      <span id="nav-lbl-order">订货系统</span>
     </div>
     <div class="nav-item" id="nav-orders" onclick="switchTab('orders')" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -1093,14 +1087,28 @@ const i18n = {
     consumeHint:'负数=消耗，正数=补货', todayTag:'今日',
     // 订单
     ordersTitle:'订单系统', allOrders:'全部订单',
-    filterPending:'待处理', filterDone:'已完成',
+    filterPending:'待处理', filterDone:'已完成', filterConsume:'消耗记录',
     exportBtn:'导出采购清单',
+    allDate:'全部日期', today:'今天', yesterday:'昨天', custom:'自定义',
+    allStaff:'全部员工', selected:'已选', selectAll:'全选',
+    export:'导出', viewDetail:'查看详情', ingredients:'种食材', totalQty:'总量',
+    accountSettings:'账户设置', langSettings:'语言设置',
+    systemSettings:'系统', changePass:'修改密码', changePassSub:'更改登录密码',
+    logout:'退出登录', logoutSub:'返回登录页面',
+    adminFunc:'管理员功能', staffMgmt:'员工账号管理', staffMgmtSub:'新增、修改、删除员工',
+    itemMgmt:'物料管理', itemMgmtSub:'新增、编辑物料信息',
+    supplierWA:'供应商 WhatsApp', supplierWASub:'设置各供应商联系方式',
+    approveOrder:'审批订单',
+    alertNoOrder:'以下员工今天还没有提交订单',
+    alertNotSent:'以下供应商订单还未发送',
+    orderNo:'订单号', orderDate:'日期', orderBy:'提交人',
     // 报表
     reportTitle:'报表分析', overview:'概览',
     invAnalysis:'库存分析', consumeAnalysis:'消耗分析',
     // 我的
     profileTitle:'我的', role:'角色',
     admin:'管理员 · Admin', staff:'员工',
+    roleWarehouse:'仓库员', roleStaff:'员工', roleSupervisor:'主管', roleBuyer:'采购员', roleAdmin:'管理员',
     langLabel:'语言',
     logout:'退出登录',
     // 编辑
@@ -1137,13 +1145,14 @@ const i18n = {
     orderTotal:'Quantità totale: ', orderSubmit:'Invia ordine',
     suggestQty:'Qtà consigliata', consume:'Rettifica magazzino',
     consumeHint:'Negativo=consumo, positivo=carico', todayTag:'Oggi',
-    ordersTitle:'Ordini', allOrders:'Tutti',
-    filterPending:'In attesa', filterDone:'Completato',
+    ordersTitle:'Storico ordini', allOrders:'Tutti',
+    filterPending:'In attesa', filterDone:'Completato', filterConsume:'Consumo',
     exportBtn:'Esporta lista acquisti',
     reportTitle:'Report', overview:'Panoramica',
     invAnalysis:'Analisi magazzino', consumeAnalysis:'Analisi consumi',
     profileTitle:'Profilo', role:'Ruolo',
     admin:'Amministratore', staff:'Dipendente',
+    roleWarehouse:'Magazziniere', roleStaff:'Dipendente', roleSupervisor:'Supervisore', roleBuyer:'Acquisti', roleAdmin:'Amministratore',
     langLabel:'Lingua', logout:'Esci',
     editItem:'Modifica alimento', editCode:'Codice', editCat:'Categoria',
     editItalian:'Nome italiano', editName:'Nome cinese',
@@ -1156,6 +1165,19 @@ const i18n = {
     newItem:'Nuovo alimento', addItem:'Aggiungi',
     importTitle:'Importa dati', importSave:'Salva nel database',
     importPreview:'Anteprima', importCancel:'Annulla',
+    allDate:'Tutte le date', today:'Oggi', yesterday:'Ieri', custom:'Personalizzato',
+    allStaff:'Tutti i dipendenti', selected:'Selezionati', selectAll:'Seleziona tutto',
+    export:'Esporta', viewDetail:'Dettagli', ingredients:'ingredienti', totalQty:'Totale',
+    accountSettings:'Impostazioni account', langSettings:'Lingua',
+    systemSettings:'Sistema', changePass:'Cambia password', changePassSub:'Modifica la password',
+    logout:'Esci', logoutSub:'Torna al login',
+    adminFunc:'Funzioni amministratore', staffMgmt:'Gestione dipendenti', staffMgmtSub:'Aggiungi, modifica, elimina',
+    itemMgmt:'Gestione alimenti', itemMgmtSub:'Aggiungi, modifica alimenti',
+    supplierWA:'Fornitori WhatsApp', supplierWASub:'Imposta contatti fornitori',
+    approveOrder:'Approvazione ordini',
+    alertNoOrder:'I seguenti dipendenti non hanno ancora inviato ordini oggi',
+    alertNotSent:'I seguenti fornitori non hanno ancora ricevuto ordini',
+    orderNo:'Ordine', orderDate:'Data', orderBy:'Operatore',
     days:['','Lun','Mar','Mer','Gio','Ven','Sab','Dom'],
   },
   bn: {
@@ -1182,6 +1204,7 @@ const i18n = {
     invAnalysis:'মজুদ বিশ্লেষণ', consumeAnalysis:'ব্যবহার বিশ্লেষণ',
     profileTitle:'আমার', role:'ভূমিকা',
     admin:'প্রশাসক', staff:'কর্মী',
+    roleWarehouse:'গুদামকর্মী', roleStaff:'কর্মী', roleSupervisor:'সুপারভাইজার', roleBuyer:'ক্রয়কর্তা', roleAdmin:'প্রশাসক',
     langLabel:'ভাষা', logout:'প্রস্থান',
     editItem:'খাবার সম্পাদনা', editCode:'কোড', editCat:'বিভাগ',
     editItalian:'ইতালীয় নাম', editName:'চীনা নাম',
@@ -1343,8 +1366,14 @@ function showApp() {
   document.getElementById('screen-login').classList.remove('active');
   document.getElementById('screen-app').classList.add('active');
   document.getElementById('profile-name').textContent = currentUser;
-  const roleLabel = {staff:'员工', supervisor:'主管', buyer:'订货员', admin:'管理员'};
-  document.getElementById('profile-role').textContent = isAdmin ? '管理员 · Admin' : (roleLabel[currentUserRole]||'员工');
+  const roleLabel = {
+    warehouse: t('roleWarehouse')||'仓库员',
+    staff: t('roleStaff')||'员工',
+    supervisor: t('roleSupervisor')||'主管',
+    buyer: t('roleBuyer')||'采购员',
+    admin: t('roleAdmin')||'管理员'
+  };
+  document.getElementById('profile-role').textContent = isAdmin ? (t('roleAdmin')||'管理员') : (roleLabel[currentUserRole]||t('roleStaff')||'员工');
   if (isAdmin) document.getElementById('admin-menu').style.display='block';
   else document.getElementById('admin-menu').style.display='none';
   // 库存/报表只有管理员看
@@ -2046,7 +2075,7 @@ function renderOrderAlertPanel() {
   if (notSubmitted.length > 0) {
     alerts.push({
       type: 'warn',
-      title: '⚠️ 以下员工今天还没有提交订单',
+      title: `⚠️ ${t('alertNoOrder')||'以下员工今天还没有提交订单'}`,
       items: notSubmitted.map(x=>`${x.chef}（${x.suppliers.join('、')}）`)
     });
   }
@@ -2072,7 +2101,7 @@ function renderOrderAlertPanel() {
     if (overdue.length > 0) {
       alerts.push({
         type: 'danger',
-        title: '🔴 以下供应商订单还未发送',
+        title: `🔴 ${t('alertNotSent')||'以下供应商订单还未发送'}`,
         items: overdue.map(s=>{
           const sup = suppliers.find(x=>(x.name||'').toLowerCase()===s.toLowerCase());
           return `${s}（截止 ${(sup?.order_deadline||'19:00').slice(0,5)}）`;
@@ -2395,7 +2424,7 @@ function renderOrders() {
   if (chefF && canSeeAll) {
     const chefs = [...new Set(orders.map(o=>o.chef).filter(Boolean))];
     const cur = chefF.value;
-    chefF.innerHTML = '<option value="all">全部员工</option>' +
+    chefF.innerHTML = `<option value="all">${t('allStaff')||'全部员工'}</option>` +
       chefs.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
   }
   if (chefVal!=='all') data = data.filter(o=>o.chef===chefVal);
@@ -2438,14 +2467,14 @@ function renderOrders() {
           <span class="icon">👤</span><span>${o.chef||'-'}</span>
         </div>
         <div class="order-footer-row">
-          <span style="font-size:12px;color:var(--text2)">食材 <strong>${itemCount}</strong> 种 · 总量 <strong>${totalQty.toFixed(1)}</strong></span>
+          <span style="font-size:12px;color:var(--text2)">${t('colFood')||'食材'} <strong>${itemCount}</strong> ${t('ingredients')||'种'} · ${t('totalQty')||'总量'} <strong>${totalQty.toFixed(1)}</strong></span>
           <div style="display:flex;gap:8px;align-items:center;">
             ${isAdmin?(o.status==='已確認'||o.status==='已确认'
               ? `<span style="font-size:11px;padding:3px 10px;border-radius:6px;background:#25D366;color:#fff;">✓ 已确认</span>`
               : `<button onclick="event.stopPropagation();confirmOrder('${o.id}')"
                   style="font-size:11px;padding:3px 10px;border:none;border-radius:6px;background:#FF8C00;color:#fff;cursor:pointer;">✓ 确认</button>`)
               :''}
-            <span class="order-detail-link">查看详情 ›</span>
+            <span class="order-detail-link">${t('viewDetail')||'查看详情'} ›</span>
           </div>
         </div>
       </div>
@@ -2495,15 +2524,24 @@ function exportSelectedOrders() {
 function showOrderDetail(id) {
   const order = orders.find(o=>String(o.id)===String(id));
   if (!order) return;
-  const st = order.status==='已確認'||order.status==='已确认'
+  const isPending = order.status==='待处理'||order.status==='待處理';
+  const isConsume = order.status==='消耗记录'||order.type==='consume';
+  const isDone = order.status==='已確認'||order.status==='已确认';
+  const st = isDone
     ? `<span class="badge badge-done">已完成</span>`
-    : order.status==='消耗记录'||order.type==='consume'
+    : isConsume
     ? `<span class="badge" style="background:#e8f5e9;color:#2e7d32;">消耗记录</span>`
     : `<span class="badge badge-pending">待处理</span>`;
+
+  // 撤回按钮：自己提交的待处理订单才能撤回
+  const canRecall = isPending && !isConsume &&
+    (order.chef||'').toLowerCase()===(currentUser||'').toLowerCase();
+
   document.getElementById('modal-order-detail-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div>
         <div style="font-size:13px;color:var(--text2)">📅 ${order.date} &nbsp; 👤 ${order.chef}</div>
+        ${order.created_at?`<div style="font-size:12px;color:var(--text3)">🕐 ${new Date(order.created_at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
       </div>${st}
     </div>
     <div style="background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:14px">
@@ -2517,11 +2555,50 @@ function showOrderDetail(id) {
           <strong>${i.need} ${i.spec||''}</strong>
         </div>`).join('')}
     </div>
-    ${isAdmin&&order.status!=='消耗记录'&&order.type!=='consume'&&(order.status==='待处理'||order.status==='待處理')?`
-      <button class="btn btn-green" onclick="confirmOrder('${order.id}')">✓ 确认已备货</button>
+    ${isAdmin&&isPending&&!isConsume?`
+      <button class="btn btn-green" style="width:100%;margin-bottom:8px;" onclick="confirmOrder('${order.id}')">✓ 确认已备货</button>
+    `:''}
+    ${canRecall?`
+      <button class="btn btn-ghost" style="width:100%;color:var(--danger);border-color:var(--danger);" onclick="recallOrder('${order.id}')">↩ 撤回订单</button>
     `:''}
   `;
   openModal('modal-order-detail');
+}
+
+async function recallOrder(id) {
+  if (!confirm('确定撤回这个订单？撤回后可以重新修改再提交。')) return;
+  const order = orders.find(o=>String(o.id)===String(id));
+  if (!order) return;
+  try {
+    // 从数据库删除
+    await fetch(SB_URL+'/rest/v1/cucina_orders?id=eq.'+id, {
+      method:'DELETE',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    // 从本地移除
+    const idx = orders.findIndex(o=>String(o.id)===String(id));
+    if (idx > -1) orders.splice(idx, 1);
+    // 把订货数量还原到订货系统
+    (order.items||[]).forEach(orderItem=>{
+      const item = items.find(i=>
+        i.item_code===orderItem.item_code ||
+        (i.name||i.italian)===orderItem.name
+      );
+      if (item) {
+        item.need = orderItem.need;
+        item.checked = true;
+        item.orderModified = true;
+      }
+    });
+    closeModal('modal-order-detail');
+    renderOrders();
+    updatePendingBadge();
+    toast('✅ 订单已撤回，请到订货系统重新修改');
+    // 跳转到订货系统
+    setTimeout(()=>switchTab('order'), 1000);
+  } catch(e) {
+    toast('撤回失败：'+e.message,'err');
+  }
 }
 
 async function confirmOrder(id) {
@@ -3022,28 +3099,62 @@ function changeLang(v) {
   currentLang = v;
   const labels = {zh:'中文',it:'Italiano',bn:'বাংলা'};
   document.getElementById('current-lang-lbl').textContent = labels[v]||v;
-  // 更新登录页文字
   const se = (id,val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+  // 登录页
   se('login-btn', t('loginBtn'));
   se('login-err', t('loginErr'));
-  // 更新库存表头
+  // 库存表头
   se('th-food', t('colFood'));
   se('th-stock', t('colStock'));
   se('th-safe', t('colSafe'));
   se('th-unit', t('colUnit'));
   se('th-status', t('colStatus'));
-  // 更新订货底栏
+  // 订货底栏
   se('order-hint-txt', t('orderHint'));
   se('sel-total-lbl', t('orderTotal'));
   se('submit-btn-txt', t('submit'));
-  // sel-count-lbl需要保留strong
   const scl = document.getElementById('sel-count-lbl');
   if (scl) {
     const cnt = document.getElementById('sel-count');
     const n = cnt ? cnt.textContent : '0';
     scl.innerHTML = t('orderSelected')+' <strong id="sel-count">'+n+'</strong> '+t('orderKinds');
   }
-  // 重新渲染当前页面
+  // 订单筛选标签
+  se('filter-all', t('all'));
+  se('filter-pending', t('pending'));
+  se('filter-done', t('done'));
+  se('filter-consume', t('filterConsume')||'消耗记录');
+  // 底部导航Tab
+  const tabs = t('tabs');
+  ['nav-inventory','nav-order','nav-orders','nav-report','nav-profile'].forEach((id,i)=>{
+    const el = document.getElementById(id);
+    if (el) { const span = el.querySelector('span'); if(span&&tabs[i]) span.textContent=tabs[i]; }
+  });
+  // 我的页面
+  se('lbl-account-settings', t('accountSettings'));
+  se('lbl-lang-settings', t('langSettings'));
+  se('lbl-system', t('systemSettings'));
+  se('lbl-change-pass', t('changePass'));
+  se('lbl-change-pass-sub', t('changePassSub'));
+  se('lbl-logout', t('logout'));
+  se('lbl-logout-sub', t('logoutSub'));
+  se('lbl-admin-func', t('adminFunc'));
+  se('lbl-staff-mgmt', t('staffMgmt'));
+  se('lbl-staff-sub', t('staffMgmtSub'));
+  se('lbl-item-mgmt', t('itemMgmt'));
+  se('lbl-item-sub', t('itemMgmtSub'));
+  se('lbl-supplier', t('supplierWA'));
+  se('lbl-supplier-sub', t('supplierWASub'));
+  se('lbl-approve', t('approveOrder'));
+  // 刷新角色显示
+  if (currentUser) {
+    const roleMap = {warehouse:t('roleWarehouse'), staff:t('roleStaff'), supervisor:t('roleSupervisor'), buyer:t('roleBuyer'), admin:t('roleAdmin')};
+    se('profile-role', isAdmin ? t('roleAdmin') : (roleMap[currentUserRole]||t('roleStaff')));
+  }
+  // 底部导航
+  se('nav-lbl-inventory', t('tabs')[0]);
+  se('nav-lbl-order', t('tabs')[1]);
+  // 重新渲染
   switchTab(currentTab);
 }
 
