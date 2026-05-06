@@ -1753,7 +1753,7 @@ function resetOrder() {
 function stepConsume(id, d) {
   const item = items.find(i=>i.id===id);
   if (!item) return;
-  item.consume = Math.max(0, (parseInt(item.consume)||0) + d);
+  item.consume = (parseInt(item.consume)||0) + d;
   const el = document.getElementById('oconsume-'+id);
   if (el) el.value = item.consume;
   // 问题2：消耗量>0时也激活checkbox和卡片
@@ -2778,7 +2778,8 @@ async function saveImport() {
   // 逐条插入物料数据（去掉_wa临时字段）
   let count=0;
   for(const item of pendingImport){
-    const {_wa, ...itemData} = item;  // 去掉_wa
+    const itemData = Object.assign({}, item);
+    delete itemData._wa;
     try {
       await fetch(SB_URL+'/rest/v1/cucina_items',{
         method:'POST',
