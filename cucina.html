@@ -2093,6 +2093,9 @@ function setOrderFilter(el, f) {
   renderOrders();
 }
 
+let _selectedOrderIds = new Set();
+let _weekdayFilter = ''; // 空=今天
+
 function updateOrderAlerts() {
   const panel = document.getElementById('order-alert-panel');
   if (!panel) return;
