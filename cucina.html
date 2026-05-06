@@ -1872,8 +1872,14 @@ async function submitOrder() {
         status:'消耗记录', type:'consume'
       };
       const cr = await fetch(SB_URL+'/rest/v1/cucina_orders', {method:'POST', headers, body:JSON.stringify(consumeOrder)});
+      if (!cr.ok) { const e=await cr.text(); throw new Error('消耗记录失败:'+e); }
       const csaved = await cr.json();
-      orders.unshift({id:csaved[0]?.id||Date.now(), ...consumeOrder});
+      const csavedOrder = csaved[0] || {};
+      orders.unshift({
+        id: csavedOrder.id || Date.now(),
+        created_at: csavedOrder.created_at || new Date().toISOString(),
+        ...consumeOrder
+      });
 
       for (const item of toConsume) {
         try {
@@ -1914,8 +1920,18 @@ async function submitOrder() {
           buyer: buyer
         };
         const r = await fetch(SB_URL+'/rest/v1/cucina_orders', {method:'POST', headers, body:JSON.stringify(newOrder)});
+        if (!r.ok) {
+          const errText = await r.text();
+          console.error('订单提交失败:', errText);
+          throw new Error('订单保存失败: ' + errText);
+        }
         const saved = await r.json();
-        orders.unshift({id:saved[0]?.id||Date.now(), ...newOrder});
+        const savedOrder = saved[0] || {};
+        orders.unshift({
+          id: savedOrder.id || Date.now(),
+          created_at: savedOrder.created_at || new Date().toISOString(),
+          ...newOrder
+        });
       }
       if (isAdmin || currentUserRole==='buyer') {
         const allOrderItems = sel.map(i=>({
@@ -2156,6 +2172,7 @@ function renderOrders() {
         </div>
         <div class="order-meta">
           <span class="icon">📅</span><span>${o.date||'-'}</span>
+          <span class="icon">🕐</span><span>${o.created_at ? new Date(o.created_at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
           <span class="icon">👤</span><span>${o.chef||'-'}</span>
         </div>
         <div class="order-footer-row">
