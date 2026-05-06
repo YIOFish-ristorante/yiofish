@@ -1809,21 +1809,14 @@ function canAddItem() {
   var roundMax = SETTINGS.round_max || 0;
   var roundTotal = SETTINGS.round_total || 0;
   if (roundMax === 0 && roundTotal === 0) return {ok: true};
-  var status = getRoundStatus();
-  if (!status.ok) return {ok: false, msg: status.msg};
+  // 注意：加菜时不检查间隔，只有发送时才检查
 
-  // 本轮已点（本机cart_dine里price=0的菜）
+  // 本轮已点：cart_dine里所有菜（price=0）
   var thisRoundCount = 0;
   for (var k in cart_dine) {
-    var kit = getItemById(k);
-    if (kit) {
-      var kitHasPrice = false;
-      if (kit.menus) {
-        for (var mid in kit.menus) {
-          if ((parseFloat(kit.menus[mid].price) || 0) > 0) { kitHasPrice = true; break; }
-        }
-      }
-      if (!kitHasPrice) thisRoundCount += cart_dine[k];
+    var kit = getItemForMenu(k);
+    if (kit && (parseFloat(kit.price) || 0) === 0) {
+      thisRoundCount += cart_dine[k];
     }
   }
   if (roundMax > 0 && thisRoundCount >= roundMax * guestCount) {
@@ -1887,6 +1880,9 @@ function sendNotify() {
   var note = (document.getElementById('order-note') || {}).value || '';
   note = note.trim();
   if (!cartCount() && !note) { toast('⚠️ Aggiungi piatti o scrivi una nota'); return; }
+  // 发送前检查间隔限制
+  var roundStatus = getRoundStatus();
+  if (!roundStatus.ok) { toast('⚠️ ' + roundStatus.msg); return; }
   var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Carpi*', '', '🪑 Tavolo: ' + tableNum, ''];
   for (var id in cart_dine) {
     var it = getItemForMenu(id);
