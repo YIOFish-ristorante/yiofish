@@ -2147,7 +2147,6 @@ function updateOrderAlerts() {
       (o.status==='待处理'||o.status==='待處理') &&
       o.type!=='consume'
     );
-    // 按供应商检查截止时间
     const pendingSuppliers = new Set();
     pendingToday.forEach(o=>{
       (o.items||[]).forEach(i=>{ if(i.supplier) pendingSuppliers.add(i.supplier); });
@@ -2156,9 +2155,12 @@ function updateOrderAlerts() {
       const sup = suppliers.find(s=>s.name.toLowerCase()===supName.toLowerCase());
       if (!sup||!sup.order_deadline) return;
       const [dh,dm] = sup.order_deadline.split(':').map(Number);
-      if (nowMinutes >= dh*60+(dm||0)) {
-        alerts.push({type:'not_sent', supplier:supName, deadline:sup.order_deadline});
-      }
+      if (nowMinutes < dh*60+(dm||0)) return; // 还没到截止时间
+      // 检查今天是不是这个供应商的订货日
+      const supItems = items.filter(i=>(i.supplier||'').toLowerCase()===supName.toLowerCase());
+      const hasTodayCycle = supItems.some(i=>isTodayCycleForDay(i, todayDay));
+      if (!hasTodayCycle) return; // 今天不是订货日，不提醒
+      alerts.push({type:'not_sent', supplier:supName, deadline:sup.order_deadline});
     });
   }
 
@@ -2167,6 +2169,8 @@ function updateOrderAlerts() {
   // 分组显示
   const noOrderAlerts = alerts.filter(a=>a.type==='no_order');
   const notSentAlerts = alerts.filter(a=>a.type==='not_sent');
+
+  const fmtDeadline = (t) => (t||'19:00').slice(0,5); // HH:MM
 
   let html = '';
   if (noOrderAlerts.length) {
@@ -2177,10 +2181,13 @@ function updateOrderAlerts() {
     </div>`;
   }
   if (notSentAlerts.length) {
-    const sups = [...new Set(notSentAlerts.map(a=>a.supplier))].join('、');
+    const supList = [...new Set(notSentAlerts.map(a=>a.supplier))];
     html += `<div style="background:#f8d7da;border:1px solid #f5c6cb;border-radius:10px;padding:10px 12px;">
       <div style="font-size:12px;font-weight:600;color:#721c24;margin-bottom:4px;">🚨 以下供应商订单还未发送</div>
-      <div style="font-size:13px;color:#721c24;">${sups}</div>
+      <div style="font-size:13px;color:#721c24;">${supList.map(s=>{
+        const sup = suppliers.find(x=>x.name===s);
+        return `• ${s}（截止 ${fmtDeadline(sup?.order_deadline)}）`;
+      }).join('<br>')}</div>
     </div>`;
   }
 
