@@ -1328,6 +1328,7 @@ function showApp() {
   const roleLabel = {staff:'员工', supervisor:'主管', buyer:'订货员', admin:'管理员'};
   document.getElementById('profile-role').textContent = isAdmin ? '管理员 · Admin' : (roleLabel[currentUserRole]||'员工');
   if (isAdmin) document.getElementById('admin-menu').style.display='block';
+  else document.getElementById('admin-menu').style.display='none';
   // 库存/报表只有管理员看
   ['nav-inventory','nav-report'].forEach(id=>{
     const el = document.getElementById(id);
@@ -1957,6 +1958,7 @@ function setOrderFilter(el, f) {
   renderOrders();
 }
 
+let _selectedOrderIds = new Set();
 let _weekdayFilter = ''; // 空=今天
 
 function setWeekdayFilter(btn, day) {
