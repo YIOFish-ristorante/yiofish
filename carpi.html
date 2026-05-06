@@ -1902,6 +1902,8 @@ function sendNotify() {
   saveCartToLS();
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
+  // 记录轮次
+  recordRoundSent(tableNum);
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
