@@ -1073,7 +1073,7 @@ let currentLang = 'zh';
 const i18n = {
   zh: {
     tabs:['库存管理','订货系统','订单系统','报表分析','我的'],
-    submit:'提交订单', pending:'待处理', done:'已完成', all:'全部',
+    submit:'提交', pending:'待处理', done:'已完成', all:'全部',
     lowStock:'库存不足', ok:'正常', warn:'预警',
     // 登录
     loginTitle:'后厨管理系统', loginSub:'Cucina Management · Carpi',
@@ -1122,7 +1122,7 @@ const i18n = {
   },
   it: {
     tabs:['Magazzino','Ordini','Storico','Report','Profilo'],
-    submit:'Invia ordine', pending:'In attesa', done:'Completato', all:'Tutto',
+    submit:'Invia', pending:'In attesa', done:'Completato', all:'Tutto',
     lowStock:'Scorta bassa', ok:'OK', warn:'Attenzione',
     loginTitle:'Sistema Gestione Cucina', loginSub:'Cucina Management · Carpi',
     loginSelect:'Seleziona dipendente', loginPass:'Password',
@@ -2027,7 +2027,7 @@ function renderOrderAlertPanel() {
     if (!cycle.includes(todayDay)) return;
     const sup = suppliers.find(s=>(s.name||'').toLowerCase()===(item.supplier||'').toLowerCase());
     const deadline = sup?.order_deadline || '19:00';
-    if (nowTime < deadline) return; // 还没到截止时间，不提醒
+    if (nowTime < deadline.slice(0,5)) return; // 还没到截止时间，不提醒
     if (!staffWithTodayDuty[item.chef]) staffWithTodayDuty[item.chef] = new Set();
     staffWithTodayDuty[item.chef].add(item.supplier||'未知');
   });
@@ -2056,11 +2056,18 @@ function renderOrderAlertPanel() {
   if (pendingToday.length > 0) {
     const pendingSups = new Set();
     pendingToday.forEach(o=>(o.items||[]).forEach(i=>pendingSups.add(i.supplier||'未知')));
-    // 只提醒已过截止时间的供应商
+    // 只提醒已过截止时间且今天是订货日的供应商
     const overdue = [...pendingSups].filter(supName=>{
       const sup = suppliers.find(s=>(s.name||'').toLowerCase()===supName.toLowerCase());
       const deadline = sup?.order_deadline || '19:00';
-      return nowTime >= deadline;
+      if (nowTime < deadline.slice(0,5)) return false; // 还没到截止时间
+      // 检查今天是不是这个供应商的订货日
+      const supItems = items.filter(i=>(i.supplier||'').toLowerCase()===supName.toLowerCase());
+      return supItems.some(i=>{
+        const cycle = i.cycle||[];
+        if (cycle.length===0) return true; // 没设周期=每天都订
+        return cycle.includes(todayDay);
+      });
     });
     if (overdue.length > 0) {
       alerts.push({
@@ -2068,7 +2075,7 @@ function renderOrderAlertPanel() {
         title: '🔴 以下供应商订单还未发送',
         items: overdue.map(s=>{
           const sup = suppliers.find(x=>(x.name||'').toLowerCase()===s.toLowerCase());
-          return `${s}（截止 ${sup?.order_deadline||'19:00'}）`;
+          return `${s}（截止 ${(sup?.order_deadline||'19:00').slice(0,5)}）`;
         })
       });
     }
