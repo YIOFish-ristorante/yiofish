@@ -2093,8 +2093,103 @@ function setOrderFilter(el, f) {
   renderOrders();
 }
 
-let _selectedOrderIds = new Set();
-let _weekdayFilter = ''; // 空=今天
+function updateOrderAlerts() {
+  const panel = document.getElementById('order-alert-panel');
+  if (!panel) return;
+  if (!isAdmin && currentUserRole!=='buyer' && currentUserRole!=='supervisor') {
+    panel.style.display='none'; return;
+  }
+
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0,10);
+  const todayDay = getTodayWeekday();
+  const nowMinutes = now.getHours()*60 + now.getMinutes();
+
+  const alerts = [];
+
+  // ── 1. 找今天有订货任务但还没提交的员工 ──
+  // 按供应商找截止时间，再找负责该供应商物料的员工
+  suppliers.forEach(sup=>{
+    if (!sup.order_deadline) return;
+    const [dh, dm] = (sup.order_deadline||'19:00').split(':').map(Number);
+    const deadlineMinutes = dh*60 + (dm||0);
+    if (nowMinutes < deadlineMinutes) return; // 还没到截止时间
+
+    // 找负责这个供应商物料的员工
+    const supItems = items.filter(i=>
+      (i.supplier||'').toLowerCase()===sup.name.toLowerCase() &&
+      isTodayCycleForDay(i, todayDay)
+    );
+    if (!supItems.length) return; // 今天不是这个供应商的订货日
+
+    const chefNames = [...new Set(supItems.map(i=>i.chef).filter(Boolean))];
+    chefNames.forEach(chefName=>{
+      // 检查这个员工今天有没有提交订单
+      const hasOrder = orders.some(o=>
+        o.chef===chefName &&
+        o.date===todayStr &&
+        (o.type==='order'||!o.type) &&
+        o.type!=='consume'
+      );
+      if (!hasOrder) {
+        alerts.push({type:'no_order', chef:chefName, supplier:sup.name, deadline:sup.order_deadline});
+      }
+    });
+  });
+
+  // ── 2. 找今天有待处理订单还没发送的提醒（给采购员） ──
+  if (isAdmin || currentUserRole==='buyer') {
+    const pendingToday = orders.filter(o=>
+      o.date===todayStr &&
+      (o.status==='待处理'||o.status==='待處理') &&
+      o.type!=='consume'
+    );
+    // 按供应商检查截止时间
+    const pendingSuppliers = new Set();
+    pendingToday.forEach(o=>{
+      (o.items||[]).forEach(i=>{ if(i.supplier) pendingSuppliers.add(i.supplier); });
+    });
+    pendingSuppliers.forEach(supName=>{
+      const sup = suppliers.find(s=>s.name.toLowerCase()===supName.toLowerCase());
+      if (!sup||!sup.order_deadline) return;
+      const [dh,dm] = sup.order_deadline.split(':').map(Number);
+      if (nowMinutes >= dh*60+(dm||0)) {
+        alerts.push({type:'not_sent', supplier:supName, deadline:sup.order_deadline});
+      }
+    });
+  }
+
+  if (!alerts.length) { panel.style.display='none'; return; }
+
+  // 分组显示
+  const noOrderAlerts = alerts.filter(a=>a.type==='no_order');
+  const notSentAlerts = alerts.filter(a=>a.type==='not_sent');
+
+  let html = '';
+  if (noOrderAlerts.length) {
+    const names = [...new Set(noOrderAlerts.map(a=>a.chef))].join('、');
+    html += `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+      <div style="font-size:12px;font-weight:600;color:#856404;margin-bottom:4px;">⚠️ 以下员工今天还没有提交订单</div>
+      <div style="font-size:13px;color:#856404;">${names}</div>
+    </div>`;
+  }
+  if (notSentAlerts.length) {
+    const sups = [...new Set(notSentAlerts.map(a=>a.supplier))].join('、');
+    html += `<div style="background:#f8d7da;border:1px solid #f5c6cb;border-radius:10px;padding:10px 12px;">
+      <div style="font-size:12px;font-weight:600;color:#721c24;margin-bottom:4px;">🚨 以下供应商订单还未发送</div>
+      <div style="font-size:13px;color:#721c24;">${sups}</div>
+    </div>`;
+  }
+
+  panel.innerHTML = html;
+  panel.style.display = 'block';
+}
+
+function isTodayCycleForDay(item, dayName) {
+  if (!item.cycle || item.cycle.length===0) return true;
+  if (item.cycle.some(c=>c.includes('月'))) return new Date().getDate()<=3;
+  return item.cycle.includes(dayName);
+}
 
 function setWeekdayFilter(btn, day) {
   _weekdayFilter = day;
@@ -2232,6 +2327,7 @@ async function confirmMergedOrders() {
 
 
 function renderOrders() {
+  updateOrderAlerts();
   let data = orders;
   // 角色过滤
   if (isAdmin || currentUserRole==='supervisor') {
@@ -2501,28 +2597,25 @@ function renderSupplierList() {
   if (!suppliers.length) { el.innerHTML='<p style="font-size:13px;color:var(--text3);padding:8px 0;">暂无供应商，请添加</p>'; return; }
   const buyerNames = Object.entries(chefs).filter(([n,v])=>(v.role||'staff')==='buyer').map(([n])=>n);
   el.innerHTML = suppliers.map(s=>`
-    <div style="padding:8px 0;border-bottom:1px solid var(--border);">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:500;">${s.name}</div>
-          <div style="font-size:11px;color:var(--text3);">${s.wa_number||'未设置WA'}</div>
-        </div>
-        <input type="text" value="${s.wa_number||''}" placeholder="WhatsApp号码"
-          style="width:120px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;"
+    <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <strong style="flex:1;font-size:13px;">${s.name}</strong>
+        <input type="text" value="${s.wa_number||''}" placeholder="WA号码"
+          style="width:110px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;"
           onchange="updateSupplierWa(${s.id},this.value)">
         <button onclick="deleteSupplier(${s.id})"
-          style="border:none;background:transparent;color:var(--danger);font-size:18px;cursor:pointer;">×</button>
+          style="border:none;background:transparent;color:var(--danger);font-size:16px;cursor:pointer;padding:0 2px;">×</button>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
-        <span style="font-size:11px;color:var(--text3);">负责采购员：</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="color:var(--text3);white-space:nowrap;">采购员：</span>
         <select onchange="updateSupplierBuyer(${s.id},this.value)"
-          style="flex:1;min-width:80px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px;background:var(--surface);">
+          style="flex:1;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;background:var(--surface);">
           <option value="">-- 未指定 --</option>
           ${buyerNames.map(b=>`<option value="${b}" ${s.buyer===b?'selected':''}>${b}</option>`).join('')}
         </select>
-        <span style="font-size:11px;color:var(--text3);">截止时间：</span>
+        <span style="color:var(--text3);white-space:nowrap;">截止：</span>
         <input type="time" value="${s.order_deadline||'19:00'}"
-          style="border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px;"
+          style="width:80px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;"
           onchange="updateSupplierDeadline(${s.id},this.value)">
       </div>
     </div>`).join('');
@@ -3401,6 +3494,9 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(()=>{});
   });
 }
+
+// 每分钟刷新订货提醒
+setInterval(()=>{ if(currentUser) updateOrderAlerts(); }, 60000);
 
 // 每5分钟刷新订货提醒
 setInterval(()=>{ renderOrderAlertPanel(); }, 5 * 60 * 1000);
