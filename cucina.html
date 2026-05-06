@@ -691,6 +691,13 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
           <button class="weekday-btn" data-day="星期日" onclick="setWeekdayFilter(this,'星期日')">日</button>
         </div>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--danger);cursor:pointer;">
+          <input type="checkbox" id="ignore-cycle" onchange="updateBuyerMergePreview()"
+            style="width:16px;height:16px;accent-color:var(--danger);">
+          🚨 紧急模式（忽略订货周期限制）
+        </label>
+      </div>
       <div id="buyer-merge-preview" style="margin-top:10px;font-size:12px;color:var(--text3);">勾选待处理订单后，点"合并发送"</div>
       <button onclick="mergeSendOrders()" class="btn btn-primary btn-sm" style="margin-top:8px;width:100%;">📱 按供应商合并发送 WhatsApp</button>
     </div>
@@ -1697,9 +1704,12 @@ function renderOrderList() {
         <div class="stock-line" style="margin-top:4px;">
           ${t('colStock')}: <span class="${isLow?'low':''}">${item.stock}</span>
           · ${t('colSafe')}: ${getSafety(item)}
-          ${isTodayCycle(item)?`<span style="background:#e6f4ea;color:#2e7d32;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:4px;">📅${t('todayTag')}</span>`:''}
-          ${item.supplier?`· <span style="color:var(--text3)">${item.supplier}</span>`:''}
-        </div>
+          ${isTodayCycle(item)
+            ? `<span style="background:#e6f4ea;color:#2e7d32;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:4px;font-weight:600;">✅ 今日可订</span>`
+            : (item.cycle&&item.cycle.length>0
+              ? `<span style="background:#f5f5f5;color:#999;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:4px;">🔒 ${(item.cycle||[]).join('/')}</span>`
+              : '')}
+          ${item.supplier?`· <span style="color:var(--text3)">${item.supplier}</span>`:''}        </div>
         <div class="stock-line" style="margin-top:4px;">
           ${(isAdmin||(item.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim())?`
           <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
@@ -1993,20 +2003,19 @@ function updateBuyerMergePreview() {
   const preview = document.getElementById('buyer-merge-preview');
   if (!preview) return;
   const targetDay = _weekdayFilter || getTodayWeekday();
+  const ignoreCycle = document.getElementById('ignore-cycle')?.checked || false;
   const selected = orders.filter(o=>_selectedOrderIds.has(String(o.id)) && (o.status==='待处理'||o.status==='待處理') && o.type!=='consume');
   if (!selected.length) {
     preview.textContent = `今天是${getTodayWeekday()}，勾选待处理订单后点"合并发送"`;
     return;
   }
-  // 按供应商合并，过滤订货周期
   const merged = {};
   selected.forEach(order=>{
     (order.items||[]).forEach(item=>{
       const sup = item.supplier||'未知';
-      // 检查订货周期
       const itemInfo = items.find(i=>i.item_code===item.item_code||i.name===item.name||i.italian===item.name);
       const cycle = itemInfo ? (itemInfo.cycle||[]) : [];
-      if (cycle.length > 0 && !cycle.includes(targetDay)) return; // 不在今天订货周期内
+      if (!ignoreCycle && cycle.length > 0 && !cycle.includes(targetDay)) return;
       if (!merged[sup]) merged[sup] = [];
       const exist = merged[sup].find(x=>x.item_code===item.item_code);
       if (exist) exist.need += item.need;
@@ -2016,23 +2025,23 @@ function updateBuyerMergePreview() {
   const supCount = Object.keys(merged).length;
   const itemCount = Object.values(merged).flat().length;
   preview.textContent = supCount > 0
-    ? `将发送给 ${supCount} 个供应商，共 ${itemCount} 种物料（已按${targetDay}订货周期过滤）`
-    : `所选订单中无${targetDay}可订的物料`;
+    ? `将发送给 ${supCount} 个供应商，共 ${itemCount} 种物料${ignoreCycle?' 🚨紧急模式':('（已按'+targetDay+'订货周期过滤）')}`
+    : `所选订单中无${targetDay}可订的物料${ignoreCycle?'':('，可开启紧急模式忽略周期')}`;
 }
 
 async function mergeSendOrders() {
   const targetDay = _weekdayFilter || getTodayWeekday();
+  const ignoreCycle = document.getElementById('ignore-cycle')?.checked || false;
   const selected = orders.filter(o=>_selectedOrderIds.has(String(o.id)) && (o.status==='待处理'||o.status==='待處理') && o.type!=='consume');
   if (!selected.length) { toast('请先勾选待处理订单','err'); return; }
 
-  // 按供应商合并，过滤订货周期
   const merged = {};
   selected.forEach(order=>{
     (order.items||[]).forEach(item=>{
       const sup = item.supplier||'未知';
       const itemInfo = items.find(i=>i.item_code===item.item_code||i.name===item.name||i.italian===item.name);
       const cycle = itemInfo ? (itemInfo.cycle||[]) : [];
-      if (cycle.length > 0 && !cycle.includes(targetDay)) return;
+      if (!ignoreCycle && cycle.length > 0 && !cycle.includes(targetDay)) return;
       if (!merged[sup]) merged[sup] = [];
       const exist = merged[sup].find(x=>x.item_code===item.item_code);
       if (exist) exist.need += item.need;
