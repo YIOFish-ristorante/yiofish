@@ -2136,13 +2136,10 @@ function showSubmitConfirm(orderItems, today) {
 
 function showSupplierModal() {
   renderSupplierList();
-  // 从items里提取所有不重复供应商填入下拉
+  // 下拉显示items里所有供应商，包括已有的（可以更新号码）
   const sel = document.getElementById('new-sup-name');
   if (sel) {
-    const existing = suppliers.map(s=>s.name.toLowerCase());
-    const supNames = [...new Set(items.map(i=>i.supplier).filter(s=>s&&s.trim()))]
-      .filter(s=>!existing.includes(s.toLowerCase()))
-      .sort();
+    const supNames = [...new Set(items.map(i=>i.supplier).filter(s=>s&&s.trim()))].sort();
     sel.innerHTML = '<option value="">-- 选择供应商 --</option>' +
       supNames.map(s=>`<option value="${s}">${s}</option>`).join('');
   }
@@ -2172,23 +2169,22 @@ async function addSupplier() {
   const wa = document.getElementById('new-sup-wa').value.trim();
   if (!name) { toast('请选择供应商名称','err'); return; }
   try {
-    const chk = await sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name));
-    if (!chk.ok) { const err=await chk.text(); throw new Error('查询失败: '+err); }
-    const chkData = await chk.json();
-    let saved;
+    const chkRes = await fetch(SB_URL+'/rest/v1/cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name),
+      {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    const chkData = await chkRes.json();
     if (chkData && chkData.length > 0) {
-      const upd = await sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name),
-        {method:'PATCH', prefer:'return=representation', body:JSON.stringify({wa_number:wa})});
-      if (!upd.ok) { const err=await upd.text(); throw new Error('更新失败: '+err); }
-      saved = await upd.json();
+      // 已存在 → 更新号码
+      await fetch(SB_URL+'/rest/v1/cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name),
+        {method:'PATCH', headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({wa_number:wa})});
       const existing = suppliers.find(s=>s.name===name);
       if (existing) existing.wa_number = wa;
-      else suppliers.push(saved[0]);
     } else {
-      const res = await sb('cucina_suppliers',{method:'POST', prefer:'return=representation',
+      // 新增
+      const res = await fetch(SB_URL+'/rest/v1/cucina_suppliers',
+        {method:'POST', headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
         body:JSON.stringify({restaurant_id:REST_ID,name,wa_number:wa})});
-      if (!res.ok) { const err=await res.text(); throw new Error('新增失败: '+err); }
-      saved = await res.json();
+      const saved = await res.json();
       suppliers.push(saved[0]);
     }
     document.getElementById('new-sup-name').value='';
@@ -2740,7 +2736,8 @@ function handleImport(input) {
         safety_by_day:{},
         category:r[9]?String(r[9]).trim():'其他',
         chef:r[10]?String(r[10]).trim():'',
-        cycle:cycle
+        cycle:cycle,
+        _wa: r[12]?String(r[12]).trim():''   // M列：WhatsApp号码（临时字段，不存入items）
       });
     }
     if(pendingImport.length>0) console.log('第一行数据:', JSON.stringify(pendingImport[0]));
@@ -2769,14 +2766,24 @@ async function saveImport() {
       headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'}
     });
   } catch(e){ console.error('delete error:', e); }
-  // 逐条插入新数据
+
+  // 提取供应商WA号（每个供应商只取一条，有号码的优先）
+  const waMap = {};
+  pendingImport.forEach(item=>{
+    if(item.supplier && item._wa && !waMap[item.supplier]) {
+      waMap[item.supplier] = item._wa;
+    }
+  });
+
+  // 逐条插入物料数据（去掉_wa临时字段）
   let count=0;
   for(const item of pendingImport){
+    const {_wa, ...itemData} = item;  // 去掉_wa
     try {
       await fetch(SB_URL+'/rest/v1/cucina_items',{
         method:'POST',
         headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-        body:JSON.stringify(item)
+        body:JSON.stringify(itemData)
       });
       count++;
     } catch(e){}
@@ -2785,6 +2792,30 @@ async function saveImport() {
     if(pctEl) pctEl.textContent = pct+'%';
     if(txtEl) txtEl.textContent = `正在保存 ${count} / ${total}`;
   }
+
+  // 保存供应商WA号到cucina_suppliers
+  if(Object.keys(waMap).length > 0) {
+    if(txtEl) txtEl.textContent = '正在更新供应商WhatsApp...';
+    for(const [name, wa] of Object.entries(waMap)){
+      try {
+        const chk = await fetch(SB_URL+'/rest/v1/cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name),
+          {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+        const chkData = await chk.json();
+        if(chkData && chkData.length > 0){
+          await fetch(SB_URL+'/rest/v1/cucina_suppliers?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name),{
+            method:'PATCH', headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+            body:JSON.stringify({wa_number:wa})
+          });
+        } else {
+          await fetch(SB_URL+'/rest/v1/cucina_suppliers',{
+            method:'POST', headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+            body:JSON.stringify({restaurant_id:REST_ID, name, wa_number:wa})
+          });
+        }
+      } catch(e){ console.error('supplier wa error:', e); }
+    }
+  }
+
   await init();
   pendingImport=[];
   _importFileName='';
