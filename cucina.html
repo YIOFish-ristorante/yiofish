@@ -2579,15 +2579,16 @@ function renderReceiveTab() {
   const todayStr = new Date().toISOString().slice(0,10);
   const todayDay = getTodayWeekday();
 
-  // 找所有待处理订单，按供应商分组
+  // 只找已发送的订单
   const pending = orders.filter(o=>
-    (o.status==='待处理'||o.status==='待處理') && o.type!=='consume'
+    o.status==='已发送' && o.type!=='consume'
   );
 
   if (!pending.length) {
     el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text3);">
       <div style="font-size:48px;margin-bottom:12px;">📭</div>
-      <div>暂无待收货订单</div>
+      <div>暂无已发送待收货的订单</div>
+      <div style="font-size:12px;margin-top:8px;">订单需要采购员发送后才能确认收货</div>
     </div>`;
     updateReceiveBadge(0);
     return;
@@ -2669,7 +2670,7 @@ function renderReceivePanel() {
   const panel = document.getElementById('receive-panel');
   if (panel) panel.style.display = 'none';
   // 更新收货角标
-  const pending = orders.filter(o=>(o.status==='待处理'||o.status==='待處理') && o.type!=='consume');
+  const pending = orders.filter(o=>o.status==='已发送' && o.type!=='consume');
   const isFullAccess = isAdmin || currentUserRole==='supervisor' || currentUserRole==='buyer';
   const myPending = pending.filter(o=>{
     if (isFullAccess) return true;
