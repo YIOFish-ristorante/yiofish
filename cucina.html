@@ -538,7 +538,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.1</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.2</div>
   </div>
 </div>
 
@@ -3184,10 +3184,10 @@ function renderOrders() {
         <div class="order-footer-row">
           <span style="font-size:12px;color:var(--text2)">${t('colFood')||'食材'} <strong>${itemCount}</strong> ${t('ingredients')||'种'} · ${t('totalQty')||'总量'} <strong>${totalQty.toFixed(1)}</strong></span>
           <div style="display:flex;gap:8px;align-items:center;">
-            ${isAdmin && !isConsume && isPending
+            ${isAdmin && !isConsume && isSent
               ? `<button onclick="event.stopPropagation();confirmOrder('${o.id}')"
                   style="font-size:11px;padding:3px 10px;border:none;border-radius:6px;background:#FF8C00;color:#fff;cursor:pointer;">✓ 确认</button>`
-              : isAdmin && !isConsume && (isSent||isReceived||isDone)
+              : isAdmin && !isConsume && (isReceived||isDone)
               ? `<span style="font-size:11px;padding:3px 10px;border-radius:6px;background:#e8f5e9;color:#2e7d32;">✓ 已完成</span>`
               : ''}
             <span class="order-detail-link">${t('viewDetail')||'查看详情'} ›</span>
@@ -3241,18 +3241,26 @@ function showOrderDetail(id) {
   const order = orders.find(o=>String(o.id)===String(id));
   if (!order) return;
   const isPending = order.status==='待处理'||order.status==='待處理';
+  const isSent = order.status==='已发送';
+  const isReceived = order.status==='已收货';
   const isConsume = order.status==='消耗记录'||order.type==='consume';
-  const isDone = order.status==='已確認'||order.status==='已确认';
-  const st = isDone
-    ? `<span class="badge badge-done">已完成</span>`
+  const isDone = order.status==='已確認'||order.status==='已确认'||isReceived;
+  const st = isReceived
+    ? `<span class="badge badge-done">📬 已收货</span>`
+    : isSent
+    ? `<span class="badge" style="background:#e3f2fd;color:#1565c0;">📤 已发送</span>`
+    : isDone
+    ? `<span class="badge badge-done">✅ 已完成</span>`
     : isConsume
     ? `<span class="badge" style="background:#e8f5e9;color:#2e7d32;">消耗记录</span>`
     : `<span class="badge badge-pending">待处理</span>`;
 
+  // 撤回：自己提交的待处理才能撤回
   const canRecall = isPending && !isConsume &&
     (order.chef||'').toLowerCase()===(currentUser||'').toLowerCase();
-  const canReceive = isPending && !isConsume &&
-    (isAdmin || currentUserRole==='buyer' || currentUserRole==='supervisor');
+  // 确认收货：只有已发送状态才能确认收货
+  const canReceive = isSent && !isConsume &&
+    (isAdmin || currentUserPerms.can_receive || currentUserRole==='buyer' || currentUserRole==='supervisor');
 
   document.getElementById('modal-order-detail-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
