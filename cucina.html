@@ -842,6 +842,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <div class="menu-item-text"><div class="title" id="lbl-approve">审批订单</div><div class="sub" id="pending-badge-text">查看待处理订单</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="showChangeAdminPass()">
+        <div class="menu-item-icon" style="background:#FFF0F0">🔐</div>
+        <div class="menu-item-text"><div class="title">修改管理员密码</div><div class="sub">更改管理后台登录密码</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
     </div>
 
     <div class="menu-section">
@@ -904,6 +909,43 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     <div id="clear-preview" style="font-size:13px;color:var(--text3);margin-bottom:16px;"></div>
     <button class="btn btn-primary" style="width:100%;margin-bottom:8px;background:var(--danger);" onclick="clearOrders()">确认隐藏</button>
     <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-clear-orders')">取消</button>
+  </div>
+</div>
+
+<!-- 修改管理员密码Modal -->
+<div class="modal-overlay" id="modal-change-admin-pass">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔐 修改管理员密码</div>
+    <div class="form-group">
+      <label class="form-label">当前管理员密码</label>
+      <div class="pass-wrap">
+        <input type="password" id="admin-pass-old" class="form-control" placeholder="当前密码">
+        <button type="button" class="pass-eye" onclick="togglePass('admin-pass-old',this)" tabindex="-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">新密码</label>
+      <div class="pass-wrap">
+        <input type="password" id="admin-pass-new" class="form-control" placeholder="新密码">
+        <button type="button" class="pass-eye" onclick="togglePass('admin-pass-new',this)" tabindex="-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">确认新密码</label>
+      <div class="pass-wrap">
+        <input type="password" id="admin-pass-confirm" class="form-control" placeholder="再次输入新密码">
+        <button type="button" class="pass-eye" onclick="togglePass('admin-pass-confirm',this)" tabindex="-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" onclick="saveAdminPass()">保存</button>
+    <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-change-admin-pass')">取消</button>
   </div>
 </div>
 
@@ -1437,6 +1479,35 @@ async function doAdminLogin() {
     currentUser = 'Admin';
     showApp();
   }
+}
+
+function showChangeAdminPass() {
+  document.getElementById('admin-pass-old').value='';
+  document.getElementById('admin-pass-new').value='';
+  document.getElementById('admin-pass-confirm').value='';
+  openModal('modal-change-admin-pass');
+}
+
+async function saveAdminPass() {
+  const old = document.getElementById('admin-pass-old').value;
+  const nw = document.getElementById('admin-pass-new').value;
+  const cf = document.getElementById('admin-pass-confirm').value;
+  if (!old||!nw||!cf) { toast('请填写所有字段','err'); return; }
+  const oldHash = await sha256(old);
+  if (oldHash !== _adminPassHash) { toast('当前密码错误','err'); return; }
+  if (nw !== cf) { toast('两次密码不一致','err'); return; }
+  if (nw.length < 4) { toast('密码至少4位','err'); return; }
+  const newHash = await sha256(nw);
+  try {
+    await fetch(SB_URL+'/rest/v1/cucina_settings?restaurant_id=eq.'+REST_ID+'&key=eq.admin_pass_hash', {
+      method:'PATCH',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({value:newHash})
+    });
+    _adminPassHash = newHash;
+    closeModal('modal-change-admin-pass');
+    toast('✅ 管理员密码已修改');
+  } catch(e){ toast('修改失败','err'); }
 }
 
 async function showChangePass() {
