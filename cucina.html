@@ -903,6 +903,16 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   </div>
 </div>
 
+<!-- 系统通知Modal -->
+<div class="modal-overlay" id="modal-system-notif">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📢 系统通知</div>
+    <div id="system-notif-content" style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:16px;white-space:pre-wrap;"></div>
+    <button class="btn btn-primary" style="width:100%;" onclick="closeModal('modal-system-notif')">我知道了</button>
+  </div>
+</div>
+
 <!-- 收货确认Modal -->
 <div class="modal-overlay" id="modal-receive-confirm">
   <div class="modal">
@@ -1349,11 +1359,18 @@ async function init() {
   }
   // 单独读取管理员密码哈希，出错不影响主流程
   try {
-    const settRes = await sb('cucina_settings?restaurant_id=eq.'+REST_ID+'&key=eq.admin_pass_hash&select=value');
+    const [settRes, notifRes] = await Promise.all([
+      sb('cucina_settings?restaurant_id=eq.'+REST_ID+'&key=eq.admin_pass_hash&select=value'),
+      sb('cucina_settings?restaurant_id=eq.__system__&key=eq.system_notification&select=value')
+    ]);
     const settData = await settRes.json();
     _adminPassHash = settData.length > 0 ? settData[0].value : null;
+    const notifData = await notifRes.json();
+    if (notifData.length && notifData[0].value) {
+      window._systemNotification = notifData[0].value;
+    }
   } catch(e) {
-    console.error('读取管理员密码失败:', e);
+    console.error('读取设置失败:', e);
   }
 }
 
@@ -1498,10 +1515,13 @@ function showApp() {
     else btn.classList.remove('today-day');
   });
   updatePendingBadge();
+  // 系统通知弹出（登录后延迟显示）
+  if (window._systemNotification) {
+    document.getElementById('system-notif-content').textContent = window._systemNotification;
+    setTimeout(()=>openModal('modal-system-notif'), 800);
+    window._systemNotification = null; // 只弹一次
+  }
 }
-
-// ════════════════════════════════════════
-// TAB NAVIGATION
 // ════════════════════════════════════════
 const tabs = ['inventory','order','orders','report','profile'];
 function switchTab(tab) {
@@ -2385,7 +2405,7 @@ function showReceiveConfirmBySup(supName, orderIdsStr) {
     });
   });
 
-  const itemList = Object.values(mergedItems);
+  window._receiveItemList = itemList; // 全局存储避免onclick问题
   const html = `
     <div style="padding:4px 0;">
       <p style="font-size:14px;font-weight:600;margin-bottom:4px;">📬 ${supName} 收货确认</p>
@@ -2407,7 +2427,7 @@ function showReceiveConfirmBySup(supName, orderIdsStr) {
           </div>`).join('')}
       </div>
       <button class="btn btn-green" style="width:100%;margin-bottom:8px;"
-        onclick="confirmReceiveBySup('${supName}','${orderIdsStr}',${JSON.stringify(itemList).replace(/'/g,"\\'")})">
+        onclick="confirmReceiveBySup('${supName}','${orderIdsStr}')">
         ✅ 确认收货并更新库存
       </button>
       <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-receive-confirm')">取消</button>
@@ -2417,7 +2437,8 @@ function showReceiveConfirmBySup(supName, orderIdsStr) {
   openModal('modal-receive-confirm');
 }
 
-async function confirmReceiveBySup(supName, orderIdsStr, itemList) {
+async function confirmReceiveBySup(supName, orderIdsStr) {
+  const itemList = window._receiveItemList || [];
   const orderIds = orderIdsStr.split(',');
   const receivedItems = itemList.map((i,idx)=>{
     const el = document.getElementById('recv-'+idx);
