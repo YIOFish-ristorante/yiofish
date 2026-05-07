@@ -428,14 +428,18 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   position: fixed; inset: 0; background: rgba(0,0,0,0.45);
   z-index: 200; display: none; align-items: flex-end;
   justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .modal-overlay.show { display: flex; }
 .modal {
   background: var(--surface); border-radius: 20px 20px 0 0;
   width: 100%; max-width: 480px;
-  max-height: 92vh; overflow-y: auto;
+  max-height: 85vh; overflow-y: auto;
   padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
   animation: slideUp 0.25s ease-out;
+  position: relative;
+  margin-top: auto;
 }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
@@ -3668,7 +3672,20 @@ async function deleteSupplier(id) {
 }
 
 function updatePendingBadge() {
-  const cnt = orders.filter(o=>(o.status==='待處理'||o.status==='待处理') && o.type!=='consume').length;
+  let pending = orders.filter(o=>(o.status==='待處理'||o.status==='待处理') && o.type!=='consume');
+
+  // 按角色过滤
+  if (!isAdmin && currentUserRole!=='supervisor') {
+    if (currentUserRole==='buyer') {
+      // 采购员只看分配给自己的
+      pending = pending.filter(o=>o.buyer===currentUser || (o.chef||'').toLowerCase()===currentUser.toLowerCase());
+    } else {
+      // 普通员工只看自己提交的
+      pending = pending.filter(o=>(o.chef||'').toLowerCase()===currentUser.toLowerCase());
+    }
+  }
+
+  const cnt = pending.length;
   document.getElementById('pending-badge-text').textContent =
     cnt>0 ? `${cnt} 条待处理订单` : '查看待处理订单';
   // 底部导航角标
@@ -3948,6 +3965,11 @@ function showChangePwd() {
   document.getElementById('pwd-new').value='';
   document.getElementById('pwd-confirm').value='';
   openModal('modal-change-pwd');
+  // iOS键盘兼容：延迟focus让modal先完成动画
+  setTimeout(()=>{
+    const el = document.getElementById('pwd-old');
+    if (el) el.focus();
+  }, 300);
 }
 
 async function doChangePwd() {
