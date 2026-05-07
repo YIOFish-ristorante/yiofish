@@ -3400,8 +3400,8 @@ async function confirmReceive(id) {
 
     closeModal('modal-receive-confirm');
     renderOrders();
-    renderReceiveTab();
     updatePendingBadge();
+    setTimeout(()=>renderReceiveTab(), 300);
 
     // 显示差异提示
     const diffs = receivedItems.filter(i=>i.diff !== 0);
