@@ -1425,7 +1425,8 @@ async function init() {
       safety:parseFloat(r.safety)||1,
       safety_by_day:r.safety_by_day||{},
       category:r.category||'其他',
-      chef:r.chef||'', need:0, checked:false
+      chef:r.chef||'', need:0, checked:false,
+      max_order: r.max_order!=null ? parseFloat(r.max_order) : null
     }));
     orders = (await oRes.json()).map(r=>({
       id:r.id, chef:r.chef, date:r.date, items:r.items||[],
@@ -1895,6 +1896,10 @@ function showItemDetail(id) {
       <div class="form-group"><label class="form-label">安全库存(默认)</label><input class="form-control" id="ei-safety" type="number" step="0.1" value="${item.safety}"></div>
     </div>
     <div class="form-group">
+      <label class="form-label">最大订货量（留空=不限制）</label>
+      <input class="form-control" id="ei-max-order" type="number" step="1" min="0" placeholder="不限制" value="${item.max_order!=null?item.max_order:''}">
+    </div>
+    <div class="form-group">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <label class="form-label" style="margin:0;">安全库存（按星期）</label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text2);">
@@ -1964,11 +1969,12 @@ async function saveEditItem() {
                     : {"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0},
     chef:      document.getElementById('ei-chef').value,
     cycle:     ['一','二','三','四','五','六','日'].map((d,i)=>'星期'+d).filter((_,i)=>document.getElementById('ei-cycle-'+(i+1))&&document.getElementById('ei-cycle-'+(i+1)).checked),
+    max_order: document.getElementById('ei-max-order').value ? parseFloat(document.getElementById('ei-max-order').value) : null,
   };
   try {
     await sb('cucina_items?id=eq.'+editingItemId,{method:'PATCH',body:JSON.stringify(u)});
     const item = items.find(i=>i.id===editingItemId);
-    Object.assign(item, u, {stock:parseFloat(u.stock),safety:parseFloat(u.safety),price:parseFloat(u.price),safety_by_day:u.safety_by_day});
+    Object.assign(item, u, {stock:parseFloat(u.stock),safety:parseFloat(u.safety),price:parseFloat(u.price),safety_by_day:u.safety_by_day,max_order:u.max_order});
     closeModal('modal-edit-item');
     renderInventory();
     toast('✅ 已更新');
@@ -2136,7 +2142,10 @@ function filterOrderList(q) {
 function stepQty(id, d) {
   const item = items.find(i=>i.id===id);
   if (!item) return;
-  item.need = Math.max(0, (parseInt(item.need)||0) + d);
+  let newNeed = Math.max(0, (parseInt(item.need)||0) + d);
+  // 最大订货量截断
+  if (item.max_order && newNeed > item.max_order) newNeed = item.max_order;
+  item.need = newNeed;
   item.orderModified = true;
   item.checked = item.need > 0;
   const el = document.getElementById('oqty-'+id);
@@ -2210,7 +2219,14 @@ function toggleOrderItem(id, checked) {
 function updateOrderQty(id, val) {
   const item = items.find(i=>i.id===id);
   if (item) {
-    item.need = parseFloat(val)||0;
+    let need = parseFloat(val)||0;
+    // 最大订货量截断
+    if (item.max_order && need > item.max_order) {
+      need = item.max_order;
+      const el = document.getElementById('oqty-'+id);
+      if (el) el.value = need;
+    }
+    item.need = need;
     item.orderModified = true;
     item.checked = item.need > 0;
   }
@@ -4192,7 +4208,7 @@ function handleImport(input) {
     pendingImport=[];
     for(let i=1;i<rows.length;i++){
       const r=rows[i]; if(!r||!r.length)continue;
-      // A=货物号 B=意文 C=中文 D=规格 E=价格 F=进货单位 G=使用单位 H=当前库存 I=安全库存 J=材料类型 K=订货员 L=订货周期
+      // A=货物号 B=意文 C=中文 D=规格 E=价格 F=进货单位 G=使用单位 H=当前库存 I=安全库存 J=最大订货量 K=材料类型 L=订货员 M=订货周期 N=WA
       const priceVal=r[4];
       const price=typeof priceVal==='number'?priceVal.toFixed(2):parseFloat((priceVal||'').toString().replace(',','.'))||0;
       const deptRaw=r[6]||'';
@@ -4200,12 +4216,13 @@ function handleImport(input) {
       if(deptRaw) depts=deptRaw.toString().split('/').map(d=>d.trim());
       // 解析订货周期：1,2,3 → ['星期一','星期二','星期三']
       const dayNames=['','星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
-      const cycleRaw=r[11]!==undefined?String(r[11]).trim():'';
+      const cycleRaw=r[12]!==undefined?String(r[12]).trim():'';
       let cycle=['星期一'];
       if(cycleRaw){
         cycle=cycleRaw.split(/[,，\s]+/).map(n=>parseInt(n.trim())).filter(n=>n>=1&&n<=7).map(n=>dayNames[n]);
         if(!cycle.length) cycle=['星期一'];
       }
+      const maxOrder = r[9]!==undefined&&r[9]!==''?parseFloat(r[9])||null:null;
       pendingImport.push({
         restaurant_id:REST_ID,
         source_file:_importFileName,
@@ -4218,10 +4235,11 @@ function handleImport(input) {
         stock:String(parseFloat(r[7])||0),
         safety:String(parseFloat(r[8])||1),
         safety_by_day:{},
-        category:r[9]?String(r[9]).trim():'其他',
-        chef:r[10]?String(r[10]).trim():'',
+        max_order: maxOrder,
+        category:r[10]?String(r[10]).trim():'其他',
+        chef:r[11]?String(r[11]).trim():'',
         cycle:cycle,
-        _wa: r[12]?String(r[12]).trim():''   // M列：WhatsApp号码（临时字段，不存入items）
+        _wa: r[13]?String(r[13]).trim():''   // N列：WhatsApp号码（临时字段，不存入items）
       });
     }
     if(pendingImport.length>0) console.log('第一行数据:', JSON.stringify(pendingImport[0]));
