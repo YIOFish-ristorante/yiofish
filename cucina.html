@@ -2801,7 +2801,7 @@ async function confirmReceiveBySup(supName, orderIdsStr) {
                 </div>`;
             }).join('')}
           </div>
-          <button class="btn btn-primary" style="width:100%;" onclick="closeModal('modal-receive-confirm')">我知道了</button>
+          <button class="btn btn-primary" style="width:100%;" onclick="closeModal('modal-receive-confirm');renderReceiveTab();renderOrders();">我知道了</button>
         </div>`;
       document.getElementById('receive-confirm-content').innerHTML = diffHtml;
       openModal('modal-receive-confirm');
@@ -3395,6 +3395,7 @@ async function confirmReceive(id) {
 
     closeModal('modal-receive-confirm');
     renderOrders();
+    renderReceiveTab();
     updatePendingBadge();
 
     // 显示差异提示
