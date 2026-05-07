@@ -541,7 +541,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.8</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.9</div>
   </div>
 </div>
 
@@ -728,6 +728,14 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 
     <!-- 订货提醒面板（采购员/管理员专用） -->
     <div id="order-alert-panel" style="display:none;margin-bottom:12px;"></div>
+
+    <!-- 刷新按钮 -->
+    <div style="text-align:right;margin-bottom:8px;">
+      <button onclick="refreshOrders()" id="refresh-orders-btn"
+        style="font-size:12px;padding:4px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">
+        🔄 刷新
+      </button>
+    </div>
 
     <!-- 返回订货按钮（提交后显示） -->
     <div id="back-to-order-btn" style="display:none;padding:0 0 10px;">
@@ -4575,6 +4583,30 @@ setInterval(()=>{ if(currentUser) updateOrderAlerts(); }, 60000);
 
 // 每5分钟刷新订货提醒
 setInterval(()=>{ renderOrderAlertPanel(); }, 5 * 60 * 1000);
+
+async function refreshOrders() {
+  const btn = document.getElementById('refresh-orders-btn');
+  if (btn) { btn.disabled=true; btn.textContent='刷新中...'; }
+  try {
+    const res = await sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc');
+    const newOrders = await res.json();
+    if (Array.isArray(newOrders)) {
+      orders = newOrders.map(r=>({
+        id:r.id, created_at:r.created_at, restaurant_id:r.restaurant_id,
+        chef:r.chef, date:r.date, items:r.items||[], status:r.status,
+        type:r.type, buyer:r.buyer, received_items:r.received_items, hidden:!!r.hidden
+      }));
+      renderOrders();
+      if (currentTab==='receive') renderReceiveTab();
+      updatePendingBadge();
+      renderReceivePanel();
+      toast('✅ 已刷新');
+    }
+  } catch(e) { toast('刷新失败','err'); }
+  finally {
+    if (btn) { btn.disabled=false; btn.textContent='🔄 刷新'; }
+  }
+}
 
 // 每2分钟自动刷新订单数据
 setInterval(async ()=>{
