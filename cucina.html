@@ -2405,6 +2405,7 @@ function showReceiveConfirmBySup(supName, orderIdsStr) {
     });
   });
 
+  const itemList = Object.values(mergedItems);
   window._receiveItemList = itemList; // 全局存储避免onclick问题
   const html = `
     <div style="padding:4px 0;">
