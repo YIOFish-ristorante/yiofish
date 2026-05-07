@@ -2486,30 +2486,43 @@ let _weekdayFilter = ''; // 空=今天
 
 // ── 一键确认所有勾选的待处理订单 ──
 async function bulkConfirmOrders() {
-  const pending = orders.filter(o=>
+  const selected = orders.filter(o=>
     _selectedOrderIds.has(String(o.id)) &&
-    (o.status==='待处理'||o.status==='待處理') &&
+    o.status==='已发送' &&
     o.type!=='consume'
   );
-  if (!pending.length) { toast('请先勾选待处理订单','err'); return; }
-  if (!confirm(`确认将 ${pending.length} 条订单标为已完成？不会更新库存，库存请通过收货确认更新。`)) return;
+  if (!selected.length) { toast('请先勾选已发送的订单','err'); return; }
+
+  // 检查是否所有订单都已经过收货Tab确认（有received_items记录）
+  const notReceived = selected.filter(o=>!o.received_items||!o.received_items.length);
+  if (notReceived.length) {
+    // 找出还没收货确认的供应商
+    const pendingSups = new Set();
+    notReceived.forEach(o=>{
+      (o.items||[]).forEach(i=>{ if(i.supplier) pendingSups.add(i.supplier); });
+    });
+    toast(`⚠️ 以下供应商还未完成收货确认：${[...pendingSups].join('、')}`, 'err');
+    return;
+  }
+
+  if (!confirm(`确认将 ${selected.length} 条订单标为已收货？`)) return;
   let count = 0;
-  for (const o of pending) {
+  for (const o of selected) {
     try {
       await fetch(SB_URL+'/rest/v1/cucina_orders?id=eq.'+o.id, {
         method:'PATCH',
         headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({status:'已发送'})
+        body:JSON.stringify({status:'已收货'})
       });
       const local = orders.find(x=>String(x.id)===String(o.id));
-      if (local) local.status = '已发送';
+      if (local) local.status = '已收货';
       count++;
     } catch(e) {}
   }
   _selectedOrderIds.clear();
   renderOrders();
   updatePendingBadge();
-  toast(`✅ 已确认 ${count} 条订单`);
+  toast(`✅ 已确认收货 ${count} 条订单`);
 }
 
 // ── 清除已完成记录 ──
@@ -3046,9 +3059,15 @@ function renderOrders() {
   const adminToolbar = document.getElementById('admin-order-toolbar');
   if (adminToolbar) {
     adminToolbar.style.display = canConfirm ? 'flex' : 'none';
-    // 一键确认只在待处理标签显示
+    // 一键确认：canConfirm且在已发送标签
     const confirmBtn = adminToolbar.querySelector('button:first-child');
-    if (confirmBtn) confirmBtn.style.display = (canConfirm && orderFilter==='待处理') ? '' : 'none';
+    if (confirmBtn) {
+      confirmBtn.style.display = (canConfirm && orderFilter==='已发送') ? '' : 'none';
+      confirmBtn.textContent = '✅ 一键确认收货';
+    }
+    // 清除记录：只有管理员
+    const clearBtn = adminToolbar.querySelector('button:last-child');
+    if (clearBtn) clearBtn.style.display = isAdmin ? '' : 'none';
   }
   updateOrderAlerts();
   renderReceivePanel();
