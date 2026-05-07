@@ -541,7 +541,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.7</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.8</div>
   </div>
 </div>
 
@@ -4575,6 +4575,26 @@ setInterval(()=>{ if(currentUser) updateOrderAlerts(); }, 60000);
 
 // 每5分钟刷新订货提醒
 setInterval(()=>{ renderOrderAlertPanel(); }, 5 * 60 * 1000);
+
+// 每2分钟自动刷新订单数据
+setInterval(async ()=>{
+  if (!currentUser) return;
+  try {
+    const res = await sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc');
+    const newOrders = await res.json();
+    if (Array.isArray(newOrders)) {
+      orders = newOrders.map(r=>({
+        id:r.id, created_at:r.created_at, restaurant_id:r.restaurant_id,
+        chef:r.chef, date:r.date, items:r.items||[], status:r.status,
+        type:r.type, buyer:r.buyer, received_items:r.received_items, hidden:!!r.hidden
+      }));
+      if (currentTab==='orders') renderOrders();
+      if (currentTab==='receive') renderReceiveTab();
+      updatePendingBadge();
+      renderReceivePanel();
+    }
+  } catch(e) { console.warn('自动刷新订单失败:', e); }
+}, 2 * 60 * 1000);
 </script>
 </body>
 </html>
