@@ -716,7 +716,8 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     <div class="order-filter-tabs">
       <div class="order-filter-tab active" data-f="all"    onclick="setOrderFilter(this,'all')" id="filter-all">全部</div>
       <div class="order-filter-tab"        data-f="待处理" onclick="setOrderFilter(this,'待处理')" id="filter-pending">待处理</div>
-      <div class="order-filter-tab"        data-f="已確認" onclick="setOrderFilter(this,'已確認')" id="filter-done">已完成</div>
+      <div class="order-filter-tab"        data-f="已发送" onclick="setOrderFilter(this,'已发送')" id="filter-sent">已发送</div>
+      <div class="order-filter-tab"        data-f="已收货" onclick="setOrderFilter(this,'已收货')" id="filter-done">已收货</div>
       <div class="order-filter-tab"        data-f="消耗记录" onclick="setOrderFilter(this,'消耗记录')" id="filter-consume">消耗记录</div>
     </div>
 
@@ -2269,10 +2270,10 @@ async function bulkConfirmOrders() {
       await fetch(SB_URL+'/rest/v1/cucina_orders?id=eq.'+o.id, {
         method:'PATCH',
         headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({status:'已确认'})
+        body:JSON.stringify({status:'已发送'})
       });
       const local = orders.find(x=>String(x.id)===String(o.id));
-      if (local) local.status = '已确认';
+      if (local) local.status = '已发送';
       count++;
     } catch(e) {}
   }
@@ -2308,7 +2309,7 @@ async function clearOrders() {
   cutoff.setMonth(cutoff.getMonth() - months);
   const cutoffStr = cutoff.toISOString().slice(0,10);
   const toHide = orders.filter(o=>
-    (o.status==='已确认'||o.status==='已確認') &&
+    (o.status==='已发送'||o.status==='已收货'||o.status==='已确认'||o.status==='已確認') &&
     o.date < cutoffStr &&
     !o.hidden
   );
@@ -2456,10 +2457,10 @@ async function confirmReceiveBySup(supName, orderIdsStr) {
       await fetch(SB_URL+'/rest/v1/cucina_orders?id=eq.'+id, {
         method:'PATCH',
         headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({status:'已确认', received_items: receivedItems})
+        body:JSON.stringify({status:'已收货', received_items: receivedItems})
       });
       const local = orders.find(o=>String(o.id)===id);
-      if (local) { local.status='已确认'; local.received_items=receivedItems; }
+      if (local) { local.status='已收货'; local.received_items=receivedItems; }
     }
 
     // 按实际到货量更新库存
@@ -2748,9 +2749,9 @@ async function confirmMergedOrders() {
   const ids = window._pendingConfirmOrders || [];
   for (const id of ids) {
     try {
-      await sb('cucina_orders?id=eq.'+id, {method:'PATCH', body:JSON.stringify({status:'已确认'})});
+      await sb('cucina_orders?id=eq.'+id, {method:'PATCH', body:JSON.stringify({status:'已发送'})});
       const local = orders.find(x=>String(x.id)===String(id));
-      if (local) local.status='已确认';
+      if (local) local.status='已发送';
     } catch(e) {}
   }
   _selectedOrderIds.clear();
@@ -2790,9 +2791,11 @@ function renderOrders() {
   }
   if (orderFilter!=='all') {
     if (orderFilter==='待处理') {
-      data = data.filter(o=>o.status==='待处理'||o.status==='待處理');
-    } else if (orderFilter==='已確認') {
-      data = data.filter(o=>o.status==='已確認'||o.status==='已确认');
+      data = data.filter(o=>(o.status==='待处理'||o.status==='待處理') && o.type!=='consume');
+    } else if (orderFilter==='已发送') {
+      data = data.filter(o=>o.status==='已发送');
+    } else if (orderFilter==='已收货') {
+      data = data.filter(o=>o.status==='已收货'||((o.status==='已確認'||o.status==='已确认')&&o.received_items));
     } else if (orderFilter==='消耗记录') {
       data = data.filter(o=>o.status==='消耗记录'||o.status==='消耗記錄'||o.type==='consume');
     } else {
@@ -2841,9 +2844,17 @@ function renderOrders() {
     return;
   }
   container.innerHTML = data.map((o,idx)=>{
-    const st = o.status==='已確認'||o.status==='已确认'
-      ? `<span class="badge badge-done">已完成</span>`
-      : o.status==='消耗记录'||o.type==='consume'
+    const isSent = o.status==='已发送';
+    const isReceived = o.status==='已收货'||((o.status==='已確認'||o.status==='已确认')&&o.received_items);
+    const isDone = (o.status==='已確認'||o.status==='已确认')&&!o.received_items;
+    const isConsume = o.status==='消耗记录'||o.type==='consume';
+    const st = isReceived
+      ? `<span class="badge badge-done">📬 已收货</span>`
+      : isSent
+      ? `<span class="badge" style="background:#e3f2fd;color:#1565c0;">📤 已发送</span>`
+      : isDone
+      ? `<span class="badge badge-done">✅ 已完成</span>`
+      : isConsume
       ? `<span class="badge" style="background:#e8f5e9;color:#2e7d32;">消耗记录</span>`
       : `<span class="badge badge-pending">待处理</span>`;
     const no = `#${o.date?o.date.replace(/-/g,''):''}-${String(idx+1).padStart(3,'0')}`;
@@ -3056,7 +3067,7 @@ async function confirmReceive(id) {
     await fetch(SB_URL+'/rest/v1/cucina_orders?id=eq.'+id, {
       method:'PATCH',
       headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({status:'已确认', received_items: receivedItems})
+      body:JSON.stringify({status:'已收货', received_items: receivedItems})
     });
 
     // 按实际到货量更新库存
@@ -3079,7 +3090,7 @@ async function confirmReceive(id) {
     // 更新本地订单
     const local = orders.find(o=>String(o.id)===String(id));
     if (local) {
-      local.status = '已确认';
+      local.status = '已收货';
       local.received_items = receivedItems;
     }
 
@@ -3139,9 +3150,9 @@ async function recallOrder(id) {
 
 async function confirmOrder(id) {
   try {
-    await sb('cucina_orders?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'已确认'})});
+    await sb('cucina_orders?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'已发送'})});
     const o = orders.find(o=>String(o.id)===String(id));
-    if(o) o.status='已确认';
+    if(o) o.status='已发送';
     closeModal('modal-order-detail');
     renderOrders();
     updatePendingBadge();
