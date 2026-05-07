@@ -509,8 +509,8 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 ══════════════════════════════════ -->
 <div id="screen-login" class="screen active">
   <div class="login-screen">
-    <div class="login-logo"><img src="/logo-c.png" alt="YIO Fish" style="max-height:80px;max-width:200px;object-fit:contain;"></div>
-    <div class="login-title">YIO CucinaFlow</div>
+    <div class="login-logo"><img src="/logo.png" alt="YIO Fish" style="max-height:80px;max-width:200px;object-fit:contain;"></div>
+    <div class="login-title">后厨管理系统</div>
     <div class="login-sub" id="login-sub">Cucina Management · Carpi</div>
     <div class="login-card">
       <div class="form-group">
@@ -699,6 +699,13 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span id="sel-count-lbl">已选择 <strong id="sel-count" style="color:var(--primary)">0</strong> 种食材</span>
         <span><span id="sel-total-lbl">合计：</span><span id="sel-total" style="color:var(--primary);font-weight:600;">0.0</span></span>
       </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: 收货 ── -->
+  <div id="tab-receive" class="page-content tab-page" style="display:none">
+    <div id="receive-tab-content">
+      <div style="text-align:center;padding:40px;color:var(--text3);">正在加载...</div>
     </div>
   </div>
 
@@ -909,13 +916,14 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
       <span id="nav-lbl-order">订货系统</span>
     </div>
+    <div class="nav-item" id="nav-receive" onclick="switchTab('receive')" style="position:relative;display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      <span id="nav-lbl-receive">收货</span>
+      <span id="receive-badge" style="display:none;position:absolute;top:4px;right:12px;background:var(--danger);color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;"></span>
+    </div>
     <div class="nav-item" id="nav-orders" onclick="switchTab('orders')" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       <span>订单系统</span>
-    </div>
-    <div class="nav-item" id="nav-report" onclick="switchTab('report')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span>报表分析</span>
     </div>
     <div class="nav-item" id="nav-profile" onclick="switchTab('profile')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1605,6 +1613,11 @@ function showApp() {
     const el = document.getElementById(id);
     if (el) el.style.display = currentUserRole==='warehouse' && id==='nav-orders' ? 'none' : '';
   });
+  // 收货Tab：有收货权限才显示
+  const navReceive = document.getElementById('nav-receive');
+  if (navReceive) {
+    navReceive.style.display = (isAdmin || currentUserPerms.can_receive || currentUserRole==='buyer' || currentUserRole==='supervisor') ? '' : 'none';
+  }
   // 订货员发送面板
   const buyerPanel = document.getElementById('buyer-send-panel');
   if (buyerPanel) buyerPanel.style.display = (isAdmin || currentUserRole==='buyer') ? 'block' : 'none';
@@ -1634,25 +1647,23 @@ function showApp() {
   }
 }
 // ════════════════════════════════════════
-const tabs = ['inventory','order','orders','report','profile'];
+const tabs = ['inventory','order','receive','orders','report','profile'];
 function switchTab(tab) {
   currentTab = tab;
   tabs.forEach(t=>{
-    document.getElementById('tab-'+t).style.display = t===tab ? 'block':'none';
-    document.getElementById('nav-'+t).classList.toggle('active', t===tab);
+    const tabEl = document.getElementById('tab-'+t);
+    const navEl = document.getElementById('nav-'+t);
+    if (tabEl) tabEl.style.display = t===tab ? 'block':'none';
+    if (navEl) navEl.classList.toggle('active', t===tab);
   });
   // 多语言标题
-  const tabIdx = ['inventory','order','orders','report','profile'].indexOf(tab);
-  document.getElementById('nav-title').textContent = tabIdx>=0 ? t('tabs')[tabIdx] : '';
+  const tabTitles = {'inventory':t('tabs')[0],'order':t('tabs')[1],'receive':'📬 收货','orders':t('tabs')[2],'report':t('tabs')[3],'profile':t('tabs')[4]};
+  document.getElementById('nav-title').textContent = tabTitles[tab]||'';
 
-  // 更新底部tab文字
-  ['inventory','order','orders','report','profile'].forEach((tt,i)=>{
-    const el = document.getElementById('nav-'+tt);
-    if (el) { const sp = el.querySelector('span'); if (sp) sp.textContent = t('tabs')[i]; }
-  });
   if (tab==='inventory') renderInventory();
   if (tab==='order')     renderOrderList();
-  if (tab==='orders') { renderOrders(); renderOrderAlertPanel(); }
+  if (tab==='receive')   renderReceiveTab();
+  if (tab==='orders') { renderOrders(); }
   if (tab==='report')    renderReport();
   if (tab==='profile')   renderProfile();
 }
@@ -2541,9 +2552,115 @@ async function clearOrders() {
   } catch(e) { toast('操作失败','err'); }
 }
 
+function renderReceiveTab() {
+  const el = document.getElementById('receive-tab-content');
+  if (!el) return;
+
+  const todayStr = new Date().toISOString().slice(0,10);
+  const todayDay = getTodayWeekday();
+
+  // 找所有待处理订单，按供应商分组
+  const pending = orders.filter(o=>
+    (o.status==='待处理'||o.status==='待處理') && o.type!=='consume'
+  );
+
+  if (!pending.length) {
+    el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text3);">
+      <div style="font-size:48px;margin-bottom:12px;">📭</div>
+      <div>暂无待收货订单</div>
+    </div>`;
+    updateReceiveBadge(0);
+    return;
+  }
+
+  // 按供应商合并
+  const supMap = {};
+  pending.forEach(o=>{
+    (o.items||[]).forEach(i=>{
+      const sup = i.supplier||'未知';
+      if (!supMap[sup]) supMap[sup] = {items:{}, orderIds:new Set(), date: o.date};
+      const key = i.item_code||i.name;
+      if (!supMap[sup].items[key]) supMap[sup].items[key] = {...i, need:0};
+      supMap[sup].items[key].need += i.need;
+      supMap[sup].orderIds.add(String(o.id));
+    });
+  });
+
+  // 按收货员过滤
+  const isFullAccess = isAdmin || currentUserRole==='supervisor' || currentUserRole==='buyer';
+  const filteredSups = Object.entries(supMap).filter(([supName])=>{
+    if (isFullAccess) return true;
+    const sup = suppliers.find(s=>s.name.toLowerCase()===supName.toLowerCase());
+    return sup?.receiver === currentUser;
+  });
+
+  updateReceiveBadge(filteredSups.length);
+
+  if (!filteredSups.length) {
+    el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text3);">
+      <div style="font-size:48px;margin-bottom:12px;">✅</div>
+      <div>没有分配给你的待收货任务</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = filteredSups.map(([supName, data])=>{
+    const sup = suppliers.find(s=>s.name.toLowerCase()===supName.toLowerCase());
+    const orderIds = [...data.orderIds].join(',');
+    const itemList = Object.values(data.items);
+    const isTodayDelivery = sup?.order_deadline ? true : true; // 都显示
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div>
+          <div style="font-weight:700;font-size:15px;">📦 ${supName}</div>
+          ${sup?.receiver?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">收货员：${sup.receiver}</div>`:''}
+        </div>
+        <button onclick="showReceiveConfirmBySup('${supName}','${orderIds}')"
+          style="background:#27ae60;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;">
+          ✅ 确认收货
+        </button>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;overflow:hidden;">
+        ${itemList.map(i=>`
+          <div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px;">
+            <span>${i.name||i.italian}</span>
+            <strong>${i.need} ${i.spec||''}</strong>
+          </div>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">共 ${itemList.length} 种物料 · ${[...data.orderIds].length} 张订单</div>
+    </div>`;
+  }).join('');
+}
+
+function updateReceiveBadge(count) {
+  const badge = document.getElementById('receive-badge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.style.display = 'block';
+    badge.textContent = count;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 function renderReceivePanel() {
+  // 从订单系统移除待收货清单，改为收货Tab
   const panel = document.getElementById('receive-panel');
-  const listEl = document.getElementById('receive-supplier-list');
+  if (panel) panel.style.display = 'none';
+  // 更新收货角标
+  const pending = orders.filter(o=>(o.status==='待处理'||o.status==='待處理') && o.type!=='consume');
+  const isFullAccess = isAdmin || currentUserRole==='supervisor' || currentUserRole==='buyer';
+  const myPending = pending.filter(o=>{
+    if (isFullAccess) return true;
+    // 找这个订单的供应商是否分配给当前用户
+    return (o.items||[]).some(i=>{
+      const sup = suppliers.find(s=>s.name.toLowerCase()===(i.supplier||'').toLowerCase());
+      return sup?.receiver === currentUser;
+    });
+  });
+  updateReceiveBadge(myPending.length > 0 ? myPending.length : 0);
+}
   if (!panel || !listEl) return;
 
   const canReceive = isAdmin || currentUserPerms.can_receive ||
