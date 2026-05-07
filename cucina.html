@@ -2840,8 +2840,14 @@ async function confirmMergedOrders() {
 
 function renderOrders() {
   // 管理员工具栏
+  const canConfirm = isAdmin || currentUserRole==='buyer' || currentUserRole==='supervisor';
   const adminToolbar = document.getElementById('admin-order-toolbar');
-  if (adminToolbar) adminToolbar.style.display = (isAdmin || currentUserRole==='buyer' || currentUserRole==='supervisor') ? 'flex' : 'none';
+  if (adminToolbar) {
+    adminToolbar.style.display = canConfirm ? 'flex' : 'none';
+    // 一键确认只在待处理标签显示
+    const confirmBtn = adminToolbar.querySelector('button:first-child');
+    if (confirmBtn) confirmBtn.style.display = (canConfirm && orderFilter==='待处理') ? '' : 'none';
+  }
   updateOrderAlerts();
   renderReceivePanel();
   let data = orders.filter(o=>!o.hidden);
@@ -2917,6 +2923,7 @@ function renderOrders() {
     const isReceived = o.status==='已收货'||((o.status==='已確認'||o.status==='已确认')&&o.received_items);
     const isDone = (o.status==='已確認'||o.status==='已确认')&&!o.received_items;
     const isConsume = o.status==='消耗记录'||o.type==='consume';
+    const isPending = o.status==='待处理'||o.status==='待處理';
     const st = isReceived
       ? `<span class="badge badge-done">📬 已收货</span>`
       : isSent
@@ -2949,11 +2956,12 @@ function renderOrders() {
         <div class="order-footer-row">
           <span style="font-size:12px;color:var(--text2)">${t('colFood')||'食材'} <strong>${itemCount}</strong> ${t('ingredients')||'种'} · ${t('totalQty')||'总量'} <strong>${totalQty.toFixed(1)}</strong></span>
           <div style="display:flex;gap:8px;align-items:center;">
-            ${isAdmin?(o.status==='已確認'||o.status==='已确认'
-              ? `<span style="font-size:11px;padding:3px 10px;border-radius:6px;background:#25D366;color:#fff;">✓ 已确认</span>`
-              : `<button onclick="event.stopPropagation();confirmOrder('${o.id}')"
-                  style="font-size:11px;padding:3px 10px;border:none;border-radius:6px;background:#FF8C00;color:#fff;cursor:pointer;">✓ 确认</button>`)
-              :''}
+            ${isAdmin && !isConsume && isPending
+              ? `<button onclick="event.stopPropagation();confirmOrder('${o.id}')"
+                  style="font-size:11px;padding:3px 10px;border:none;border-radius:6px;background:#FF8C00;color:#fff;cursor:pointer;">✓ 确认</button>`
+              : isAdmin && !isConsume && (isSent||isReceived||isDone)
+              ? `<span style="font-size:11px;padding:3px 10px;border-radius:6px;background:#e8f5e9;color:#2e7d32;">✓ 已完成</span>`
+              : ''}
             <span class="order-detail-link">${t('viewDetail')||'查看详情'} ›</span>
           </div>
         </div>
