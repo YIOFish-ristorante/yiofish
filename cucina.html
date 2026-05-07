@@ -541,7 +541,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.9</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.1.0</div>
   </div>
 </div>
 
@@ -1526,6 +1526,7 @@ async function doLogin() {
   }
   btn.disabled = false;
   showApp();
+  initRealtime();
 }
 
 function showAdminLogin() { openModal('modal-admin-login'); }
@@ -4576,6 +4577,68 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(()=>{});
   });
+}
+
+// ── Supabase Realtime 实时订阅 ──
+function initRealtime() {
+  if (!currentUser) return;
+  const wsUrl = SB_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + SB_KEY + '&vsn=1.0.0';
+  let ws;
+  let heartbeatTimer;
+  let reconnectTimer;
+
+  function connect() {
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log('Realtime 已连接');
+      // 订阅cucina_orders表变化
+      ws.send(JSON.stringify({
+        topic: `realtime:public:cucina_orders:restaurant_id=eq.${REST_ID}`,
+        event: 'phx_join',
+        payload: {},
+        ref: '1'
+      }));
+      // 心跳保持连接
+      heartbeatTimer = setInterval(()=>{
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'}));
+        }
+      }, 25000);
+    };
+
+    ws.onmessage = async (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.event === 'INSERT' || msg.event === 'UPDATE' || msg.event === 'DELETE') {
+          // 有新订单或订单更新，重新拉取
+          const res = await sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc');
+          const newOrders = await res.json();
+          if (Array.isArray(newOrders)) {
+            orders = newOrders.map(r=>({
+              id:r.id, created_at:r.created_at, restaurant_id:r.restaurant_id,
+              chef:r.chef, date:r.date, items:r.items||[], status:r.status,
+              type:r.type, buyer:r.buyer, received_items:r.received_items, hidden:!!r.hidden
+            }));
+            if (currentTab==='orders') renderOrders();
+            if (currentTab==='receive') renderReceiveTab();
+            updatePendingBadge();
+            renderReceivePanel();
+          }
+        }
+      } catch(e) {}
+    };
+
+    ws.onclose = () => {
+      clearInterval(heartbeatTimer);
+      // 5秒后重连
+      reconnectTimer = setTimeout(()=>{ if(currentUser) connect(); }, 5000);
+    };
+
+    ws.onerror = () => { ws.close(); };
+  }
+
+  connect();
 }
 
 // 每分钟刷新订货提醒
