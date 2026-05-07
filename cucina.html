@@ -4383,15 +4383,28 @@ async function saveImport() {
     }
   }
 
+  // 自动创建新员工账号（Excel里有但chefs里没有的）
+  const chefNames = [...new Set(pendingImport.map(i=>i.chef).filter(Boolean))];
+  const newChefs = chefNames.filter(n=>!chefs[n]);
+  if (newChefs.length > 0) {
+    if(txtEl) txtEl.textContent = `正在创建新员工账号（${newChefs.length}个）...`;
+    const defaultHash = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92'; // 123456
+    for (const name of newChefs) {
+      try {
+        await fetch(SB_URL+'/rest/v1/cucina_chefs', {
+          method:'POST',
+          headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({restaurant_id:REST_ID, name, password:defaultHash, role:'staff'})
+        });
+        chefs[name] = {hash:defaultHash, role:'staff', can_add_stock:false, can_stocktake:false, can_receive:false};
+      } catch(e){ console.error('创建员工失败:', name, e); }
+    }
+    toast(`✅ 成功导入 ${count} 条物料，新增 ${newChefs.length} 个员工账号（默认密码：123456）`);
+  } else {
+    toast(`✅ 成功导入 ${count} 条物料`);
+  }
+
   await init();
-  pendingImport=[];
-  _importFileName='';
-  if(progressEl) progressEl.style.display = 'none';
-  if(btn) btn.disabled = false;
-  document.getElementById('import-preview').style.display='none';
-  closeModal('modal-import');
-  renderInventory();
-  toast(`✅ 成功导入 ${count} 条物料`);
 }
 
 // ════════════════════════════════════════
