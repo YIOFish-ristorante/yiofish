@@ -621,11 +621,46 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       <div class="cat-tab active" data-cat="all" onclick="selectCat(this,'all')">全部</div>
     </div>
 
+    <!-- 供应商筛选 -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+      <select id="inv-sup-filter" onchange="filterInventory()"
+        style="flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);">
+        <option value="">全部供应商</option>
+      </select>
+      <select id="inv-sort" onchange="filterInventory()"
+        style="flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);">
+        <option value="default">默认排序</option>
+        <option value="supplier">按供应商</option>
+        <option value="category">按分类</option>
+        <option value="stock_asc">库存从少到多</option>
+        <option value="stock_desc">库存从多到少</option>
+      </select>
+    </div>
+
+    <!-- 批量操作栏（管理员） -->
+    <div id="inv-bulk-bar" style="display:none;background:var(--primary-light);border-radius:8px;padding:8px 12px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:13px;color:var(--primary);">已选 <strong id="inv-sel-count">0</strong> 条</span>
+        <div style="display:flex;gap:6px;">
+          <button onclick="invSelectAll()" style="font-size:12px;padding:4px 10px;border:1px solid var(--primary);border-radius:6px;background:transparent;color:var(--primary);cursor:pointer;">全选</button>
+          <button onclick="invClearSelect()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;">取消</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--text2);">批量改订货员：</span>
+        <select id="inv-bulk-chef" class="form-control" style="flex:1;font-size:13px;padding:6px 10px;">
+          <option value="">-- 选择订货员 --</option>
+        </select>
+        <button onclick="invBulkChangeChef()" style="font-size:12px;padding:6px 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer;font-weight:600;">确认修改</button>
+      </div>
+    </div>
+
     <!-- Table -->
     <div class="section-card">
       <table class="inv-table" id="inv-table">
         <thead>
           <tr>
+            <th style="width:32px;" id="th-check"></th>
             <th id="th-food">食材</th>
             <th id="th-stock">当前库存</th>
             <th id="th-safe">安全库存</th>
@@ -1675,7 +1710,6 @@ function stockStatus(item) {
 // INVENTORY TAB
 // ════════════════════════════════════════
 function renderInventory() {
-  // Stats
   const total = items.length;
   const low   = items.filter(i=>stockStatus(i)==='low').length;
   const val   = items.reduce((s,i)=>s+i.stock*i.price,0);
@@ -1683,7 +1717,7 @@ function renderInventory() {
   document.getElementById('inv-low').textContent   = low;
   document.getElementById('inv-value').textContent = '€'+val.toFixed(0);
 
-  // Category tabs
+  // 分类Tab
   const cats = ['all', ...new Set(items.map(i=>i.category).filter(Boolean))];
   const tabWrap = document.getElementById('inv-cat-tabs');
   tabWrap.innerHTML = cats.map(c=>`
@@ -1691,8 +1725,30 @@ function renderInventory() {
       ${c==='all'?'全部':c}
     </div>`).join('');
 
+  // 供应商筛选下拉
+  const supFilter = document.getElementById('inv-sup-filter');
+  if (supFilter) {
+    const currentSup = supFilter.value;
+    const sups = [...new Set(items.map(i=>i.supplier).filter(Boolean))].sort();
+    supFilter.innerHTML = '<option value="">全部供应商</option>' +
+      sups.map(s=>`<option value="${s}" ${s===currentSup?'selected':''}>${s}</option>`).join('');
+  }
+
+  // 批量栏只有管理员显示
+  const bulkBar = document.getElementById('inv-bulk-bar');
+  if (bulkBar) bulkBar.style.display = isAdmin ? 'block' : 'none';
+
+  // 批量改订货员选项
+  const bulkChef = document.getElementById('inv-bulk-chef');
+  if (bulkChef && isAdmin) {
+    bulkChef.innerHTML = '<option value="">-- 选择订货员 --</option>' +
+      Object.keys(chefs).map(n=>`<option value="${n}">${n}</option>`).join('');
+  }
+
   renderInvTable();
 }
+
+let _invSelected = new Set();
 
 function renderInvTable() {
   let data = items;
@@ -1703,11 +1759,26 @@ function renderInvTable() {
     i.item_code.toLowerCase().includes(invSearch)
   );
 
+  // 供应商筛选
+  const supVal = document.getElementById('inv-sup-filter')?.value||'';
+  if (supVal) data = data.filter(i=>i.supplier===supVal);
+
+  // 排序
+  const sortVal = document.getElementById('inv-sort')?.value||'default';
+  if (sortVal==='supplier') data = [...data].sort((a,b)=>(a.supplier||'').localeCompare(b.supplier||''));
+  else if (sortVal==='category') data = [...data].sort((a,b)=>(a.category||'').localeCompare(b.category||''));
+  else if (sortVal==='stock_asc') data = [...data].sort((a,b)=>a.stock-b.stock);
+  else if (sortVal==='stock_desc') data = [...data].sort((a,b)=>b.stock-a.stock);
+
   const tbody = document.getElementById('inv-tbody');
   if (!data.length) {
-    tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text3)">暂无数据</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">暂无数据</td></tr>`;
     return;
   }
+
+  // 更新已选数量
+  document.getElementById('inv-sel-count').textContent = _invSelected.size;
+
   tbody.innerHTML = data.map(item=>{
     const st = stockStatus(item);
     const badge = st==='low'
@@ -1716,11 +1787,17 @@ function renderInvTable() {
       ? `<span class="badge badge-warn">预警</span>`
       : `<span class="badge badge-ok">正常</span>`;
     const unit = item.spec ? item.spec.replace(/[0-9X×*]/gi,'').trim().substring(0,4) : 'kg';
+    const checked = _invSelected.has(item.id);
     return `<tr onclick="showItemDetail(${item.id})">
+      <td onclick="event.stopPropagation()" style="text-align:center;">
+        ${isAdmin?`<input type="checkbox" ${checked?'checked':''} data-id="${item.id}"
+          style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;"
+          onchange="toggleInvSelect(${item.id},this.checked)">`:''}
+      </td>
       <td class="item-name-cell">
         ${item.item_code?`<div style="font-size:10px;color:var(--text3);margin-bottom:1px;">${item.item_code}</div>`:''}
         <div class="name">${displayName(item)}</div>
-        <div class="sub">${isChinese(currentUser)?item.italian:(item.name||'')}</div>
+        <div class="sub">${item.supplier?`<span style="color:var(--text3);font-size:10px;">${item.supplier}</span>`:''} ${item.chef?`· ${item.chef}`:''}</div>
       </td>
       <td style="font-family:'DM Mono',monospace;font-weight:500">${item.stock}</td>
       <td style="font-family:'DM Mono',monospace;color:var(--text3)">${item.safety}</td>
@@ -1736,6 +1813,51 @@ function selectCat(el, cat) {
   el.classList.add('active');
   renderInvTable();
 }
+function toggleInvSelect(id, checked) {
+  if (checked) _invSelected.add(id);
+  else _invSelected.delete(id);
+  document.getElementById('inv-sel-count').textContent = _invSelected.size;
+}
+
+function invSelectAll() {
+  const checkboxes = document.querySelectorAll('#inv-tbody input[type=checkbox][data-id]');
+  checkboxes.forEach(cb=>{
+    cb.checked = true;
+    _invSelected.add(parseInt(cb.getAttribute('data-id')));
+  });
+  document.getElementById('inv-sel-count').textContent = _invSelected.size;
+}
+
+function invClearSelect() {
+  _invSelected.clear();
+  document.querySelectorAll('#inv-tbody input[type=checkbox]').forEach(cb=>cb.checked=false);
+  document.getElementById('inv-sel-count').textContent = 0;
+}
+
+async function invBulkChangeChef() {
+  const chef = document.getElementById('inv-bulk-chef').value;
+  if (!chef) { toast('请选择订货员','err'); return; }
+  if (!_invSelected.size) { toast('请先勾选物料','err'); return; }
+  if (!confirm(`确定把 ${_invSelected.size} 条物料的订货员改为 ${chef}？`)) return;
+
+  let count = 0;
+  for (const id of _invSelected) {
+    try {
+      await fetch(SB_URL+'/rest/v1/cucina_items?id=eq.'+id, {
+        method:'PATCH',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({chef})
+      });
+      const item = items.find(i=>i.id===id);
+      if (item) item.chef = chef;
+      count++;
+    } catch(e) {}
+  }
+  _invSelected.clear();
+  renderInvTable();
+  toast(`✅ 已修改 ${count} 条物料的订货员为 ${chef}`);
+}
+
 function filterInventory() {
   invSearch = document.getElementById('inv-search').value.toLowerCase();
   renderInvTable();
