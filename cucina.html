@@ -748,12 +748,15 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button onclick="selectAllOrders()" style="font-size:12px;padding:4px 10px;border:1px solid var(--primary);border-radius:6px;background:transparent;color:var(--primary);cursor:pointer;">全选</button>
         <button onclick="exportSelectedOrders()" style="font-size:12px;padding:4px 10px;border:none;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;">⬇ 导出</button>
-        <button id="bulk-confirm-btn" onclick="bulkConfirmOrders()" style="display:none;font-size:12px;padding:4px 10px;border:none;border-radius:6px;background:#27ae60;color:#fff;cursor:pointer;">✅ 一键确认</button>
       </div>
     </div>
 
     <!-- 管理员工具栏 -->
-    <div id="admin-order-toolbar" style="display:none;margin-bottom:8px;">
+    <div id="admin-order-toolbar" style="display:none;margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="bulkConfirmOrders()"
+        style="font-size:12px;padding:6px 12px;border:none;border-radius:8px;background:#27ae60;color:#fff;cursor:pointer;font-weight:600;">
+        ✅ 一键确认勾选订单
+      </button>
       <button onclick="showClearOrdersModal()"
         style="font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">
         🗑 清除已完成记录
@@ -2767,12 +2770,7 @@ async function confirmMergedOrders() {
 function renderOrders() {
   // 管理员工具栏
   const adminToolbar = document.getElementById('admin-order-toolbar');
-  if (adminToolbar) adminToolbar.style.display = isAdmin ? 'block' : 'none';
-  // 一键确认按钮（待处理状态下管理员/采购员显示）
-  const bulkConfirmBtn = document.getElementById('bulk-confirm-btn');
-  if (bulkConfirmBtn) {
-    bulkConfirmBtn.style.display = (isAdmin || currentUserRole==='buyer' || currentUserRole==='supervisor') ? '' : 'none';
-  }
+  if (adminToolbar) adminToolbar.style.display = (isAdmin || currentUserRole==='buyer' || currentUserRole==='supervisor') ? 'flex' : 'none';
   updateOrderAlerts();
   renderReceivePanel();
   let data = orders.filter(o=>!o.hidden);
@@ -3239,31 +3237,38 @@ function renderSupplierList() {
   const buyerNames = Object.entries(chefs).filter(([n,v])=>(v.role||'staff')==='buyer').map(([n])=>n);
   const allStaff = Object.keys(chefs);
   el.innerHTML = suppliers.map(s=>`
-    <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-        <strong style="flex:1;font-size:13px;">${s.name}</strong>
-        <input type="text" value="${s.wa_number||''}" placeholder="WA号码"
-          style="width:110px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;"
-          onchange="updateSupplierWa(${s.id},this.value)">
+    <div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <strong style="font-size:14px;">${s.name}</strong>
         <button onclick="deleteSupplier(${s.id})"
-          style="border:none;background:transparent;color:var(--danger);font-size:16px;cursor:pointer;padding:0 2px;">×</button>
+          style="border:none;background:transparent;color:var(--danger);font-size:18px;cursor:pointer;padding:0 4px;">×</button>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-        <span style="color:var(--text3);white-space:nowrap;">采购员：</span>
-        <select onchange="updateSupplierBuyer(${s.id},this.value)"
-          style="flex:1;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;background:var(--surface);">
-          <option value="">-- 未指定 --</option>
-          ${buyerNames.map(b=>`<option value="${b}" ${s.buyer===b?'selected':''}>${b}</option>`).join('')}
-        </select>
-        <span style="color:var(--text3);white-space:nowrap;">截止：</span>
-        <input type="time" value="${(s.order_deadline||'19:00').slice(0,5)}"
-          style="width:80px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;"
-          onchange="updateSupplierDeadline(${s.id},this.value)">
+      <div style="margin-bottom:6px;">
+        <span style="color:var(--text3);">📱 WA：</span>
+        <input type="text" value="${s.wa_number||''}" placeholder="WhatsApp号码"
+          style="width:calc(100% - 60px);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;"
+          onchange="updateSupplierWa(${s.id},this.value)">
       </div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="color:var(--text3);white-space:nowrap;">收货员：</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+        <div>
+          <div style="color:var(--text3);margin-bottom:3px;">采购员</div>
+          <select onchange="updateSupplierBuyer(${s.id},this.value)"
+            style="width:100%;border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:12px;background:var(--surface);">
+            <option value="">-- 未指定 --</option>
+            ${buyerNames.map(b=>`<option value="${b}" ${s.buyer===b?'selected':''}>${b}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div style="color:var(--text3);margin-bottom:3px;">截止时间</div>
+          <input type="time" value="${(s.order_deadline||'19:00').slice(0,5)}"
+            style="width:100%;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;"
+            onchange="updateSupplierDeadline(${s.id},this.value)">
+        </div>
+      </div>
+      <div>
+        <div style="color:var(--text3);margin-bottom:3px;">收货员</div>
         <select onchange="updateSupplierReceiver(${s.id},this.value)"
-          style="flex:1;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;background:var(--surface);">
+          style="width:100%;border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:12px;background:var(--surface);">
           <option value="">-- 未指定 --</option>
           ${allStaff.map(n=>`<option value="${n}" ${s.receiver===n?'selected':''}>${n}</option>`).join('')}
         </select>
@@ -3777,6 +3782,7 @@ function renderStaffList() {
           </span>
           ${v.can_add_stock?'<span style="font-size:10px;color:#27ae60;margin-left:4px;">+库存</span>':''}
           ${v.can_stocktake?'<span style="font-size:10px;color:#2980b9;margin-left:4px;">盘点</span>':''}
+          ${v.can_receive?'<span style="font-size:10px;color:#8e44ad;margin-left:4px;">收货员</span>':''}
         </span>
         <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);padding:4px 10px" onclick="deleteStaff('${n}')">删除</button>
       </div>`).join('');
