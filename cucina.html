@@ -538,7 +538,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.2</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.4</div>
   </div>
 </div>
 
@@ -3014,24 +3014,26 @@ async function mergeSendOrders() {
           <span style="font-weight:600;font-size:14px;">📦 ${supName.toUpperCase()}</span>
           <span style="font-size:11px;color:var(--text3);margin-left:6px;">${supItems.length}种食材</span>
         </div>
-        ${hasWa
-          ? `<a href="https://wa.me/${waNum}?text=${encoded}" target="_blank"
-              style="background:#25D366;color:#fff;border:none;border-radius:8px;
-              padding:6px 14px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-block;">
-              📲 发送
-            </a>`
-          : `<span style="font-size:11px;color:var(--danger);">⚠️ 未设置WA号码</span>`}
       </div>
-      <div style="font-size:12px;color:var(--text2);">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
         ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} ${i.spec||''} × ${i.need}`).join('<br>')}
       </div>
+      ${hasWa
+        ? `<a href="https://wa.me/${waNum}?text=${encoded}" target="_blank"
+            style="display:block;width:100%;background:#25D366;color:#fff;border:none;border-radius:10px;
+            padding:12px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;box-sizing:border-box;">
+            📲 发送给 ${supName.toUpperCase()}
+          </a>`
+        : `<div style="text-align:center;font-size:12px;color:var(--danger);padding:8px;">⚠️ 未设置WA号码，无法发送</div>`}
     </div>`;
   }
 
-  // 确认按钮
+  // 确认按钮（低调小按钮）
   html += `
-    <button onclick="confirmMergedOrders()" class="btn btn-primary" style="width:100%;margin-top:8px;">
-      ✅ 确认已发送，标记为已完成
+    <button onclick="confirmMergedOrders()" 
+      style="width:100%;margin-top:12px;padding:8px;border:1px solid var(--border);border-radius:8px;
+      background:transparent;color:var(--text3);font-size:12px;cursor:pointer;">
+      ✓ 全部已发送，关闭
     </button>`;
 
   document.getElementById('submit-confirm-content').innerHTML = html;
@@ -3055,7 +3057,7 @@ async function confirmMergedOrders() {
   closeModal('modal-submit-confirm');
   renderOrders();
   updatePendingBadge();
-  toast(`✅ 订单已标记为已完成`);
+  toast(`✅ 订单已标记为已发送，等待收货确认`);
 }
 
 
