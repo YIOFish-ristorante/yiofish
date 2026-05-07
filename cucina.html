@@ -538,7 +538,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.4</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.0.5</div>
   </div>
 </div>
 
@@ -761,11 +761,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     </div>
 
     <div class="order-filter-tabs">
-      <div class="order-filter-tab active" data-f="all"    onclick="setOrderFilter(this,'all')" id="filter-all">全部</div>
-      <div class="order-filter-tab"        data-f="待处理" onclick="setOrderFilter(this,'待处理')" id="filter-pending">待处理</div>
+      <div class="order-filter-tab active" data-f="待处理" onclick="setOrderFilter(this,'待处理')" id="filter-pending">待处理</div>
       <div class="order-filter-tab"        data-f="已发送" onclick="setOrderFilter(this,'已发送')" id="filter-sent">已发送</div>
       <div class="order-filter-tab"        data-f="已收货" onclick="setOrderFilter(this,'已收货')" id="filter-done">已收货</div>
       <div class="order-filter-tab"        data-f="消耗记录" onclick="setOrderFilter(this,'消耗记录')" id="filter-consume">消耗记录</div>
+      <div class="order-filter-tab"        data-f="all"    onclick="setOrderFilter(this,'all')" id="filter-all">全部</div>
     </div>
 
     <!-- 筛选栏 -->
@@ -1214,7 +1214,7 @@ let currentUserPerms = {can_add_stock: false, can_stocktake: false};
 let currentTab  = 'inventory';
 let invCat      = 'all';
 let invSearch   = '';
-let orderFilter = 'all';
+let orderFilter = '待处理';
 let reportTab   = 'overview';
 let pendingImport = [];
 let _importFileName = '';
