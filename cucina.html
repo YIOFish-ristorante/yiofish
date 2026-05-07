@@ -511,7 +511,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   <div class="login-screen">
     <div class="login-logo"><img src="/logo.png" alt="YIO Fish" style="max-height:80px;max-width:200px;object-fit:contain;"></div>
     <div class="login-title">后厨管理系统</div>
-    <div class="login-sub">Cucina Management · Carpi</div>
+    <div class="login-sub" id="login-sub">Cucina Management · Carpi</div>
     <div class="login-card">
       <div class="form-group">
         <label class="form-label">选择员工 / Seleziona</label>
@@ -670,6 +670,12 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   <!-- ── TAB: 订单系统 ── -->
   <div id="tab-orders" class="page-content tab-page" style="display:none">
 
+    <!-- 收货入口（有收货权限的人显示） -->
+    <div id="receive-panel" style="display:none;background:#e8f5e9;border-radius:12px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;">📬 待收货清单</div>
+      <div id="receive-supplier-list"></div>
+    </div>
+
     <!-- 订货提醒面板（采购员/管理员专用） -->
     <div id="order-alert-panel" style="display:none;margin-bottom:12px;"></div>
 
@@ -738,10 +744,19 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     <!-- 批量操作栏 -->
     <div id="order-bulk-bar" style="display:none;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--primary-light);border-radius:8px;margin-bottom:8px;">
       <span id="order-selected-count" style="font-size:13px;color:var(--primary);">已选 0 条</span>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button onclick="selectAllOrders()" style="font-size:12px;padding:4px 10px;border:1px solid var(--primary);border-radius:6px;background:transparent;color:var(--primary);cursor:pointer;">全选</button>
         <button onclick="exportSelectedOrders()" style="font-size:12px;padding:4px 10px;border:none;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;">⬇ 导出</button>
+        <button id="bulk-confirm-btn" onclick="bulkConfirmOrders()" style="display:none;font-size:12px;padding:4px 10px;border:none;border-radius:6px;background:#27ae60;color:#fff;cursor:pointer;">✅ 一键确认</button>
       </div>
+    </div>
+
+    <!-- 管理员工具栏 -->
+    <div id="admin-order-toolbar" style="display:none;margin-bottom:8px;">
+      <button onclick="showClearOrdersModal()"
+        style="font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">
+        🗑 清除已完成记录
+      </button>
     </div>
 
     <div id="orders-list"></div>
@@ -865,6 +880,36 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   </div>
 
 </div><!-- end screen-app -->
+
+<!-- 清除已完成记录Modal -->
+<div class="modal-overlay" id="modal-clear-orders">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🗑 清除已完成记录</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">选择要隐藏的记录范围（记录不会永久删除，可恢复）</p>
+    <div class="form-group">
+      <label class="form-label">清除多少个月前的记录</label>
+      <select id="clear-months" class="form-control">
+        <option value="1">1个月前</option>
+        <option value="3" selected>3个月前</option>
+        <option value="6">6个月前</option>
+        <option value="12">1年前</option>
+        <option value="24">2年前</option>
+      </select>
+    </div>
+    <div id="clear-preview" style="font-size:13px;color:var(--text3);margin-bottom:16px;"></div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:8px;background:var(--danger);" onclick="clearOrders()">确认隐藏</button>
+    <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-clear-orders')">取消</button>
+  </div>
+</div>
+
+<!-- 收货确认Modal -->
+<div class="modal-overlay" id="modal-receive-confirm">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="receive-confirm-content"></div>
+  </div>
+</div>
 
 <!-- 提交订单确认Modal -->
 <div class="modal-overlay" id="modal-submit-confirm">
@@ -1016,8 +1061,14 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 const SB_URL  = 'https://cnavkgfrqvfuafcbmldg.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYXZrZ2ZycXZmdWFmY2JtbGRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MTE1MjIsImV4cCI6MjA5MzA4NzUyMn0.JX0ECOAVy-BVklCSsJE5n3j-owz1Ti-GOV4MtrWYlPI';
-const REST_ID = 'carpi';
 const WA_NUM  = '393778826875';
+
+// ── 从URL参数读取餐厅ID，默认carpi ──
+const _urlParams = new URLSearchParams(window.location.search);
+let REST_ID = (_urlParams.get('r') || 'carpi').toLowerCase().replace(/[^a-z0-9_]/g,'');
+
+// 餐厅信息（从数据库加载）
+let restaurantInfo = {id: REST_ID, name: '', status: 'active'};
 
 // ── SHA-256 哈希工具（Web Crypto API，浏览器原生）──
 async function sha256(str) {
@@ -1226,11 +1277,53 @@ const t = k => (i18n[currentLang]||i18n.zh)[k] || k;
 // INIT
 // ════════════════════════════════════════
 async function init() {
+  // ── 验证餐厅是否存在且有效 ──
+  try {
+    const rRes = await fetch(SB_URL+'/rest/v1/cucina_restaurants?id=eq.'+REST_ID+'&select=id,name,status,expires_at', {
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const rData = await rRes.json();
+    if (!rData.length) {
+      document.body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
+        <div style="font-size:48px;margin-bottom:16px;">🚫</div>
+        <h2 style="color:#e74c3c;">餐厅账户不存在</h2>
+        <p style="color:#666;">Restaurant ID: ${REST_ID}</p>
+        <p style="color:#666;">请联系系统管理员</p>
+      </div>`;
+      return;
+    }
+    restaurantInfo = rData[0];
+    if (restaurantInfo.status === 'suspended') {
+      document.body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
+        <div style="font-size:48px;margin-bottom:16px;">⏸️</div>
+        <h2 style="color:#e67e22;">账户已暂停</h2>
+        <p style="color:#666;">${restaurantInfo.name}</p>
+        <p style="color:#666;">请联系系统管理员续费</p>
+      </div>`;
+      return;
+    }
+    if (restaurantInfo.expires_at && new Date(restaurantInfo.expires_at) < new Date()) {
+      document.body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
+        <div style="font-size:48px;margin-bottom:16px;">📅</div>
+        <h2 style="color:#e74c3c;">账户已到期</h2>
+        <p style="color:#666;">${restaurantInfo.name}</p>
+        <p style="color:#666;">到期日：${restaurantInfo.expires_at}</p>
+        <p style="color:#666;">请联系系统管理员续费</p>
+      </div>`;
+      return;
+    }
+    // 更新登录页标题为餐厅名称
+    const subEl = document.getElementById('login-sub');
+    if (subEl && restaurantInfo.name) subEl.textContent = restaurantInfo.name;
+  } catch(e) {
+    console.warn('餐厅验证失败，继续加载:', e);
+  }
+
   try {
     const [iRes, oRes, cRes, sRes] = await Promise.all([
       sb('cucina_items?restaurant_id=eq.'+REST_ID+'&select=*&order=id'),
       sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc'),
-      sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&select=name,password,role,can_add_stock,can_stocktake'),
+      sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&select=name,password,role,can_add_stock,can_stocktake,can_receive'),
       sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&select=*&order=name')
     ]);
     items  = (await iRes.json()).map(r=>({
@@ -1248,7 +1341,7 @@ async function init() {
       status:r.status, created_at:r.created_at
     }));
     chefs = {};
-    (await cRes.json()).forEach(c=>{ chefs[c.name] = {hash: c.password, role: c.role||'staff', can_add_stock: !!c.can_add_stock, can_stocktake: !!c.can_stocktake}; });
+    (await cRes.json()).forEach(c=>{ chefs[c.name] = {hash: c.password, role: c.role||'staff', can_add_stock: !!c.can_add_stock, can_stocktake: !!c.can_stocktake, can_receive: !!c.can_receive}; });
     suppliers = await sRes.json();
     populateLoginSelect();
   } catch(e) {
@@ -1299,10 +1392,9 @@ async function doLogin() {
   try { localStorage.removeItem('cucina_last_pass'); } catch(e) {}
   currentUser = name;
   currentUserRole = chef.role || 'staff';
-  currentUserPerms = {can_add_stock: !!chef.can_add_stock, can_stocktake: !!chef.can_stocktake};
-  // supervisor/buyer/admin默认有所有权限
+  currentUserPerms = {can_add_stock: !!chef.can_add_stock, can_stocktake: !!chef.can_stocktake, can_receive: !!chef.can_receive};
   if (['supervisor','buyer','admin'].includes(currentUserRole) || isAdmin) {
-    currentUserPerms = {can_add_stock: true, can_stocktake: true};
+    currentUserPerms = {can_add_stock: true, can_stocktake: true, can_receive: true};
   }
   btn.disabled = false;
   showApp();
@@ -1887,12 +1979,15 @@ function toggleOrderItem(id, checked) {
   const item = items.find(i=>i.id===id);
   if (!item) return;
   item.checked = checked;
-  if (checked && !item.need) item.need = calcForecast(item)||0;
+  // 只有用户手动勾选且没有订货量时才自动填建议值
+  // 如果是consume触发的不赋need值
+  if (checked && !item.need && !item.consume) item.need = calcForecast(item)||0;
+  if (!checked) item.need = 0;
+  item.orderModified = item.need > 0;
   updateOrderFooter();
-  // update card class
   const fc = calcForecast(item);
   const card = document.getElementById('ocard-'+id);
-  card.className = `order-item-card ${checked?(fc>0?'selected-low':'selected'):''}`;
+  if (card) card.className = `order-item-card ${checked?(fc>0?'selected-low':'selected'):''}`;
 }
 
 function updateOrderQty(id, val) {
@@ -1913,7 +2008,7 @@ function updateOrderFooter() {
 }
 
 async function submitOrder() {
-  const sel = items.filter(i=>i.checked&&i.need>0);
+  const sel = items.filter(i=>i.checked && i.need>0 && i.orderModified);
   const toConsume = items.filter(i=>i.consume&&i.consume!==0);
 
   if (!sel.length && !toConsume.length) {
@@ -1946,7 +2041,12 @@ async function submitOrder() {
       orders.unshift({
         id: csavedOrder.id || Date.now(),
         created_at: csavedOrder.created_at || new Date().toISOString(),
-        ...consumeOrder
+        restaurant_id: REST_ID,
+        chef: currentUser,
+        date: today,
+        items: consumeOrder.items,
+        status: '消耗记录',
+        type: 'consume'
       });
 
       for (const item of toConsume) {
@@ -1977,6 +2077,8 @@ async function submitOrder() {
       for (const [supName, supItems] of Object.entries(supGroups)) {
         const supInfo = suppliers.find(s=>(s.name||'').toLowerCase()===supName.toLowerCase());
         const buyer = supInfo?.buyer || null;
+        toast(`📦 ${supName} → 采购员: ${buyer||'未指定'}`, buyer?'ok':'err');
+        await new Promise(r=>setTimeout(r,1500));
         const orderItems = supItems.map(i=>({
           item_code:i.item_code, name:i.name||i.italian,
           supplier:i.supplier, spec:i.spec, need:i.need
@@ -2131,6 +2233,273 @@ function setOrderFilter(el, f) {
 
 let _selectedOrderIds = new Set();
 let _weekdayFilter = ''; // 空=今天
+
+// ── 一键确认所有勾选的待处理订单 ──
+async function bulkConfirmOrders() {
+  const pending = orders.filter(o=>
+    _selectedOrderIds.has(String(o.id)) &&
+    (o.status==='待处理'||o.status==='待處理') &&
+    o.type!=='consume'
+  );
+  if (!pending.length) { toast('请先勾选待处理订单','err'); return; }
+  if (!confirm(`确认将 ${pending.length} 条订单标为已完成？不会更新库存，库存请通过收货确认更新。`)) return;
+  let count = 0;
+  for (const o of pending) {
+    try {
+      await fetch(SB_URL+'/rest/v1/cucina_orders?id=eq.'+o.id, {
+        method:'PATCH',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({status:'已确认'})
+      });
+      const local = orders.find(x=>String(x.id)===String(o.id));
+      if (local) local.status = '已确认';
+      count++;
+    } catch(e) {}
+  }
+  _selectedOrderIds.clear();
+  renderOrders();
+  updatePendingBadge();
+  toast(`✅ 已确认 ${count} 条订单`);
+}
+
+// ── 清除已完成记录 ──
+function showClearOrdersModal() {
+  updateClearPreview();
+  openModal('modal-clear-orders');
+}
+
+function updateClearPreview() {
+  const months = parseInt(document.getElementById('clear-months')?.value||'3');
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - months);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const count = orders.filter(o=>
+    (o.status==='已确认'||o.status==='已確認') &&
+    o.date < cutoffStr &&
+    !o.hidden
+  ).length;
+  const el = document.getElementById('clear-preview');
+  if (el) el.textContent = `将隐藏 ${count} 条 ${cutoffStr} 之前的已完成记录`;
+}
+
+async function clearOrders() {
+  const months = parseInt(document.getElementById('clear-months')?.value||'3');
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - months);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const toHide = orders.filter(o=>
+    (o.status==='已确认'||o.status==='已確認') &&
+    o.date < cutoffStr &&
+    !o.hidden
+  );
+  if (!toHide.length) { toast('没有符合条件的记录'); closeModal('modal-clear-orders'); return; }
+  try {
+    for (const o of toHide) {
+      await fetch(SB_URL+'/rest/v1/cucina_orders?id=eq.'+o.id, {
+        method:'PATCH',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({hidden: true})
+      });
+      o.hidden = true;
+    }
+    closeModal('modal-clear-orders');
+    renderOrders();
+    toast(`✅ 已隐藏 ${toHide.length} 条记录`);
+  } catch(e) { toast('操作失败','err'); }
+}
+
+function renderReceivePanel() {
+  const panel = document.getElementById('receive-panel');
+  const listEl = document.getElementById('receive-supplier-list');
+  if (!panel || !listEl) return;
+
+  const canReceive = isAdmin || currentUserPerms.can_receive ||
+    currentUserRole==='buyer' || currentUserRole==='supervisor';
+  if (!canReceive) { panel.style.display='none'; return; }
+
+  // 找所有待处理订单，按供应商分组
+  const pending = orders.filter(o=>
+    (o.status==='待处理'||o.status==='待處理') && o.type!=='consume'
+  );
+  if (!pending.length) { panel.style.display='none'; return; }
+
+  // 按供应商合并
+  const supMap = {};
+  pending.forEach(o=>{
+    (o.items||[]).forEach(i=>{
+      const sup = i.supplier||'未知';
+      if (!supMap[sup]) supMap[sup] = {items:{}, orderIds:new Set(), date: o.date};
+      const key = i.item_code||i.name;
+      if (!supMap[sup].items[key]) supMap[sup].items[key] = {...i, need:0};
+      supMap[sup].items[key].need += i.need;
+      supMap[sup].orderIds.add(String(o.id));
+    });
+  });
+
+  // 按收货员过滤（如果不是管理员/主管/采购员，只看自己负责的供应商）
+  const isFullAccess = isAdmin || currentUserRole==='supervisor' || currentUserRole==='buyer';
+  const filteredSups = Object.entries(supMap).filter(([supName])=>{
+    if (isFullAccess) return true;
+    const sup = suppliers.find(s=>s.name.toLowerCase()===supName.toLowerCase());
+    return sup?.receiver === currentUser;
+  });
+
+  if (!filteredSups.length) { panel.style.display='none'; return; }
+
+  listEl.innerHTML = filteredSups.map(([supName, data])=>{
+    const sup = suppliers.find(s=>s.name.toLowerCase()===supName.toLowerCase());
+    const orderIds = [...data.orderIds].join(',');
+    return `
+      <div style="background:#fff;border-radius:8px;padding:10px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div>
+            <span style="font-weight:600;font-size:13px;">📦 ${supName}</span>
+            ${sup?.receiver?`<span style="font-size:11px;color:var(--text3);margin-left:6px;">收货员：${sup.receiver}</span>`:''}
+          </div>
+          <button onclick="showReceiveConfirmBySup('${supName}','${orderIds}')"
+            style="background:#27ae60;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;">
+            确认收货
+          </button>
+        </div>
+        <div style="font-size:12px;color:var(--text2);">
+          ${Object.values(data.items).map(i=>`• ${i.name} × ${i.need} ${i.spec||''}`).join('<br>')}
+        </div>
+      </div>`;
+  }).join('');
+
+  panel.style.display = 'block';
+}
+
+function showReceiveConfirmBySup(supName, orderIdsStr) {
+  const orderIds = orderIdsStr.split(',');
+  const relatedOrders = orders.filter(o=>orderIds.includes(String(o.id)));
+
+  // 合并所有物料
+  const mergedItems = {};
+  relatedOrders.forEach(o=>{
+    (o.items||[]).forEach(i=>{
+      if ((i.supplier||'未知')!==supName) return;
+      const key = i.item_code||i.name;
+      if (!mergedItems[key]) mergedItems[key] = {...i, need:0};
+      mergedItems[key].need += i.need;
+    });
+  });
+
+  const itemList = Object.values(mergedItems);
+  const html = `
+    <div style="padding:4px 0;">
+      <p style="font-size:14px;font-weight:600;margin-bottom:4px;">📬 ${supName} 收货确认</p>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">填入实际到货数量，有出入直接修改</p>
+      <div style="background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:14px;">
+        ${itemList.map((i,idx)=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);">
+            <div style="flex:1;font-size:13px;">
+              <div>${i.name}</div>
+              <div style="font-size:11px;color:var(--text3);">订货：${i.need} ${i.spec||''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <button onclick="stepReceive(${idx},-1)" style="width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:16px;cursor:pointer;">−</button>
+              <input type="number" id="recv-${idx}" value="${i.need}" min="0"
+                style="width:50px;text-align:center;border:1px solid var(--border);border-radius:6px;padding:4px;font-size:13px;-moz-appearance:textfield;-webkit-appearance:none;">
+              <button onclick="stepReceive(${idx},+1)" style="width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:16px;cursor:pointer;">+</button>
+              <span style="font-size:12px;color:var(--text3);min-width:20px;">${i.spec||''}</span>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-green" style="width:100%;margin-bottom:8px;"
+        onclick="confirmReceiveBySup('${supName}','${orderIdsStr}',${JSON.stringify(itemList).replace(/'/g,"\\'")})">
+        ✅ 确认收货并更新库存
+      </button>
+      <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-receive-confirm')">取消</button>
+    </div>
+  `;
+  document.getElementById('receive-confirm-content').innerHTML = html;
+  openModal('modal-receive-confirm');
+}
+
+async function confirmReceiveBySup(supName, orderIdsStr, itemList) {
+  const orderIds = orderIdsStr.split(',');
+  const receivedItems = itemList.map((i,idx)=>{
+    const el = document.getElementById('recv-'+idx);
+    const received = parseFloat(el?.value)||0;
+    return {...i, ordered: i.need, received, diff: received - i.need};
+  });
+
+  const btn = document.querySelector('#modal-receive-confirm .btn-green');
+  if (btn) btn.disabled = true;
+
+  try {
+    // 更新相关订单状态
+    for (const id of orderIds) {
+      await fetch(SB_URL+'/rest/v1/cucina_orders?id=eq.'+id, {
+        method:'PATCH',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({status:'已确认', received_items: receivedItems})
+      });
+      const local = orders.find(o=>String(o.id)===id);
+      if (local) { local.status='已确认'; local.received_items=receivedItems; }
+    }
+
+    // 按实际到货量更新库存
+    for (const ri of receivedItems) {
+      if (ri.received <= 0) continue;
+      const item = items.find(i=>
+        i.item_code===ri.item_code || (i.name||i.italian)===ri.name
+      );
+      if (!item) continue;
+      const newStock = parseFloat(item.stock) + ri.received;
+      await fetch(SB_URL+'/rest/v1/cucina_items?id=eq.'+item.id, {
+        method:'PATCH',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({stock: Math.max(0, newStock)})
+      });
+      item.stock = Math.max(0, newStock);
+    }
+
+    closeModal('modal-receive-confirm');
+
+    renderOrders();
+    updatePendingBadge();
+
+    const diffs = receivedItems.filter(i=>i.diff!==0);
+    if (diffs.length) {
+      // 弹出差异报告
+      const diffHtml = `
+        <div style="padding:4px 0;">
+          <p style="font-size:14px;font-weight:600;color:var(--danger);margin-bottom:4px;">⚠️ ${supName} 到货数量有出入</p>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">以下物料与订货数量不符，请核实</p>
+          <div style="background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:14px;">
+            ${receivedItems.map(i=>{
+              const hasDiff = i.diff !== 0;
+              const diffText = i.diff > 0 ? `多到 +${i.diff}` : `少到 ${i.diff}`;
+              return `
+                <div style="display:flex;justify-content:space-between;align-items:center;
+                  padding:10px 14px;border-bottom:1px solid var(--border);
+                  background:${hasDiff?'#fff5f5':'#f0fff4'};">
+                  <span style="font-size:13px;font-weight:${hasDiff?'600':'400'};color:${hasDiff?'var(--danger)':'#2e7d32'};">
+                    ${hasDiff?'⚠️':'✅'} ${i.name}
+                  </span>
+                  <span style="font-size:12px;text-align:right;">
+                    <span style="color:var(--text3);">订 ${i.ordered}</span>
+                    → <strong style="color:${hasDiff?'var(--danger)':'#2e7d32'};">到 ${i.received}</strong>
+                    ${hasDiff?`<span style="color:var(--danger);margin-left:4px;">(${diffText})</span>`:''}
+                    <span style="color:var(--text3);"> ${i.spec||''}</span>
+                  </span>
+                </div>`;
+            }).join('')}
+          </div>
+          <button class="btn btn-primary" style="width:100%;" onclick="closeModal('modal-receive-confirm')">我知道了</button>
+        </div>`;
+      document.getElementById('receive-confirm-content').innerHTML = diffHtml;
+      openModal('modal-receive-confirm');
+    } else {
+      toast(`✅ ${supName} 收货完成，库存已更新`);
+    }
+  } catch(e) {
+    toast('确认失败：'+e.message, 'err');
+    if (btn) btn.disabled = false;
+  }
+}
 
 function updateOrderAlerts() {
   const panel = document.getElementById('order-alert-panel');
@@ -2373,8 +2742,17 @@ async function confirmMergedOrders() {
 
 
 function renderOrders() {
+  // 管理员工具栏
+  const adminToolbar = document.getElementById('admin-order-toolbar');
+  if (adminToolbar) adminToolbar.style.display = isAdmin ? 'block' : 'none';
+  // 一键确认按钮（待处理状态下管理员/采购员显示）
+  const bulkConfirmBtn = document.getElementById('bulk-confirm-btn');
+  if (bulkConfirmBtn) {
+    bulkConfirmBtn.style.display = (isAdmin || currentUserRole==='buyer' || currentUserRole==='supervisor') ? '' : 'none';
+  }
   updateOrderAlerts();
-  let data = orders;
+  renderReceivePanel();
+  let data = orders.filter(o=>!o.hidden);
   // 角色过滤
   if (isAdmin || currentUserRole==='supervisor') {
     // 看全部
@@ -2533,15 +2911,17 @@ function showOrderDetail(id) {
     ? `<span class="badge" style="background:#e8f5e9;color:#2e7d32;">消耗记录</span>`
     : `<span class="badge badge-pending">待处理</span>`;
 
-  // 撤回按钮：自己提交的待处理订单才能撤回
   const canRecall = isPending && !isConsume &&
     (order.chef||'').toLowerCase()===(currentUser||'').toLowerCase();
+  const canReceive = isPending && !isConsume &&
+    (isAdmin || currentUserRole==='buyer' || currentUserRole==='supervisor');
 
   document.getElementById('modal-order-detail-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div>
         <div style="font-size:13px;color:var(--text2)">📅 ${order.date} &nbsp; 👤 ${order.chef}</div>
         ${order.created_at?`<div style="font-size:12px;color:var(--text3)">🕐 ${new Date(order.created_at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
+        ${order.buyer?`<div style="font-size:12px;color:var(--text3)">📦 采购员：${order.buyer}</div>`:''}
       </div>${st}
     </div>
     <div style="background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:14px">
@@ -2555,14 +2935,148 @@ function showOrderDetail(id) {
           <strong>${i.need} ${i.spec||''}</strong>
         </div>`).join('')}
     </div>
-    ${isAdmin&&isPending&&!isConsume?`
-      <button class="btn btn-green" style="width:100%;margin-bottom:8px;" onclick="confirmOrder('${order.id}')">✓ 确认已备货</button>
+    ${canReceive?`
+      <button class="btn btn-green" style="width:100%;margin-bottom:8px;" onclick="showReceiveConfirm('${order.id}')">📬 确认收货</button>
+    `:''}
+    ${isDone&&order.received_items?`
+      <div style="background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:8px;">
+        <div style="padding:8px 14px;font-size:12px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border);">
+          📦 收货记录
+        </div>
+        ${(order.received_items||[]).map(i=>{
+          const hasDiff = i.diff && i.diff!==0;
+          const diffText = i.diff>0?`多到 +${i.diff}`:`少到 ${i.diff}`;
+          return `
+          <div style="display:flex;justify-content:space-between;align-items:center;
+            padding:8px 14px;border-bottom:1px solid var(--border);
+            background:${hasDiff?'#fff5f5':'transparent'};">
+            <span style="font-size:13px;color:${hasDiff?'var(--danger)':'var(--text)'};">
+              ${hasDiff?'⚠️':'✅'} ${i.name}
+            </span>
+            <span style="font-size:12px;text-align:right;">
+              <span style="color:var(--text3);">订 ${i.ordered||i.need}</span>
+              → <strong style="color:${hasDiff?'var(--danger)':'#2e7d32'};">到 ${i.received}</strong>
+              ${hasDiff?`<span style="color:var(--danger);margin-left:4px;">(${diffText})</span>`:''}
+              <span style="color:var(--text3);"> ${i.spec||''}</span>
+            </span>
+          </div>`;
+        }).join('')}
+      </div>
     `:''}
     ${canRecall?`
       <button class="btn btn-ghost" style="width:100%;color:var(--danger);border-color:var(--danger);" onclick="recallOrder('${order.id}')">↩ 撤回订单</button>
     `:''}
   `;
   openModal('modal-order-detail');
+}
+
+function showReceiveConfirm(id) {
+  const order = orders.find(o=>String(o.id)===String(id));
+  if (!order) return;
+  closeModal('modal-order-detail');
+
+  const html = `
+    <div style="padding:4px 0;">
+      <p style="font-size:14px;font-weight:600;margin-bottom:4px;">📬 确认收货</p>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">请填入实际到货数量，默认为订货量</p>
+      <div style="background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:14px;">
+        ${(order.items||[]).map((i,idx)=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);">
+            <div style="flex:1;font-size:13px;">
+              <div>${i.name}</div>
+              <div style="font-size:11px;color:var(--text3);">订货：${i.need} ${i.spec||''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <button onclick="stepReceive(${idx},-1)" style="width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:16px;cursor:pointer;">−</button>
+              <input type="number" id="recv-${idx}" value="${i.need}" min="0"
+                style="width:50px;text-align:center;border:1px solid var(--border);border-radius:6px;padding:4px;font-size:13px;-moz-appearance:textfield;">
+              <button onclick="stepReceive(${idx},+1)" style="width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:16px;cursor:pointer;">+</button>
+              <span style="font-size:12px;color:var(--text3);min-width:24px;">${i.spec||''}</span>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-green" style="width:100%;margin-bottom:8px;" onclick="confirmReceive('${id}')">✅ 确认收货并更新库存</button>
+      <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-receive-confirm')">取消</button>
+    </div>
+  `;
+  document.getElementById('receive-confirm-content').innerHTML = html;
+  openModal('modal-receive-confirm');
+}
+
+function stepReceive(idx, d) {
+  const el = document.getElementById('recv-'+idx);
+  if (el) el.value = Math.max(0, (parseFloat(el.value)||0) + d);
+}
+
+async function confirmReceive(id) {
+  const order = orders.find(o=>String(o.id)===String(id));
+  if (!order) return;
+
+  // 收集实际到货数量
+  const receivedItems = (order.items||[]).map((i,idx)=>{
+    const el = document.getElementById('recv-'+idx);
+    const received = parseFloat(el?.value)||0;
+    return {
+      item_code: i.item_code,
+      name: i.name,
+      spec: i.spec,
+      ordered: i.need,
+      received: received,
+      diff: received - i.need  // 正数=多到，负数=少到
+    };
+  });
+
+  const btn = document.querySelector('#modal-receive-confirm .btn-green');
+  if (btn) btn.disabled = true;
+
+  try {
+    // 更新订单状态和收货记录
+    await fetch(SB_URL+'/rest/v1/cucina_orders?id=eq.'+id, {
+      method:'PATCH',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({status:'已确认', received_items: receivedItems})
+    });
+
+    // 按实际到货量更新库存
+    for (const ri of receivedItems) {
+      if (ri.received <= 0) continue;
+      const item = items.find(i=>
+        i.item_code===ri.item_code ||
+        (i.name||i.italian)===ri.name
+      );
+      if (!item) continue;
+      const newStock = parseFloat(item.stock) + ri.received;
+      await fetch(SB_URL+'/rest/v1/cucina_items?id=eq.'+item.id, {
+        method:'PATCH',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({stock: Math.max(0, newStock)})
+      });
+      item.stock = Math.max(0, newStock);
+    }
+
+    // 更新本地订单
+    const local = orders.find(o=>String(o.id)===String(id));
+    if (local) {
+      local.status = '已确认';
+      local.received_items = receivedItems;
+    }
+
+    closeModal('modal-receive-confirm');
+    renderOrders();
+    updatePendingBadge();
+
+    // 显示差异提示
+    const diffs = receivedItems.filter(i=>i.diff !== 0);
+    if (diffs.length > 0) {
+      const diffMsg = diffs.map(i=>`${i.name}: 订${i.ordered} 到${i.received}`).join('、');
+      toast(`⚠️ 数量有出入：${diffMsg}`, 'err');
+    } else {
+      toast('✅ 收货确认，库存已更新');
+    }
+  } catch(e) {
+    toast('确认失败：'+e.message, 'err');
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function recallOrder(id) {
@@ -2690,6 +3204,7 @@ function renderSupplierList() {
   if (!el) return;
   if (!suppliers.length) { el.innerHTML='<p style="font-size:13px;color:var(--text3);padding:8px 0;">暂无供应商，请添加</p>'; return; }
   const buyerNames = Object.entries(chefs).filter(([n,v])=>(v.role||'staff')==='buyer').map(([n])=>n);
+  const allStaff = Object.keys(chefs);
   el.innerHTML = suppliers.map(s=>`
     <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -2700,7 +3215,7 @@ function renderSupplierList() {
         <button onclick="deleteSupplier(${s.id})"
           style="border:none;background:transparent;color:var(--danger);font-size:16px;cursor:pointer;padding:0 2px;">×</button>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
         <span style="color:var(--text3);white-space:nowrap;">采购员：</span>
         <select onchange="updateSupplierBuyer(${s.id},this.value)"
           style="flex:1;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;background:var(--surface);">
@@ -2708,11 +3223,32 @@ function renderSupplierList() {
           ${buyerNames.map(b=>`<option value="${b}" ${s.buyer===b?'selected':''}>${b}</option>`).join('')}
         </select>
         <span style="color:var(--text3);white-space:nowrap;">截止：</span>
-        <input type="time" value="${s.order_deadline||'19:00'}"
+        <input type="time" value="${(s.order_deadline||'19:00').slice(0,5)}"
           style="width:80px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;"
           onchange="updateSupplierDeadline(${s.id},this.value)">
       </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="color:var(--text3);white-space:nowrap;">收货员：</span>
+        <select onchange="updateSupplierReceiver(${s.id},this.value)"
+          style="flex:1;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px;background:var(--surface);">
+          <option value="">-- 未指定 --</option>
+          ${allStaff.map(n=>`<option value="${n}" ${s.receiver===n?'selected':''}>${n}</option>`).join('')}
+        </select>
+      </div>
     </div>`).join('');
+}
+
+async function updateSupplierReceiver(id, receiver) {
+  try {
+    await fetch(SB_URL+'/rest/v1/cucina_suppliers?id=eq.'+id, {
+      method:'PATCH',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({receiver: receiver||null})
+    });
+    const s = suppliers.find(s=>s.id===id);
+    if (s) s.receiver = receiver||null;
+    toast('✅ 已更新');
+  } catch(e){ toast('保存失败','err'); }
 }
 
 async function updateSupplierDeadline(id, deadline) {
@@ -2791,7 +3327,7 @@ async function deleteSupplier(id) {
 }
 
 function updatePendingBadge() {
-  const cnt = orders.filter(o=>o.status==='待處理'||o.status==='待处理').length;
+  const cnt = orders.filter(o=>(o.status==='待處理'||o.status==='待处理') && o.type!=='consume').length;
   document.getElementById('pending-badge-text').textContent =
     cnt>0 ? `${cnt} 条待处理订单` : '查看待处理订单';
 }
@@ -3219,6 +3755,7 @@ function showStaffSetting(name) {
   const current = chef.role || 'staff';
   const canAddStock = !!chef.can_add_stock;
   const canStocktake = !!chef.can_stocktake;
+  const canReceive = !!chef.can_receive;
   const html = `
     <div style="padding:16px 0;">
       <p style="font-size:15px;font-weight:600;margin-bottom:16px;">⚙️ ${name} 的设置</p>
@@ -3237,9 +3774,13 @@ function showStaffSetting(name) {
           <input type="checkbox" id="perm-add-stock" ${canAddStock?'checked':''} style="width:18px;height:18px;accent-color:var(--primary);">
           <span style="font-size:13px;">允许增加库存（+ 号）</span>
         </label>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <label style="display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;">
           <input type="checkbox" id="perm-stocktake" ${canStocktake?'checked':''} style="width:18px;height:18px;accent-color:var(--primary);">
           <span style="font-size:13px;">允许盘点库存（直接修改库存数量）</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="perm-receive" ${canReceive?'checked':''} style="width:18px;height:18px;accent-color:var(--primary);">
+          <span style="font-size:13px;">允许确认收货（按供应商合并收货）</span>
         </label>
       </div>
       <div style="display:flex;gap:8px;margin-top:16px;">
@@ -3271,16 +3812,18 @@ async function saveStaffRole(name) {
   const role = document.getElementById('staff-role-select').value;
   const canAddStock = document.getElementById('perm-add-stock').checked;
   const canStocktake = document.getElementById('perm-stocktake').checked;
+  const canReceive = document.getElementById('perm-receive').checked;
   try {
     await fetch(SB_URL+'/rest/v1/cucina_chefs?restaurant_id=eq.'+REST_ID+'&name=eq.'+encodeURIComponent(name), {
       method:'PATCH',
       headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({role, can_add_stock: canAddStock, can_stocktake: canStocktake})
+      body:JSON.stringify({role, can_add_stock: canAddStock, can_stocktake: canStocktake, can_receive: canReceive})
     });
     if (chefs[name]) {
       chefs[name].role = role;
       chefs[name].can_add_stock = canAddStock;
       chefs[name].can_stocktake = canStocktake;
+      chefs[name].can_receive = canReceive;
     }
     renderStaffPanel();
     toast('✅ 已更新：'+name);
