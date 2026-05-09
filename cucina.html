@@ -541,7 +541,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.1.1</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.1.2</div>
   </div>
 </div>
 
@@ -1459,7 +1459,8 @@ async function init() {
     }));
     orders = (await oRes.json()).map(r=>({
       id:r.id, chef:r.chef, date:r.date, items:r.items||[],
-      status:r.status, created_at:r.created_at
+      status:r.status, created_at:r.created_at,
+      type:r.type, buyer:r.buyer, received_items:r.received_items, hidden:!!r.hidden
     }));
     chefs = {};
     (await cRes.json()).forEach(c=>{ chefs[c.name] = {hash: c.password, role: c.role||'staff', can_add_stock: !!c.can_add_stock, can_stocktake: !!c.can_stocktake, can_receive: !!c.can_receive}; });
