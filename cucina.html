@@ -1179,7 +1179,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.1.6';
+const APP_VERSION = 'v1.1.7';
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -4771,15 +4771,28 @@ function showUpdatePrompt(waitingSW) {
   `;
   document.body.appendChild(banner);
   document.getElementById('sw-update-btn').onclick = () => {
+    // 立即给用户视觉反馈
+    const btn = document.getElementById('sw-update-btn');
+    btn.textContent = '更新中...';
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+
     // 关键：只有用户主动点击时才注册 reload 监听
     let _reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
+    const doReload = () => {
       if (_reloaded) return;
       _reloaded = true;
       window.location.reload();
-    });
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', doReload);
     // 通知等待中的 SW 立即激活
-    waitingSW.postMessage({type:'SKIP_WAITING'});
+    try {
+      if (waitingSW && waitingSW.state !== 'redundant') {
+        waitingSW.postMessage({type:'SKIP_WAITING'});
+      }
+    } catch(e) { console.warn('[SW] postMessage 失败:', e); }
+    // 🛟 保底：3 秒后无论如何强制刷新（应对 iOS Safari 等怪异情况）
+    setTimeout(doReload, 3000);
   };
   document.getElementById('sw-dismiss-btn').onclick = () => {
     banner.remove();
