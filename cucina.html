@@ -4703,6 +4703,71 @@ setInterval(async ()=>{
     }
   } catch(e) { console.warn('自动刷新订单失败:', e); }
 }, 2 * 60 * 1000);
+
+// ════════════════════════════════════════
+// SERVICE WORKER 注册（PWA 离线支持）
+// ════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw-cucina.js')
+      .then(reg => {
+        console.log('[SW] 已注册');
+
+        // 检测新版本
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          if (!newSW) return;
+          newSW.addEventListener('statechange', () => {
+            // 已安装新版本，且当前页面已被旧 SW 控制 → 提示更新
+            if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdatePrompt(newSW);
+            }
+          });
+        });
+
+        // 每小时主动检查一次更新
+        setInterval(() => reg.update().catch(()=>{}), 60 * 60 * 1000);
+      })
+      .catch(err => console.warn('[SW] 注册失败:', err));
+
+    // 监听 SW 切换 → 自动刷新页面
+    let _reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (_reloading) return;
+      _reloading = true;
+      window.location.reload();
+    });
+  });
+}
+
+// 新版本提示（顶部横幅，比 confirm 友好）
+function showUpdatePrompt(newSW) {
+  // 避免重复显示
+  if (document.getElementById('sw-update-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'sw-update-banner';
+  banner.style.cssText = `
+    position:fixed;top:0;left:0;right:0;z-index:9999;
+    background:linear-gradient(135deg,#1A56DB,#1040B0);color:#fff;
+    padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
+    box-shadow:0 2px 12px rgba(0,0,0,.2);font-size:13px;
+    animation:slideDown .3s ease-out;
+  `;
+  banner.innerHTML = `
+    <span>🎉 系统已更新，点击刷新加载最新版本</span>
+    <div style="display:flex;gap:8px;">
+      <button id="sw-update-btn" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:600;font-size:12px;cursor:pointer;">立即更新</button>
+      <button id="sw-dismiss-btn" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">稍后</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+  document.getElementById('sw-update-btn').onclick = () => {
+    newSW.postMessage({type:'SKIP_WAITING'});
+  };
+  document.getElementById('sw-dismiss-btn').onclick = () => {
+    banner.remove();
+  };
+}
 </script>
 </body>
 </html>
