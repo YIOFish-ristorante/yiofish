@@ -1179,7 +1179,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.1.8';
+const APP_VERSION = 'v1.1.9';
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -4721,28 +4721,10 @@ setInterval(async ()=>{
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // 关键：URL 带版本号，版本变了 → 浏览器自动认作新 SW
+    // SW 自动激活、静默升级，不再需要用户参与
     navigator.serviceWorker.register('/sw-cucina.js?v=' + APP_VERSION)
       .then(reg => {
         console.log('[SW] 已注册，版本:', APP_VERSION);
-
-        // 处理已经在等待中的 SW（用户上次没点"立即更新"，这次进来还要提醒）
-        if (reg.waiting && navigator.serviceWorker.controller) {
-          showUpdatePrompt(reg.waiting);
-        }
-
-        // 检测新版本
-        reg.addEventListener('updatefound', () => {
-          const newSW = reg.installing;
-          if (!newSW) return;
-          newSW.addEventListener('statechange', () => {
-            // 已安装新版本，且当前页面已被旧 SW 控制 → 提示更新
-            if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-              showUpdatePrompt(newSW);
-            }
-          });
-        });
-
         // 每小时主动检查一次更新
         setInterval(() => reg.update().catch(()=>{}), 60 * 60 * 1000);
       })
@@ -4750,9 +4732,22 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// 新版本提示（顶部横幅，比 confirm 友好）
-function showUpdatePrompt(waitingSW) {
-  // 避免重复显示
+// 检测版本变化：只在真正升级时弹一次通知
+(function checkVersionChange(){
+  try {
+    const SEEN_KEY = 'cucina_app_version_seen';
+    const lastSeen = localStorage.getItem(SEEN_KEY);
+    if (lastSeen && lastSeen !== APP_VERSION) {
+      // 真的升级了 → 显示一次性通知
+      showUpdateNotice(lastSeen, APP_VERSION);
+    }
+    // 记录当前版本（首次访问时也记，避免下次误报）
+    localStorage.setItem(SEEN_KEY, APP_VERSION);
+  } catch(e) { console.warn('[SW] 版本检查失败:', e); }
+})();
+
+// 一次性"已更新"通知（不阻塞用户操作）
+function showUpdateNotice(fromVer, toVer) {
   if (document.getElementById('sw-update-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'sw-update-banner';
@@ -4763,42 +4758,13 @@ function showUpdatePrompt(waitingSW) {
     box-shadow:0 2px 12px rgba(0,0,0,.2);font-size:13px;
   `;
   banner.innerHTML = `
-    <span>🎉 系统已更新，点击刷新加载最新版本</span>
-    <div style="display:flex;gap:8px;">
-      <button id="sw-update-btn" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:600;font-size:12px;cursor:pointer;">立即更新</button>
-      <button id="sw-dismiss-btn" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">稍后</button>
-    </div>
+    <span>🎉 系统已更新到 ${toVer}</span>
+    <button id="sw-dismiss-btn" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:600;font-size:12px;cursor:pointer;">知道了</button>
   `;
   document.body.appendChild(banner);
-  document.getElementById('sw-update-btn').onclick = async () => {
-    // 立即给用户视觉反馈
-    const btn = document.getElementById('sw-update-btn');
-    btn.textContent = '更新中...';
-    btn.disabled = true;
-    btn.style.opacity = '0.7';
-
-    // 🚀 核选项：直接清理一切 + 强制刷新（最可靠）
-    // 不依赖 SW 内部 message → skipWaiting → claim → controllerchange 链路
-    try {
-      // 1. 注销所有 SW
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r => r.unregister()));
-      }
-      // 2. 清空所有缓存
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-      }
-    } catch(e) {
-      console.warn('[SW] 清理失败（不影响刷新）:', e);
-    }
-    // 3. 强制刷新（不走缓存）
-    window.location.reload();
-  };
-  document.getElementById('sw-dismiss-btn').onclick = () => {
-    banner.remove();
-  };
+  document.getElementById('sw-dismiss-btn').onclick = () => banner.remove();
+  // 8 秒后自动消失
+  setTimeout(() => { if (banner.parentNode) banner.remove(); }, 8000);
 }
 </script>
 </body>
