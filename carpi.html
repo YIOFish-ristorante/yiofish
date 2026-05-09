@@ -462,7 +462,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.2 · 2026-05-09</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.4 · 2026-05-09</span></div>
 </div>
 </div>
 
@@ -813,6 +813,15 @@ async function loadAll() {
     if (SETTINGS.published_at) _lastPublishedAt = SETTINGS.published_at;
     loadCartFromLS();
     _clientId = getClientId();
+    // 自动恢复上次桌号
+    try {
+      var savedTable = localStorage.getItem('yiofish_table_' + RESTAURANT_ID);
+      if (savedTable) {
+        var tableInput = document.getElementById('table-number');
+        if (tableInput) tableInput.value = savedTable;
+        loadTableSession(savedTable);
+      }
+    } catch(e) {}
     loadMenu();
     // 每30秒检查营业状态和新发布
     setInterval(function(){
@@ -1641,6 +1650,7 @@ function renderCartBody() {
 function confirmTableNumber() {
   var tv = document.getElementById('table-number').value.trim();
   if (!tv) { toast('⚠️ Inserisci il numero del tavolo'); return; }
+  try { localStorage.setItem('yiofish_table_' + RESTAURANT_ID, tv); } catch(e) {}
   updateCartButtons();
   loadTableSession(tv);
 }
@@ -1841,12 +1851,20 @@ function canAddItem() {
       thisRoundCount += cart_dine[k];
     }
   }
-  // 按登录设备数分配配额：总配额 / 设备数 = 每台设备配额
+  // 每台设备配额：当前轮数 × 每轮配额 - 本机已发送量
+  var currentRound = _tableSession ? (_tableSession.round_number || 1) : 1;
   var activeIds = _tableSession ? (_tableSession.active_ids || []) : [];
   var deviceCount = Math.max(1, activeIds.length);
-  var perDeviceMax = Math.floor(roundMax * guestCount / deviceCount);
-  if (roundMax > 0 && thisRoundCount >= perDeviceMax) {
-    return {ok: false, msg: 'Limite turno: max ' + perDeviceMax + ' piatti per questo turno (' + deviceCount + ' dispositiv' + (deviceCount===1?'o':'i') + ')'};
+  var perDevicePerRound = Math.floor(roundMax * guestCount / deviceCount);
+  // 本机已发送总量（从cart_dine_sent估算）
+  var sentByMe = 0;
+  for (var ks in cart_dine_sent) { sentByMe += cart_dine_sent[ks]; }
+  // 本机累计可点 = 当前轮数 × 每轮配额
+  var myTotalAllowed = currentRound * perDevicePerRound;
+  var myTotalUsed = sentByMe + thisRoundCount;
+  if (roundMax > 0 && myTotalUsed >= myTotalAllowed) {
+    var remaining = myTotalAllowed - sentByMe;
+    return {ok: false, msg: 'Limite turno: max ' + Math.max(0, remaining) + ' piatti rimanenti questo turno'};
   }
 
   // 总量检查（跨设备）：order_count（已发送）+ 本轮cart_dine
