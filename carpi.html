@@ -1283,11 +1283,6 @@ function addItem(it) {
   // 外卖无限制
   if (!isAsporto) {
     var hasPrice = (parseFloat(it.price) || 0) > 0;
-    // DEBUG: 显示price和计数
-    var _dbgCount = 0;
-    for (var _k in cart_dine) { var _kit = getItemForMenu(_k); if (_kit && (parseFloat(_kit.price)||0)===0) _dbgCount += cart_dine[_k]; }
-    toast('price:' + it.price + ' count:' + _dbgCount + ' max:' + (SETTINGS.round_max*guestCount), 3000);
-
     if (!hasPrice) {
       // 检查轮次限制
       var roundCheck = canAddItem();
@@ -1377,6 +1372,18 @@ function changeQty(it, d) {
   var mq = it.max_qty || 0;
   var nv = Math.max(0, (c[it.id] || 0) + d);
   if (d > 0 && mq > 0 && nv > mq) nv = mq;
+
+  // 加菜时检查轮次限制
+  if (d > 0 && !isAsporto) {
+    var hasPrice2 = (parseFloat(it.price) || 0) > 0;
+    if (!hasPrice2) {
+      var roundCheck2 = canAddItem();
+      if (!roundCheck2.ok) {
+        toast('⚠️ ' + roundCheck2.msg);
+        return;
+      }
+    }
+  }
 
   // 加菜时检查分类限制
   if (d > 0 && !isAsporto) {
