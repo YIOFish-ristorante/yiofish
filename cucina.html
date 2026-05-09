@@ -541,7 +541,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.1.4</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.1.5</div>
   </div>
 </div>
 
@@ -4486,6 +4486,14 @@ async function saveImport() {
   } else {
     toast(`✅ 成功导入 ${count} 条物料`);
   }
+
+  // 关闭modal，重置状态
+  pendingImport = [];
+  _importFileName = '';
+  if (progressEl) progressEl.style.display = 'none';
+  if (btn) { btn.disabled = false; btn.innerHTML = '💾 保存到数据库'; }
+  document.getElementById('import-preview').style.display = 'none';
+  closeModal('modal-import');
 
   await init();
 }
