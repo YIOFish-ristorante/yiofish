@@ -462,7 +462,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.2.0 · 2025-05-03</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.0 · 2026-05-09</span></div>
 </div>
 </div>
 
@@ -510,9 +510,13 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
         <div style="flex:1;">
           <label style="font-size:10px;color:var(--muted);letter-spacing:1px;display:block;margin-bottom:4px;">N. TAVOLO</label>
-          <input type="text" id="table-number" placeholder="Es. 12"
-            oninput="updateCartButtons();var tv=this.value.trim();if(tv)loadTableSession(tv);"
-            style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 10px;font-size:14px;color:var(--text2);outline:none;">
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="table-number" placeholder="Es. 12"
+              onkeydown="if(event.key==='Enter')confirmTableNumber();"
+              style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 10px;font-size:14px;color:var(--text2);outline:none;">
+            <button onclick="confirmTableNumber()"
+              style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 14px;font-size:13px;color:#1a1510;cursor:pointer;font-family:inherit;font-weight:500;">OK</button>
+          </div>
         </div>
         <div style="flex:1;">
           <label style="font-size:10px;color:var(--muted);letter-spacing:1px;display:block;margin-bottom:4px;">N. PERSONE</label>
@@ -1634,6 +1638,13 @@ function renderCartBody() {
 //  轮次控制
 // ════════════════════════════════════
 
+function confirmTableNumber() {
+  var tv = document.getElementById('table-number').value.trim();
+  if (!tv) { toast('⚠️ Inserisci il numero del tavolo'); return; }
+  updateCartButtons();
+  loadTableSession(tv);
+}
+
 async function loadTableSession(tableNum) {
   if (!tableNum) { _tableSession = null; return; }
   try {
@@ -1830,7 +1841,10 @@ function canAddItem() {
       thisRoundCount += cart_dine[k];
     }
   }
-  if (roundMax > 0 && thisRoundCount >= roundMax * guestCount) {
+  // 跨设备：加上其他设备本轮已发送的数量（从session同步）
+  var otherDeviceCount = _tableSession ? Math.max(0, (_tableSession.order_count || 0) % (roundMax * guestCount || 1)) : 0;
+  var totalThisRound = thisRoundCount + otherDeviceCount;
+  if (roundMax > 0 && totalThisRound >= roundMax * guestCount) {
     return {ok: false, msg: 'Limite turno: max ' + (roundMax * guestCount) + ' piatti per questo turno'};
   }
 
