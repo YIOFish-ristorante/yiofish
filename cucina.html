@@ -541,7 +541,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.1.3</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.1.4</div>
   </div>
 </div>
 
@@ -3021,7 +3021,7 @@ async function mergeSendOrders() {
 
     let msg = `🍳 *YioFish 订货单*\n📅 ${today}\n📦 ${supName.toUpperCase()}\n\n`;
     supItems.forEach(i=>{
-      msg += `• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} ${i.spec||''} × ${i.need}\n`;
+      msg += `• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} × ${i.need}${i.spec?' '+i.spec:''}\n`;
     });
     const encoded = encodeURIComponent(msg);
 
@@ -3034,7 +3034,7 @@ async function mergeSendOrders() {
         </div>
       </div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
-        ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} ${i.spec||''} × ${i.need}`).join('<br>')}
+        ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} × ${i.need}${i.spec?' '+i.spec:''}`).join('<br>')}
       </div>
       ${hasWa
         ? `<a href="https://wa.me/${waNum}?text=${encoded}" target="_blank"
@@ -3527,7 +3527,7 @@ function showSubmitConfirm(orderItems, today) {
 
     let msg = `🍳 *YioFish 后厨申购单*\n🧑‍🍳 ${currentUser}\n📅 ${today}\n📦 ${supName.toUpperCase()}\n\n`;
     supItems.forEach(i=>{
-      msg+=`• ${i.item_code?i.item_code+' / ':''}${i.name} = ${i.need}${i.spec?' '+i.spec:''}\n`;
+      msg+=`• ${i.item_code?i.item_code+' / ':''}${i.name} × ${i.need}${i.spec?' '+i.spec:''}\n`;
     });
     const encoded = encodeURIComponent(msg);
 
@@ -3544,7 +3544,7 @@ function showSubmitConfirm(orderItems, today) {
         </a>
       </div>
       <div style="font-size:12px;color:var(--text2);">
-        ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name} = ${i.need}${i.spec?' '+i.spec:''}`).join('<br>')}
+        ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name} × ${i.need}${i.spec?' '+i.spec:''}`).join('<br>')}
       </div>
       ${!hasWa?`<div style="font-size:11px;color:var(--warn);margin-top:4px;">⚠️ 未设置此供应商WhatsApp</div>`:''}
     </div>`;
