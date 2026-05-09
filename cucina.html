@@ -1179,7 +1179,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.1.5';
+const APP_VERSION = 'v1.1.6';
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -4726,6 +4726,11 @@ if ('serviceWorker' in navigator) {
       .then(reg => {
         console.log('[SW] 已注册，版本:', APP_VERSION);
 
+        // 处理已经在等待中的 SW（用户上次没点"立即更新"，这次进来还要提醒）
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          showUpdatePrompt(reg.waiting);
+        }
+
         // 检测新版本
         reg.addEventListener('updatefound', () => {
           const newSW = reg.installing;
@@ -4742,19 +4747,11 @@ if ('serviceWorker' in navigator) {
         setInterval(() => reg.update().catch(()=>{}), 60 * 60 * 1000);
       })
       .catch(err => console.warn('[SW] 注册失败:', err));
-
-    // 监听 SW 切换 → 自动刷新页面
-    let _reloading = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (_reloading) return;
-      _reloading = true;
-      window.location.reload();
-    });
   });
 }
 
 // 新版本提示（顶部横幅，比 confirm 友好）
-function showUpdatePrompt(newSW) {
+function showUpdatePrompt(waitingSW) {
   // 避免重复显示
   if (document.getElementById('sw-update-banner')) return;
   const banner = document.createElement('div');
@@ -4764,7 +4761,6 @@ function showUpdatePrompt(newSW) {
     background:linear-gradient(135deg,#1A56DB,#1040B0);color:#fff;
     padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
     box-shadow:0 2px 12px rgba(0,0,0,.2);font-size:13px;
-    animation:slideDown .3s ease-out;
   `;
   banner.innerHTML = `
     <span>🎉 系统已更新，点击刷新加载最新版本</span>
@@ -4775,7 +4771,15 @@ function showUpdatePrompt(newSW) {
   `;
   document.body.appendChild(banner);
   document.getElementById('sw-update-btn').onclick = () => {
-    newSW.postMessage({type:'SKIP_WAITING'});
+    // 关键：只有用户主动点击时才注册 reload 监听
+    let _reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (_reloaded) return;
+      _reloaded = true;
+      window.location.reload();
+    });
+    // 通知等待中的 SW 立即激活
+    waitingSW.postMessage({type:'SKIP_WAITING'});
   };
   document.getElementById('sw-dismiss-btn').onclick = () => {
     banner.remove();

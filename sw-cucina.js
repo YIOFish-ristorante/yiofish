@@ -16,15 +16,16 @@ const CORE_ASSETS = [
   '/icon.png',
 ];
 
-// ── INSTALL：缓存核心资源 ──
+// ── INSTALL：缓存核心资源（不自动激活，等用户确认） ──
 self.addEventListener('install', e => {
-  console.log(`[SW] 安装新版本: ${VERSION}`);
+  console.log(`[SW] 安装新版本: ${VERSION}（等待用户确认更新）`);
   e.waitUntil(
     caches.open(STATIC_CACHE)
       .then(c => c.addAll(CORE_ASSETS).catch(err => {
         console.warn('[SW] 部分核心资源缓存失败（不影响安装）:', err);
       }))
-      .then(() => self.skipWaiting())
+    // 故意不调用 skipWaiting()，让 SW 停在 waiting 状态
+    // 直到主页面用户点"立即更新"按钮 → 发送 SKIP_WAITING 消息
   );
 });
 
