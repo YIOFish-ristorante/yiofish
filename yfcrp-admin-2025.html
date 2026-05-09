@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v2.2</title>
+<title>Yio Fish Admin v2.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v2.2</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v2.3</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -270,7 +270,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v2.2</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v2.3</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -480,7 +480,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.3</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -509,7 +509,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.3</span>';
   }
   loadAll();
 }
@@ -847,7 +847,7 @@ function renderPermTabs() {
   if (!tabsEl) return;
   tabsEl.innerHTML = STORES.map(function(s) {
     var active = s.id === _permActiveStore;
-    return '<button onclick="switchPermStore(\''+s.id+'\')" style="padding:6px 16px;border:1px solid rgba(212,171,72,'+(active?'1':'.3')+');border-radius:6px;background:'+(active?'rgba(212,171,72,.2)':'transparent')+';color:#f4f1ec;cursor:pointer;font-size:12px;letter-spacing:1px;">'+s.name+'</button>';
+    return '<button onclick="switchPermStore(\''+s.id+'\')" style="padding:6px 16px;border:1px solid '+(active?'var(--gold)':'var(--border)')+';border-radius:6px;background:'+(active?'rgba(212,171,72,.15)':'transparent')+';color:var(--text);cursor:pointer;font-size:12px;">'+s.name+'</button>';
   }).join('');
   renderPermList();
 }
@@ -864,12 +864,12 @@ function renderPermList() {
   el.innerHTML = PERM_DEFS.map(function(p) {
     var key = p[0], label = p[1];
     var enabled = storePerm[key] !== undefined ? storePerm[key] : false;
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);">'
-      + '<span style="font-size:13px;color:#f4f1ec;">'+label+'</span>'
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">'
+      + '<span style="font-size:13px;color:var(--text);">'+label+'</span>'
       + '<label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">'
       + '<input type="checkbox" '+(enabled?'checked':'')+' onchange="togglePerm(\''+_permActiveStore+'\',\''+key+'\',this.checked)"'
       + ' style="opacity:0;width:0;height:0;position:absolute;">'
-      + '<span style="position:absolute;inset:0;background:'+(enabled?'#d4ab48':'rgba(255,255,255,.15)')+';border-radius:24px;transition:.3s;"></span>'
+      + '<span style="position:absolute;inset:0;background:'+(enabled?'#d4ab48':'#ccc')+';border-radius:24px;transition:.3s;"></span>'
       + '<span style="position:absolute;left:'+(enabled?'22':'2')+'px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;"></span>'
       + '</label>'
       + '</div>';
