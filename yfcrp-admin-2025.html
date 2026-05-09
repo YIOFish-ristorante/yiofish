@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v2.5</title>
+<title>Yio Fish Admin v2.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v2.5</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v2.6</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -270,11 +270,10 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v2.5</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v2.6</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
-    <button class="btn btn-ghost btn-sm" onclick="showPage('settings')">⚙️ 设置</button>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="color:#c0392b;">⬅ 退出</button>
     <button class="btn btn-green btn-sm" id="publish-btn" onclick="publishMenu()">🚀 发布菜单</button>
     <button class="btn btn-gold btn-sm" onclick="showPage('export')">⬇ 导出菜单</button>
@@ -480,7 +479,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.5</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.6</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -509,7 +508,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.5</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.6</span>';
   }
   loadAll();
 }
@@ -819,10 +818,12 @@ async function loadAll() {
 
 // ── 权限管理函数 ──
 var PERM_DEFS = [
+  ['nav_dishes','菜品数据库'],['nav_cats','分类管理'],['nav_tags','标签管理'],
+  ['nav_restaurant','餐厅信息'],['nav_export','导出菜单'],['nav_tables','桌号管理'],
+  ['nav_settings','设置'],
   ['is_open','营业状态开关'],['announcement','公告管理'],['takeaway','外卖设置'],
   ['waiter_password','服务员密码'],['dish_price','菜品价格修改'],['publish_menu','发布菜单'],
-  ['table_manage','桌号管理'],['round_settings','轮次设置'],
-  ['menu_limit','菜单限点设置'],['cat_limit','分类限点设置']
+  ['round_settings','轮次设置'],['menu_limit','菜单限点设置'],['cat_limit','分类限点设置']
 ];
 var _permData = {};
 var _permActiveStore = '';
@@ -905,10 +906,15 @@ async function loadMyPermissions() {
 }
 
 function applyPermissions(myPerms) {
-  var btnMap = {'publish_menu':'publish-btn','table_manage':'nav-tables'};
+  var btnMap = {
+    'publish_menu':'publish-btn',
+    'nav_dishes':'nav-dishes','nav_cats':'nav-cats','nav_tags':'nav-tags',
+    'nav_restaurant':'nav-restaurant','nav_export':'nav-export',
+    'nav_tables':'nav-tables','nav_settings':'nav-settings'
+  };
   Object.keys(btnMap).forEach(function(key) {
     var el = document.getElementById(btnMap[key]);
-    if (el) el.style.display = (myPerms[key] ? '' : 'none');
+    if (el) el.style.display = (myPerms[key] !== false ? '' : 'none');
   });
 }
 
