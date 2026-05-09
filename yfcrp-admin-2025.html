@@ -817,6 +817,100 @@ async function loadAll() {
   }
 }
 
+// ── 权限管理函数 ──
+var PERM_DEFS = [
+  ['is_open','营业状态开关'],['announcement','公告管理'],['takeaway','外卖设置'],
+  ['waiter_password','服务员密码'],['dish_price','菜品价格修改'],['publish_menu','发布菜单'],
+  ['table_manage','桌号管理'],['round_settings','轮次设置'],
+  ['menu_limit','菜单限点设置'],['cat_limit','分类限点设置']
+];
+var _permData = {};
+var _permActiveStore = '';
+
+async function loadPermissions() {
+  try {
+    var res = await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions?select=*', {
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+    });
+    var data = await res.json();
+    _permData = {};
+    data.forEach(function(r) {
+      if (!_permData[r.restaurant_id]) _permData[r.restaurant_id] = {};
+      _permData[r.restaurant_id][r.perm_key] = r.enabled;
+    });
+    renderPermTabs();
+  } catch(e) { console.error('loadPermissions:', e); }
+}
+
+function renderPermTabs() {
+  var tabsEl = document.getElementById('perm-store-tabs');
+  if (!tabsEl) return;
+  tabsEl.innerHTML = STORES.map(function(s) {
+    var active = s.id === _permActiveStore;
+    return '<button onclick="switchPermStore(\''+s.id+'\')" style="padding:6px 16px;border:1px solid rgba(212,171,72,'+(active?'1':'.3')+');border-radius:6px;background:'+(active?'rgba(212,171,72,.2)':'transparent')+';color:#f4f1ec;cursor:pointer;font-size:12px;letter-spacing:1px;">'+s.name+'</button>';
+  }).join('');
+  renderPermList();
+}
+
+function switchPermStore(storeId) {
+  _permActiveStore = storeId;
+  renderPermTabs();
+}
+
+function renderPermList() {
+  var el = document.getElementById('perm-list');
+  if (!el || !_permActiveStore) return;
+  var storePerm = _permData[_permActiveStore] || {};
+  el.innerHTML = PERM_DEFS.map(function(p) {
+    var key = p[0], label = p[1];
+    var enabled = storePerm[key] !== undefined ? storePerm[key] : false;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);">'
+      + '<span style="font-size:13px;color:#f4f1ec;">'+label+'</span>'
+      + '<label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">'
+      + '<input type="checkbox" '+(enabled?'checked':'')+' onchange="togglePerm(\''+_permActiveStore+'\',\''+key+'\',this.checked)"'
+      + ' style="opacity:0;width:0;height:0;position:absolute;">'
+      + '<span style="position:absolute;inset:0;background:'+(enabled?'#d4ab48':'rgba(255,255,255,.15)')+';border-radius:24px;transition:.3s;"></span>'
+      + '<span style="position:absolute;left:'+(enabled?'22':'2')+'px;top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;"></span>'
+      + '</label>'
+      + '</div>';
+  }).join('');
+}
+
+async function togglePerm(storeId, key, enabled) {
+  try {
+    await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions', {
+      method: 'POST',
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'},
+      body: JSON.stringify({restaurant_id: storeId, perm_key: key, enabled: enabled})
+    });
+    if (!_permData[storeId]) _permData[storeId] = {};
+    _permData[storeId][key] = enabled;
+    toast('✅ 权限已更新');
+  } catch(e) { toast('❌ 更新失败'); }
+}
+
+async function loadMyPermissions() {
+  if (CURRENT_ROLE !== 'store_admin') return;
+  try {
+    var res = await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions?restaurant_id=eq.'+RESTAURANT_ID+'&select=*', {
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+    });
+    var data = await res.json();
+    var myPerms = {};
+    data.forEach(function(r){ myPerms[r.perm_key] = r.enabled; });
+    applyPermissions(myPerms);
+  } catch(e) { console.error('loadMyPermissions:', e); }
+}
+
+function applyPermissions(myPerms) {
+  var btnMap = {'publish_menu':'publish-btn','table_manage':'nav-tables'};
+  Object.keys(btnMap).forEach(function(key) {
+    var el = document.getElementById(btnMap[key]);
+    if (el) el.style.display = (myPerms[key] ? '' : 'none');
+  });
+}
+
 function doLogout() {
   try { sessionStorage.removeItem(_lockSession); } catch(e) {}
   document.getElementById('lock-screen').style.display = 'flex';
@@ -971,7 +1065,7 @@ function showPage(p){
         + '<div id="perm-list"></div>'
         + '</div>';
       _permActiveStore = STORES[0].id;
-      renderPermTabs();
+      loadPermissions();
     }
     return;
   }
