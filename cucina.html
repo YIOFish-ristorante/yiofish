@@ -1179,7 +1179,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.1.7';
+const APP_VERSION = 'v1.1.8';
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -4770,29 +4770,31 @@ function showUpdatePrompt(waitingSW) {
     </div>
   `;
   document.body.appendChild(banner);
-  document.getElementById('sw-update-btn').onclick = () => {
+  document.getElementById('sw-update-btn').onclick = async () => {
     // 立即给用户视觉反馈
     const btn = document.getElementById('sw-update-btn');
     btn.textContent = '更新中...';
     btn.disabled = true;
     btn.style.opacity = '0.7';
 
-    // 关键：只有用户主动点击时才注册 reload 监听
-    let _reloaded = false;
-    const doReload = () => {
-      if (_reloaded) return;
-      _reloaded = true;
-      window.location.reload();
-    };
-    navigator.serviceWorker.addEventListener('controllerchange', doReload);
-    // 通知等待中的 SW 立即激活
+    // 🚀 核选项：直接清理一切 + 强制刷新（最可靠）
+    // 不依赖 SW 内部 message → skipWaiting → claim → controllerchange 链路
     try {
-      if (waitingSW && waitingSW.state !== 'redundant') {
-        waitingSW.postMessage({type:'SKIP_WAITING'});
+      // 1. 注销所有 SW
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
       }
-    } catch(e) { console.warn('[SW] postMessage 失败:', e); }
-    // 🛟 保底：3 秒后无论如何强制刷新（应对 iOS Safari 等怪异情况）
-    setTimeout(doReload, 3000);
+      // 2. 清空所有缓存
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch(e) {
+      console.warn('[SW] 清理失败（不影响刷新）:', e);
+    }
+    // 3. 强制刷新（不走缓存）
+    window.location.reload();
   };
   document.getElementById('sw-dismiss-btn').onclick = () => {
     banner.remove();
