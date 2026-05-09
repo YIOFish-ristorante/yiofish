@@ -275,6 +275,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
     <button class="btn btn-ghost btn-sm" onclick="showPage('settings')">⚙️ 设置</button>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="color:#c0392b;">⬅ 退出</button>
     <button class="btn btn-green btn-sm" id="publish-btn" onclick="publishMenu()">🚀 发布菜单</button>
     <button class="btn btn-gold btn-sm" onclick="showPage('export')">⬇ 导出菜单</button>
   </div>
@@ -797,12 +798,29 @@ async function loadAll() {
     showLoading(false);
     render();
     updateCounts();
+    // 超级管理员显示额外功能
+    if (CURRENT_ROLE === 'super') {
+      var permBtn = document.getElementById('nav-permissions');
+      if (permBtn) permBtn.style.display = '';
+      var accSection = document.getElementById('admin-accounts-section');
+      if (accSection) { accSection.style.display = 'block'; loadAdminAccounts(); }
+      _permActiveStore = STORES[0].id;
+      loadPermissions();
+    } else if (CURRENT_ROLE === 'store_admin') {
+      loadMyPermissions();
+    }
   } catch(e) {
     showLoading(false);
     _loading = false;
     toast('❌ 连接数据库失败: ' + e.message);
     console.error(e);
   }
+}
+
+function doLogout() {
+  try { sessionStorage.removeItem(_lockSession); } catch(e) {}
+  document.getElementById('lock-screen').style.display = 'flex';
+  CURRENT_ROLE = 'super';
 }
 
 function showLoading(show) {
