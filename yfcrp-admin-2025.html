@@ -953,11 +953,26 @@ function closeModal(){
 // ════════════════════════════════════
 function showPage(p){
   if (p==='permissions') {
-    document.querySelectorAll('[id^=page-]').forEach(function(el){ el.style.display='none'; });
-    document.getElementById('page-permissions').style.display='block';
+    // 先用原有方式切换页面（清空内容区）
+    _page = 'permissions';
+    ['dishes','cats','restaurant','export','settings','tables','tags'].forEach(function(x){
+      var b = document.getElementById('nav-'+x);
+      if(b) b.className = 's-btn';
+    });
     document.querySelectorAll('.s-btn').forEach(function(b){ b.classList.remove('active'); });
     var nb = document.getElementById('nav-permissions');
     if (nb) nb.classList.add('active');
+    // 用content区显示权限管理
+    var content = document.getElementById('content');
+    if (content) {
+      content.innerHTML = '<div style="padding:0;">'
+        + '<div class="page-head"><div><h1>🔐 权限管理</h1><p>设置各店铺管理员可使用的功能</p></div></div>'
+        + '<div id="perm-store-tabs" style="display:flex;gap:8px;margin-bottom:20px;"></div>'
+        + '<div id="perm-list"></div>'
+        + '</div>';
+      _permActiveStore = STORES[0].id;
+      renderPermTabs();
+    }
     return;
   }
   _page = p;
