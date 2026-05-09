@@ -541,7 +541,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <span style="font-size:12px;color:var(--primary);cursor:pointer;font-weight:600" onclick="showAdminLogin()"> 点击登录</span>
       </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">v1.1.5</div>
+    <div id="app-version-label" style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;"></div>
   </div>
 </div>
 
@@ -1176,6 +1176,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 </div>
 
 <script>
+// ════════════════════════════════════════
+// 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
+// ════════════════════════════════════════
+const APP_VERSION = 'v1.1.5';
+
 // ════════════════════════════════════════
 // SUPABASE
 // ════════════════════════════════════════
@@ -4707,11 +4712,19 @@ setInterval(async ()=>{
 // ════════════════════════════════════════
 // SERVICE WORKER 注册（PWA 离线支持）
 // ════════════════════════════════════════
+
+// 把 APP_VERSION 显示到登录页右下角
+(function setVersionLabel(){
+  const el = document.getElementById('app-version-label');
+  if (el) el.textContent = APP_VERSION;
+})();
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw-cucina.js')
+    // 关键：URL 带版本号，版本变了 → 浏览器自动认作新 SW
+    navigator.serviceWorker.register('/sw-cucina.js?v=' + APP_VERSION)
       .then(reg => {
-        console.log('[SW] 已注册');
+        console.log('[SW] 已注册，版本:', APP_VERSION);
 
         // 检测新版本
         reg.addEventListener('updatefound', () => {

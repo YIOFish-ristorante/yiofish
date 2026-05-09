@@ -1,10 +1,10 @@
 // ════════════════════════════════════════════════════════════
 // YIO CucinaFlow Service Worker
-// 版本号 = HTML 版本号（cucina.html 中的 v1.1.5）
-// 每次发版前修改 CACHE_VERSION，触发用户端自动更新
+// 版本号从注册 URL 的 ?v= 参数读取，单一数据源在 cucina.html
 // ════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'cucina-v1.1.5';
+const VERSION       = new URL(self.location).searchParams.get('v') || 'unversioned';
+const CACHE_VERSION = `cucina-${VERSION}`;
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -18,6 +18,7 @@ const CORE_ASSETS = [
 
 // ── INSTALL：缓存核心资源 ──
 self.addEventListener('install', e => {
+  console.log(`[SW] 安装新版本: ${VERSION}`);
   e.waitUntil(
     caches.open(STATIC_CACHE)
       .then(c => c.addAll(CORE_ASSETS).catch(err => {
@@ -29,6 +30,7 @@ self.addEventListener('install', e => {
 
 // ── ACTIVATE：清理旧版本缓存 ──
 self.addEventListener('activate', e => {
+  console.log(`[SW] 激活版本: ${VERSION}`);
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
