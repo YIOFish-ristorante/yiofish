@@ -680,9 +680,14 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       </table>
     </div>
 
-    <button class="btn btn-ghost" style="margin-top:8px" onclick="showImportModal()">
-      <span>☁️</span> 导入CSV / Excel
-    </button>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="showImportModal()">
+        <span>☁️</span> 导入CSV / Excel
+      </button>
+      <button class="btn btn-ghost" onclick="exportInventoryExcel()">
+        <span>📤</span> 导出 Excel
+      </button>
+    </div>
   </div>
 
   <!-- ── TAB: 订货系统 ── -->
@@ -1179,7 +1184,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.1.9';
+const APP_VERSION = 'v1.2.0';
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -4295,6 +4300,7 @@ function renderItemsPanel() {
     <button class="btn btn-primary" onclick="saveNewItem()">➕ 添加到物料库</button>
     <div class="divider"></div>
     <button class="btn btn-ghost" onclick="showImportModal()">📥 批量导入 Excel/CSV</button>
+    <button class="btn btn-ghost" onclick="exportInventoryExcel()">📤 备份导出 Excel</button>
   `;
 }
 
@@ -4347,6 +4353,96 @@ function renderPendingPanel() {
 // IMPORT
 // ════════════════════════════════════════
 function showImportModal() { openModal('modal-import'); }
+
+// ════════════════════════════════════════
+// 库存导出 Excel（与导入格式兼容，可双向使用）
+// ════════════════════════════════════════
+function exportInventoryExcel() {
+  if (!items || !items.length) {
+    toast('暂无库存数据可导出', 'err');
+    return;
+  }
+  try {
+    // 星期名 → 数字映射（与导入格式一致）
+    const dayMap = {'星期一':1,'星期二':2,'星期三':3,'星期四':4,'星期五':5,'星期六':6,'星期日':7};
+
+    const data = items.map(item => {
+      // cycle 数组 → "1,2,3" 数字字符串（与导入格式一致）
+      const cycleStr = (item.cycle||[]).map(d => dayMap[d] || '').filter(Boolean).join(',');
+      // departments 数组 → "厨房 / 吧台" 斜杠分隔（与导入格式一致）
+      const deptsStr = Array.isArray(item.departments)
+        ? item.departments.join(' / ')
+        : (item.departments || '厨房');
+      // safety_by_day → JSON 字符串（扩展字段，导入不解析但保留备份）
+      const sbdStr = item.safety_by_day && Object.keys(item.safety_by_day).length > 0
+        ? JSON.stringify(item.safety_by_day)
+        : '';
+      return {
+        '货物号':       item.item_code || '',
+        '意文名':       item.italian   || '',
+        '中文名':       item.name      || '',
+        '规格':         item.spec      || '',
+        '价格':         parseFloat(item.price) || 0,
+        '供应商':       item.supplier  || '',
+        '使用部门':     deptsStr,
+        '当前库存':     parseFloat(item.stock) || 0,
+        '安全库存':     parseFloat(item.safety) || 0,
+        '最大订货量':   item.max_order != null ? item.max_order : '',
+        '分类':         item.category  || '',
+        '订货员':       item.chef      || '',
+        '订货周期':     cycleStr,
+        '型号':         item.model_no  || '',
+        '按星期安全库存': sbdStr,
+        '数据库ID':     item.id
+      };
+    });
+
+    // 创建工作簿
+    const ws = XLSX.utils.json_to_sheet(data);
+
+    // 列宽（让 Excel 打开后字段清晰可见）
+    ws['!cols'] = [
+      {wch:12},{wch:20},{wch:20},{wch:14},{wch:10},
+      {wch:16},{wch:14},{wch:12},{wch:12},{wch:12},
+      {wch:12},{wch:12},{wch:14},{wch:12},{wch:24},{wch:10}
+    ];
+
+    // 表头加粗（让第一行看起来像标题）
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddr = XLSX.utils.encode_cell({r:0, c:C});
+      if (ws[cellAddr]) {
+        ws[cellAddr].s = { font: { bold: true } };
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '库存清单');
+
+    // 加一个"导出信息"sheet，记录元数据
+    const meta = [
+      ['餐厅 ID',     REST_ID],
+      ['导出时间',     new Date().toLocaleString('zh-CN')],
+      ['数据条数',     items.length],
+      ['当前 App 版本', APP_VERSION],
+      ['', ''],
+      ['📌 说明', '本文件可作为完整库存备份，前 13 列与"导入 CSV/Excel"格式兼容。如需还原数据，重新导入即可。']
+    ];
+    const wsMeta = XLSX.utils.aoa_to_sheet(meta);
+    wsMeta['!cols'] = [{wch:18},{wch:60}];
+    XLSX.utils.book_append_sheet(wb, wsMeta, '导出信息');
+
+    // 文件名：含餐厅 ID 和日期，方便区分多店
+    const date = new Date().toISOString().slice(0,10);
+    const fileName = `库存备份_${REST_ID}_${date}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+    toast(`✅ 已导出 ${items.length} 条库存`);
+  } catch (err) {
+    console.error('导出失败:', err);
+    toast('导出失败：' + err.message, 'err');
+  }
+}
 
 function handleImport(input) {
   const file=input.files[0]; if(!file)return;
