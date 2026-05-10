@@ -1204,7 +1204,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.3.3';
+const APP_VERSION = 'v1.3.4';
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -4678,10 +4678,15 @@ async function uploadItemImage(itemId, fileInput) {
     const sizeKB = (compressed.size / 1024).toFixed(0);
     console.log(`[图片压缩] 原始: ${(file.size/1024).toFixed(0)}KB → 压缩: ${sizeKB}KB (${result.ext.toUpperCase()})`);
 
-    // 文件名根据实际格式决定（.webp 或 .jpg）
-    const fileName = `${REST_ID}/item_${itemId}_${Date.now()}.${result.ext}`;
+    // 🎯 固定文件名（不带时间戳）→ 再次上传时自动覆盖
+    // 这样一个食材在 Storage 里永远只有一份图，不留孤儿文件
+    const fileName = `${REST_ID}/item_${itemId}.${result.ext}`;
 
-    // 上传到 Supabase Storage（bucket: cucina-images，需要预先创建为 public）
+    // 保留旧 URL，用于后续删除"不同扩展名"的旧文件（如 jpg 换 webp）
+    const item = items.find(i => i.id === itemId);
+    const oldUrl = item && item.image_url ? item.image_url : '';
+
+    // 上传到 Supabase Storage（x-upsert: true 会自动覆盖同名文件）
     const uploadRes = await fetch(
       `${SB_URL}/storage/v1/object/cucina-images/${fileName}`,
       {
@@ -4701,8 +4706,9 @@ async function uploadItemImage(itemId, fileInput) {
       throw new Error(`上传失败 (${uploadRes.status}): ${errText.substring(0,100)}`);
     }
 
-    // 拼接公开 URL
-    const publicUrl = `${SB_URL}/storage/v1/object/public/cucina-images/${fileName}`;
+    // 🎯 公开 URL 加 cache buster（?v=时间戳）
+    // 文件名固定但 URL 不同，浏览器/SW 会重新下载，看到的就是最新图
+    const publicUrl = `${SB_URL}/storage/v1/object/public/cucina-images/${fileName}?v=${Date.now()}`;
 
     // 更新 cucina_items 表
     await fetch(`${SB_URL}/rest/v1/cucina_items?id=eq.${itemId}`, {
@@ -4715,8 +4721,21 @@ async function uploadItemImage(itemId, fileInput) {
       body: JSON.stringify({ image_url: publicUrl })
     });
 
+    // 🧹 清理：如果旧图是不同扩展名（如以前 .jpg，现在 .webp），删除旧文件
+    // 同扩展名的话 x-upsert 已经覆盖了，不用删
+    if (oldUrl) {
+      try {
+        const oldPath = oldUrl.split('/cucina-images/')[1]?.split('?')[0]; // 去查询参数
+        if (oldPath && oldPath !== fileName) {
+          fetch(`${SB_URL}/storage/v1/object/cucina-images/${oldPath}`, {
+            method: 'DELETE',
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+          }).catch(()=>{}); // 删除失败不影响主流程（可能没 DELETE 权限）
+        }
+      } catch(e) { /* 解析失败也忽略 */ }
+    }
+
     // 更新本地 items 缓存
-    const item = items.find(i => i.id === itemId);
     if (item) item.image_url = publicUrl;
 
     // 更新预览
