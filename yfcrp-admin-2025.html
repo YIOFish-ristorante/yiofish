@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v2.9</title>
+<title>Yio Fish Admin v3.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v2.9</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v3.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -270,7 +270,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v2.9</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v3.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -479,7 +479,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.9</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -508,7 +508,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.9</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.0</span>';
   }
   loadAll();
 }
@@ -947,11 +947,7 @@ function applySettingsSections() {
   };
   Object.keys(sectionMap).forEach(function(key) {
     var el = document.getElementById(sectionMap[key]);
-    if (el) {
-      var card = el.closest ? el.closest('.card') : null;
-      var target = card || el.parentElement;
-      if (target) target.style.display = (myPerms[key] === true ? '' : 'none');
-    }
+    if (el) el.style.display = (myPerms[key] === true ? '' : 'none');
   });
 }
 
@@ -2076,7 +2072,7 @@ function renderSettings(){
 
   $('content').innerHTML =
     '<div class="page-head"><div><h1>⚙️ 设置</h1><p>实时生效，无需刷新页面</p></div></div>'
-    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+    +'<div class="card" id="section-is-open" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">CARPI 分店控制</div>'
       +'<div style="display:flex;flex-direction:column;gap:12px">'
         +makeSwitch('notify_enabled', s.notify_enabled, '🔔 叫服务员功能', '开启后客人可在堂食菜单点击按钮发WhatsApp通知')
@@ -2116,7 +2112,7 @@ function renderSettings(){
         +'<button onclick="saveWaiterPassword()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 16px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存</button>'
       +'</div>'
     +'</div>'
-    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+    +'<div class="card" id="section-announcement" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">📢 菜单公告栏</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">显示在每个菜单顶部，用于价格说明、特别通知等</div>'
       +'<textarea id="announcement-input" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--text2);outline:none;resize:none;height:80px;font-family:inherit;">'+(s.announcement||'')+'</textarea>'
