@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v3.2</title>
+<title>Yio Fish Admin v3.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v3.2</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v3.3</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -266,7 +266,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 </div>
 
 <!-- 店铺选择 -->
-<div id="store-select-screen" style="display:none;position:fixed;inset:0;background:#1a1510;z-index:9998;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+<div id="store-select-screen" style="display:none;position:fixed;inset:0;background:#1a1510;z-index:99998;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
   <div style="font-size:13px;letter-spacing:3px;color:#d4ab48;opacity:.7;margin-bottom:8px;">选择管理店铺</div>
   <div id="store-list" style="display:flex;flex-direction:column;gap:12px;width:280px;"></div>
 </div>
@@ -276,7 +276,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v3.2</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v3.3</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -485,7 +485,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.3</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -514,7 +514,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.3</span>';
   }
   loadAll();
 }
