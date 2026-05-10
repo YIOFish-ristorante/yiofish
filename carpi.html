@@ -462,7 +462,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.5 · 2026-05-10</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.6 · 2026-05-10</span></div>
 </div>
 </div>
 
@@ -1760,9 +1760,11 @@ async function recordRoundSent(tableNum) {
   if (!tableNum) return;
   var roundMax = SETTINGS.round_max || 0;
   var roundTotal = SETTINGS.round_total || 0;
+  var roundInterval = SETTINGS.round_interval || 0;
   if (roundMax === 0 && roundTotal === 0) return;
   try {
-    var now = new Date().toISOString();
+    var now = new Date();
+    var nowISO = now.toISOString();
     // 计算本次发送的菜品数（price=0的菜）
     var sentCount = 0;
     for (var id in cart_dine) {
@@ -1773,24 +1775,60 @@ async function recordRoundSent(tableNum) {
         if (!hasP) sentCount += cart_dine[id];
       }
     }
+
     if (_tableSession) {
-      var newRound = (_tableSession.round_number || 1) + 1;
-      var newCount = (_tableSession.order_count || 0) + sentCount;
-      var firstAt = _tableSession.first_order_at || now;
+      // 判断是否还在当前轮的时间窗口内
+      var roundStart = _tableSession.round_start_at ? new Date(_tableSession.round_start_at) : null;
+      var elapsed = roundStart ? (now - roundStart) / 60000 : 999;
+      var inSameRound = roundStart && elapsed < roundInterval;
+
+      var newRound, newRoundStart, newRoundSentCount;
+      if (inSameRound) {
+        // 同一轮内，累加
+        newRound = _tableSession.round_number || 1;
+        newRoundStart = _tableSession.round_start_at;
+        newRoundSentCount = (_tableSession.round_sent_count || 0) + sentCount;
+      } else {
+        // 进入新一轮，重置round_start和round_sent_count
+        newRound = (_tableSession.round_number || 1) + 1;
+        newRoundStart = nowISO;
+        newRoundSentCount = sentCount;
+      }
+      var newTotalCount = (_tableSession.order_count || 0) + sentCount;
+      var firstAt = _tableSession.first_order_at || nowISO;
+
       await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {
         method: 'PATCH',
-        body: JSON.stringify({round_number: newRound, last_sent_at: now, order_count: newCount, first_order_at: firstAt})
+        body: JSON.stringify({
+          round_number: newRound,
+          last_sent_at: nowISO,
+          order_count: newTotalCount,
+          first_order_at: firstAt,
+          round_start_at: newRoundStart,
+          round_sent_count: newRoundSentCount
+        })
       });
       _tableSession.round_number = newRound;
-      _tableSession.last_sent_at = now;
-      _tableSession.order_count = newCount;
+      _tableSession.last_sent_at = nowISO;
+      _tableSession.order_count = newTotalCount;
       _tableSession.first_order_at = firstAt;
+      _tableSession.round_start_at = newRoundStart;
+      _tableSession.round_sent_count = newRoundSentCount;
     } else {
+      // 第一次发送，新建session
       await sbFetch('table_sessions', {
         method: 'POST',
-        body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: tableNum, round_number: 1, last_sent_at: now, order_count: sentCount, first_order_at: now, active_ids: [_clientId]})
+        body: JSON.stringify({
+          restaurant_id: RESTAURANT_ID, table_number: tableNum,
+          round_number: 1, last_sent_at: nowISO, order_count: sentCount,
+          first_order_at: nowISO, round_start_at: nowISO, round_sent_count: sentCount,
+          active_ids: [_clientId]
+        })
       });
-      _tableSession = {round_number: 1, last_sent_at: now, order_count: sentCount, first_order_at: now};
+      _tableSession = {
+        round_number: 1, last_sent_at: nowISO, order_count: sentCount,
+        first_order_at: nowISO, round_start_at: nowISO, round_sent_count: sentCount
+      };
     }
     updateRoundUI();
   } catch(e) { console.log('recordRoundSent error:', e); }
@@ -1860,20 +1898,22 @@ function canAddItem() {
       thisRoundCount += cart_dine[k];
     }
   }
-  // 每台设备配额：当前轮数 × 每轮配额 - 本机已发送量
-  var currentRound = _tableSession ? (_tableSession.round_number || 1) : 1;
-  var activeIds = _tableSession ? (_tableSession.active_ids || []) : [];
-  var deviceCount = Math.max(1, activeIds.length);
-  var perDevicePerRound = Math.floor(roundMax * guestCount / deviceCount);
-  // 本机已发送总量（从cart_dine_sent估算）
-  var sentByMe = 0;
-  for (var ks in cart_dine_sent) { sentByMe += cart_dine_sent[ks]; }
-  // 本机累计可点 = 当前轮数 × 每轮配额
-  var myTotalAllowed = currentRound * perDevicePerRound;
-  var myTotalUsed = sentByMe + thisRoundCount;
-  if (roundMax > 0 && myTotalUsed >= myTotalAllowed) {
-    var remaining = myTotalAllowed - sentByMe;
-    return {ok: false, msg: 'Limite turno: max ' + Math.max(0, remaining) + ' piatti rimanenti questo turno'};
+  // 本轮已发送量（来自session的round_sent_count）
+  var roundInterval = SETTINGS.round_interval || 0;
+  var roundSentCount = 0;
+  if (_tableSession && _tableSession.round_start_at) {
+    var elapsed = (new Date() - new Date(_tableSession.round_start_at)) / 60000;
+    if (elapsed < roundInterval) {
+      // 还在本轮时间窗口内
+      roundSentCount = _tableSession.round_sent_count || 0;
+    }
+  }
+  // 本轮总量上限 = roundMax × guestCount
+  var roundLimit = roundMax * guestCount;
+  var totalThisRound = roundSentCount + thisRoundCount;
+  if (roundMax > 0 && totalThisRound >= roundLimit) {
+    var remaining = Math.max(0, roundLimit - roundSentCount);
+    return {ok: false, msg: 'Limite turno: max ' + remaining + ' piatti rimanenti questo turno'};
   }
 
   // 总量检查（跨设备）：order_count（已发送）+ 本轮cart_dine
