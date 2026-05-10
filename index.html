@@ -11,26 +11,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="YIO Fish">
 
-<!-- ==========================================================
-     早期路由脚本：在 DOM 渲染前检查会话缓存。
-     有缓存 → 立即跳转（连 logo 都不显示，几乎无白屏）
-     ========================================================== -->
+<!-- 早期路由：DOM 渲染前秒跳缓存的 URL（同会话内手动选过店或自动跳过的） -->
 <script>
 (function () {
   try {
     var CACHE_KEY = 'yio_route_v1';
     var CACHE_NONE = '__select__';
-    var skip = new URLSearchParams(location.search).has('manual');
-    if (skip) {
+    if (new URLSearchParams(location.search).has('manual')) {
       sessionStorage.removeItem(CACHE_KEY);
       return;
     }
     var cached = sessionStorage.getItem(CACHE_KEY);
     if (cached && cached !== CACHE_NONE) {
-      // 同会话内已经定位/选择过 → 直接跳转，跳过整个页面
       location.replace(cached);
     }
-  } catch (e) { /* sessionStorage 不可用就静默走正常流程 */ }
+  } catch (e) {}
 })();
 </script>
 
@@ -134,30 +129,28 @@
 </div>
 
 <script>
-(function () {
+(async function () {
   // ============ 配置区 ============
   const STORES = [
     { lat: 44.7852782, lng: 10.8631876, url: 'carpi.html'   },
     { lat: 45.1852781, lng: 11.2624608, url: 'legnago.html' }
   ];
   const AUTO_OPEN_RADIUS_KM = 1.5;     // 1.5公里内自动打开
-  const ACCURACY_LIMIT_M   = 2000;     // GPS 精度差于 2000m 拒绝（iOS 关闭精确定位时是 3000-9000m）
-  const GEO_TIMEOUT        = 5000;     // 浏览器内部超时
-  const HARD_TIMEOUT       = 6000;     // 硬兜底超时
+  const ACCURACY_LIMIT_M   = 2000;     // GPS 精度差于此值不信任
+  const GEO_TIMEOUT        = 5000;
+  const HARD_TIMEOUT       = 6000;
   const GEO_MAX_AGE        = 5 * 60 * 1000;
   const CACHE_KEY  = 'yio_route_v1';
   const CACHE_NONE = '__select__';
 
   const skipAuto = new URLSearchParams(location.search).has('manual');
 
-  // 安全的 sessionStorage 包装（私密浏览模式可能抛错）
   const ss = {
     get(k)    { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { sessionStorage.setItem(k, v);    } catch (e) {} },
     remove(k) { try { sessionStorage.removeItem(k);    } catch (e) {} }
   };
 
-  // Haversine 球面距离（km）
   function haversine(lat1, lng1, lat2, lng2) {
     const R = 6371;
     const toRad = x => x * Math.PI / 180;
@@ -169,29 +162,33 @@
 
   const subtitle = document.getElementById('subtitle');
 
-  // ============ 1. 客人手动点选店 → 缓存这次会话的选择 ============
+  // 1. 客人手动点选 → 缓存这次会话的选择
   document.querySelectorAll('.location-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       ss.set(CACHE_KEY, btn.getAttribute('href'));
     }, { passive: true });
   });
 
-  // ============ 2. 入口决策 ============
-  // manual 模式：清缓存，显示选择页
-  if (skipAuto) {
-    ss.remove(CACHE_KEY);
-    return;
-  }
-
-  // 检查会话缓存（早期路由脚本已处理"有具体URL"的情况，这里只剩 NONE）
-  if (ss.get(CACHE_KEY) === CACHE_NONE) {
-    return; // 同会话上次已判定为远地 → 直接显示选择页
-  }
-
-  // 浏览器不支持 geolocation → 选择页
+  // 2. 入口决策
+  if (skipAuto) { ss.remove(CACHE_KEY); return; }
+  if (ss.get(CACHE_KEY) === CACHE_NONE) return;
   if (!('geolocation' in navigator)) return;
 
-  // ============ 3. 启动定位 ============
+  // 3. ★ 关键：先查权限状态，绝不主动弹窗
+  if (!('permissions' in navigator)) return;  // 老浏览器不支持 Permissions API → 选择页
+
+  let permission;
+  try {
+    permission = await navigator.permissions.query({ name: 'geolocation' });
+  } catch (e) {
+    return;  // 不支持 query 'geolocation' → 选择页
+  }
+
+  if (permission.state !== 'granted') {
+    return;  // 未授权（prompt / denied）→ 选择页，绝不弹窗
+  }
+
+  // 4. 已授权（granted）→ 静默获取位置（这一步不会弹窗）
   subtitle.textContent = 'RILEVAMENTO POSIZIONE...';
   subtitle.classList.add('detecting');
 
@@ -208,7 +205,7 @@
   try {
     navigator.geolocation.getCurrentPosition(
       (pos) => settle(() => handlePosition(pos)),
-      ()    => settle(resetSubtitle),     // 拒绝/超时/任何错误 → 选择页（不缓存，给客人下次机会）
+      ()    => settle(resetSubtitle),
       { enableHighAccuracy: false, timeout: GEO_TIMEOUT, maximumAge: GEO_MAX_AGE }
     );
   } catch (e) {
@@ -218,7 +215,7 @@
   function handlePosition(pos) {
     const { latitude, longitude, accuracy } = pos.coords;
 
-    // iOS 关闭精确定位时 accuracy 高达 3000-9000m，无法做 1.5km 判断 → 走选择页
+    // GPS 精度太差（如 iOS 关闭精确定位 → 3000-9000m）→ 不可靠
     if (accuracy > ACCURACY_LIMIT_M) {
       ss.set(CACHE_KEY, CACHE_NONE);
       resetSubtitle();
@@ -236,7 +233,6 @@
       subtitle.textContent = 'APERTURA MENU...';
       location.replace(nearest.url);
     } else {
-      // 都在 1.5km 外 → 缓存"select"标记，避免会话内重复定位
       ss.set(CACHE_KEY, CACHE_NONE);
       resetSubtitle();
     }
