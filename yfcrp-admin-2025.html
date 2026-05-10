@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v3.3</title>
+<title>Yio Fish Admin v3.5</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v3.3</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v3.5</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -276,10 +276,12 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v3.3</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v3.5</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
+    <select id="store-switcher" onchange="switchStore(this.value)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 8px;font-size:12px;color:#f4f1ec;cursor:pointer;font-family:inherit;display:none;">
+    </select>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="color:#c0392b;">⬅ 退出</button>
     <button class="btn btn-green btn-sm" id="publish-btn" onclick="publishMenu()">🚀 发布菜单</button>
     <button class="btn btn-gold btn-sm" onclick="showPage('export')">⬇ 导出菜单</button>
@@ -485,7 +487,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.3</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.5</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -514,7 +516,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.3</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.5</span>';
   }
   loadAll();
 }
@@ -612,7 +614,7 @@ async function verifyLock() {
     CURRENT_ROLE = 'super';
     try { sessionStorage.setItem(_lockSession, 'pwd'); } catch(e) {}
     document.getElementById('lock-screen').style.display = 'none';
-    showStoreSelect();
+    loadAll();
   } else {
     if (errEl) errEl.textContent = 'PASSWORD ERRATA';
     if (input) {
@@ -647,7 +649,7 @@ function handleGoogleLogin(response) {
       // 登录成功
       try { sessionStorage.setItem(_lockSession, email); } catch(e) {}
       document.getElementById('lock-screen').style.display = 'none';
-      showStoreSelect();
+      loadAll();
     } else {
       // 邮箱不在白名单
       if (errEl) errEl.textContent = 'ACCESSO NON AUTORIZZATO: ' + email;
@@ -670,7 +672,7 @@ function handleGoogleLogin(response) {
         RESTAURANT_ID = parts[2] || 'carpi';
         document.addEventListener('DOMContentLoaded', function() { applyStoreAdminUI(); loadAll(); });
       } else {
-        document.addEventListener('DOMContentLoaded', function() { showStoreSelect(); });
+        document.addEventListener('DOMContentLoaded', function() { loadAll(); });
       }
       return;
     }
@@ -807,8 +809,14 @@ async function loadAll() {
     if (CURRENT_ROLE === 'super') {
       var permBtn = document.getElementById('nav-permissions');
       if (permBtn) permBtn.style.display = '';
-      var accSection = document.getElementById('admin-accounts-section');
-      if (accSection) { accSection.style.display = 'block'; loadAdminAccounts(); }
+      // 显示店铺切换器
+      var switcher = document.getElementById('store-switcher');
+      if (switcher) {
+        switcher.style.display = '';
+        switcher.innerHTML = STORES.map(function(s){
+          return '<option value="'+s.id+'"'+(s.id===RESTAURANT_ID?' selected':'')+'>'+s.name+'</option>';
+        }).join('');
+      }
       _permActiveStore = STORES[0].id;
       loadPermissions();
     } else if (CURRENT_ROLE === 'store_admin') {
@@ -885,17 +893,31 @@ function renderPermList() {
 
 async function togglePerm(storeId, key, enabled) {
   try {
-    await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions', {
-      method: 'POST',
-      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'},
-      body: JSON.stringify({restaurant_id: storeId, perm_key: key, enabled: enabled})
+    // 先查是否存在
+    var chk = await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions?restaurant_id=eq.'+storeId+'&perm_key=eq.'+key+'&select=id', {
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
     });
+    var rows = await chk.json();
+    if (rows && rows.length > 0) {
+      // 已存在→PATCH
+      await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions?restaurant_id=eq.'+storeId+'&perm_key=eq.'+key, {
+        method: 'PATCH',
+        headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json'},
+        body: JSON.stringify({enabled: enabled})
+      });
+    } else {
+      // 不存在→POST
+      await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions', {
+        method: 'POST',
+        headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json'},
+        body: JSON.stringify({restaurant_id: storeId, perm_key: key, enabled: enabled})
+      });
+    }
     if (!_permData[storeId]) _permData[storeId] = {};
     _permData[storeId][key] = enabled;
     renderPermList();
     toast('✅ 权限已更新');
-  } catch(e) { toast('❌ 更新失败'); }
+  } catch(e) { toast('❌ 更新失败: '+e.message); }
 }
 
 async function loadMyPermissions() {
@@ -1005,6 +1027,15 @@ async function updateAdminPwd(id) {
     if (input) input.value = '';
     toast('✅ 密码已更新');
   } catch(e) { toast('❌ 更新失败'); }
+}
+
+function switchStore(storeId) {
+  if (!storeId) return;
+  RESTAURANT_ID = storeId;
+  var store = STORES.find(function(s){ return s.id === storeId; });
+  var titleEl = document.querySelector('.t-title');
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.5</span>';
+  loadAll();
 }
 
 function doLogout() {
