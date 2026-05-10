@@ -201,13 +201,24 @@ body {
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 14px 130px 14px 14px;
+  padding: 14px 130px 14px 70px;
   margin-bottom: 10px;
   position: relative;
   transition: all 0.2s;
 }
 .order-item-card.selected { border: 1.5px solid var(--primary); }
 .order-item-card.selected-low { border: 1.5px solid var(--primary); background: var(--primary-light); }
+.order-item-thumb {
+  position: absolute; top: 14px; left: 14px;
+  width: 44px; height: 44px;
+  border-radius: 8px; object-fit: cover;
+  background: #f0f4f8;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--text3);
+  overflow: hidden;
+  cursor: pointer;
+}
+.order-item-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .order-check { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--primary); cursor: pointer; }
 .order-item-info { min-width: 0; }
 .order-item-info .name  { font-weight: 600; font-size: 14px; }
@@ -1046,6 +1057,15 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   </div>
 </div>
 
+<!-- 食材详情 Modal -->
+<div class="modal-overlay" id="modal-item-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="item-detail-content"></div>
+    <button class="btn btn-ghost" id="item-detail-close-btn" style="margin-top:12px;width:100%" onclick="closeModal('modal-item-detail')">关闭</button>
+  </div>
+</div>
+
 <!-- 供应商WhatsApp管理Modal -->
 <div class="modal-overlay" id="modal-suppliers">
   <div class="modal">
@@ -1184,7 +1204,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.2.0';
+const APP_VERSION = 'v1.3.3';
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -1300,6 +1320,15 @@ const i18n = {
     editSafetyDay:'安全库存（按星期）',
     editChef:'订货人', editSave:'💾 保存', editCancel:'取消',
     suggestRestock:'建议补货',
+    // 食材详情 Modal (订货页)
+    detailViewTip:'查看详情',
+    detailSpec:'规格', detailPrice:'价格',
+    detailStock:'库存状态', detailCurStock:'当前库存', detailSafeStock:'安全库存', detailMaxOrder:'最大订货',
+    detailLowStock:'库存不足', detailSbd:'按星期安全库存',
+    detailCycle:'订货周期', detailEveryDay:'每天可订',
+    detailSupplier:'供应商', detailModel:'型号', detailDept:'使用部门',
+    detailClose:'关闭', detailUploadImg:'上传图片', detailNoImg:'暂无图片',
+    detailReplaceImg:'更换图片', detailUploading:'上传中...',
     adminOnly:'（仅管理员可保存修改）',
     // 新增
     newItem:'新增食材', addItem:'添加食材',
@@ -1342,6 +1371,15 @@ const i18n = {
     editSafetyDay:'Scorta minima (per giorno)',
     editChef:'Responsabile', editSave:'💾 Salva', editCancel:'Annulla',
     suggestRestock:'Rifornimento consigliato',
+    // Dettagli articolo (pagina ordini)
+    detailViewTip:'Vedi dettagli',
+    detailSpec:'Confezione', detailPrice:'Prezzo',
+    detailStock:'Stato scorte', detailCurStock:'Scorta attuale', detailSafeStock:'Scorta min.', detailMaxOrder:'Ordine max',
+    detailLowStock:'Scorta bassa', detailSbd:'Scorta per giorno',
+    detailCycle:'Frequenza ordine', detailEveryDay:'Ogni giorno',
+    detailSupplier:'Fornitore', detailModel:'Modello', detailDept:'Reparto',
+    detailClose:'Chiudi', detailUploadImg:'Carica immagine', detailNoImg:'Nessuna immagine',
+    detailReplaceImg:'Sostituisci', detailUploading:'Caricamento...',
     adminOnly:'(Solo amministratore può salvare)',
     newItem:'Nuovo alimento', addItem:'Aggiungi',
     importTitle:'Importa dati', importSave:'Salva nel database',
@@ -1394,6 +1432,15 @@ const i18n = {
     editSafetyDay:'নিরাপদ মজুদ (দিন অনুযায়ী)',
     editChef:'দায়িত্বশীল', editSave:'💾 সংরক্ষণ', editCancel:'বাতিল',
     suggestRestock:'পুনরায় মজুদের পরামর্শ',
+    // পণ্যের বিস্তারিত (অর্ডার পৃষ্ঠা)
+    detailViewTip:'বিস্তারিত দেখুন',
+    detailSpec:'প্যাকেজিং', detailPrice:'মূল্য',
+    detailStock:'মজুদের অবস্থা', detailCurStock:'বর্তমান মজুদ', detailSafeStock:'নিরাপদ মজুদ', detailMaxOrder:'সর্বোচ্চ অর্ডার',
+    detailLowStock:'কম মজুদ', detailSbd:'সাপ্তাহিক নিরাপদ মজুদ',
+    detailCycle:'অর্ডারের চক্র', detailEveryDay:'প্রতিদিন',
+    detailSupplier:'সরবরাহকারী', detailModel:'মডেল', detailDept:'বিভাগ',
+    detailClose:'বন্ধ', detailUploadImg:'ছবি আপলোড', detailNoImg:'ছবি নেই',
+    detailReplaceImg:'ছবি পরিবর্তন', detailUploading:'আপলোড হচ্ছে...',
     adminOnly:'(শুধুমাত্র প্রশাসক সংরক্ষণ করতে পারবেন)',
     newItem:'নতুন খাবার', addItem:'যোগ করুন',
     importTitle:'ডেটা আমদানি', importSave:'ডেটাবেসে সংরক্ষণ',
@@ -1465,7 +1512,8 @@ async function init() {
       safety_by_day:r.safety_by_day||{},
       category:r.category||'其他',
       chef:r.chef||'', need:0, checked:false,
-      max_order: r.max_order!=null ? parseFloat(r.max_order) : null
+      max_order: r.max_order!=null ? parseFloat(r.max_order) : null,
+      image_url: r.image_url || ''
     }));
     orders = (await oRes.json()).map(r=>({
       id:r.id, chef:r.chef, date:r.date, items:r.items||[],
@@ -1989,6 +2037,23 @@ function showItemDetail(id) {
       </div>
     </div>
     ${fc>0?`<div style="background:var(--warn-light);border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:var(--warn)">💡 建议补货：<strong>${fc}</strong> 单位</div>`:''}
+
+    <!-- 图片上传区域 -->
+    <div class="form-group" style="border-top:1px solid #eee;padding-top:12px;margin-top:12px;">
+      <label class="form-label" style="margin-bottom:8px;">📷 ${t('detailUploadImg')}</label>
+      <div id="ei-img-preview" style="text-align:center;padding:12px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;min-height:60px;display:flex;align-items:center;justify-content:center;">
+        ${item.image_url
+          ? `<img src="${item.image_url}" style="max-width:100%;max-height:160px;object-fit:contain;border-radius:8px;" onerror="this.parentNode.innerHTML='<span style=\\'color:var(--text3);font-size:13px;\\'>图片加载失败</span>'">`
+          : `<span style="color:var(--text3);font-size:13px;">📷 ${t('detailNoImg')}</span>`}
+      </div>
+      ${isAdmin?`
+      <label class="btn btn-ghost" id="ei-img-btn" style="width:100%;cursor:pointer;text-align:center;display:block;">
+        ${item.image_url ? t('detailReplaceImg') : t('detailUploadImg')}
+        <input type="file" accept="image/*" style="display:none;"
+          onchange="uploadItemImage(${id}, this)">
+      </label>`:''}
+    </div>
+
     ${!isAdmin?`<p style="font-size:12px;color:var(--text3);margin-top:8px">${t('adminOnly')}</p>`:''}
   `;
   editingItemId = id;
@@ -2118,7 +2183,17 @@ function renderOrderList() {
     const checked = item.checked;
     return `
     <div class="order-item-card ${checked?(isLow?'selected-low':'selected'):''}" id="ocard-${item.id}" style="position:relative;">
-      <div class="order-item-info" onclick="toggleOrderItem(${item.id},!${checked})" style="cursor:pointer;">
+      <div class="order-item-thumb" onclick="event.stopPropagation();showOrderItemDetail(${item.id})" title="${t('detailViewTip')}">
+        ${item.image_url
+          ? `<img src="${item.image_url}" alt="${item.name||''}" loading="lazy" onerror="this.parentNode.innerHTML='📦'">`
+          : `📦`}
+      </div>
+      <button onclick="event.stopPropagation();showOrderItemDetail(${item.id})"
+        title="${t('detailViewTip')}"
+        style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:#f0f4f8;color:#5b6c80;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+        ℹ️
+      </button>
+      <div class="order-item-info" onclick="toggleOrderItem(${item.id},!${checked})" style="cursor:pointer;padding-right:32px;">
         ${item.item_code?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">${item.item_code}</div>`:''}
         <div class="name">${displayName(item)}</div>
         ${item.chef?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">👤 ${item.chef}</div>`:''}
@@ -4353,6 +4428,312 @@ function renderPendingPanel() {
 // IMPORT
 // ════════════════════════════════════════
 function showImportModal() { openModal('modal-import'); }
+
+// ════════════════════════════════════════
+// 订货页食材详情 Modal（点击 ℹ️ 按钮查看，只读）
+// 用途：订货时确认这个食材具体是什么（规格、价格、图片）
+// 注意：和库存 tab 的 showItemDetail()（编辑表单）是两个独立函数
+// 多语言：使用 t() 函数，支持 zh / it / bn
+// ════════════════════════════════════════
+function showOrderItemDetail(itemId) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) { toast('找不到该食材', 'err'); return; }
+
+  // 查找供应商的 WhatsApp 号码（如果有）
+  const supplierInfo = (typeof suppliers !== 'undefined' && Array.isArray(suppliers))
+    ? suppliers.find(s => s.name === item.supplier)
+    : null;
+  const supplierWa = supplierInfo && supplierInfo.wa ? supplierInfo.wa : '';
+
+  // 库存状态判断
+  const safetyVal = getSafety(item);
+  const isLow = item.stock < safetyVal;
+  const stockColor = isLow ? 'var(--danger)' : '#2e7d32';
+
+  // 按星期安全库存（如果有设置）
+  const sbd = item.safety_by_day || {};
+  const sbdEntries = Object.entries(sbd).filter(([k,v]) => v > 0);
+  // 使用 i18n 的 days 数组（如 bn: ['','সোম',...]，第 0 索引为空）
+  const daysShort = (i18n[currentLang]||i18n.zh).days || ['','一','二','三','四','五','六','日'];
+  const dayKeys = ['星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
+  const sbdHtml = sbdEntries.length > 0
+    ? `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px;">
+        ${dayKeys.map((dk, i) => {
+          const val = sbd[dk] || 0;
+          return `<div style="text-align:center;padding:4px 2px;background:${val>0?'#e3f2fd':'#f5f5f5'};border-radius:6px;font-size:11px;">
+            <div style="color:var(--text3);">${daysShort[i+1]||''}</div>
+            <div style="font-weight:600;color:${val>0?'#1565c0':'var(--text3)'};">${val}</div>
+          </div>`;
+        }).join('')}
+       </div>`
+    : '';
+
+  // 订货周期标签（用 i18n 显示星期几名字）
+  const cycleHtml = (item.cycle && item.cycle.length > 0)
+    ? item.cycle.map(dk => {
+        const idx = dayKeys.indexOf(dk);
+        const label = idx >= 0 ? (daysShort[idx+1] || dk) : dk;
+        return `<span style="display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:11px;padding:2px 8px;border-radius:10px;margin:2px 2px 2px 0;">${label}</span>`;
+      }).join('')
+    : `<span style="color:var(--text3);font-size:12px;">${t('detailEveryDay')}</span>`;
+
+  // 图片区域（有图就显示大图，没图显示占位）
+  const imgHtml = item.image_url
+    ? `<div style="margin:-16px -20px 14px -20px;background:#000;position:relative;">
+        <img src="${item.image_url}" alt="${item.name||''}"
+          onerror="this.parentNode.style.display='none'"
+          style="width:100%;max-height:240px;object-fit:contain;display:block;">
+       </div>`
+    : `<div style="background:#f8f9fa;border:2px dashed #dee2e6;border-radius:12px;padding:24px;text-align:center;margin-bottom:14px;color:var(--text3);">
+        <div style="font-size:36px;margin-bottom:4px;">📷</div>
+        <div style="font-size:12px;">${t('detailNoImg')}</div>
+       </div>`;
+
+  document.getElementById('item-detail-content').innerHTML = `
+    ${imgHtml}
+
+    <!-- 头部：货号 + 分类 -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+      ${item.item_code?`<span style="font-family:'DM Mono',monospace;font-size:12px;background:#f0f4f8;color:#5b6c80;padding:3px 10px;border-radius:6px;">${item.item_code}</span>`:''}
+      ${item.category?`<span style="font-size:12px;background:#fff3e0;color:#e65100;padding:3px 10px;border-radius:6px;">📁 ${item.category}</span>`:''}
+      ${item.chef?`<span style="font-size:12px;background:#e8eaf6;color:#3949ab;padding:3px 10px;border-radius:6px;">👤 ${item.chef}</span>`:''}
+    </div>
+
+    <!-- 名称区：中文 + 意大利文 -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:20px;font-weight:700;color:var(--text);line-height:1.3;">${item.name||'—'}</div>
+      ${item.italian?`<div style="font-size:14px;color:var(--text2);margin-top:2px;font-style:italic;">${item.italian}</div>`:''}
+    </div>
+
+    <!-- 关键信息：规格 + 价格 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div style="background:linear-gradient(135deg,#e3f2fd,#bbdefb);padding:10px 12px;border-radius:10px;">
+        <div style="font-size:11px;color:#1565c0;font-weight:600;margin-bottom:2px;">📏 ${t('detailSpec')}</div>
+        <div style="font-size:16px;font-weight:700;color:#0d47a1;">${item.spec||'—'}</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);padding:10px 12px;border-radius:10px;">
+        <div style="font-size:11px;color:#e65100;font-weight:600;margin-bottom:2px;">💰 ${t('detailPrice')}</div>
+        <div style="font-size:16px;font-weight:700;color:#bf360c;">€ ${(parseFloat(item.price)||0).toFixed(2)}</div>
+      </div>
+    </div>
+
+    <!-- 库存状态 -->
+    <div style="background:#f8f9fa;padding:12px;border-radius:10px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:12px;color:var(--text3);font-weight:600;">📦 ${t('detailStock')}</span>
+        ${isLow?`<span style="background:#ffebee;color:#c62828;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">⚠️ ${t('detailLowStock')}</span>`:''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);">${t('detailCurStock')}</div>
+          <div style="font-size:18px;font-weight:700;color:${stockColor};">${item.stock||0}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);">${t('detailSafeStock')}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text2);">${safetyVal}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);">${t('detailMaxOrder')}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text2);">${item.max_order!=null?item.max_order:'∞'}</div>
+        </div>
+      </div>
+      ${sbdEntries.length>0?`
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e9ecef;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">📅 ${t('detailSbd')}</div>
+        ${sbdHtml}
+      </div>`:''}
+    </div>
+
+    <!-- 订货信息 -->
+    <div style="background:#f8f9fa;padding:12px;border-radius:10px;margin-bottom:12px;">
+      <div style="font-size:12px;color:var(--text3);font-weight:600;margin-bottom:8px;">🔄 ${t('detailCycle')}</div>
+      <div>${cycleHtml}</div>
+    </div>
+
+    <!-- 供应商信息 -->
+    ${item.supplier?`
+    <div style="background:#f8f9fa;padding:12px;border-radius:10px;margin-bottom:12px;">
+      <div style="font-size:12px;color:var(--text3);font-weight:600;margin-bottom:6px;">🚚 ${t('detailSupplier')}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="font-size:15px;font-weight:600;color:var(--text);">${item.supplier}</div>
+        ${supplierWa?`
+        <a href="https://wa.me/${supplierWa.replace(/[^0-9]/g,'')}" target="_blank"
+          style="background:#25D366;color:#fff;text-decoration:none;font-size:12px;padding:6px 12px;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+          💬 WhatsApp
+        </a>`:''}
+      </div>
+    </div>`:''}
+
+    <!-- 扩展信息（如果有） -->
+    ${item.model_no||(item.departments&&item.departments.length>0)?`
+    <div style="background:#f8f9fa;padding:12px;border-radius:10px;margin-bottom:12px;font-size:12px;color:var(--text2);">
+      ${item.model_no?`<div style="margin-bottom:4px;"><span style="color:var(--text3);">🏷️ ${t('detailModel')}：</span><span style="font-family:'DM Mono',monospace;">${item.model_no}</span></div>`:''}
+      ${item.departments&&item.departments.length>0?`<div><span style="color:var(--text3);">🏢 ${t('detailDept')}：</span>${item.departments.join(' / ')}</div>`:''}
+    </div>`:''}
+  `;
+
+  // 刷新关闭按钮多语言文字
+  const closeBtn = document.getElementById('item-detail-close-btn');
+  if (closeBtn) closeBtn.textContent = t('detailClose');
+
+  openModal('modal-item-detail');
+}
+
+// ════════════════════════════════════════
+// 图片压缩工具（优先 WebP，自动降级 JPEG）
+// 🔥 极致省空间档：400x400 max + 质量 60%
+// WebP 约 18-25KB / JPEG 约 25-35KB
+// 比原图（3MB）省 99%，比上一版（50KB）再省 50%
+// 食材图只需识别（这是番茄不是辣椒），不需要看细节
+// ════════════════════════════════════════
+
+// 检测浏览器是否支持 WebP 编码
+function supportsWebP() {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1; canvas.height = 1;
+    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  } catch(e) { return false; }
+}
+
+function compressImage(file, maxSize = 400, quality = 0.60) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        // 计算等比缩放后的尺寸
+        let w = img.width, h = img.height;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+          else       { w = Math.round(w * maxSize / h); h = maxSize; }
+        }
+        // 用 canvas 重绘
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        // 白色背景（避免 PNG 透明转 JPEG 变黑）
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // 优先 WebP，失败回退 JPEG
+        const useWebP = supportsWebP();
+        const mime = useWebP ? 'image/webp' : 'image/jpeg';
+        const ext  = useWebP ? 'webp' : 'jpg';
+
+        canvas.toBlob(
+          blob => {
+            if (!blob || blob.size === 0) {
+              // WebP 失败，回退 JPEG 重试
+              if (useWebP) {
+                canvas.toBlob(
+                  b2 => b2 ? resolve({blob: b2, ext: 'jpg', mime: 'image/jpeg'}) : reject(new Error('压缩失败')),
+                  'image/jpeg', quality
+                );
+              } else reject(new Error('压缩失败'));
+              return;
+            }
+            resolve({blob, ext, mime});
+          },
+          mime, quality
+        );
+      };
+      img.onerror = () => reject(new Error('图片加载失败'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('读取文件失败'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// ════════════════════════════════════════
+// 食材图片上传（Supabase Storage）
+// 在库存管理 → 编辑食材表单中触发
+// ════════════════════════════════════════
+async function uploadItemImage(itemId, fileInput) {
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) return;
+
+  // 检查文件类型
+  if (!file.type.startsWith('image/')) {
+    toast('请选择图片文件', 'err');
+    return;
+  }
+  // 限制原始文件大小（最大 20MB，压缩后会变得很小）
+  if (file.size > 20 * 1024 * 1024) {
+    toast('图片不能超过 20MB', 'err');
+    return;
+  }
+
+  const previewEl = document.getElementById('ei-img-preview');
+  const btnEl = document.getElementById('ei-img-btn');
+  const oldBtnText = btnEl ? btnEl.textContent : '';
+  if (btnEl) { btnEl.textContent = t('detailUploading'); btnEl.disabled = true; }
+
+  try {
+    // 🔥 极致压缩（400x400 + 60% 质量，原图 3MB → 压缩后 18-25KB，省 99%）
+    const result = await compressImage(file, 400, 0.60);
+    const compressed = result.blob;
+    const sizeKB = (compressed.size / 1024).toFixed(0);
+    console.log(`[图片压缩] 原始: ${(file.size/1024).toFixed(0)}KB → 压缩: ${sizeKB}KB (${result.ext.toUpperCase()})`);
+
+    // 文件名根据实际格式决定（.webp 或 .jpg）
+    const fileName = `${REST_ID}/item_${itemId}_${Date.now()}.${result.ext}`;
+
+    // 上传到 Supabase Storage（bucket: cucina-images，需要预先创建为 public）
+    const uploadRes = await fetch(
+      `${SB_URL}/storage/v1/object/cucina-images/${fileName}`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': SB_KEY,
+          'Authorization': 'Bearer ' + SB_KEY,
+          'Content-Type': result.mime,
+          'x-upsert': 'true'
+        },
+        body: compressed
+      }
+    );
+
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`上传失败 (${uploadRes.status}): ${errText.substring(0,100)}`);
+    }
+
+    // 拼接公开 URL
+    const publicUrl = `${SB_URL}/storage/v1/object/public/cucina-images/${fileName}`;
+
+    // 更新 cucina_items 表
+    await fetch(`${SB_URL}/rest/v1/cucina_items?id=eq.${itemId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ image_url: publicUrl })
+    });
+
+    // 更新本地 items 缓存
+    const item = items.find(i => i.id === itemId);
+    if (item) item.image_url = publicUrl;
+
+    // 更新预览
+    if (previewEl) {
+      previewEl.innerHTML = `<img src="${publicUrl}" style="max-width:100%;max-height:160px;object-fit:contain;border-radius:8px;">`;
+    }
+    if (btnEl) { btnEl.textContent = t('detailReplaceImg'); btnEl.disabled = false; }
+    toast(`✅ 上传成功（${sizeKB}KB · ${result.ext.toUpperCase()}）`);
+
+    // 如果订货系统已渲染，刷新缩略图
+    if (currentTab === 'order') renderOrderList();
+  } catch (err) {
+    console.error('图片上传失败:', err);
+    toast(err.message || '上传失败', 'err');
+    if (btnEl) { btnEl.textContent = oldBtnText; btnEl.disabled = false; }
+  }
+}
 
 // ════════════════════════════════════════
 // 库存导出 Excel（与导入格式兼容，可双向使用）
