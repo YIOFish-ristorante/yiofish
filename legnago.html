@@ -462,7 +462,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.0.2 · 2026-05-10</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.0.3 · 2026-05-10</span></div>
 </div>
 </div>
 
@@ -1825,22 +1825,23 @@ function getRoundStatus() {
   var roundMax = SETTINGS.round_max || 0;
   var roundTotal = SETTINGS.round_total || 0;
   var roundInterval = SETTINGS.round_interval || 0;
-  if (roundMax === 0 && roundTotal === 0) return {ok: true}; // 未启用
+  if (roundMax === 0 && roundTotal === 0) return {ok: true};
 
   var currentRound = _tableSession ? (_tableSession.round_number || 1) : 1;
-  var lastSent = _tableSession ? _tableSession.last_sent_at : null;
 
-  // 检查是否超过总轮数
   if (roundTotal > 0 && currentRound > roundTotal) {
     return {ok: false, msg: 'Hai completato tutti i ' + roundTotal + ' turni'};
   }
 
-  // 检查间隔时间
-  if (lastSent && roundInterval > 0) {
-    var elapsed = (new Date() - new Date(lastSent)) / 60000; // 分uti
+  if (_tableSession && _tableSession.round_start_at && roundMax > 0) {
+    var elapsed = (new Date() - new Date(_tableSession.round_start_at)) / 60000;
     if (elapsed < roundInterval) {
-      var remaining = Math.ceil(roundInterval - elapsed);
-      return {ok: false, msg: 'Prossimo turno tra ' + remaining + ' minut' + (remaining===1?'o':'i'), countdown: remaining};
+      var roundSent = _tableSession.round_sent_count || 0;
+      var roundLimit = roundMax * guestCount;
+      if (roundSent >= roundLimit) {
+        var remaining = Math.ceil(roundInterval - elapsed);
+        return {ok: false, msg: 'Limite turno raggiunto, prossimo turno tra ' + remaining + ' minut' + (remaining===1?'o':'i'), countdown: remaining};
+      }
     }
   }
 
