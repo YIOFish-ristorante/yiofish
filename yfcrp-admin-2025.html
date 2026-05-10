@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v3.5</title>
+<title>Yio Fish Admin v3.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v3.5</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v3.6</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -276,7 +276,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v3.5</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v3.6</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -487,7 +487,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.5</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.6</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -516,7 +516,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.5</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.6</span>';
   }
   loadAll();
 }
@@ -1034,7 +1034,7 @@ function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.5</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v3.6</span>';
   loadAll();
 }
 
@@ -2229,23 +2229,41 @@ async function toggleMenuCat(menuId, catId, included) {
     excl.push(catId); // 加入排除列表 = 隐藏
   }
   try {
-    await sbFetch('menu_configs?restaurant_id=eq.'+RESTAURANT_ID+'&menu_id=eq.'+menuId, {
-      method: 'PATCH',
-      body: JSON.stringify({exclude_cats: excl})
-    });
+    // 先查是否存在
+    var chkRes = await sbFetch('menu_configs?restaurant_id=eq.'+RESTAURANT_ID+'&menu_id=eq.'+menuId+'&select=id');
+    var rows = await chkRes.json();
+    if (rows && rows.length > 0) {
+      await sbFetch('menu_configs?restaurant_id=eq.'+RESTAURANT_ID+'&menu_id=eq.'+menuId, {
+        method: 'PATCH',
+        body: JSON.stringify({exclude_cats: excl})
+      });
+    } else {
+      await sbFetch('menu_configs', {
+        method: 'POST',
+        body: JSON.stringify({restaurant_id: RESTAURANT_ID, menu_id: menuId, exclude_cats: excl, menu_limit: _MENU_CONFIGS[menuId].menuLimit||0})
+      });
+    }
     toast('✅ 已保存');
   } catch(e) { toast('❌ 保存失败: '+e.message); }
 }
 
-// 设置菜单限选道数
 async function setMenuLimitDB(menuId, val) {
   if (!_MENU_CONFIGS[menuId]) _MENU_CONFIGS[menuId] = {excludeCats:[], menuLimit:0};
   _MENU_CONFIGS[menuId].menuLimit = parseInt(val)||0;
   try {
-    await sbFetch('menu_configs?restaurant_id=eq.'+RESTAURANT_ID+'&menu_id=eq.'+menuId, {
-      method: 'PATCH',
-      body: JSON.stringify({menu_limit: parseInt(val)||0})
-    });
+    var chkRes = await sbFetch('menu_configs?restaurant_id=eq.'+RESTAURANT_ID+'&menu_id=eq.'+menuId+'&select=id');
+    var rows = await chkRes.json();
+    if (rows && rows.length > 0) {
+      await sbFetch('menu_configs?restaurant_id=eq.'+RESTAURANT_ID+'&menu_id=eq.'+menuId, {
+        method: 'PATCH',
+        body: JSON.stringify({menu_limit: parseInt(val)||0})
+      });
+    } else {
+      await sbFetch('menu_configs', {
+        method: 'POST',
+        body: JSON.stringify({restaurant_id: RESTAURANT_ID, menu_id: menuId, exclude_cats: _MENU_CONFIGS[menuId].excludeCats||[], menu_limit: parseInt(val)||0})
+      });
+    }
     toast('✅ 已保存');
   } catch(e) { toast('❌ 保存失败: '+e.message); }
 }
