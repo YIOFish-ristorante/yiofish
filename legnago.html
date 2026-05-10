@@ -462,7 +462,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.0.0 · 2026-05-09</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.0.1 · 2026-05-10</span></div>
 </div>
 </div>
 
@@ -1672,8 +1672,9 @@ async function loadTableSession(tableNum) {
       var created = new Date(s.created_at);
       var now = new Date();
       if ((now - created) > 4 * 60 * 60 * 1000) {
-        await resetTableSession(tableNum);
-        return;
+        await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
+        _tableSession = null;
+        return loadTableSession(tableNum);
       }
       // 检查active_ids人数限制
       var maxIds = _tableConfig ? (_tableConfig.guest_count || 99) : 99;
@@ -1738,11 +1739,14 @@ function updateGuestCountUI() {
 async function resetTableSession(tableNum) {
   if (!tableNum) return;
   try {
-    // 删除旧记录
     await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
     _tableSession = null;
     _roundCartCount = 0;
+    cart_dine = {};
+    cart_dine_sent = {};
+    saveCartToLS();
     updateRoundUI();
+    await loadTableSession(tableNum);
     toast('✅ Tavolo ' + tableNum + ' resettato');
   } catch(e) { toast('❌ Errore reset: ' + e.message); }
 }
