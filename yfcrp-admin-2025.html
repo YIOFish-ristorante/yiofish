@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v2.7</title>
+<title>Yio Fish Admin v2.8</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v2.7</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v2.8</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -270,7 +270,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v2.7</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v2.8</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -479,7 +479,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.7</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.8</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -508,7 +508,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.7</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v2.8</span>';
   }
   loadAll();
 }
@@ -925,6 +925,24 @@ function applyPermissions(myPerms) {
       if (el) el.style.display = '';
     }
   });
+  // 控制设置页面内各section（延迟等待settings页面渲染）
+  setTimeout(function() {
+    var sectionMap = {
+      'round_settings': 'section-round-settings',
+      'waiter_password': 'section-waiter-password',
+      'announcement': 'section-announcement',
+      'is_open': 'section-is-open'
+    };
+    Object.keys(sectionMap).forEach(function(key) {
+      var el = document.getElementById(sectionMap[key]);
+      if (el) {
+        // 找到最近的card父元素
+        var card = el.closest ? el.closest('.card') : el.parentElement;
+        var target = card || el;
+        target.style.display = (myPerms[key] === true ? '' : 'none');
+      }
+    });
+  }, 500);
   // 自动跳到第一个有权限的页面
   var firstPerm = ['nav_dishes','nav_cats','nav_tags','nav_restaurant','nav_export','nav_tables','nav_settings']
     .find(function(k){ return myPerms[k] === true; });
@@ -2064,7 +2082,7 @@ function renderSettings(){
         +makeSwitch('is_open', s.is_open, '🟢 营业状态', '关闭后菜单顶部显示"已打烊"提示')
       +'</div>'
     +'</div>'
-    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+    +'<div class="card" id="section-round-settings" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">🍽️ 点餐轮次控制</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">控制每桌客人的点餐节奏</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:8px;">'
@@ -2087,7 +2105,7 @@ function renderSettings(){
       +'<div style="font-size:10px;color:var(--muted);margin-bottom:10px;">设为0表示不限制</div>'
       +'<button onclick="saveRoundSettings()" style="background:var(--gold);border:none;border-radius:var(--r);padding:8px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存轮次设置</button>'
     +'</div>'
-    +'<div class="card" style="padding:20px 22px;margin-bottom:16px">'
+    +'<div class="card" id="section-waiter-password" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">🔑 服务员密码</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">客人修改人数时需要输入此密码（初始：5555）</div>'
       +'<div style="display:flex;gap:8px;">'
