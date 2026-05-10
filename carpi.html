@@ -462,7 +462,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.4 · 2026-05-09</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.5 · 2026-05-10</span></div>
 </div>
 </div>
 
@@ -1672,8 +1672,11 @@ async function loadTableSession(tableNum) {
       var created = new Date(s.created_at);
       var now = new Date();
       if ((now - created) > 4 * 60 * 60 * 1000) {
-        await resetTableSession(tableNum);
-        return;
+        // 4小时过期，删除旧session并重新加载
+        await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
+        _tableSession = null;
+        // 递归重新加载
+        return loadTableSession(tableNum);
       }
       // 检查active_ids人数限制
       var maxIds = _tableConfig ? (_tableConfig.guest_count || 99) : 99;
@@ -1742,7 +1745,13 @@ async function resetTableSession(tableNum) {
     await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
     _tableSession = null;
     _roundCartCount = 0;
+    // 清除本地购物车
+    cart_dine = {};
+    cart_dine_sent = {};
+    saveCartToLS();
     updateRoundUI();
+    // 重新加载session（创建新的）
+    await loadTableSession(tableNum);
     toast('✅ Tavolo ' + tableNum + ' resettato');
   } catch(e) { toast('❌ Errore reset: ' + e.message); }
 }
