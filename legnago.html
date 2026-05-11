@@ -462,7 +462,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.0.4 · 2026-05-10</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.0.5 · 2026-05-10</span></div>
 </div>
 </div>
 
@@ -665,7 +665,7 @@ function sbFetch(path, opts) {
 // ════════════════════════════════════
 // 全局数据
 // ════════════════════════════════════
-var R = {name:"Yio Fish", subtitle:"Ristorante Giapponese · Carpi", phone:"339 140 6020", address:"Viale dell’Industria, 19 — 41012 Carpi (MO)", hours:"Lun–Dom: 12:00–15:00 / 17:00–23:30"};
+var R = {name:"Yio Fish", subtitle:"Ristorante Giapponese · Legnago", phone:"377 347 6774", address:"Viale Europa 20 — Legnago (VR)", hours:"Lun–Dom: 12:00–15:00 / 17:00–23:30"};
 var CATS = [];
 var ALL_ITEMS = [];
 var DISH_MENUS = [];
@@ -1961,7 +1961,7 @@ function sendNotify() {
   // 发送前检查间隔限制
   var roundStatus = getRoundStatus();
   if (!roundStatus.ok) { toast('⚠️ ' + roundStatus.msg); return; }
-  var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Carpi*', '', '🪑 Tavolo: ' + tableNum, ''];
+  var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Legnago*', '', '🪑 Tavolo: ' + tableNum, ''];
   for (var id in cart_dine) {
     var it = getItemForMenu(id);
     if (it) lines.push('• ' + it.name + ' x' + cart_dine[id]);
@@ -2039,7 +2039,7 @@ function sendOrder() {
   if (!orario) { toast("⚠️ Seleziona l'orario di ritiro"); return; }
   var note = (document.getElementById('asporto-note') || {}).value || '';
   note = note.trim();
-  var lines = ['📦 *ORDINE ASPORTO - Yio Fish Carpi*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orario, ''];
+  var lines = ['📦 *ORDINE ASPORTO - Yio Fish Legnago*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orario, ''];
   for (var id in cart_asporto) {
     var it = getItemForMenu(id);
     if (it) lines.push('• ' + it.name + ' x' + cart_asporto[id] + (it.price > 0 ? ' (' + fmt(it.price * cart_asporto[id]) + ')' : ''));
