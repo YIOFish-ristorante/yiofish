@@ -1226,7 +1226,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.4.4';
+const APP_VERSION = 'v1.4.5';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -2249,7 +2249,7 @@ function renderOrderList() {
           ? `<img src="${item.image_url}" alt="${item.name||''}" loading="lazy" onerror="this.parentNode.innerHTML='📦'">`
           : `📦`}
       </div>
-      <div class="order-item-info" onclick="toggleOrderItem(${item.id},!${checked})" style="cursor:pointer;">
+      <div class="order-item-info" onclick="showOrderItemDetail(${item.id})" style="cursor:pointer;">
         ${item.item_code?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">${item.item_code}</div>`:''}
         <div class="name">${displayName(item)}</div>
         ${item.chef?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">👤 ${item.chef}</div>`:''}
@@ -2306,17 +2306,10 @@ function renderOrderList() {
         <span class="qty-unit" style="font-size:12px;color:var(--text3);">${item.spec||''}</span>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;width:100%;">
           ${ff('auto_suggest_qty')&&fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:'<span></span>'}
-          <div style="display:flex;align-items:center;gap:8px;">
-            <button onclick="event.stopPropagation();showOrderItemDetail(${item.id})"
-              title="${t('detailViewTip')}"
-              style="width:24px;height:24px;border-radius:50%;border:none;background:#f0f4f8;color:#5b6c80;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.06);padding:0;">
-              ℹ️
-            </button>
-            <input type="checkbox" ${(item.orderModified||item.consume>0)?'checked':''}
-              onchange="toggleOrderItem(${item.id},this.checked)"
-              onclick="event.stopPropagation()"
-              style="width:22px;height:22px;accent-color:var(--primary);cursor:pointer;">
-          </div>
+          <input type="checkbox" ${(item.orderModified||item.consume>0)?'checked':''}
+            onchange="toggleOrderItem(${item.id},this.checked)"
+            onclick="event.stopPropagation()"
+            style="width:22px;height:22px;accent-color:var(--primary);cursor:pointer;">
         </div>
       </div>`}
     </div>`;
