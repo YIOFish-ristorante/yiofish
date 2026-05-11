@@ -1204,7 +1204,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.3.5';
+const APP_VERSION = 'v1.3.6';
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -2190,7 +2190,7 @@ function renderOrderList() {
       </div>
       <button onclick="event.stopPropagation();showOrderItemDetail(${item.id})"
         title="${t('detailViewTip')}"
-        style="position:absolute;bottom:8px;right:8px;width:28px;height:28px;border-radius:50%;border:none;background:#f0f4f8;color:#5b6c80;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+        style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-radius:50%;border:none;background:#f0f4f8;color:#5b6c80;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
         ℹ️
       </button>
       <div class="order-item-info" onclick="toggleOrderItem(${item.id},!${checked})" style="cursor:pointer;">
@@ -2239,7 +2239,7 @@ function renderOrderList() {
             style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
         </div>
         <span class="qty-unit" style="font-size:12px;color:var(--text3);">${item.spec||''}</span>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;width:100%;">
           ${fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:'<span></span>'}
           <input type="checkbox" ${(item.orderModified||item.consume>0)?'checked':''}
             onchange="toggleOrderItem(${item.id},this.checked)"
