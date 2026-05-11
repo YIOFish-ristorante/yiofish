@@ -1245,7 +1245,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.5.0';
+const APP_VERSION = 'v1.5.1';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1778,7 +1778,7 @@ function showApp() {
   // 订货员发送面板
   const buyerPanel = document.getElementById('buyer-send-panel');
   if (buyerPanel) buyerPanel.style.display = (isAdmin || currentUserRole==='buyer') ? 'block' : 'none';
-  items.forEach(i=>{ i.checked = false; i.need = calcForecast(i); });
+  items.forEach(i=>{ i.checked = false; i.need = 0; });
   const nav = document.querySelector('.bottom-nav');
   if (nav) nav.style.display = 'flex';
   const footer = document.querySelector('.order-footer');
@@ -2119,7 +2119,6 @@ function showItemDetail(id) {
         }).join('')}
       </div>
     </div>
-    ${fc>0?`<div style="background:var(--warn-light);border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:var(--warn)">💡 建议补货：<strong>${fc}</strong> 单位</div>`:''}
 
     <!-- 图片上传区域 -->
     <div class="form-group" style="border-top:1px solid #eee;padding-top:12px;margin-top:12px;">
@@ -2566,7 +2565,7 @@ async function submitOrder() {
 
     // ── 完成 ──
     renderOrderList();
-    items.forEach(i=>{ i.checked=false; i.need=calcForecast(i); i.orderModified=false; i.consume=0; });
+    items.forEach(i=>{ i.checked=false; i.need=0; i.orderModified=false; i.consume=0; });
     const msg2 = sel.length>0&&toConsume.length>0 ? '✅ 订单已提交，消耗已记录' :
                  sel.length>0 ? '✅ 订单已提交' : '✅ 库存调整已记录';
     toast(msg2);
