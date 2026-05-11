@@ -921,6 +921,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <div class="menu-item-text"><div class="title">修改管理员密码</div><div class="sub">更改管理后台登录密码</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="showFeatureFlagsModal()">
+        <div class="menu-item-icon" style="background:#F0E6FF">🎛️</div>
+        <div class="menu-item-text"><div class="title">系统功能开关</div><div class="sub">启用/禁用库存、报表等功能</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
     </div>
 
     <div class="menu-section">
@@ -1066,6 +1071,23 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   </div>
 </div>
 
+<!-- 系统功能开关 Modal -->
+<div class="modal-overlay" id="modal-feature-flags">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎛️ 系统功能开关</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.5;">
+      根据餐厅实际工作流配置启用的功能。<br>
+      关闭不需要的功能让界面更清爽，以后想用随时打开。
+    </div>
+    <div id="feature-flags-content"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-feature-flags')">取消</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveFeatureFlags()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- 供应商WhatsApp管理Modal -->
 <div class="modal-overlay" id="modal-suppliers">
   <div class="modal">
@@ -1204,7 +1226,23 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.3.6';
+const APP_VERSION = 'v1.4.0';
+
+// ════════════════════════════════════════
+// 🎛️ 功能开关（Feature Flags）
+// 控制系统形态，可按餐厅独立配置，存在 cucina_settings 表
+// ════════════════════════════════════════
+const DEFAULT_FEATURE_FLAGS = {
+  show_stock:           true,   // 显示当前库存数字（订货卡片 + 库存tab）
+  show_safety:          true,   // 显示安全库存
+  auto_suggest_qty:     true,   // 点击卡片自动填建议订货量
+  low_stock_highlight:  true,   // 库存不足时卡片变蓝高亮
+  stock_value_report:   true,   // 报表显示"总库存价值"
+  show_recent_order:    false,  // 显示"上次订货：X，N天前"（新功能）
+};
+let featureFlags = {...DEFAULT_FEATURE_FLAGS};
+// 简化访问：ff('show_stock')
+const ff = k => featureFlags[k] !== false;
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -1529,15 +1567,27 @@ async function init() {
   }
   // 单独读取管理员密码哈希，出错不影响主流程
   try {
-    const [settRes, notifRes] = await Promise.all([
+    const [settRes, notifRes, ffRes] = await Promise.all([
       sb('cucina_settings?restaurant_id=eq.'+REST_ID+'&key=eq.admin_pass_hash&select=value'),
-      sb('cucina_settings?restaurant_id=eq.__system__&key=eq.system_notification&select=value')
+      sb('cucina_settings?restaurant_id=eq.__system__&key=eq.system_notification&select=value'),
+      sb('cucina_settings?restaurant_id=eq.'+REST_ID+'&key=eq.feature_flags&select=value')
     ]);
     const settData = await settRes.json();
     _adminPassHash = settData.length > 0 ? settData[0].value : null;
     const notifData = await notifRes.json();
     if (notifData.length && notifData[0].value) {
       window._systemNotification = notifData[0].value;
+    }
+    // 加载功能开关（合并到默认值，缺失的字段用默认）
+    const ffData = await ffRes.json();
+    if (ffData.length && ffData[0].value) {
+      try {
+        const saved = typeof ffData[0].value === 'string'
+          ? JSON.parse(ffData[0].value)
+          : ffData[0].value;
+        featureFlags = {...DEFAULT_FEATURE_FLAGS, ...saved};
+        console.log('[FF] 已加载功能开关:', featureFlags);
+      } catch(e) { console.warn('解析 feature_flags 失败:', e); }
     }
   } catch(e) {
     console.error('读取设置失败:', e);
@@ -1815,6 +1865,13 @@ function renderInventory() {
   document.getElementById('inv-total').textContent = total;
   document.getElementById('inv-low').textContent   = low;
   document.getElementById('inv-value').textContent = '€'+val.toFixed(0);
+
+  // 开关：根据 stock_value_report 控制"总库存价值"卡片显示
+  const valCard = document.getElementById('inv-value')?.closest('.stat-card');
+  if (valCard) valCard.style.display = ff('stock_value_report') ? '' : 'none';
+  // 开关：根据 show_safety 控制"低于安全库存"卡片显示
+  const lowCard = document.getElementById('inv-low')?.closest('.stat-card');
+  if (lowCard) lowCard.style.display = ff('show_safety') ? '' : 'none';
 
   // 分类Tab
   const cats = ['all', ...new Set(items.map(i=>i.category).filter(Boolean))];
@@ -2179,7 +2236,7 @@ function renderOrderList() {
   if (!display.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);">无结果</div>'; return; }
   container.innerHTML = display.map(item=>{
     const fc = calcForecast(item);
-    const isLow = fc > 0;
+    const isLow = ff('low_stock_highlight') && fc > 0;  // 开关：库存不足是否高亮
     const checked = item.checked;
     return `
     <div class="order-item-card ${checked?(isLow?'selected-low':'selected'):''}" id="ocard-${item.id}" style="position:relative;">
@@ -2197,15 +2254,24 @@ function renderOrderList() {
         ${item.item_code?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">${item.item_code}</div>`:''}
         <div class="name">${displayName(item)}</div>
         ${item.chef?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">👤 ${item.chef}</div>`:''}
+        ${(ff('show_stock')||ff('show_safety')||isTodayCycle(item)||(item.cycle&&item.cycle.length>0)||item.supplier)?`
         <div class="stock-line" style="margin-top:4px;">
-          ${t('colStock')}: <span class="${isLow?'low':''}">${item.stock}</span>
-          · ${t('colSafe')}: ${getSafety(item)}
+          ${ff('show_stock')?`${t('colStock')}: <span class="${isLow?'low':''}">${item.stock}</span>`:''}
+          ${ff('show_stock')&&ff('show_safety')?' · ':''}
+          ${ff('show_safety')?`${t('colSafe')}: ${getSafety(item)}`:''}
           ${isTodayCycle(item)
             ? `<span style="background:#e6f4ea;color:#2e7d32;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:4px;font-weight:600;">✅ 今日可订</span>`
             : (item.cycle&&item.cycle.length>0
               ? `<span style="background:#f5f5f5;color:#999;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:4px;">🔒 ${(item.cycle||[]).join('/')}</span>`
               : '')}
-          ${item.supplier?`· <span style="color:var(--text3)">${item.supplier}</span>`:''}        </div>
+          ${item.supplier?`${(ff('show_stock')||ff('show_safety'))?'· ':''}<span style="color:var(--text3)">${item.supplier}</span>`:''}
+        </div>`:''}
+        ${ff('show_recent_order')?(()=>{
+          const r = getRecentOrder(item);
+          if (!r) return '<div style="font-size:11px;color:var(--text3);margin-top:4px;">📅 暂无订货记录</div>';
+          const timeTxt = r.days===0?'今天':(r.days===1?'昨天':r.days+'天前');
+          return `<div style="font-size:11px;color:#1565c0;margin-top:4px;background:#e3f2fd;padding:3px 8px;border-radius:6px;display:inline-block;">📅 上次订 <strong>${r.qty}</strong>${item.spec?' '+item.spec:''} · ${timeTxt}${r.chef?' · '+r.chef:''}</div>`;
+        })():''}
         <div class="stock-line" style="margin-top:4px;">
           ${(isAdmin||currentUserRole==='supervisor'||currentUserRole==='buyer'||(item.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim()||currentUserRole==='warehouse')?`
           <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
@@ -2330,15 +2396,16 @@ function toggleOrderItem(id, checked) {
   const item = items.find(i=>i.id===id);
   if (!item) return;
   item.checked = checked;
-  // 只有用户手动勾选且没有订货量时才自动填建议值
-  // 如果是consume触发的不赋need值
-  if (checked && !item.need && !item.consume) item.need = calcForecast(item)||0;
+  // 开关 auto_suggest_qty：开启时自动填建议量，关闭时只标记选中、不填数量
+  if (ff('auto_suggest_qty') && checked && !item.need && !item.consume) {
+    item.need = calcForecast(item)||0;
+  }
   if (!checked) item.need = 0;
   item.orderModified = item.need > 0;
   updateOrderFooter();
   const fc = calcForecast(item);
   const card = document.getElementById('ocard-'+id);
-  if (card) card.className = `order-item-card ${checked?(fc>0?'selected-low':'selected'):''}`;
+  if (card) card.className = `order-item-card ${checked?(ff('low_stock_highlight')&&fc>0?'selected-low':'selected'):''}`;
 }
 
 function updateOrderQty(id, val) {
@@ -3872,16 +3939,18 @@ function renderKPI() {
       <div class="kpi-val">${ordersThisMonth.length}</div>
       <div class="kpi-trend" style="color:var(--text3)">本月</div>
     </div>
+    ${ff('stock_value_report')?`
     <div class="kpi-card">
       <div class="kpi-lbl">预估库存价值</div>
       <div class="kpi-val warn">€${invVal.toFixed(0)}</div>
       <div class="kpi-trend" style="color:var(--text3)">当前</div>
-    </div>
+    </div>`:''}
+    ${ff('show_safety')?`
     <div class="kpi-card">
       <div class="kpi-lbl">低库存预警</div>
       <div class="kpi-val" style="color:${lowCount>0?'var(--danger)':'var(--ok)'}">${lowCount}</div>
       <div class="kpi-trend" style="color:var(--text3)">种食材</div>
-    </div>
+    </div>`:''}
   `;
 }
 
@@ -4428,6 +4497,122 @@ function renderPendingPanel() {
 // IMPORT
 // ════════════════════════════════════════
 function showImportModal() { openModal('modal-import'); }
+
+// ════════════════════════════════════════
+// 🎛️ 功能开关管理（仅管理员）
+// ════════════════════════════════════════
+function showFeatureFlagsModal() {
+  if (!isAdmin) { toast('仅管理员可访问', 'err'); return; }
+  const groups = [
+    {
+      title: '📦 库存管理',
+      flags: [
+        {key:'show_stock',    label:'显示当前库存数字',     desc:'关闭后订货系统和库存列表不显示"当前库存"'},
+        {key:'show_safety',   label:'显示安全库存',         desc:'关闭后不显示"安全库存"信息'},
+      ]
+    },
+    {
+      title: '📋 订货系统',
+      flags: [
+        {key:'auto_suggest_qty',    label:'点击卡片自动填建议量', desc:'关闭后点击卡片不再自动填入建议订货数量'},
+        {key:'low_stock_highlight', label:'库存不足卡片变蓝',     desc:'关闭后卡片不会因为库存不足而高亮显示'},
+        {key:'show_recent_order',   label:'显示"上次订货"信息',   desc:'订货卡片显示该食材的最近订货记录（凭历史经验参考）'},
+      ]
+    },
+    {
+      title: '📊 报表分析',
+      flags: [
+        {key:'stock_value_report',  label:'显示"总库存价值"',     desc:'关闭后报表不显示库存总价值（库存数据不准时建议关闭）'},
+      ]
+    }
+  ];
+
+  const html = groups.map(g => `
+    <div style="margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">${g.title}</div>
+      ${g.flags.map(f => `
+        <div style="background:#f8f9fa;border-radius:10px;padding:12px;margin-bottom:8px;">
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:12px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;font-weight:500;color:var(--text);">${f.label}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4;">${f.desc}</div>
+            </div>
+            <input type="checkbox" id="ff-${f.key}" ${ff(f.key)?'checked':''}
+              style="width:42px;height:24px;cursor:pointer;flex-shrink:0;accent-color:var(--primary);">
+          </label>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  document.getElementById('feature-flags-content').innerHTML = html;
+  openModal('modal-feature-flags');
+}
+
+async function saveFeatureFlags() {
+  if (!isAdmin) { toast('仅管理员可访问', 'err'); return; }
+  const newFlags = {};
+  Object.keys(DEFAULT_FEATURE_FLAGS).forEach(k => {
+    const el = document.getElementById('ff-'+k);
+    newFlags[k] = el ? el.checked : DEFAULT_FEATURE_FLAGS[k];
+  });
+
+  try {
+    const headers = {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    };
+    // 用 upsert（INSERT ON CONFLICT），需要 cucina_settings 表有 (restaurant_id, key) 的唯一索引
+    const existRes = await sb(`cucina_settings?restaurant_id=eq.${REST_ID}&key=eq.feature_flags&select=key`);
+    const exist = await existRes.json();
+
+    if (exist && exist.length) {
+      await fetch(`${SB_URL}/rest/v1/cucina_settings?restaurant_id=eq.${REST_ID}&key=eq.feature_flags`, {
+        method: 'PATCH', headers,
+        body: JSON.stringify({value: JSON.stringify(newFlags)})
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/cucina_settings`, {
+        method: 'POST', headers,
+        body: JSON.stringify({restaurant_id: REST_ID, key: 'feature_flags', value: JSON.stringify(newFlags)})
+      });
+    }
+
+    featureFlags = newFlags;
+    closeModal('modal-feature-flags');
+    toast('✅ 设置已保存，重新加载页面...');
+    setTimeout(() => location.reload(), 1000);
+  } catch (err) {
+    console.error('保存功能开关失败:', err);
+    toast('保存失败: ' + err.message, 'err');
+  }
+}
+
+// ════════════════════════════════════════
+// 「上次订货」信息查询（用于订货卡片显示）
+// 在 orders 数组里找最近一次包含该食材的订单
+// ════════════════════════════════════════
+function getRecentOrder(item) {
+  if (!orders || !orders.length) return null;
+  // 倒序找（orders 已按 created_at desc 排）
+  for (const order of orders) {
+    if (order.type === 'consume') continue;  // 跳过消耗记录
+    if (order.hidden) continue;              // 跳过已隐藏订单
+    if (!order.items || !order.items.length) continue;
+    const found = order.items.find(it => {
+      if (item.item_code && it.item_code && it.item_code === item.item_code) return true;
+      if (it.name && (it.name === item.name || it.name === item.italian)) return true;
+      return false;
+    });
+    if (found && found.need > 0) {
+      const daysDiff = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 86400000);
+      return {qty: found.need, days: daysDiff, chef: order.chef||''};
+    }
+  }
+  return null;
+}
 
 // ════════════════════════════════════════
 // 订货页食材详情 Modal（点击 ℹ️ 按钮查看，只读）
