@@ -934,6 +934,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <div class="menu-item-text"><div class="title">系统功能开关</div><div class="sub">启用/禁用库存、报表等功能</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="showCleanOrphansModal()">
+        <div class="menu-item-icon" style="background:#FFF0F0">🗑️</div>
+        <div class="menu-item-text"><div class="title">清理已废弃食材</div><div class="sub">上传最新 XLSX，找出数据库里多余的食材</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
     </div>
 
     <div class="menu-section">
@@ -1091,6 +1096,42 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     <div style="display:flex;gap:8px;margin-top:14px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-order-note')" id="order-note-cancel-btn">取消</button>
       <button class="btn btn-primary" style="flex:2;" onclick="saveOrderNote()" id="order-note-save-btn">✓ 确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🗑️ 清理已废弃食材 Modal -->
+<div class="modal-overlay" id="modal-clean-orphans">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🗑️ 清理已废弃食材</div>
+    <div id="orphan-step1" style="display:block;">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+        上传最新的 <strong>XLSX 货单</strong>，系统会对比：<br>
+        • <strong>XLSX 里有</strong> 的食材 → 保留<br>
+        • <strong>XLSX 里没有</strong> 但数据库有 → 列出来让你选择性删除
+      </div>
+      <div style="background:#fff8e1;border-left:3px solid #ffa726;padding:10px 12px;border-radius:8px;font-size:12px;color:#e65100;margin-bottom:14px;line-height:1.5;">
+        ⚠️ 此操作只查找 / 列出孤儿食材，不会立即删除。<br>
+        删除前会再次确认，并且会同步删除图片文件。
+      </div>
+      <label class="btn btn-primary" style="width:100%;cursor:pointer;text-align:center;">
+        📁 选择 XLSX 文件
+        <input type="file" id="orphan-file" accept=".xlsx,.xls" onchange="handleOrphanFile(this)" style="display:none;">
+      </label>
+    </div>
+    <div id="orphan-step2" style="display:none;">
+      <div id="orphan-summary" style="background:#e3f2fd;border-radius:8px;padding:10px;font-size:13px;margin-bottom:12px;line-height:1.6;"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <input type="checkbox" id="orphan-select-all" onchange="toggleSelectAllOrphans(this.checked)" style="width:18px;height:18px;">
+        <label for="orphan-select-all" style="font-size:13px;cursor:pointer;">全选 / 全不选</label>
+        <span id="orphan-selected-count" style="margin-left:auto;font-size:12px;color:var(--text3);">已选 0 个</span>
+      </div>
+      <div id="orphan-list" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-clean-orphans')">取消</button>
+      <button class="btn btn-danger" style="flex:2;display:none;" id="orphan-delete-btn" onclick="deleteSelectedOrphans()">🗑️ 删除选中</button>
     </div>
   </div>
 </div>
@@ -1272,7 +1313,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.6.4';
+const APP_VERSION = 'v1.7.1';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -4699,6 +4740,182 @@ async function saveFeatureFlags() {
 }
 
 // ════════════════════════════════════════
+// 🗑️ 清理已废弃食材（孤儿清理）
+// 上传最新 XLSX，对比找出数据库里多余的食材
+// ════════════════════════════════════════
+let _orphanList = [];  // 待删除的孤儿食材数组
+
+function showCleanOrphansModal() {
+  if (!isAdmin) { toast('仅管理员可访问', 'err'); return; }
+  // 重置 modal 状态
+  document.getElementById('orphan-step1').style.display = 'block';
+  document.getElementById('orphan-step2').style.display = 'none';
+  document.getElementById('orphan-delete-btn').style.display = 'none';
+  document.getElementById('orphan-file').value = '';
+  _orphanList = [];
+  openModal('modal-clean-orphans');
+}
+
+function handleOrphanFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
+
+      // 提取 XLSX 里的 item_code 集合（A列）
+      const xlsxCodes = new Set();
+      for (let i=1; i<rows.length; i++) {
+        const r = rows[i];
+        if (!r || !r.length) continue;
+        const code = r[0]!==undefined ? String(r[0]).trim() : '';
+        if (code) xlsxCodes.add(code);
+      }
+
+      // 找出数据库里有但 XLSX 没有的
+      _orphanList = items.filter(item => {
+        const code = (item.item_code||'').trim();
+        if (!code) return false;  // 没货号的暂时不算孤儿
+        return !xlsxCodes.has(code);
+      });
+
+      // 显示对比结果
+      const summary = `
+        📊 对比结果：<br>
+        • XLSX 食材数：<strong>${xlsxCodes.size}</strong><br>
+        • 数据库食材数：<strong>${items.length}</strong><br>
+        • 找到孤儿食材：<strong style="color:${_orphanList.length>0?'var(--danger)':'var(--ok)'};">${_orphanList.length}</strong> 个
+      `;
+      document.getElementById('orphan-summary').innerHTML = summary;
+
+      renderOrphanList();
+
+      // 切换到 step2
+      document.getElementById('orphan-step1').style.display = 'none';
+      document.getElementById('orphan-step2').style.display = 'block';
+      document.getElementById('orphan-delete-btn').style.display = _orphanList.length>0 ? 'block' : 'none';
+
+      if (_orphanList.length === 0) {
+        toast('✅ 没有孤儿食材，数据库很干净！');
+      }
+    } catch(err) {
+      console.error('解析 XLSX 失败:', err);
+      toast('解析失败：' + err.message, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderOrphanList() {
+  const container = document.getElementById('orphan-list');
+  if (_orphanList.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ok);font-size:14px;">✨ 数据库很干净，没有需要清理的食材</div>';
+    return;
+  }
+  container.innerHTML = _orphanList.map((item, idx) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);">
+      <input type="checkbox" id="orphan-cb-${idx}" data-idx="${idx}" onchange="updateOrphanCount()"
+        style="width:18px;height:18px;cursor:pointer;flex-shrink:0;accent-color:var(--danger);">
+      ${item.image_url ? `<img src="${item.image_url}" style="width:32px;height:32px;border-radius:4px;object-fit:cover;flex-shrink:0;" loading="lazy" onerror="this.style.display='none'">` : ''}
+      <div style="flex:1;font-size:13px;min-width:0;">
+        <div style="font-weight:500;color:var(--text);">${item.name || item.italian || '(无名)'}</div>
+        <div style="font-size:11px;color:var(--text3);">${item.item_code} · ${item.supplier||'无供应商'}${item.image_url?' · 📷有图片':''}</div>
+      </div>
+    </div>
+  `).join('');
+  updateOrphanCount();
+}
+
+function toggleSelectAllOrphans(checked) {
+  _orphanList.forEach((_, idx) => {
+    const cb = document.getElementById('orphan-cb-'+idx);
+    if (cb) cb.checked = checked;
+  });
+  updateOrphanCount();
+}
+
+function updateOrphanCount() {
+  const selected = _orphanList.filter((_, idx) => {
+    const cb = document.getElementById('orphan-cb-'+idx);
+    return cb && cb.checked;
+  });
+  document.getElementById('orphan-selected-count').textContent = `已选 ${selected.length} 个`;
+  // 同步全选 checkbox 状态
+  const allCb = document.getElementById('orphan-select-all');
+  if (allCb) allCb.checked = selected.length === _orphanList.length && _orphanList.length > 0;
+}
+
+async function deleteSelectedOrphans() {
+  // 收集选中的项
+  const toDelete = _orphanList.filter((_, idx) => {
+    const cb = document.getElementById('orphan-cb-'+idx);
+    return cb && cb.checked;
+  });
+  if (toDelete.length === 0) { toast('请先勾选要删除的食材', 'err'); return; }
+
+  // 二次确认
+  if (!confirm(`确定永久删除选中的 ${toDelete.length} 个食材？\n\n这会同时删除它们的图片，操作不可恢复。`)) return;
+
+  const btn = document.getElementById('orphan-delete-btn');
+  btn.disabled = true;
+  btn.textContent = '正在删除...';
+
+  let deleted = 0, errored = 0;
+  for (const item of toDelete) {
+    try {
+      // 1. 删除 Storage 中的图片（如果有）
+      if (item.image_url) {
+        try {
+          const path = item.image_url.split('/cucina-images/')[1]?.split('?')[0];
+          if (path) {
+            await fetch(`${SB_URL}/storage/v1/object/cucina-images/${path}`, {
+              method: 'DELETE',
+              headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+            }).catch(()=>{}); // 删除失败不影响主流程
+          }
+        } catch(e) { /* 忽略 */ }
+      }
+
+      // 2. 删除数据库记录
+      const res = await fetch(`${SB_URL}/rest/v1/cucina_items?id=eq.${item.id}`, {
+        method: 'DELETE',
+        headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+      });
+      if (res.ok) {
+        deleted++;
+        // 从本地 items 数组移除
+        const localIdx = items.findIndex(i => i.id === item.id);
+        if (localIdx >= 0) items.splice(localIdx, 1);
+      } else {
+        errored++;
+      }
+    } catch(e) {
+      console.error('删除失败:', item.item_code, e);
+      errored++;
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🗑️ 删除选中';
+  closeModal('modal-clean-orphans');
+
+  if (errored > 0) {
+    toast(`✅ 删除 ${deleted} 个，失败 ${errored} 个`, 'err');
+  } else {
+    toast(`✅ 已删除 ${deleted} 个孤儿食材`);
+  }
+
+  // 刷新库存列表
+  if (typeof renderInventory === 'function') renderInventory();
+  if (currentTab === 'order' && typeof renderOrderList === 'function') renderOrderList();
+}
+
+// ════════════════════════════════════════
 // 📝 订单备注（员工写临时需求，发 WhatsApp 时附带）
 // ════════════════════════════════════════
 let _orderNote = '';
@@ -5340,14 +5557,26 @@ async function saveImport() {
   const pctEl = document.getElementById('import-progress-pct');
   if(btn) btn.disabled = true;
   if(progressEl) progressEl.style.display = 'block';
-  if(txtEl) txtEl.textContent = `正在删除旧数据（${_importFileName}）...`;
-  // 先删除同文件名的旧数据
+  if(txtEl) txtEl.textContent = '正在加载现有数据（用于匹配）...';
+
+  // 🔑 UPSERT 改造：先加载所有现有 items，建立 item_code → 旧记录 的索引
+  let existingMap = new Map();
+  let dbCount = 0;
   try {
-    await fetch(SB_URL+'/rest/v1/cucina_items?restaurant_id=eq.'+REST_ID+'&source_file=eq.'+encodeURIComponent(_importFileName),{
-      method:'DELETE',
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'}
+    const allRes = await sb('cucina_items?restaurant_id=eq.'+REST_ID+'&select=id,item_code,image_url&limit=2000');
+    const allData = await allRes.json();
+    dbCount = allData.length;
+    allData.forEach(e => {
+      const code = (e.item_code||'').trim();
+      if (code) existingMap.set(code, e);
     });
-  } catch(e){ console.error('delete error:', e); }
+    console.log(`[UPSERT] 数据库现有 ${dbCount} 条，按 item_code 索引 ${existingMap.size} 条`);
+  } catch(e) {
+    console.error('加载现有数据失败:', e);
+    toast('加载现有数据失败，导入中止', 'err');
+    if(btn) btn.disabled = false;
+    return;
+  }
 
   // 提取供应商WA号（每个供应商只取一条，有号码的优先）
   const waMap = {};
@@ -5357,23 +5586,42 @@ async function saveImport() {
     }
   });
 
-  // 逐条插入物料数据（去掉_wa临时字段）
-  let count=0;
+  // 🔑 UPSERT 逻辑：按 item_code 匹配，存在则 PATCH（保留 image_url），不存在则 POST
+  let count=0, updated=0, inserted=0, errored=0;
   for(const item of pendingImport){
     const itemData = Object.assign({}, item);
     delete itemData._wa;
+
+    // 永远不让 XLSX 覆盖 image_url（XLSX 也不应该有这字段，但保险删一下）
+    delete itemData.image_url;
+
+    const code = (itemData.item_code||'').trim();
+    const existing = code ? existingMap.get(code) : null;
+
     try {
-      await fetch(SB_URL+'/rest/v1/cucina_items',{
-        method:'POST',
-        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-        body:JSON.stringify(itemData)
-      });
+      if (existing) {
+        // UPDATE 现有记录：保留 image_url，其他字段用 XLSX 覆盖
+        await fetch(SB_URL+'/rest/v1/cucina_items?id=eq.'+existing.id,{
+          method:'PATCH',
+          headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify(itemData)
+        });
+        updated++;
+      } else {
+        // INSERT 新记录
+        await fetch(SB_URL+'/rest/v1/cucina_items',{
+          method:'POST',
+          headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify(itemData)
+        });
+        inserted++;
+      }
       count++;
-    } catch(e){}
+    } catch(e){ console.error('item error:', e); errored++; }
     const pct = Math.round(count/total*100);
     if(barEl) barEl.style.width = pct+'%';
     if(pctEl) pctEl.textContent = pct+'%';
-    if(txtEl) txtEl.textContent = `正在保存 ${count} / ${total}`;
+    if(txtEl) txtEl.textContent = `处理中 ${count} / ${total}（更新 ${updated}，新增 ${inserted}）`;
   }
 
   // 保存供应商WA号到cucina_suppliers
@@ -5415,9 +5663,9 @@ async function saveImport() {
         chefs[name] = {hash:defaultHash, role:'staff', can_add_stock:false, can_stocktake:false, can_receive:false};
       } catch(e){ console.error('创建员工失败:', name, e); }
     }
-    toast(`✅ 成功导入 ${count} 条物料，新增 ${newChefs.length} 个员工账号（默认密码：123456）`);
+    toast(`✅ 完成：更新 ${updated} 条，新增 ${inserted} 条 · 新建 ${newChefs.length} 个员工账号（图片已保留）`);
   } else {
-    toast(`✅ 成功导入 ${count} 条物料`);
+    toast(`✅ 完成：更新 ${updated} 条，新增 ${inserted} 条 · 图片等手动设置已保留 ✨`);
   }
 
   // 关闭modal，重置状态
