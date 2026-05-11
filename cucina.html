@@ -911,7 +911,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <div class="menu-item-text"><div class="title" id="lbl-supplier">供应商 WhatsApp</div><div class="sub" id="lbl-supplier-sub">设置各供应商联系方式</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
-      <div class="menu-item" onclick="showAdminPanel('pending')">
+      <div class="menu-item" id="menu-approve-orders" onclick="showAdminPanel('pending')">
         <div class="menu-item-icon" style="background:#FFFBEB">📋</div>
         <div class="menu-item-text"><div class="title" id="lbl-approve">审批订单</div><div class="sub" id="pending-badge-text">查看待处理订单</div></div>
         <span class="menu-item-arrow">›</span>
@@ -1226,7 +1226,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.4.0';
+const APP_VERSION = 'v1.4.2';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1239,6 +1239,8 @@ const DEFAULT_FEATURE_FLAGS = {
   low_stock_highlight:  true,   // 库存不足时卡片变蓝高亮
   stock_value_report:   true,   // 报表显示"总库存价值"
   show_recent_order:    false,  // 显示"上次订货：X，N天前"（新功能）
+  consume_track:        true,   // 库存调整 +/- 按钮（消耗记录）
+  approve_orders:       true,   // 审批订单菜单（不需要审批时关闭）
 };
 let featureFlags = {...DEFAULT_FEATURE_FLAGS};
 // 简化访问：ff('show_stock')
@@ -1589,6 +1591,8 @@ async function init() {
         console.log('[FF] 已加载功能开关:', featureFlags);
       } catch(e) { console.warn('解析 feature_flags 失败:', e); }
     }
+    // 应用开关到静态 DOM 元素（菜单项显隐等）
+    applyFeatureFlagsToDOM();
   } catch(e) {
     console.error('读取设置失败:', e);
   }
@@ -2273,7 +2277,7 @@ function renderOrderList() {
           return `<div style="font-size:11px;color:#1565c0;margin-top:4px;background:#e3f2fd;padding:3px 8px;border-radius:6px;display:inline-block;">📅 上次订 <strong>${r.qty}</strong>${item.spec?' '+item.spec:''} · ${timeTxt}${r.chef?' · '+r.chef:''}</div>`;
         })():''}
         <div class="stock-line" style="margin-top:4px;">
-          ${(isAdmin||currentUserRole==='supervisor'||currentUserRole==='buyer'||(item.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim()||currentUserRole==='warehouse')?`
+          ${ff('consume_track')&&(isAdmin||currentUserRole==='supervisor'||currentUserRole==='buyer'||(item.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim()||currentUserRole==='warehouse')?`
           <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
             <span style="font-size:13px;color:var(--text3);min-width:48px;">${t('consume')}:</span>
             <button onclick="event.stopPropagation();stepConsume(${item.id},-1)"
@@ -4516,6 +4520,7 @@ function showFeatureFlagsModal() {
       flags: [
         {key:'auto_suggest_qty',    label:'点击卡片自动填建议量', desc:'关闭后点击卡片不再自动填入建议订货数量'},
         {key:'low_stock_highlight', label:'库存不足卡片变蓝',     desc:'关闭后卡片不会因为库存不足而高亮显示'},
+        {key:'consume_track',       label:'启用"库存调整 +/-"',  desc:'卡片上的消耗记录按钮（不维护库存时建议关闭）'},
         {key:'show_recent_order',   label:'显示"上次订货"信息',   desc:'订货卡片显示该食材的最近订货记录（凭历史经验参考）'},
       ]
     },
@@ -4523,6 +4528,12 @@ function showFeatureFlagsModal() {
       title: '📊 报表分析',
       flags: [
         {key:'stock_value_report',  label:'显示"总库存价值"',     desc:'关闭后报表不显示库存总价值（库存数据不准时建议关闭）'},
+      ]
+    },
+    {
+      title: '🔄 工作流程',
+      flags: [
+        {key:'approve_orders',  label:'启用"审批订单"功能',  desc:'关闭后管理员菜单不显示"审批订单"入口（订单系统 tab 仍可查看待处理订单）'},
       ]
     }
   ];
@@ -4588,6 +4599,15 @@ async function saveFeatureFlags() {
     console.error('保存功能开关失败:', err);
     toast('保存失败: ' + err.message, 'err');
   }
+}
+
+// ════════════════════════════════════════
+// 把功能开关应用到静态 DOM 元素（菜单显隐等）
+// ════════════════════════════════════════
+function applyFeatureFlagsToDOM() {
+  // 审批订单菜单：根据 approve_orders 开关显隐
+  const approveMenu = document.getElementById('menu-approve-orders');
+  if (approveMenu) approveMenu.style.display = ff('approve_orders') ? '' : 'none';
 }
 
 // ════════════════════════════════════════
