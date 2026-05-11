@@ -1071,6 +1071,25 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   </div>
 </div>
 
+<!-- 数字键盘 Modal -->
+<div class="modal-overlay" id="modal-qty-pad">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;margin-bottom:14px;">
+      <div id="qty-pad-item-name" style="font-size:14px;color:var(--text2);margin-bottom:4px;"></div>
+      <div style="background:linear-gradient(135deg,#1A56DB,#1040B0);color:#fff;border-radius:14px;padding:18px 12px;margin:8px 0;">
+        <div id="qty-pad-display" style="font-size:48px;font-weight:700;line-height:1;font-family:'DM Mono',monospace;">0</div>
+        <div id="qty-pad-unit" style="font-size:13px;opacity:0.85;margin-top:4px;"></div>
+      </div>
+    </div>
+    <div id="qty-pad-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-qty-pad')" id="qty-pad-cancel-btn">取消</button>
+      <button class="btn btn-primary" style="flex:2;" onclick="qtyPadConfirm()" id="qty-pad-confirm-btn">✓ 确认</button>
+    </div>
+  </div>
+</div>
+
 <!-- 系统功能开关 Modal -->
 <div class="modal-overlay" id="modal-feature-flags">
   <div class="modal">
@@ -1226,7 +1245,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.4.5';
+const APP_VERSION = 'v1.5.0';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1359,6 +1378,7 @@ const i18n = {
     editStock:'当前库存', editSafety:'安全库存(默认)',
     editSafetyDay:'安全库存（按星期）',
     editChef:'订货人', editSave:'💾 保存', editCancel:'取消',
+    qtyPadTitle:'设置订货数量', qtyConfirm:'确认', qtyClear:'清零',
     suggestRestock:'建议补货',
     // 食材详情 Modal (订货页)
     detailViewTip:'查看详情',
@@ -1410,6 +1430,7 @@ const i18n = {
     editStock:'Scorta attuale', editSafety:'Scorta minima (default)',
     editSafetyDay:'Scorta minima (per giorno)',
     editChef:'Responsabile', editSave:'💾 Salva', editCancel:'Annulla',
+    qtyPadTitle:'Imposta quantità', qtyConfirm:'Conferma', qtyClear:'Cancella',
     suggestRestock:'Rifornimento consigliato',
     // Dettagli articolo (pagina ordini)
     detailViewTip:'Vedi dettagli',
@@ -1471,6 +1492,7 @@ const i18n = {
     editStock:'বর্তমান মজুদ', editSafety:'নিরাপদ মজুদ (ডিফল্ট)',
     editSafetyDay:'নিরাপদ মজুদ (দিন অনুযায়ী)',
     editChef:'দায়িত্বশীল', editSave:'💾 সংরক্ষণ', editCancel:'বাতিল',
+    qtyPadTitle:'পরিমাণ সেট করুন', qtyConfirm:'নিশ্চিত', qtyClear:'মুছুন',
     suggestRestock:'পুনরায় মজুদের পরামর্শ',
     // পণ্যের বিস্তারিত (অর্ডার পৃষ্ঠা)
     detailViewTip:'বিস্তারিত দেখুন',
@@ -2290,22 +2312,19 @@ function renderOrderList() {
       </div>
       ${currentUserRole==='warehouse'?'':/* 仓库员没有订货区域 */`
       <div class="order-qty-wrap">
-        <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${ff('auto_suggest_qty')?t('suggestQty'):t('orderQty')}</div>
+        <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${t('orderQty')}</div>
         <div style="display:flex;align-items:center;gap:4px;">
           <button onclick="event.stopPropagation();stepQty(${item.id},-1)"
             style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <input class="qty-input" type="number" min="0" step="1"
-                 value="${item.need||0}"
-                 placeholder="${ff('auto_suggest_qty')?(fc||0):0}"
-                 onchange="updateOrderQty(${item.id},this.value)"
-                 id="oqty-${item.id}"
-                 style="width:48px;text-align:center;color:${item.orderModified?'var(--primary)':'var(--text3)'};background:${item.orderModified?'#f0f7ff':'#f5f5f5'};">
+          <div class="qty-input"
+               id="oqty-display-${item.id}"
+               onclick="event.stopPropagation();showQtyPad(${item.id})"
+               style="width:48px;text-align:center;padding:8px 0;border:1px solid #ddd;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;color:${item.orderModified?'var(--primary)':'var(--text3)'};background:${item.orderModified?'#f0f7ff':'#f5f5f5'};">${item.need||0}</div>
           <button onclick="event.stopPropagation();stepQty(${item.id},+1)"
             style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
         </div>
         <span class="qty-unit" style="font-size:12px;color:var(--text3);">${item.spec||''}</span>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;width:100%;">
-          ${ff('auto_suggest_qty')&&fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:'<span></span>'}
+        <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:4px;width:100%;">
           <input type="checkbox" ${(item.orderModified||item.consume>0)?'checked':''}
             onchange="toggleOrderItem(${item.id},this.checked)"
             onclick="event.stopPropagation()"
@@ -2336,8 +2355,15 @@ function stepQty(id, d) {
   // 最大订货量截断
   if (item.max_order && newNeed > item.max_order) newNeed = item.max_order;
   item.need = newNeed;
-  item.orderModified = true;
+  item.orderModified = item.need > 0;
   item.checked = item.need > 0;
+  // 同步显示（div 改用 textContent，input 改用 value，兼容两种）
+  const dispEl = document.getElementById('oqty-display-'+id);
+  if (dispEl) {
+    dispEl.textContent = item.need;
+    dispEl.style.color = item.orderModified ? 'var(--primary)' : 'var(--text3)';
+    dispEl.style.background = item.orderModified ? '#f0f7ff' : '#f5f5f5';
+  }
   const el = document.getElementById('oqty-'+id);
   if (el) {
     el.value = item.need;
@@ -2350,7 +2376,7 @@ function stepQty(id, d) {
   const card = document.getElementById('ocard-'+id);
   if (card) {
     const fc = calcForecast(item);
-    card.className = `order-item-card ${item.checked?(fc>0?'selected-low':'selected'):''}`;
+    card.className = `order-item-card ${item.checked?(ff('low_stock_highlight')&&fc>0?'selected-low':'selected'):''}`;
   }
   updateOrderFooter();
 }
@@ -4594,6 +4620,89 @@ async function saveFeatureFlags() {
     console.error('保存功能开关失败:', err);
     toast('保存失败: ' + err.message, 'err');
   }
+}
+
+// ════════════════════════════════════════
+// 🔢 数字键盘（点击订货数量框时弹出）
+// ════════════════════════════════════════
+let _qtyPadItemId = null;
+let _qtyPadValue = '0';
+
+function showQtyPad(itemId) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+
+  _qtyPadItemId = itemId;
+  _qtyPadValue = String(item.need || 0);
+
+  // 显示食材信息
+  document.getElementById('qty-pad-item-name').textContent = displayName(item);
+  document.getElementById('qty-pad-unit').textContent = item.spec || '';
+  document.getElementById('qty-pad-display').textContent = _qtyPadValue;
+
+  // 渲染数字键盘
+  const keys = [
+    {v:'1',label:'1'},{v:'2',label:'2'},{v:'3',label:'3'},
+    {v:'4',label:'4'},{v:'5',label:'5'},{v:'6',label:'6'},
+    {v:'7',label:'7'},{v:'8',label:'8'},{v:'9',label:'9'},
+    {v:'C',label:'C',color:'#e65100',bg:'#fff3e0'},
+    {v:'0',label:'0'},
+    {v:'<',label:'⌫',color:'#5b6c80',bg:'#f0f4f8'}
+  ];
+  document.getElementById('qty-pad-grid').innerHTML = keys.map(k => `
+    <button onclick="qtyPadInput('${k.v}')"
+      style="height:56px;border:none;border-radius:12px;font-size:24px;font-weight:600;cursor:pointer;
+             background:${k.bg||'#f5f5f5'};color:${k.color||'var(--text)'};
+             box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:transform 0.05s;"
+      ontouchstart="this.style.transform='scale(0.95)'"
+      ontouchend="this.style.transform='scale(1)'"
+    >${k.label}</button>
+  `).join('');
+
+  // 多语言按钮文字
+  document.getElementById('qty-pad-cancel-btn').textContent = t('editCancel');
+  document.getElementById('qty-pad-confirm-btn').textContent = '✓ ' + t('qtyConfirm');
+
+  openModal('modal-qty-pad');
+}
+
+function qtyPadInput(key) {
+  if (key === 'C') {
+    _qtyPadValue = '0';
+  } else if (key === '<') {
+    // 退格
+    _qtyPadValue = _qtyPadValue.length > 1 ? _qtyPadValue.slice(0, -1) : '0';
+  } else {
+    // 数字
+    if (_qtyPadValue === '0') _qtyPadValue = key;
+    else if (_qtyPadValue.length < 5) _qtyPadValue += key;  // 最多 5 位数（99999）
+  }
+  document.getElementById('qty-pad-display').textContent = _qtyPadValue;
+}
+
+function qtyPadConfirm() {
+  if (_qtyPadItemId == null) { closeModal('modal-qty-pad'); return; }
+  const val = parseInt(_qtyPadValue) || 0;
+  updateOrderQty(_qtyPadItemId, val);
+  // 同步更新卡片上的数字显示
+  const displayEl = document.getElementById('oqty-display-' + _qtyPadItemId);
+  if (displayEl) {
+    displayEl.textContent = val;
+    const item = items.find(i => i.id === _qtyPadItemId);
+    if (item) {
+      displayEl.style.color = item.orderModified ? 'var(--primary)' : 'var(--text3)';
+      displayEl.style.background = item.orderModified ? '#f0f7ff' : '#f5f5f5';
+    }
+  }
+  // 同步 checkbox 状态
+  const card = document.getElementById('ocard-' + _qtyPadItemId);
+  if (card) {
+    const cb = card.querySelector('input[type=checkbox]');
+    const item = items.find(i => i.id === _qtyPadItemId);
+    if (cb && item) cb.checked = item.checked;
+  }
+  closeModal('modal-qty-pad');
+  _qtyPadItemId = null;
 }
 
 // ════════════════════════════════════════
