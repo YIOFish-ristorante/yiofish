@@ -1226,7 +1226,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.4.3';
+const APP_VERSION = 'v1.4.4';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1324,7 +1324,7 @@ const i18n = {
     orderHint:'系统根据当前库存和安全库存自动计算',
     orderSelected:'已选择', orderKinds:'种食材',
     orderTotal:'预计总数量：', orderSubmit:'提交订单',
-    suggestQty:'建议订货量', consume:'库存调整',
+    suggestQty:'建议订货量', orderQty:'订货数量', consume:'库存调整',
     consumeHint:'负数=消耗，正数=补货', todayTag:'今日',
     // 订单
     ordersTitle:'订单系统', allOrders:'全部订单',
@@ -1393,7 +1393,7 @@ const i18n = {
     orderHint:'Calcolo automatico basato su scorte attuali e minime',
     orderSelected:'Selezionati', orderKinds:'articoli',
     orderTotal:'Quantità totale: ', orderSubmit:'Invia ordine',
-    suggestQty:'Qtà consigliata', consume:'Rettifica magazzino',
+    suggestQty:'Qtà consigliata', orderQty:'Quantità', consume:'Rettifica magazzino',
     consumeHint:'Negativo=consumo, positivo=carico', todayTag:'Oggi',
     ordersTitle:'Storico ordini', allOrders:'Tutti',
     filterPending:'In attesa', filterDone:'Completato', filterConsume:'Consumo',
@@ -1454,7 +1454,7 @@ const i18n = {
     orderHint:'বর্তমান ও নিরাপদ মজুদের উপর ভিত্তি করে স্বয়ংক্রিয় হিসাব',
     orderSelected:'নির্বাচিত', orderKinds:'ধরনের খাবার',
     orderTotal:'মোট পরিমাণ: ', orderSubmit:'অর্ডার জমা দিন',
-    suggestQty:'প্রস্তাবিত পরিমাণ', consume:'ব্যবহার',
+    suggestQty:'প্রস্তাবিত পরিমাণ', orderQty:'পরিমাণ', consume:'ব্যবহার',
     consumeHint:'জমা দেওয়ার পর মজুদ থেকে বাদ যাবে', todayTag:'আজ',
     ordersTitle:'অর্ডার', allOrders:'সব',
     filterPending:'অপেক্ষমান', filterDone:'সম্পন্ন',
@@ -2290,13 +2290,13 @@ function renderOrderList() {
       </div>
       ${currentUserRole==='warehouse'?'':/* 仓库员没有订货区域 */`
       <div class="order-qty-wrap">
-        <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${t('suggestQty')}</div>
+        <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${ff('auto_suggest_qty')?t('suggestQty'):t('orderQty')}</div>
         <div style="display:flex;align-items:center;gap:4px;">
           <button onclick="event.stopPropagation();stepQty(${item.id},-1)"
             style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
           <input class="qty-input" type="number" min="0" step="1"
                  value="${item.need||0}"
-                 placeholder="${fc||0}"
+                 placeholder="${ff('auto_suggest_qty')?(fc||0):0}"
                  onchange="updateOrderQty(${item.id},this.value)"
                  id="oqty-${item.id}"
                  style="width:48px;text-align:center;color:${item.orderModified?'var(--primary)':'var(--text3)'};background:${item.orderModified?'#f0f7ff':'#f5f5f5'};">
@@ -2305,7 +2305,7 @@ function renderOrderList() {
         </div>
         <span class="qty-unit" style="font-size:12px;color:var(--text3);">${item.spec||''}</span>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;width:100%;">
-          ${fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:'<span></span>'}
+          ${ff('auto_suggest_qty')&&fc>0?`<span class="forecast-tag">${t('submit').slice(0,2)} ${fc}</span>`:'<span></span>'}
           <div style="display:flex;align-items:center;gap:8px;">
             <button onclick="event.stopPropagation();showOrderItemDetail(${item.id})"
               title="${t('detailViewTip')}"
