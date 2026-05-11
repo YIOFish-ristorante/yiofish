@@ -714,6 +714,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" id="order-search" placeholder="🔍 搜索食材..." oninput="filterOrderList(this.value)"
           style="flex:3;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;">
+        <button onclick="showOrderNoteModal()" id="order-note-btn"
+          style="flex:0 0 auto;width:40px;height:40px;border:1px solid var(--border);border-radius:8px;background:#f5f5f5;font-size:16px;cursor:pointer;position:relative;padding:0;display:flex;align-items:center;justify-content:center;">
+          📝
+          <span id="order-note-badge" style="display:none;position:absolute;top:-3px;right:-3px;background:var(--primary);border-radius:50%;width:10px;height:10px;border:2px solid #fff;"></span>
+        </button>
         <button class="btn btn-ghost" onclick="resetOrder()" style="flex:0 0 auto;white-space:nowrap;padding:10px 8px;min-width:0;width:auto;font-size:13px;">重置</button>
         <button class="btn btn-green" id="order-submit-btn" onclick="submitOrder()" style="flex:1;white-space:nowrap;">
           <span id="submit-btn-txt">提交</span>
@@ -1071,6 +1076,25 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   </div>
 </div>
 
+<!-- 订单备注 Modal -->
+<div class="modal-overlay" id="modal-order-note">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="order-note-modal-title">📝 订单备注</div>
+    <div id="order-note-modal-hint" style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6;white-space:pre-line;"></div>
+    <textarea id="order-note-input"
+      placeholder="选填，留空也能正常提交订单..."
+      style="width:100%;min-height:120px;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;font-family:inherit;outline:none;"></textarea>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-order-note')" id="order-note-cancel-btn">取消</button>
+      <button class="btn btn-primary" style="flex:2;" onclick="saveOrderNote()" id="order-note-save-btn">✓ 确认</button>
+    </div>
+  </div>
+</div>
+
+
+
+
 <!-- 数字键盘 Modal -->
 <div class="modal-overlay" id="modal-qty-pad">
   <div class="modal" style="max-width:380px;">
@@ -1245,7 +1269,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.5.1';
+const APP_VERSION = 'v1.6.2';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1379,6 +1403,9 @@ const i18n = {
     editSafetyDay:'安全库存（按星期）',
     editChef:'订货人', editSave:'💾 保存', editCancel:'取消',
     qtyPadTitle:'设置订货数量', qtyConfirm:'确认', qtyClear:'清零',
+    orderNoteTitle:'📝 订单备注', orderNoteHint:'备注会随你的订单发送给所有供应商\n例如："需要 5 瓶鱼露"、"周六特餐要椰浆"',
+    orderNotePlaceholder:'选填，留空也能正常提交订单...',
+    orderNoteSaved:'✅ 备注已添加', orderNoteCleared:'备注已清除',
     suggestRestock:'建议补货',
     // 食材详情 Modal (订货页)
     detailViewTip:'查看详情',
@@ -1431,6 +1458,9 @@ const i18n = {
     editSafetyDay:'Scorta minima (per giorno)',
     editChef:'Responsabile', editSave:'💾 Salva', editCancel:'Annulla',
     qtyPadTitle:'Imposta quantità', qtyConfirm:'Conferma', qtyClear:'Cancella',
+    orderNoteTitle:'📝 Note ordine', orderNoteHint:'Le note verranno inviate a tutti i fornitori\nes: "Servono 5 bottiglie salsa di pesce"',
+    orderNotePlaceholder:'Facoltativo, lascia vuoto per inviare senza note...',
+    orderNoteSaved:'✅ Nota aggiunta', orderNoteCleared:'Nota rimossa',
     suggestRestock:'Rifornimento consigliato',
     // Dettagli articolo (pagina ordini)
     detailViewTip:'Vedi dettagli',
@@ -1493,6 +1523,9 @@ const i18n = {
     editSafetyDay:'নিরাপদ মজুদ (দিন অনুযায়ী)',
     editChef:'দায়িত্বশীল', editSave:'💾 সংরক্ষণ', editCancel:'বাতিল',
     qtyPadTitle:'পরিমাণ সেট করুন', qtyConfirm:'নিশ্চিত', qtyClear:'মুছুন',
+    orderNoteTitle:'📝 অর্ডার নোট', orderNoteHint:'নোট সব সরবরাহকারীর কাছে যাবে\nযেমন: "৫ বোতল মাছের সস দরকার"',
+    orderNotePlaceholder:'ঐচ্ছিক, খালি রেখেও অর্ডার করতে পারেন...',
+    orderNoteSaved:'✅ নোট যোগ হয়েছে', orderNoteCleared:'নোট মুছে গেছে',
     suggestRestock:'পুনরায় মজুদের পরামর্শ',
     // পণ্যের বিস্তারিত (অর্ডার পৃষ্ঠা)
     detailViewTip:'বিস্তারিত দেখুন',
@@ -2384,6 +2417,8 @@ function stepQty(id, d) {
 function resetOrder() {
   if (!confirm('确定重置所有订货量和库存调整？')) return;
   items.forEach(i=>{ i.checked=false; i.need=0; i.orderModified=false; i.consume=0; });
+  _orderNote = '';
+  refreshOrderNoteBadge();
   renderOrderList();
   toast('已重置');
 }
@@ -2536,7 +2571,8 @@ async function submitOrder() {
           restaurant_id:REST_ID, chef:currentUser,
           date:today, items:orderItems,
           status:'待处理', type:'order',
-          buyer: buyer
+          buyer: buyer,
+          note: _orderNote || null
         };
         const r = await fetch(SB_URL+'/rest/v1/cucina_orders', {method:'POST', headers, body:JSON.stringify(newOrder)});
         if (!r.ok) {
@@ -2566,6 +2602,8 @@ async function submitOrder() {
     // ── 完成 ──
     renderOrderList();
     items.forEach(i=>{ i.checked=false; i.need=0; i.orderModified=false; i.consume=0; });
+    _orderNote = '';
+    refreshOrderNoteBadge();
     const msg2 = sel.length>0&&toConsume.length>0 ? '✅ 订单已提交，消耗已记录' :
                  sel.length>0 ? '✅ 订单已提交' : '✅ 库存调整已记录';
     toast(msg2);
@@ -3168,6 +3206,7 @@ async function mergeSendOrders() {
   if (!selected.length) { toast('请先勾选待处理订单','err'); return; }
 
   const merged = {};
+  const mergedNotes = {};  // {supName: Set<"chef: note">} - 备注按供应商分组
   selected.forEach(order=>{
     (order.items||[]).forEach(item=>{
       const sup = item.supplier||'未知';
@@ -3178,6 +3217,11 @@ async function mergeSendOrders() {
       const exist = merged[sup].find(x=>x.item_code===item.item_code);
       if (exist) exist.need += item.need;
       else merged[sup].push({...item});
+      // 收集这张订单的备注到对应供应商（去重）
+      if (order.note && order.note.trim()) {
+        if (!mergedNotes[sup]) mergedNotes[sup] = new Set();
+        mergedNotes[sup].add(`${order.chef||''}: ${order.note.trim()}`);
+      }
     });
   });
 
@@ -3199,6 +3243,12 @@ async function mergeSendOrders() {
     supItems.forEach(i=>{
       msg += `• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} × ${i.need}${i.spec?' '+i.spec:''}\n`;
     });
+    // 附加备注（按供应商）
+    const notes = mergedNotes[supName];
+    if (notes && notes.size > 0) {
+      msg += '\n📝 *备注*：\n';
+      notes.forEach(n => { msg += `${n}\n`; });
+    }
     const encoded = encodeURIComponent(msg);
 
     html += `
@@ -3212,6 +3262,12 @@ async function mergeSendOrders() {
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
         ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} × ${i.need}${i.spec?' '+i.spec:''}`).join('<br>')}
       </div>
+      ${(()=>{
+        const notes = mergedNotes[supName];
+        if (!notes || notes.size === 0) return '';
+        const list = [...notes].map(n => `📝 ${n}`).join('<br>');
+        return `<div style="background:#fff8e1;color:#e65100;font-size:12px;padding:8px 10px;border-radius:8px;margin-bottom:10px;line-height:1.5;border-left:3px solid #ffa726;">${list}</div>`;
+      })()}
       ${hasWa
         ? `<a href="https://wa.me/${waNum}?text=${encoded}" target="_blank"
             style="display:block;width:100%;background:#25D366;color:#fff;border:none;border-radius:10px;
@@ -4618,6 +4674,53 @@ async function saveFeatureFlags() {
   } catch (err) {
     console.error('保存功能开关失败:', err);
     toast('保存失败: ' + err.message, 'err');
+  }
+}
+
+// ════════════════════════════════════════
+// 📝 订单备注（员工写临时需求，发 WhatsApp 时附带）
+// ════════════════════════════════════════
+let _orderNote = '';
+
+function showOrderNoteModal() {
+  // 多语言
+  document.getElementById('order-note-modal-title').textContent = t('orderNoteTitle');
+  document.getElementById('order-note-modal-hint').textContent = t('orderNoteHint');
+  document.getElementById('order-note-input').placeholder = t('orderNotePlaceholder');
+  document.getElementById('order-note-cancel-btn').textContent = t('editCancel');
+  document.getElementById('order-note-save-btn').textContent = '✓ ' + t('qtyConfirm');
+  // 填入当前值
+  document.getElementById('order-note-input').value = _orderNote || '';
+  openModal('modal-order-note');
+  setTimeout(() => {
+    const inp = document.getElementById('order-note-input');
+    if (inp) inp.focus();
+  }, 300);
+}
+
+function saveOrderNote() {
+  const val = (document.getElementById('order-note-input').value || '').trim();
+  const had = !!_orderNote;
+  _orderNote = val;
+  refreshOrderNoteBadge();
+  closeModal('modal-order-note');
+  if (val) toast(t('orderNoteSaved'));
+  else if (had) toast(t('orderNoteCleared'));
+}
+
+// 根据是否有备注，更新底部按钮视觉
+function refreshOrderNoteBadge() {
+  const badge = document.getElementById('order-note-badge');
+  const btn = document.getElementById('order-note-btn');
+  if (!badge || !btn) return;
+  if (_orderNote) {
+    badge.style.display = 'block';
+    btn.style.background = '#e3f2fd';
+    btn.style.borderColor = 'var(--primary)';
+  } else {
+    badge.style.display = 'none';
+    btn.style.background = '#f5f5f5';
+    btn.style.borderColor = 'var(--border)';
   }
 }
 
