@@ -1272,7 +1272,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.6.3';
+const APP_VERSION = 'v1.6.4';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -2286,14 +2286,32 @@ function renderOrderList() {
     sorted = sorted.filter(i=>(i.chef||'').toLowerCase().trim()===_cu);
   }
 
-  // 搜索过滤
-  const display = _orderSearchQ ? sorted.filter(i=>
-    (i.name||'').toLowerCase().includes(_orderSearchQ)||
-    (i.italian||'').toLowerCase().includes(_orderSearchQ)||
-    (i.item_code||'').toLowerCase().includes(_orderSearchQ)||
-    (i.chef||'').toLowerCase().includes(_orderSearchQ)||
-    (i.supplier||'').toLowerCase().includes(_orderSearchQ)
-  ) : sorted;
+  // 搜索过滤：优先级1 = 名称匹配（中文+意大利文）排前面，优先级2 = 其他字段匹配排后面
+  let display;
+  if (_orderSearchQ) {
+    const q = _orderSearchQ;
+    const nameStartMatch = [];   // 名称开头匹配（最相关）
+    const nameInclMatch  = [];   // 名称包含
+    const otherMatch     = [];   // 其他字段匹配
+    sorted.forEach(i => {
+      const n  = (i.name||'').toLowerCase();
+      const it = (i.italian||'').toLowerCase();
+      if (n.startsWith(q) || it.startsWith(q)) {
+        nameStartMatch.push(i);
+      } else if (n.includes(q) || it.includes(q)) {
+        nameInclMatch.push(i);
+      } else if (
+        (i.item_code||'').toLowerCase().includes(q) ||
+        (i.chef||'').toLowerCase().includes(q) ||
+        (i.supplier||'').toLowerCase().includes(q)
+      ) {
+        otherMatch.push(i);
+      }
+    });
+    display = [...nameStartMatch, ...nameInclMatch, ...otherMatch];
+  } else {
+    display = sorted;
+  }
   if (!display.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);">无结果</div>'; return; }
   container.innerHTML = display.map(item=>{
     const fc = calcForecast(item);
