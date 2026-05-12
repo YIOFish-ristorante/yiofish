@@ -1371,7 +1371,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.8.0';
+const APP_VERSION = 'v1.8.1';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -3418,7 +3418,7 @@ async function mergeSendOrders() {
 
     let msg = `🍳 *YioFish 订货单*\n📅 ${today}\n📦 ${supName.toUpperCase()}\n\n`;
     supItems.forEach(i=>{
-      msg += `• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} × ${i.need}${i.spec?' '+i.spec:''}\n`;
+      msg += `• ${i.name||i.italian} × ${i.need}${i.spec?' ('+i.spec+')':''}\n`;
     });
     // 附加备注（按供应商）
     const notes = mergedNotes[supName];
@@ -3437,7 +3437,7 @@ async function mergeSendOrders() {
         </div>
       </div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
-        ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name||i.italian} × ${i.need}${i.spec?' '+i.spec:''}`).join('<br>')}
+        ${supItems.map(i=>`• ${i.name||i.italian} × ${i.need}${i.spec?' ('+i.spec+')':''}`).join('<br>')}
       </div>
       ${(()=>{
         const notes = mergedNotes[supName];
@@ -3657,7 +3657,7 @@ function exportSelectedOrders() {
   toExport.forEach(o=>{
     const typeLabel = o.type==='consume'?'[消耗记录]':'[订货]';
     txt+=`\n${typeLabel} 提报人: ${o.chef} (${o.date}) [${o.status}]\n`;
-    (o.items||[]).forEach(i=>{ txt+=`  - ${i.item_code?i.item_code+' / ':''}${i.name}: ${i.need}${i.spec?' '+i.spec:''}\n`; });
+    (o.items||[]).forEach(i=>{ txt+=`  - ${i.name}: ${i.need}${i.spec?' ('+i.spec+')':''}\n`; });
   });
   const BOM = '\uFEFF';
   const b = new Blob([BOM+txt],{type:'text/plain;charset=utf-8'});
@@ -3936,7 +3936,7 @@ function showSubmitConfirm(orderItems, today) {
 
     let msg = `🍳 *YioFish 后厨申购单*\n🧑‍🍳 ${currentUser}\n📅 ${today}\n📦 ${supName.toUpperCase()}\n\n`;
     supItems.forEach(i=>{
-      msg+=`• ${i.item_code?i.item_code+' / ':''}${i.name} × ${i.need}${i.spec?' '+i.spec:''}\n`;
+      msg+=`• ${i.name} × ${i.need}${i.spec?' ('+i.spec+')':''}\n`;
     });
     const encoded = encodeURIComponent(msg);
 
@@ -3953,7 +3953,7 @@ function showSubmitConfirm(orderItems, today) {
         </a>
       </div>
       <div style="font-size:12px;color:var(--text2);">
-        ${supItems.map(i=>`• ${i.item_code?i.item_code+' / ':''}${i.name} × ${i.need}${i.spec?' '+i.spec:''}`).join('<br>')}
+        ${supItems.map(i=>`• ${i.name} × ${i.need}${i.spec?' ('+i.spec+')':''}`).join('<br>')}
       </div>
       ${!hasWa?`<div style="font-size:11px;color:var(--warn);margin-top:4px;">⚠️ 未设置此供应商WhatsApp</div>`:''}
     </div>`;
