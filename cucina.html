@@ -939,6 +939,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <div class="menu-item-text"><div class="title">清理已废弃食材</div><div class="sub">上传最新 XLSX，找出数据库里多余的食材</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="showBatchImageModal()">
+        <div class="menu-item-icon" style="background:#E8F5E9">📷</div>
+        <div class="menu-item-text"><div class="title">批量上传图片</div><div class="sub">按文件名自动匹配食材</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
     </div>
 
     <div class="menu-section">
@@ -1096,6 +1101,53 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     <div style="display:flex;gap:8px;margin-top:14px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-order-note')" id="order-note-cancel-btn">取消</button>
       <button class="btn btn-primary" style="flex:2;" onclick="saveOrderNote()" id="order-note-save-btn">✓ 确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- 📷 批量上传图片 Modal -->
+<div class="modal-overlay" id="modal-batch-image">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📷 批量上传图片</div>
+    <div id="batch-img-step1" style="display:block;">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+        📌 <strong>命名规则</strong>（任选其一）：<br>
+        • 按货号：<code>1.jpg</code>、<code>TM001.jpg</code>、<code>FS099.jpg</code><br>
+        • 按中文名：<code>番茄酱.jpg</code>、<code>鱼露.jpg</code><br>
+        • 按意大利文名：<code>Pomodoro.jpg</code><br><br>
+        系统自动按文件名匹配食材，匹配不到的会跳过。
+      </div>
+      <div style="background:#fff8e1;border-left:3px solid #ffa726;padding:10px 12px;border-radius:8px;font-size:12px;color:#e65100;margin-bottom:14px;line-height:1.5;">
+        💡 图片会被自动压缩到 ~25KB。<br>
+        如果食材已有图片，会被新图覆盖。
+      </div>
+      <label class="btn btn-primary" style="width:100%;cursor:pointer;text-align:center;">
+        📁 选择多张图片
+        <input type="file" id="batch-img-input" accept="image/*" multiple onchange="handleBatchImages(this)" style="display:none;">
+      </label>
+    </div>
+    <div id="batch-img-step2" style="display:none;">
+      <div id="batch-img-summary" style="background:#e3f2fd;border-radius:8px;padding:10px;font-size:13px;margin-bottom:12px;line-height:1.6;"></div>
+      <div id="batch-img-unmatched-wrap" style="display:none;margin-bottom:10px;">
+        <details style="font-size:12px;">
+          <summary style="cursor:pointer;color:var(--danger);font-weight:600;padding:4px 0;">⚠️ 未匹配的文件（点击查看）</summary>
+          <div id="batch-img-unmatched-list" style="margin-top:6px;max-height:120px;overflow-y:auto;background:#fff3e0;border-radius:6px;padding:8px;font-family:monospace;font-size:11px;color:var(--text2);"></div>
+        </details>
+      </div>
+      <div id="batch-img-progress-wrap" style="display:none;">
+        <div style="background:var(--surface2);border-radius:8px;height:10px;overflow:hidden;margin-bottom:6px;">
+          <div id="batch-img-progress-bar" style="background:var(--ok);height:100%;width:0%;transition:width 0.2s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);">
+          <span id="batch-img-progress-txt">准备中...</span>
+          <span id="batch-img-progress-pct">0%</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" id="batch-img-cancel-btn" onclick="closeModal('modal-batch-image')">取消</button>
+      <button class="btn btn-primary" style="flex:2;display:none;" id="batch-img-upload-btn" onclick="performBatchImageUpload()">✓ 开始上传</button>
     </div>
   </div>
 </div>
@@ -1313,7 +1365,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.7.1';
+const APP_VERSION = 'v1.7.3';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1332,6 +1384,13 @@ const DEFAULT_FEATURE_FLAGS = {
 let featureFlags = {...DEFAULT_FEATURE_FLAGS};
 // 简化访问：ff('show_stock')
 const ff = k => featureFlags[k] !== false;
+
+// ════════════════════════════════════════
+// 📷 图片压缩参数（统一管理，调一处全局生效）
+// ════════════════════════════════════════
+const IMG_MAX_SIZE = 250;   // 最大边长（像素）
+const IMG_QUALITY  = 0.50;  // 质量 0~1
+// 366 张 × ~10KB = ~3.7 MB（远低于 Supabase 1GB 免费额度）
 
 // ════════════════════════════════════════
 // SUPABASE
@@ -4740,6 +4799,200 @@ async function saveFeatureFlags() {
 }
 
 // ════════════════════════════════════════
+// 📷 批量上传图片（按文件名匹配食材）
+// ════════════════════════════════════════
+let _batchImgMatched = [];    // [{file, item}]
+let _batchImgUnmatched = [];  // [filename]
+
+function showBatchImageModal() {
+  if (!isAdmin) { toast('仅管理员可访问', 'err'); return; }
+  document.getElementById('batch-img-step1').style.display = 'block';
+  document.getElementById('batch-img-step2').style.display = 'none';
+  document.getElementById('batch-img-upload-btn').style.display = 'none';
+  document.getElementById('batch-img-input').value = '';
+  document.getElementById('batch-img-progress-wrap').style.display = 'none';
+  document.getElementById('batch-img-unmatched-wrap').style.display = 'none';
+  _batchImgMatched = [];
+  _batchImgUnmatched = [];
+  openModal('modal-batch-image');
+}
+
+// 文件名 → item 匹配（多级优先级）
+function matchFileToItem(fileName) {
+  const base = fileName.replace(/\.[^/.]+$/, '').trim();
+  if (!base) return null;
+  const baseLower = base.toLowerCase();
+
+  // 1. 货号精确（大小写不敏感）
+  let m = items.find(i => (i.item_code||'').trim() === base);
+  if (m) return m;
+  m = items.find(i => (i.item_code||'').trim().toLowerCase() === baseLower);
+  if (m) return m;
+
+  // 2. 中文名精确
+  m = items.find(i => (i.name||'').trim() === base);
+  if (m) return m;
+
+  // 3. 意大利文名精确（大小写不敏感）
+  m = items.find(i => (i.italian||'').trim() === base);
+  if (m) return m;
+  m = items.find(i => (i.italian||'').trim().toLowerCase() === baseLower);
+  if (m) return m;
+
+  return null;
+}
+
+function handleBatchImages(input) {
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+
+  _batchImgMatched = [];
+  _batchImgUnmatched = [];
+
+  files.forEach(file => {
+    const item = matchFileToItem(file.name);
+    if (item) _batchImgMatched.push({file, item});
+    else _batchImgUnmatched.push(file.name);
+  });
+
+  document.getElementById('batch-img-summary').innerHTML = `
+    📊 文件分析结果：<br>
+    • 总文件数：<strong>${files.length}</strong> 张<br>
+    • 已匹配：<strong style="color:var(--ok);">${_batchImgMatched.length}</strong> 张<br>
+    • 未匹配：<strong style="color:${_batchImgUnmatched.length>0?'var(--danger)':'var(--text3)'};">${_batchImgUnmatched.length}</strong> 张
+  `;
+
+  if (_batchImgUnmatched.length > 0) {
+    document.getElementById('batch-img-unmatched-wrap').style.display = 'block';
+    document.getElementById('batch-img-unmatched-list').innerHTML =
+      _batchImgUnmatched.map(n => `• ${n}`).join('<br>');
+  } else {
+    document.getElementById('batch-img-unmatched-wrap').style.display = 'none';
+  }
+
+  document.getElementById('batch-img-step1').style.display = 'none';
+  document.getElementById('batch-img-step2').style.display = 'block';
+  document.getElementById('batch-img-upload-btn').style.display = _batchImgMatched.length > 0 ? 'block' : 'none';
+  document.getElementById('batch-img-upload-btn').textContent = `✓ 开始上传 ${_batchImgMatched.length} 张`;
+
+  if (_batchImgMatched.length === 0) {
+    toast('没有可上传的图片（文件名都没匹配上）', 'err');
+  }
+}
+
+// 上传单张图片（不依赖 UI 元素的版本，供批量调用）
+async function uploadImageForItemSilent(itemId, file) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) throw new Error('找不到食材');
+
+  const result = await compressImage(file, IMG_MAX_SIZE, IMG_QUALITY);
+  const compressed = result.blob;
+
+  const fileName = `${REST_ID}/item_${itemId}.${result.ext}`;
+  const oldUrl = item.image_url || '';
+
+  const uploadRes = await fetch(`${SB_URL}/storage/v1/object/cucina-images/${fileName}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': result.mime,
+      'x-upsert': 'true'
+    },
+    body: compressed
+  });
+  if (!uploadRes.ok) {
+    const errTxt = await uploadRes.text();
+    throw new Error(`上传失败 (${uploadRes.status}): ${errTxt.substring(0,80)}`);
+  }
+
+  const publicUrl = `${SB_URL}/storage/v1/object/public/cucina-images/${fileName}?v=${Date.now()}`;
+
+  await fetch(`${SB_URL}/rest/v1/cucina_items?id=eq.${itemId}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ image_url: publicUrl })
+  });
+
+  // 清理不同扩展名的旧图
+  if (oldUrl) {
+    try {
+      const oldPath = oldUrl.split('/cucina-images/')[1]?.split('?')[0];
+      if (oldPath && oldPath !== fileName) {
+        fetch(`${SB_URL}/storage/v1/object/cucina-images/${oldPath}`, {
+          method: 'DELETE',
+          headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+        }).catch(()=>{});
+      }
+    } catch(e) {}
+  }
+
+  item.image_url = publicUrl;
+  return { sizeKB: (compressed.size / 1024).toFixed(0), ext: result.ext };
+}
+
+async function performBatchImageUpload() {
+  if (_batchImgMatched.length === 0) { toast('没有可上传的图片', 'err'); return; }
+
+  const total = _batchImgMatched.length;
+  const cancelBtn = document.getElementById('batch-img-cancel-btn');
+  const uploadBtn = document.getElementById('batch-img-upload-btn');
+  const progressWrap = document.getElementById('batch-img-progress-wrap');
+  const progressBar = document.getElementById('batch-img-progress-bar');
+  const progressTxt = document.getElementById('batch-img-progress-txt');
+  const progressPct = document.getElementById('batch-img-progress-pct');
+
+  cancelBtn.disabled = true;
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = '上传中...';
+  progressWrap.style.display = 'block';
+
+  let success = 0, failed = 0;
+  const failedList = [];
+
+  for (let i = 0; i < _batchImgMatched.length; i++) {
+    const {file, item} = _batchImgMatched[i];
+    const itemLabel = item.name || item.italian || item.item_code;
+    progressTxt.textContent = `${i+1}/${total} · ${itemLabel}`;
+
+    try {
+      await uploadImageForItemSilent(item.id, file);
+      success++;
+    } catch(e) {
+      console.error(`❌ ${file.name}:`, e);
+      failed++;
+      failedList.push(`${file.name}: ${e.message}`);
+    }
+
+    const pct = Math.round((i+1) / total * 100);
+    progressBar.style.width = pct + '%';
+    progressPct.textContent = pct + '%';
+  }
+
+  cancelBtn.disabled = false;
+  uploadBtn.disabled = false;
+  uploadBtn.style.display = 'none';
+
+  progressTxt.textContent = `✅ 完成：成功 ${success} 张，失败 ${failed} 张`;
+
+  if (failed > 0) {
+    console.log('失败列表:\n' + failedList.join('\n'));
+    toast(`完成：成功 ${success}，失败 ${failed}（详情见控制台）`, failed > success ? 'err' : '');
+  } else {
+    toast(`✅ 全部上传成功（${success} 张）`);
+  }
+
+  if (currentTab === 'order' && typeof renderOrderList === 'function') renderOrderList();
+  if (currentTab === 'inventory' && typeof renderInventory === 'function') renderInventory();
+
+  setTimeout(() => closeModal('modal-batch-image'), 3000);
+}
+
+// ════════════════════════════════════════
 // 🗑️ 清理已废弃食材（孤儿清理）
 // 上传最新 XLSX，对比找出数据库里多余的食材
 // ════════════════════════════════════════
@@ -5245,7 +5498,7 @@ function supportsWebP() {
   } catch(e) { return false; }
 }
 
-function compressImage(file, maxSize = 400, quality = 0.60) {
+function compressImage(file, maxSize = IMG_MAX_SIZE, quality = IMG_QUALITY) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => {
@@ -5321,8 +5574,8 @@ async function uploadItemImage(itemId, fileInput) {
   if (btnEl) { btnEl.textContent = t('detailUploading'); btnEl.disabled = true; }
 
   try {
-    // 🔥 极致压缩（400x400 + 60% 质量，原图 3MB → 压缩后 18-25KB，省 99%）
-    const result = await compressImage(file, 400, 0.60);
+    // 📷 压缩参数从全局常量读取（IMG_MAX_SIZE × IMG_QUALITY）
+    const result = await compressImage(file, IMG_MAX_SIZE, IMG_QUALITY);
     const compressed = result.blob;
     const sizeKB = (compressed.size / 1024).toFixed(0);
     console.log(`[图片压缩] 原始: ${(file.size/1024).toFixed(0)}KB → 压缩: ${sizeKB}KB (${result.ext.toUpperCase()})`);
