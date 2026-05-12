@@ -10,23 +10,30 @@
 
 <!-- PWA -->
 <link rel="manifest" href="/manifest-cucina.json">
-<meta name="theme-color" content="#bfa46f">
+<meta name="theme-color" content="#a67c2d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="后厨系统">
 <link rel="apple-touch-icon" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- xlsx 改为按需动态加载，见 ensureXlsxLoaded() -->
 <style>
+/* ══ 设计说明：仅调整视觉 token 与样式层，不改变 DOM/脚本逻辑 ══ */
 :root {
-  --bg: #F5F7FA;
+  /* 金棕主色（全局品牌色，替代原企业蓝） */
+  --bg: #f0ebe3;
+  --bg-accent: #e8e2d8;
   --surface: #FFFFFF;
-  --surface2: #F0F3F8;
-  --border: #E4E8F0;
-  --primary: #1A56DB;
-  --primary-light: #EBF0FF;
-  --primary-dark: #1040B0;
+  --surface2: #f7f3ec;
+  --border: #e5ddd0;
+  --primary: #a67c2d;
+  --primary-light: #faf6ec;
+  --primary-dark: #6b4f1a;
+  --accent-panel: #f2e6d4;
+  --accent-panel-deep: #e5d2b8;
   --danger: #E53E3E;
   --danger-light: #FFF5F5;
   --warn: #D97706;
@@ -35,26 +42,31 @@
   --ok-light: #ECFDF5;
   --text: #1A202C;
   --text2: #4A5568;
-  --text3: #A0AEC0;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
-  --radius: 12px;
-  --radius-sm: 8px;
+  --text3: #8b96a8;
+  --shadow: 0 1px 2px rgba(45, 36, 22, 0.06), 0 4px 12px rgba(45, 36, 22, 0.06);
+  --shadow-md: 0 8px 24px rgba(45, 36, 22, 0.09), 0 2px 6px rgba(45, 36, 22, 0.04);
+  --shadow-nav: 0 -1px 0 rgba(45, 36, 22, 0.06);
+  --radius: 14px;
+  --radius-sm: 10px;
   --nav-h: 56px;
   --bottom-h: 64px;
+  --ring: 0 0 0 3px rgba(166, 124, 45, 0.28);
+  --primary-shadow: rgba(107, 79, 26, 0.32);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 body {
-  font-family: 'Noto Sans SC', sans-serif;
-  background: var(--bg);
+  font-family: 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background-color: var(--bg);
+  background-image: linear-gradient(180deg, var(--bg) 0%, var(--bg-accent) 55%, var(--bg) 100%);
   color: var(--text);
   min-height: 100vh;
   max-width: 480px;
   margin: 0 auto;
   position: relative;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ── SCREENS ── */
@@ -66,35 +78,46 @@ body {
   position: fixed; top: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px;
   height: var(--nav-h);
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 16px;
   z-index: 100;
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset, 0 4px 20px rgba(15, 23, 42, 0.04);
 }
-.nav-title { font-size: 17px; font-weight: 700; color: var(--text); }
-.nav-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; color: var(--text2); font-size: 18px; }
-.nav-icon:hover { background: var(--surface2); }
+.nav-title { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+.nav-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 12px; cursor: pointer; color: var(--text2); font-size: 18px; transition: background 0.18s, color 0.18s; }
+.nav-icon:hover { background: var(--surface2); color: var(--text); }
+.nav-icon:focus-visible { outline: none; box-shadow: var(--ring); }
 
 /* ── BOTTOM NAV ── */
 .bottom-nav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px;
   height: var(--bottom-h);
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.94);
   border-top: 1px solid var(--border);
   display: flex; z-index: 100;
   padding-bottom: env(safe-area-inset-bottom);
+  backdrop-filter: blur(16px) saturate(170%);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  box-shadow: var(--shadow-nav), 0 -12px 32px rgba(15, 23, 42, 0.05);
 }
 .nav-item {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 3px;
-  cursor: pointer; color: var(--text3); transition: color 0.2s;
+  cursor: pointer; color: var(--text3); transition: color 0.2s, transform 0.15s ease;
   padding: 6px 0;
+  border-radius: 12px;
+  margin: 4px 2px;
 }
 .nav-item.active { color: var(--primary); }
-.nav-item svg { width: 22px; height: 22px; }
-.nav-item span { font-size: 10px; font-weight: 500; }
+.nav-item:active { transform: scale(0.96); }
+.nav-item svg { width: 22px; height: 22px; stroke-width: 2; }
+.nav-item span { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+.nav-item:focus-visible { outline: none; box-shadow: var(--ring); }
 .nav-badge {
   position: absolute; top: 6px; right: calc(50% - 20px);
   background: var(--danger); color: #fff;
@@ -127,7 +150,13 @@ body {
   border-radius: var(--radius-sm);
   padding: 12px 10px;
   box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   text-align: center;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+@media (hover: none) {
+  .stat-card:hover { box-shadow: var(--shadow); transform: none; }
 }
 .stat-val { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; line-height: 1.2; }
 .stat-lbl { font-size: 11px; color: var(--text3); margin-top: 3px; }
@@ -136,8 +165,13 @@ body {
 .search-wrap {
   display: flex; align-items: center; gap: 8px;
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 14px;
+  border-radius: var(--radius-sm); padding: 10px 14px;
   margin-bottom: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-wrap:focus-within {
+  border-color: rgba(166, 124, 45, 0.55);
+  box-shadow: var(--ring);
 }
 .search-wrap input {
   flex: 1; border: none; outline: none; font-size: 14px;
@@ -153,15 +187,19 @@ body {
 }
 .cat-tabs::-webkit-scrollbar { display: none; }
 .cat-tab {
-  flex-shrink: 0; padding: 6px 16px; border-radius: 20px;
+  flex-shrink: 0; padding: 7px 16px; border-radius: 999px;
   font-size: 13px; font-weight: 500; cursor: pointer;
   color: var(--text2); background: var(--surface);
-  border: 1px solid var(--border); transition: all 0.2s;
+  border: 1px solid var(--border); transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 .cat-tab.active {
-  background: var(--primary); color: #fff; border-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 12px var(--primary-shadow);
 }
+.cat-tab:focus-visible { outline: none; box-shadow: var(--ring); }
 
 /* ── INVENTORY TABLE ── */
 .inv-table { width: 100%; border-collapse: collapse; }
@@ -201,22 +239,28 @@ body {
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  border: 1px solid rgba(226, 231, 240, 0.9);
   padding: 14px 130px 14px 70px;
   margin-bottom: 10px;
   position: relative;
-  transition: all 0.2s;
+  transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;
+}
+.order-item-card:hover { box-shadow: var(--shadow-md); }
+@media (hover: none) {
+  .order-item-card:hover { box-shadow: var(--shadow); }
 }
 .order-item-card.selected { border: 1.5px solid var(--primary); }
 .order-item-card.selected-low { border: 1.5px solid var(--primary); background: var(--primary-light); }
 .order-item-thumb {
   position: absolute; top: 14px; left: 14px;
   width: 44px; height: 44px;
-  border-radius: 8px; object-fit: cover;
-  background: #f0f4f8;
+  border-radius: 10px; object-fit: cover;
+  background: linear-gradient(145deg, #eef2f7, #e2e8f0);
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; color: var(--text3);
   overflow: hidden;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 .order-item-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .order-check { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--primary); cursor: pointer; }
@@ -256,8 +300,12 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 .order-footer {
   position: fixed; bottom: var(--bottom-h); left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px;
-  background: var(--surface); border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid var(--border);
   padding: 12px 16px; z-index: 90;
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.06);
 }
 .order-footer-info { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 10px; }
 .order-footer-info .count { color: var(--text2); }
@@ -269,20 +317,27 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 }
 .order-filter-tab {
   flex: 1; padding: 8px 4px; text-align: center;
-  font-size: 12px; font-weight: 500; cursor: pointer;
-  border-radius: 8px; color: var(--text2);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border-radius: var(--radius-sm); color: var(--text2);
   background: var(--surface); border: 1px solid var(--border);
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 .order-filter-tab.active {
-  background: var(--primary); color: #fff; border-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 3px 10px var(--primary-shadow);
 }
 .order-card {
   background: var(--surface); border-radius: var(--radius);
-  box-shadow: var(--shadow); padding: 16px; margin-bottom: 10px;
-  cursor: pointer; transition: all 0.2s;
+  box-shadow: var(--shadow); border: 1px solid rgba(226, 231, 240, 0.85);
+  padding: 16px; margin-bottom: 10px;
+  cursor: pointer; transition: box-shadow 0.2s, transform 0.18s;
 }
+.order-card:hover { box-shadow: var(--shadow-md); }
 .order-card:active { transform: scale(0.98); }
+@media (hover: none) {
+  .order-card:hover { box-shadow: var(--shadow); }
+}
 .order-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
 .order-no { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--primary); font-weight: 500; }
 .order-meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; font-size: 12px; color: var(--text2); }
@@ -303,6 +358,12 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 .kpi-card {
   background: var(--surface); border-radius: var(--radius-sm);
   padding: 14px; box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  transition: box-shadow 0.2s;
+}
+.kpi-card:hover { box-shadow: var(--shadow-md); }
+@media (hover: none) {
+  .kpi-card:hover { box-shadow: var(--shadow); }
 }
 .kpi-val { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; color: var(--text); }
 .kpi-val.primary { color: var(--primary); }
@@ -314,9 +375,10 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 .kpi-trend.down { color: var(--danger); }
 .chart-wrap {
   background: var(--surface); border-radius: var(--radius);
-  box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px;
+  box-shadow: var(--shadow); border: 1px solid rgba(226, 231, 240, 0.85);
+  padding: 16px; margin-bottom: 16px;
 }
-.chart-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.chart-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.01em; }
 .chart-sub   { font-size: 11px; color: var(--text3); margin-bottom: 16px; }
 .chart-area { position: relative; }
 
@@ -346,15 +408,18 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 
 /* ── MY PROFILE ── */
 .profile-header {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(145deg, #c9a24a 0%, var(--primary) 45%, var(--primary-dark) 100%);
   border-radius: var(--radius); padding: 24px 16px 20px;
   text-align: center; color: #fff; margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
 }
 .avatar {
   width: 64px; height: 64px; border-radius: 50%;
-  background: rgba(255,255,255,0.25); margin: 0 auto 12px;
+  background: rgba(255,255,255,0.22); margin: 0 auto 12px;
   display: flex; align-items: center; justify-content: center;
   font-size: 28px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.35);
 }
 .profile-name { font-size: 18px; font-weight: 700; }
 .profile-role { font-size: 13px; opacity: 0.8; margin-top: 3px; }
@@ -379,12 +444,12 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: 24px;
-  background: linear-gradient(160deg, #EBF0FF 0%, #F5F7FA 60%);
+  background: linear-gradient(165deg, #faf6ec 0%, #f0ebe3 45%, #e8dcc8 100%);
 }
 .login-logo { margin-bottom: 12px; display:flex; justify-content:center; align-items:center; }
 .login-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
 .login-sub   { font-size: 14px; color: var(--text2); margin-bottom: 32px; text-align: center; }
-.login-card  { background: var(--surface); border-radius: 20px; padding: 24px; width: 100%; max-width: 360px; box-shadow: var(--shadow-md); }
+.login-card  { background: var(--surface); border-radius: 20px; padding: 24px; width: 100%; max-width: 360px; box-shadow: var(--shadow-md); border: 1px solid rgba(255, 255, 255, 0.75); }
 .form-group  { margin-bottom: 16px; }
 .form-label  { font-size: 12px; font-weight: 600; color: var(--text2); display: block; margin-bottom: 6px; }
 .form-control {
@@ -428,8 +493,9 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   transition: all 0.2s; width: 100%;
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:active:not(:disabled) { background: var(--primary-dark); }
+.btn-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: #fff; box-shadow: 0 4px 14px var(--primary-shadow); }
+.btn-primary:active:not(:disabled) { background: var(--primary-dark); box-shadow: 0 2px 8px rgba(107, 79, 26, 0.22); }
+.btn:focus-visible { outline: none; box-shadow: var(--ring); }
 .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
 .btn-danger  { background: var(--danger); color: #fff; }
 .btn-ghost   { background: var(--surface2); color: var(--text2); }
@@ -439,11 +505,13 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 
 /* ── MODAL ── */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.42);
   z-index: 200; display: none; align-items: flex-end;
   justify-content: center;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 .modal-overlay.show { display: flex; }
 .modal {
@@ -497,12 +565,13 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   display: inline-block; font-size: 10px; font-weight: 500;
   padding: 2px 6px; border-radius: 4px; margin-right: 4px;
 }
-.tag-dept { background: #EBF0FF; color: var(--primary); }
+.tag-dept { background: var(--primary-light); color: var(--primary-dark); }
 .tag-cat  { background: #FFF7E6; color: var(--warn); }
 
 .section-card {
   background: var(--surface); border-radius: var(--radius);
-  box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden;
+  box-shadow: var(--shadow); border: 1px solid rgba(226, 231, 240, 0.85);
+  margin-bottom: 12px; overflow: hidden;
 }
 .section-card-header {
   padding: 14px 16px; border-bottom: 1px solid var(--border);
@@ -512,10 +581,12 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 
 /* Lang selector */
 .lang-btn {
-  padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+  padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border);
   font-size: 12px; background: var(--surface2); color: var(--text2);
   cursor: pointer; font-family: 'Noto Sans SC', sans-serif;
+  transition: border-color 0.2s, background 0.2s;
 }
+.lang-btn:focus-visible { outline: none; box-shadow: var(--ring); }
 </style>
 </head>
 <body>
@@ -631,7 +702,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     <!-- Search -->
     <div class="search-wrap">
       <span style="color:var(--text3);font-size:16px">🔍</span>
-      <input id="inv-search" type="text" placeholder="搜索食材..." oninput="filterInventory()">
+      <input id="inv-search" type="text" placeholder="搜索食材..." oninput="filterInventoryDebounced()">
       <span style="color:var(--text3);font-size:16px;cursor:pointer" onclick="showInvFilter()">⚙️</span>
     </div>
 
@@ -718,7 +789,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 
     <div class="order-footer" style="padding:10px 12px;">
       <div style="display:flex;gap:6px;align-items:center;">
-        <input type="text" id="order-search" placeholder="🔍 搜索食材..." oninput="filterOrderList(this.value)"
+        <input type="text" id="order-search" placeholder="🔍 搜索食材..." oninput="debouncedFilterOrderFromInput()"
           style="flex:2;min-width:0;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;">
         <button onclick="showOrderNoteModal()" id="order-note-btn"
           style="flex:0 0 auto;width:38px;height:38px;border:1px solid var(--border);border-radius:8px;background:#f5f5f5;font-size:16px;cursor:pointer;position:relative;padding:0;display:flex;align-items:center;justify-content:center;">
@@ -823,7 +894,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <option value="all">全部员工</option>
       </select>
     </div>
-    <div id="order-custom-date" style="display:none;gap:8px;padding-bottom:8px;display:none;">
+    <div id="order-custom-date" style="display:none;flex-wrap:wrap;gap:8px;padding-bottom:8px;">
       <input type="date" id="order-date-from" onchange="renderOrders()"
         style="flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;">
       <input type="date" id="order-date-to" onchange="renderOrders()"
@@ -881,7 +952,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       <div class="chart-wrap" id="warn-table-wrap">
         <div class="chart-title" style="margin-bottom:12px">库存预警（低于安全库存）</div>
         <table class="warn-table" id="warn-table">
-          <thead><tr><th>${t('colFood')}</th><th>当前库存</th><th>安全库存</th><th>状态</th></tr></thead>
+          <thead><tr><th id="warn-th-food">食材</th><th id="warn-th-stock">当前库存</th><th id="warn-th-safe">安全库存</th><th id="warn-th-status">状态</th></tr></thead>
           <tbody id="warn-tbody"></tbody>
         </table>
       </div>
@@ -1134,7 +1205,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       </label>
     </div>
     <div id="batch-img-step2" style="display:none;">
-      <div id="batch-img-summary" style="background:#e3f2fd;border-radius:8px;padding:10px;font-size:13px;margin-bottom:12px;line-height:1.6;"></div>
+      <div id="batch-img-summary" style="background:var(--accent-panel);border-radius:8px;padding:10px;font-size:13px;margin-bottom:12px;line-height:1.6;"></div>
       <div id="batch-img-unmatched-wrap" style="display:none;margin-bottom:10px;">
         <details style="font-size:12px;">
           <summary style="cursor:pointer;color:var(--danger);font-weight:600;padding:4px 0;">⚠️ 未匹配的文件（点击查看）</summary>
@@ -1179,7 +1250,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       </label>
     </div>
     <div id="orphan-step2" style="display:none;">
-      <div id="orphan-summary" style="background:#e3f2fd;border-radius:8px;padding:10px;font-size:13px;margin-bottom:12px;line-height:1.6;"></div>
+      <div id="orphan-summary" style="background:var(--accent-panel);border-radius:8px;padding:10px;font-size:13px;margin-bottom:12px;line-height:1.6;"></div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
         <input type="checkbox" id="orphan-select-all" onchange="toggleSelectAllOrphans(this.checked)" style="width:18px;height:18px;">
         <label for="orphan-select-all" style="font-size:13px;cursor:pointer;">全选 / 全不选</label>
@@ -1203,7 +1274,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     <div class="modal-handle"></div>
     <div style="text-align:center;margin-bottom:14px;">
       <div id="qty-pad-item-name" style="font-size:14px;color:var(--text2);margin-bottom:4px;"></div>
-      <div style="background:linear-gradient(135deg,#1A56DB,#1040B0);color:#fff;border-radius:14px;padding:18px 12px;margin:8px 0;">
+      <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:14px;padding:18px 12px;margin:8px 0;">
         <div id="qty-pad-display" style="font-size:48px;font-weight:700;line-height:1;font-family:'DM Mono',monospace;">0</div>
         <div id="qty-pad-unit" style="font-size:13px;opacity:0.85;margin-top:4px;"></div>
       </div>
@@ -1371,7 +1442,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.8.1';
+const APP_VERSION = 'v1.9.0';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1404,6 +1475,38 @@ const IMG_QUALITY  = 0.50;  // 质量 0~1
 const SB_URL  = 'https://cnavkgfrqvfuafcbmldg.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYXZrZ2ZycXZmdWFmY2JtbGRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MTE1MjIsImV4cCI6MjA5MzA4NzUyMn0.JX0ECOAVy-BVklCSsJE5n3j-owz1Ti-GOV4MtrWYlPI';
 const WA_NUM  = '393778826875';
+
+/** SheetJS：首屏不加载，导入/导出/孤儿对比前再拉取 */
+let _xlsxLoadPromise = null;
+function ensureXlsxLoaded() {
+  if (typeof XLSX !== 'undefined' && XLSX) return Promise.resolve();
+  if (_xlsxLoadPromise) return _xlsxLoadPromise;
+  _xlsxLoadPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.async = true;
+    s.onload = () => {
+      if (typeof XLSX !== 'undefined' && XLSX) resolve();
+      else { _xlsxLoadPromise = null; reject(new Error('XLSX')); }
+    };
+    s.onerror = () => { _xlsxLoadPromise = null; reject(new Error('xlsx script')); };
+    document.head.appendChild(s);
+  });
+  return _xlsxLoadPromise.catch(err => { _xlsxLoadPromise = null; throw err; });
+}
+
+function debounce(fn, wait) {
+  let t;
+  return function(...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+const filterInventoryDebounced = debounce(() => { filterInventory(); }, 200);
+const debouncedFilterOrderFromInput = debounce(() => {
+  const el = document.getElementById('order-search');
+  filterOrderList(el ? el.value : '');
+}, 200);
 
 // ── 从URL参数读取餐厅ID，默认carpi ──
 const _urlParams = new URLSearchParams(window.location.search);
@@ -1503,7 +1606,6 @@ const i18n = {
     admin:'管理员 · Admin', staff:'员工',
     roleWarehouse:'仓库员', roleStaff:'员工', roleSupervisor:'主管', roleBuyer:'采购员', roleAdmin:'管理员',
     langLabel:'语言',
-    logout:'退出登录',
     // 编辑
     editItem:'编辑食材', editCode:'货物号', editCat:'材料类型',
     editItalian:'意大利文名称', editName:'中文名称',
@@ -1822,6 +1924,7 @@ async function doAdminLogin() {
     // login as admin without chef account
     currentUser = 'Admin';
     showApp();
+    initRealtime();
   }
 }
 
@@ -1911,6 +2014,7 @@ async function deleteEditItem() {
 }
 
 function doLogout() {
+  teardownRealtime();
   currentUser=null; isAdmin=false;
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
@@ -2500,7 +2604,7 @@ function renderOrderList() {
           const r = getRecentOrder(item);
           if (!r) return '<div style="font-size:11px;color:var(--text3);margin-top:4px;">📅 暂无订货记录</div>';
           const timeTxt = r.days===0?'今天':(r.days===1?'昨天':r.days+'天前');
-          return `<div style="font-size:11px;color:#1565c0;margin-top:4px;background:#e3f2fd;padding:3px 8px;border-radius:6px;display:inline-block;">📅 上次订 <strong>${r.qty}</strong>${item.spec?' '+item.spec:''} · ${timeTxt}${r.chef?' · '+r.chef:''}</div>`;
+          return `<div style="font-size:11px;color:#6b4f1a;margin-top:4px;background:#f2e6d4;padding:3px 8px;border-radius:6px;display:inline-block;">📅 上次订 <strong>${r.qty}</strong>${item.spec?' '+item.spec:''} · ${timeTxt}${r.chef?' · '+r.chef:''}</div>`;
         })():''}
         <div class="stock-line" style="margin-top:4px;">
           ${ff('consume_track')&&(isAdmin||currentUserRole==='supervisor'||currentUserRole==='buyer'||(item.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim()||currentUserRole==='warehouse')?`
@@ -2528,7 +2632,7 @@ function renderOrderList() {
           <div class="qty-input"
                id="oqty-display-${item.id}"
                onclick="event.stopPropagation();showQtyPad(${item.id})"
-               style="width:48px;text-align:center;padding:8px 0;border:1px solid #ddd;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;color:${item.orderModified?'var(--primary)':'var(--text3)'};background:${item.orderModified?'#f0f7ff':'#f5f5f5'};">${item.need||0}</div>
+               style="width:48px;text-align:center;padding:8px 0;border:1px solid #ddd;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;color:${item.orderModified?'var(--primary)':'var(--text3)'};background:${item.orderModified?'#faf6ec':'#f5f5f5'};">${item.need||0}</div>
           <button onclick="event.stopPropagation();stepQty(${item.id},+1)"
             style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
         </div>
@@ -2571,13 +2675,13 @@ function stepQty(id, d) {
   if (dispEl) {
     dispEl.textContent = item.need;
     dispEl.style.color = item.orderModified ? 'var(--primary)' : 'var(--text3)';
-    dispEl.style.background = item.orderModified ? '#f0f7ff' : '#f5f5f5';
+    dispEl.style.background = item.orderModified ? '#faf6ec' : '#f5f5f5';
   }
   const el = document.getElementById('oqty-'+id);
   if (el) {
     el.value = item.need;
     el.style.color = 'var(--primary)';
-    el.style.background = '#f0f7ff';
+    el.style.background = '#faf6ec';
   }
   // 问题2：同步激活右边的checkbox
   const cb = document.querySelector(`#ocard-${id} input[type="checkbox"]`);
@@ -3584,7 +3688,7 @@ function renderOrders() {
     const st = isReceived
       ? `<span class="badge badge-done">📬 已收货</span>`
       : isSent
-      ? `<span class="badge" style="background:#e3f2fd;color:#1565c0;">📤 已发送</span>`
+      ? `<span class="badge" style="background:#f2e6d4;color:#6b4f1a;">📤 已发送</span>`
       : isDone
       ? `<span class="badge badge-done">✅ 已完成</span>`
       : isConsume
@@ -3677,7 +3781,7 @@ function showOrderDetail(id) {
   const st = isReceived
     ? `<span class="badge badge-done">📬 已收货</span>`
     : isSent
-    ? `<span class="badge" style="background:#e3f2fd;color:#1565c0;">📤 已发送</span>`
+    ? `<span class="badge" style="background:#f2e6d4;color:#6b4f1a;">📤 已发送</span>`
     : isDone
     ? `<span class="badge badge-done">✅ 已完成</span>`
     : isConsume
@@ -4247,8 +4351,8 @@ function renderTrendChart() {
     <svg class="chart-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="#1A56DB" stop-opacity="0.18"/>
-          <stop offset="100%" stop-color="#1A56DB" stop-opacity="0.0"/>
+          <stop offset="0%"   stop-color="#a67c2d" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="#a67c2d" stop-opacity="0.0"/>
         </linearGradient>
       </defs>
       <!-- Y grid -->
@@ -4286,7 +4390,7 @@ function renderPieChart() {
   const allData= other>0 ? [...top5,['其他',other]] : top5;
   const total  = allData.reduce((s,[,v])=>s+v,0)||1;
 
-  const colors = ['#1A56DB','#F59E0B','#059669','#8B5CF6','#06B6D4','#9CA3AF'];
+  const colors = ['#a67c2d','#F59E0B','#059669','#8B5CF6','#06B6D4','#9CA3AF'];
   const R=56, cx=68, cy=68;
   let angle = -Math.PI/2;
   const slices = allData.map(([name,val],i)=>{
@@ -4440,6 +4544,11 @@ function changeLangModal() {
   currentLang = langs[(idx+1)%langs.length].v;
   document.getElementById('current-lang-lbl').textContent = langs[(idx+1)%langs.length].l;
   document.getElementById('lang-select').value = currentLang;
+  const se = (id,val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+  se('warn-th-food', t('colFood'));
+  se('warn-th-stock', t('colStock'));
+  se('warn-th-safe', t('colSafe'));
+  se('warn-th-status', t('colStatus'));
   toast('语言已切换 / Language changed');
   switchTab(currentTab);
 }
@@ -4458,6 +4567,10 @@ function changeLang(v) {
   se('th-safe', t('colSafe'));
   se('th-unit', t('colUnit'));
   se('th-status', t('colStatus'));
+  se('warn-th-food', t('colFood'));
+  se('warn-th-stock', t('colStock'));
+  se('warn-th-safe', t('colSafe'));
+  se('warn-th-status', t('colStatus'));
   // 订货底栏
   se('order-hint-txt', t('orderHint'));
   se('sel-total-lbl', t('orderTotal'));
@@ -5065,9 +5178,16 @@ function showCleanOrphansModal() {
   openModal('modal-clean-orphans');
 }
 
-function handleOrphanFile(input) {
+async function handleOrphanFile(input) {
   const file = input.files[0];
   if (!file) return;
+  try {
+    await ensureXlsxLoaded();
+  } catch (e) {
+    toast('加载 Excel 组件失败，请检查网络', 'err');
+    input.value = '';
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = e => {
@@ -5262,7 +5382,7 @@ function refreshOrderNoteBadge() {
   if (!badge || !btn) return;
   if (_orderNote) {
     badge.style.display = 'block';
-    btn.style.background = '#e3f2fd';
+    btn.style.background = '#f2e6d4';
     btn.style.borderColor = 'var(--primary)';
   } else {
     badge.style.display = 'none';
@@ -5340,7 +5460,7 @@ function qtyPadConfirm() {
     const item = items.find(i => i.id === _qtyPadItemId);
     if (item) {
       displayEl.style.color = item.orderModified ? 'var(--primary)' : 'var(--text3)';
-      displayEl.style.background = item.orderModified ? '#f0f7ff' : '#f5f5f5';
+      displayEl.style.background = item.orderModified ? '#faf6ec' : '#f5f5f5';
     }
   }
   // 同步 checkbox 状态
@@ -5418,9 +5538,9 @@ function showOrderItemDetail(itemId) {
     ? `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px;">
         ${dayKeys.map((dk, i) => {
           const val = sbd[dk] || 0;
-          return `<div style="text-align:center;padding:4px 2px;background:${val>0?'#e3f2fd':'#f5f5f5'};border-radius:6px;font-size:11px;">
+          return `<div style="text-align:center;padding:4px 2px;background:${val>0?'#f2e6d4':'#f5f5f5'};border-radius:6px;font-size:11px;">
             <div style="color:var(--text3);">${daysShort[i+1]||''}</div>
-            <div style="font-weight:600;color:${val>0?'#1565c0':'var(--text3)'};">${val}</div>
+            <div style="font-weight:600;color:${val>0?'#6b4f1a':'var(--text3)'};">${val}</div>
           </div>`;
         }).join('')}
        </div>`
@@ -5465,8 +5585,8 @@ function showOrderItemDetail(itemId) {
 
     <!-- 关键信息：规格 + 价格 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-      <div style="background:linear-gradient(135deg,#e3f2fd,#bbdefb);padding:10px 12px;border-radius:10px;">
-        <div style="font-size:11px;color:#1565c0;font-weight:600;margin-bottom:2px;">📏 ${t('detailSpec')}</div>
+      <div style="background:linear-gradient(135deg,#faf6ec,#e5d2b8);padding:10px 12px;border-radius:10px;">
+        <div style="font-size:11px;color:#6b4f1a;font-weight:600;margin-bottom:2px;">📏 ${t('detailSpec')}</div>
         <div style="font-size:16px;font-weight:700;color:#0d47a1;">${item.spec||'—'}</div>
       </div>
       <div style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);padding:10px 12px;border-radius:10px;">
@@ -5715,9 +5835,15 @@ async function uploadItemImage(itemId, fileInput) {
 // ════════════════════════════════════════
 // 库存导出 Excel（与导入格式兼容，可双向使用）
 // ════════════════════════════════════════
-function exportInventoryExcel() {
+async function exportInventoryExcel() {
   if (!items || !items.length) {
     toast('暂无库存数据可导出', 'err');
+    return;
+  }
+  try {
+    await ensureXlsxLoaded();
+  } catch (e) {
+    toast('加载 Excel 组件失败，请检查网络', 'err');
     return;
   }
   try {
@@ -5802,8 +5928,15 @@ function exportInventoryExcel() {
   }
 }
 
-function handleImport(input) {
+async function handleImport(input) {
   const file=input.files[0]; if(!file)return;
+  try {
+    await ensureXlsxLoaded();
+  } catch (e) {
+    toast('加载 Excel 组件失败，请检查网络', 'err');
+    input.value = '';
+    return;
+  }
   _importFileName = file.name;
   const reader=new FileReader();
   reader.onload=e=>{
@@ -6087,28 +6220,47 @@ if ('serviceWorker' in navigator) {
 }
 
 // ── Supabase Realtime 实时订阅 ──
+let _realtimeTeardown = null;
+function teardownRealtime() {
+  if (_realtimeTeardown) {
+    try { _realtimeTeardown(); } catch (e) {}
+    _realtimeTeardown = null;
+  }
+}
+
 function initRealtime() {
   if (!currentUser) return;
-  const wsUrl = SB_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + SB_KEY + '&vsn=1.0.0';
-  let ws;
-  let heartbeatTimer;
-  let reconnectTimer;
+  teardownRealtime();
+  const wsUrl = SB_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SB_KEY) + '&vsn=1.0.0';
+  let ws = null;
+  let heartbeatTimer = null;
+  let reconnectTimer = null;
 
   function connect() {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+    if (ws) {
+      try {
+        ws.onopen = ws.onclose = ws.onerror = ws.onmessage = null;
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close();
+      } catch (e) {}
+      ws = null;
+    }
+
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       console.log('Realtime 已连接');
-      // 订阅cucina_orders表变化
       ws.send(JSON.stringify({
         topic: `realtime:public:cucina_orders:restaurant_id=eq.${REST_ID}`,
         event: 'phx_join',
         payload: {},
         ref: '1'
       }));
-      // 心跳保持连接
       heartbeatTimer = setInterval(()=>{
-        if (ws.readyState === WebSocket.OPEN) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'}));
         }
       }, 25000);
@@ -6118,7 +6270,6 @@ function initRealtime() {
       try {
         const msg = JSON.parse(e.data);
         if (msg.event === 'INSERT' || msg.event === 'UPDATE' || msg.event === 'DELETE') {
-          // 有新订单或订单更新，重新拉取
           const res = await sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc');
           const newOrders = await res.json();
           if (Array.isArray(newOrders)) {
@@ -6138,12 +6289,27 @@ function initRealtime() {
 
     ws.onclose = () => {
       clearInterval(heartbeatTimer);
-      // 5秒后重连
-      reconnectTimer = setTimeout(()=>{ if(currentUser) connect(); }, 5000);
+      heartbeatTimer = null;
+      ws = null;
+      reconnectTimer = setTimeout(()=>{ if (currentUser) connect(); }, 5000);
     };
 
-    ws.onerror = () => { ws.close(); };
+    ws.onerror = () => { try { ws && ws.close(); } catch (e) {} };
   }
+
+  _realtimeTeardown = () => {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+    if (ws) {
+      try {
+        ws.onopen = ws.onclose = ws.onerror = ws.onmessage = null;
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close();
+      } catch (e) {}
+      ws = null;
+    }
+  };
 
   connect();
 }
@@ -6178,9 +6344,11 @@ async function refreshOrders() {
   }
 }
 
-// 每2分钟自动刷新订单数据
+// 每2分钟自动刷新订单数据（与 Realtime 互补；防止慢请求叠队）
+let _ordersAutoFetchBusy = false;
 setInterval(async ()=>{
-  if (!currentUser) return;
+  if (!currentUser || _ordersAutoFetchBusy) return;
+  _ordersAutoFetchBusy = true;
   try {
     const res = await sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc');
     const newOrders = await res.json();
@@ -6196,6 +6364,7 @@ setInterval(async ()=>{
       renderReceivePanel();
     }
   } catch(e) { console.warn('自动刷新订单失败:', e); }
+  finally { _ordersAutoFetchBusy = false; }
 }, 2 * 60 * 1000);
 
 // ════════════════════════════════════════
@@ -6242,13 +6411,13 @@ function showUpdateNotice(fromVer, toVer) {
   banner.id = 'sw-update-banner';
   banner.style.cssText = `
     position:fixed;top:0;left:0;right:0;z-index:9999;
-    background:linear-gradient(135deg,#1A56DB,#1040B0);color:#fff;
+    background:linear-gradient(135deg,#a67c2d,#6b4f1a);color:#fff;
     padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
     box-shadow:0 2px 12px rgba(0,0,0,.2);font-size:13px;
   `;
   banner.innerHTML = `
     <span>🎉 系统已更新到 ${toVer}</span>
-    <button id="sw-dismiss-btn" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:600;font-size:12px;cursor:pointer;">知道了</button>
+    <button id="sw-dismiss-btn" style="background:#fff;color:#6b4f1a;border:none;border-radius:6px;padding:6px 14px;font-weight:600;font-size:12px;cursor:pointer;">知道了</button>
   `;
   document.body.appendChild(banner);
   document.getElementById('sw-dismiss-btn').onclick = () => banner.remove();
