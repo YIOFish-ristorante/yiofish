@@ -711,14 +711,19 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       <div class="cat-tab active" data-cat="all" onclick="selectCat(this,'all')">全部</div>
     </div>
 
-    <!-- 供应商筛选 + 状态筛选 -->
+    <!-- 供应商筛选 + 订货员筛选 + 状态筛选 -->
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
       <select id="inv-sup-filter" onchange="filterInventory()"
-        style="flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);">
+        style="flex:1;min-width:120px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);">
         <option value="">全部供应商</option>
       </select>
+      <select id="inv-chef-filter" onchange="filterInventory()"
+        style="flex:1;min-width:120px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);">
+        <option value="">全部订货员</option>
+        <option value="__none__">（未分配订货员）</option>
+      </select>
       <select id="inv-sort" onchange="filterInventory()"
-        style="flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);">
+        style="flex:1;min-width:120px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);">
         <option value="default">默认排序</option>
         <option value="supplier">按供应商</option>
         <option value="category">按分类</option>
@@ -726,7 +731,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <option value="stock_desc">库存从多到少</option>
       </select>
       <select id="inv-status-filter" onchange="filterInventory()"
-        style="flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);">
+        style="flex:1;min-width:120px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);">
         <option value="active">🟢 在售</option>
         <option value="all">全部</option>
         <option value="discontinued">🔴 已停售</option>
@@ -737,9 +742,10 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     <div id="inv-bulk-bar" style="display:none;background:var(--primary-light);border-radius:8px;padding:8px 12px;margin-bottom:8px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <span style="font-size:13px;color:var(--primary);">已选 <strong id="inv-sel-count">0</strong> 条</span>
-        <div style="display:flex;gap:6px;">
-          <button onclick="invSelectAll()" style="font-size:12px;padding:4px 10px;border:1px solid var(--primary);border-radius:6px;background:transparent;color:var(--primary);cursor:pointer;">全选</button>
-          <button onclick="invClearSelect()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;">取消</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" onclick="invSelectAll()" style="font-size:12px;padding:4px 10px;border:1px solid var(--primary);border-radius:6px;background:transparent;color:var(--primary);cursor:pointer;">全选本页</button>
+          <button type="button" onclick="invSelectFiltered()" style="font-size:12px;padding:4px 10px;border:1px solid var(--primary);border-radius:6px;background:transparent;color:var(--primary);cursor:pointer;">按筛选全选</button>
+          <button type="button" onclick="invClearSelect()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;">取消勾选</button>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -1442,7 +1448,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.9.0';
+const APP_VERSION = 'v1.9.1';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -2190,6 +2196,25 @@ function renderInventory() {
       sups.map(s=>`<option value="${s}" ${s===currentSup?'selected':''}>${s}</option>`).join('');
   }
 
+  // 订货员筛选下拉（与物料 chef 字段 + 员工表合并，便于「某供应商+某订货员」批量移交）
+  const chefFilterEl = document.getElementById('inv-chef-filter');
+  if (chefFilterEl) {
+    const curChef = chefFilterEl.value;
+    const fromItems = [...new Set(items.map(i => i.chef).filter(c => c && String(c).trim()))];
+    const fromStaff = Object.keys(chefs || {});
+    let chefNames = [...new Set([...fromItems, ...fromStaff])];
+    if (curChef && curChef !== '__none__' && !chefNames.includes(curChef)) chefNames.push(curChef);
+    chefNames.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    const selAll = !curChef || curChef === '' ? ' selected' : '';
+    const selNone = curChef === '__none__' ? ' selected' : '';
+    chefFilterEl.innerHTML =
+      `<option value=""${selAll}>全部订货员</option>` +
+      `<option value="__none__"${selNone}>（未分配订货员）</option>` +
+      chefNames.map(n =>
+        `<option value="${String(n).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" ${n === curChef ? 'selected' : ''}>${String(n).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</option>`
+      ).join('');
+  }
+
   // 批量栏只有管理员显示
   const bulkBar = document.getElementById('inv-bulk-bar');
   if (bulkBar) bulkBar.style.display = isAdmin ? 'block' : 'none';
@@ -2206,31 +2231,39 @@ function renderInventory() {
 
 let _invSelected = new Set();
 
-function renderInvTable() {
+/** 复用库存 Tab 的筛选/排序逻辑（表格与「按筛选全选」共用，避免两套条件不一致） */
+function getFilteredInventoryData() {
   let data = items;
   if (invCat !== 'all') data = data.filter(i=>i.category===invCat);
   if (invSearch) data = data.filter(i=>
-    i.name.toLowerCase().includes(invSearch) ||
-    i.italian.toLowerCase().includes(invSearch) ||
-    i.item_code.toLowerCase().includes(invSearch)
+    (i.name||'').toLowerCase().includes(invSearch) ||
+    (i.italian||'').toLowerCase().includes(invSearch) ||
+    String(i.item_code||'').toLowerCase().includes(invSearch)
   );
 
-  // 供应商筛选
   const supVal = document.getElementById('inv-sup-filter')?.value||'';
   if (supVal) data = data.filter(i=>i.supplier===supVal);
 
-  // 状态筛选（在售/已停售/全部）
+  // 订货员筛选：__none__ = 物料未填订货员
+  const chefFilt = document.getElementById('inv-chef-filter')?.value ?? '';
+  if (chefFilt === '__none__') data = data.filter(i => !i.chef || !String(i.chef).trim());
+  else if (chefFilt) data = data.filter(i => (i.chef||'') === chefFilt);
+
   const statusVal = document.getElementById('inv-status-filter')?.value || 'active';
   if (statusVal === 'active') data = data.filter(i => !i.discontinued);
   else if (statusVal === 'discontinued') data = data.filter(i => i.discontinued);
-  // 'all' 不过滤
 
-  // 排序
   const sortVal = document.getElementById('inv-sort')?.value||'default';
   if (sortVal==='supplier') data = [...data].sort((a,b)=>(a.supplier||'').localeCompare(b.supplier||''));
   else if (sortVal==='category') data = [...data].sort((a,b)=>(a.category||'').localeCompare(b.category||''));
   else if (sortVal==='stock_asc') data = [...data].sort((a,b)=>a.stock-b.stock);
   else if (sortVal==='stock_desc') data = [...data].sort((a,b)=>b.stock-a.stock);
+
+  return data;
+}
+
+function renderInvTable() {
+  const data = getFilteredInventoryData();
 
   const tbody = document.getElementById('inv-tbody');
   if (!data.length) {
@@ -2280,6 +2313,16 @@ function toggleInvSelect(id, checked) {
   if (checked) _invSelected.add(id);
   else _invSelected.delete(id);
   document.getElementById('inv-sel-count').textContent = _invSelected.size;
+}
+
+/** 将当前筛选结果全部加入勾选（用于：供应商A + 原订货员B → 再改目标订货员C） */
+function invSelectFiltered() {
+  if (!isAdmin) { toast('需要管理员权限','err'); return; }
+  const data = getFilteredInventoryData();
+  if (!data.length) { toast('当前筛选下没有物料','err'); return; }
+  data.forEach(i => _invSelected.add(i.id));
+  renderInvTable();
+  toast(`已勾选 ${data.length} 条（可再选目标订货员并确认）`);
 }
 
 function invSelectAll() {
