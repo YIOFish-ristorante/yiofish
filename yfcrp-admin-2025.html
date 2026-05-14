@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v4.0</title>
+<title>Yio Fish Admin v4.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v4.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v4.3</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -276,7 +276,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v4.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v4.3</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -331,9 +331,11 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="modal-box">
     <div class="modal-title" id="dm-title">添加菜品</div>
     <div class="form-row">
+      <div class="fg" style="flex:1"><label>菜品ID（编号）</label><input type="number" id="f-id" placeholder="留空自动分配" min="1"></div>
       <div class="fg" style="flex:2"><label>菜品名称 *</label><input id="f-name" placeholder="例：01 / Edamame"></div>
-      <div class="fg" style="flex:1"><label>分类 *</label><select id="f-cat"></select></div>
+      <div class="fg" style="flex:1"><label>分类 *</label><select id="f-cat" onchange="updateIdHint()"></select></div>
     </div>
+    <div id="id-hint" style="font-size:11px;color:var(--muted);margin-bottom:12px;margin-top:-6px;"></div>
     <div class="fg" style="margin-bottom:12px"><label>描述</label><textarea id="f-desc" placeholder="描述..."></textarea></div>
     <div class="fg" style="margin-bottom:12px"><label>图片路径</label><input id="f-image" placeholder="images/01.webp"></div>
     <div class="mp-box">
@@ -487,7 +489,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.3</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -516,7 +518,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.3</span>';
   }
   loadAll();
 }
@@ -1034,7 +1036,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.3</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1088,6 +1090,26 @@ async function bulkDisableCatInMenu(menuId, catId) {
   } catch(e) { toast('❌ 失败: '+e.message); }
 }
 
+function updateIdHint() {
+  var hint = document.getElementById('id-hint');
+  var catSel = document.getElementById('f-cat');
+  if (!hint || !catSel) return;
+  var catId = catSel.value;
+  if (!catId) { hint.textContent = ''; return; }
+  // 找出该分类的所有id
+  var ids = I.filter(function(it){ return it.category === catId; })
+    .map(function(it){ return parseInt(it.id); })
+    .filter(function(n){ return !isNaN(n); })
+    .sort(function(a,b){ return a-b; });
+  if (ids.length === 0) {
+    hint.textContent = '此分类暂无菜品，可自由选择ID';
+  } else {
+    var minId = ids[0], maxId = ids[ids.length-1];
+    var nextSuggest = maxId + 1;
+    hint.innerHTML = '此分类已用ID: <strong style="color:var(--gold);">' + minId + ' - ' + maxId + '</strong> · 共' + ids.length + '道 · 建议下一个: <strong style="color:var(--gold);">' + nextSuggest + '</strong>';
+  }
+}
+
 function doLogout() {
   try { sessionStorage.removeItem(_lockSession); } catch(e) {}
   document.getElementById('lock-screen').style.display = 'flex';
@@ -1120,11 +1142,12 @@ async function saveDishToDB(dish) {
     sold_out: !!dish.sold_out
   };
   if (dish._isNew) {
-    delete dbDish.id;
+    if (!dish.id) delete dbDish.id; // 没指定id就让数据库自动分配
+    else dbDish.id = dish.id;
     var res = await sbFetch('dishes', {
       method: 'POST', body: JSON.stringify(dbDish), prefer: 'return=representation'
     });
-    if (!res.ok) throw new Error('添加菜品失败');
+    if (!res.ok) { var er=await res.text(); throw new Error('添加菜品失败: '+er); }
     var newDish = await res.json();
     dish.id = newDish[0].id;
   } else {
@@ -1133,10 +1156,11 @@ async function saveDishToDB(dish) {
     });
     if (!res.ok) throw new Error('更新菜品失败');
   }
-  // 先删除再插入菜单价格
+  // 先删除当前店铺的旧记录
   await sbFetch('dish_menus?dish_id=eq.' + dish.id + '&restaurant_id=eq.' + RESTAURANT_ID, {
     method: 'DELETE'
   });
+  // 当前店铺插入用户设置的值
   var menuRows = MENUS.map(function(m) {
     var ms = dish.menus[m.id] || {};
     return {
@@ -1153,6 +1177,32 @@ async function saveDishToDB(dish) {
     method: 'POST', body: JSON.stringify(menuRows)
   });
   if (!res2.ok) throw new Error('保存菜单价格失败');
+  // 新菜添加时，为其他店铺也创建默认记录（enabled=false, price=0）
+  if (dish._isNew && STORES && STORES.length > 1) {
+    var otherStores = STORES.filter(function(s){ return s.id !== RESTAURANT_ID; });
+    for (var i = 0; i < otherStores.length; i++) {
+      var otherStore = otherStores[i];
+      // 先检查是否已存在
+      var chkRes = await sbFetch('dish_menus?dish_id=eq.' + dish.id + '&restaurant_id=eq.' + otherStore.id + '&select=id');
+      var chk = await chkRes.json();
+      if (!chk || chk.length === 0) {
+        var defaultRows = MENUS.map(function(m) {
+          return {
+            dish_id: dish.id,
+            restaurant_id: otherStore.id,
+            menu_id: m.id,
+            enabled: false,
+            price: 0,
+            max_qty: 0,
+            sconto: 0
+          };
+        });
+        await sbFetch('dish_menus', {
+          method: 'POST', body: JSON.stringify(defaultRows)
+        });
+      }
+    }
+  }
 }
 
 async function deleteDishFromDB(id) {
@@ -1329,6 +1379,8 @@ function renderDishes(){
 function openAddDish(){
   _editDishId = null;
   $('dm-title').textContent = '添加菜品';
+  if ($('f-id')) $('f-id').value = '';
+  setTimeout(updateIdHint, 50);
   $('f-name').value=''; $('f-desc').value=''; $('f-image').value='';
   $('f-soldout').checked=false;
   buildCatSel('');
@@ -1416,8 +1468,9 @@ async function saveDish(){
     var sc = $('sc-'+m.id) ? (parseInt($('sc-'+m.id).value)||0) : 0;
     menus[m.id] = {on:on, price:on?p:0, max_qty:mq, sconto:sc};
   });
+  var customId = parseInt($('f-id').value) || null;
   var dish = {
-    id: _editDishId || null,
+    id: _editDishId || customId,
     category: $('f-cat').value,
     name: name,
     desc: $('f-desc').value.trim(),
