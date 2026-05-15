@@ -1188,6 +1188,30 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   </div>
 </div>
 
+<!-- ⚠️ 订货周期警告 Modal（防止"静默漏发"bug） -->
+<div class="modal-overlay" id="modal-cycle-warning">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="color:var(--danger);">⚠️ 部分食材不在今日订货周期</div>
+    <div id="cycle-warn-content" style="margin-bottom:14px;"></div>
+    <div style="background:#fff8e1;border-left:3px solid #ffa726;padding:10px 12px;border-radius:8px;font-size:12px;color:#e65100;margin-bottom:14px;line-height:1.5;">
+      💡 这些食材按系统设置今天不应该订，但大厨已经下单了。<br>
+      请决定是<strong>跳过</strong>它们还是<strong>仍然发送</strong>。
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-green" style="width:100%;" id="cycle-warn-send-all">
+        📲 全部发送（包含上述食材）⭐ 推荐
+      </button>
+      <button class="btn btn-ghost" style="width:100%;" id="cycle-warn-skip">
+        ⏭️ 跳过这些，只发周期内的食材
+      </button>
+      <button class="btn btn-ghost" style="width:100%;color:var(--danger);" id="cycle-warn-cancel">
+        ❌ 取消发送
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- 📷 批量上传图片 Modal -->
 <div class="modal-overlay" id="modal-batch-image">
   <div class="modal">
@@ -1448,7 +1472,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.9.1';
+const APP_VERSION = 'v1.9.2';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -3504,12 +3528,16 @@ function updateBuyerMergePreview() {
     return;
   }
   const merged = {};
+  let filteredCount = 0;  // 被周期过滤的食材数量
   selected.forEach(order=>{
     (order.items||[]).forEach(item=>{
       const sup = item.supplier||'未知';
       const itemInfo = items.find(i=>i.item_code===item.item_code||i.name===item.name||i.italian===item.name);
       const cycle = itemInfo ? (itemInfo.cycle||[]) : [];
-      if (!ignoreCycle && cycle.length > 0 && !cycle.includes(targetDay)) return;
+      if (!ignoreCycle && cycle.length > 0 && !cycle.includes(targetDay)) {
+        filteredCount++;
+        return;
+      }
       if (!merged[sup]) merged[sup] = [];
       const exist = merged[sup].find(x=>x.item_code===item.item_code);
       if (exist) exist.need += item.need;
@@ -3518,16 +3546,92 @@ function updateBuyerMergePreview() {
   });
   const supCount = Object.keys(merged).length;
   const itemCount = Object.values(merged).flat().length;
-  preview.textContent = supCount > 0
-    ? `将发送给 ${supCount} 个供应商，共 ${itemCount} 种物料${ignoreCycle?' 🚨紧急模式':('（已按'+targetDay+'订货周期过滤）')}`
-    : `所选订单中无${targetDay}可订的物料${ignoreCycle?'':('，可开启紧急模式忽略周期')}`;
+  // 加上"被跳过"提示，让采购员发送前就有警觉
+  let warn = '';
+  if (filteredCount > 0 && !ignoreCycle) {
+    warn = ` <span style="color:var(--danger);font-weight:600;">⚠️ ${filteredCount} 个食材按周期被跳过（点发送时会让你确认）</span>`;
+  }
+  preview.innerHTML = supCount > 0
+    ? `将发送给 ${supCount} 个供应商，共 ${itemCount} 种物料${ignoreCycle?' 🚨紧急模式':''}${warn}`
+    : `所选订单中无${targetDay}可订的物料${ignoreCycle?'':('，可开启紧急模式忽略周期')}${warn}`;
+}
+
+// ════════════════════════════════════════
+// ⚠️ 订货周期警告 modal
+// 防止"静默漏发"bug：被周期过滤的食材会让采购员明确决定
+// 返回：'all' = 全部发送 / 'skip' = 跳过 / 'cancel' = 取消
+// ════════════════════════════════════════
+function showCycleWarningModal(targetDay, filtered) {
+  return new Promise(resolve => {
+    // 按供应商分组显示
+    const grouped = {};
+    filtered.forEach(f => {
+      if (!grouped[f.supplier]) grouped[f.supplier] = [];
+      grouped[f.supplier].push(f);
+    });
+    let html = `<div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6;">今天是 <strong>${targetDay}</strong>，以下 <strong style="color:var(--danger);">${filtered.length}</strong> 个食材按周期设置今天不应订：</div>`;
+    html += `<div style="max-height:280px;overflow-y:auto;background:#fafafa;border-radius:8px;padding:8px;">`;
+    for (const [sup, list] of Object.entries(grouped)) {
+      html += `<div style="font-size:12px;font-weight:600;color:var(--text3);padding:6px 4px 2px;">📦 ${sup}</div>`;
+      list.forEach(f => {
+        html += `<div style="padding:6px 8px;font-size:13px;background:#fff;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="flex:1;min-width:0;"><strong>${f.name}</strong> × ${f.qty}${f.spec?' ('+f.spec+')':''}</span>
+          <span style="font-size:11px;color:var(--text3);white-space:nowrap;">仅 ${f.cycle}</span>
+        </div>`;
+      });
+    }
+    html += `</div>`;
+    document.getElementById('cycle-warn-content').innerHTML = html;
+
+    // 绑定按钮（用 onclick 替换避免重复绑定）
+    const cleanup = (result) => {
+      document.getElementById('cycle-warn-send-all').onclick = null;
+      document.getElementById('cycle-warn-skip').onclick = null;
+      document.getElementById('cycle-warn-cancel').onclick = null;
+      closeModal('modal-cycle-warning');
+      resolve(result);
+    };
+    document.getElementById('cycle-warn-send-all').onclick = () => cleanup('all');
+    document.getElementById('cycle-warn-skip').onclick = () => cleanup('skip');
+    document.getElementById('cycle-warn-cancel').onclick = () => cleanup('cancel');
+
+    openModal('modal-cycle-warning');
+  });
 }
 
 async function mergeSendOrders() {
   const targetDay = _weekdayFilter || getTodayWeekday();
-  const ignoreCycle = document.getElementById('ignore-cycle')?.checked || false;
+  let ignoreCycle = document.getElementById('ignore-cycle')?.checked || false;
   const selected = orders.filter(o=>_selectedOrderIds.has(String(o.id)) && (o.status==='待处理'||o.status==='待處理') && o.type!=='consume');
   if (!selected.length) { toast('请先勾选待处理订单','err'); return; }
+
+  // 🔍 第一遍扫描：先收集"被周期过滤掉的食材"，让采购员决定怎么处理
+  if (!ignoreCycle) {
+    const filtered = [];  // [{name, cycle, supplier}]
+    selected.forEach(order => {
+      (order.items||[]).forEach(item => {
+        const itemInfo = items.find(i=>i.item_code===item.item_code||i.name===item.name||i.italian===item.name);
+        const cycle = itemInfo ? (itemInfo.cycle||[]) : [];
+        if (cycle.length > 0 && !cycle.includes(targetDay)) {
+          filtered.push({
+            name: item.name || item.italian,
+            cycle: cycle.join('、'),
+            supplier: item.supplier || '未知',
+            qty: item.need,
+            spec: item.spec || ''
+          });
+        }
+      });
+    });
+
+    // 如果有被过滤掉的，弹警告让采购员决定
+    if (filtered.length > 0) {
+      const choice = await showCycleWarningModal(targetDay, filtered);
+      if (choice === 'cancel') { toast('已取消发送'); return; }
+      if (choice === 'all') ignoreCycle = true;  // "全部发送" → 不过滤
+      // 'skip' → 保持 ignoreCycle = false，按原逻辑跳过
+    }
+  }
 
   const merged = {};
   const mergedNotes = {};  // {supName: Set<"chef: note">} - 备注按供应商分组
