@@ -1472,7 +1472,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.9.2';
+const APP_VERSION = 'v1.9.3';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1564,6 +1564,26 @@ function sb(path, opts={}) {
     },
     body: opts.body
   });
+}
+
+// 带重试的 sb（专门用于 App 启动时的关键数据加载）
+// iOS PWA 冷启动时网络栈可能没就绪，第一次 fetch 会失败，重试就能成功
+async function sbRetry(path, opts={}, retries=3, delay=700) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await sb(path, opts);
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      return res;
+    } catch(e) {
+      lastErr = e;
+      if (attempt < retries) {
+        // 递增等待：0.7s → 1.4s → 2.1s
+        await new Promise(r => setTimeout(r, delay * (attempt+1)));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 // ════════════════════════════════════════
@@ -1789,6 +1809,27 @@ const t = k => (i18n[currentLang]||i18n.zh)[k] || k;
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
+// 加载失败时显示友好的重试界面（替代静默失败 / 空白员工列表）
+function showLoadErrorScreen() {
+  const body = document.body;
+  body.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;background:#f5f5f5;">
+      <div style="font-size:56px;margin-bottom:16px;">📡</div>
+      <h2 style="color:#333;margin:0 0 8px;font-size:20px;">加载失败</h2>
+      <p style="color:#888;margin:0 0 24px;font-size:14px;line-height:1.6;">
+        网络连接不稳定，数据没能加载完整。<br>
+        请检查网络后点击下方按钮重试。
+      </p>
+      <button onclick="location.reload()"
+        style="background:#1A56DB;color:#fff;border:none;border-radius:12px;padding:14px 40px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(26,86,219,0.3);">
+        🔄 重新加载
+      </button>
+      <p style="color:#bbb;margin-top:20px;font-size:12px;">
+        如果反复失败，请确认手机已连接 WiFi 或移动数据
+      </p>
+    </div>`;
+}
+
 async function init() {
   // ── 验证餐厅是否存在且有效 ──
   try {
@@ -1834,10 +1875,10 @@ async function init() {
 
   try {
     const [iRes, oRes, cRes, sRes] = await Promise.all([
-      sb('cucina_items?restaurant_id=eq.'+REST_ID+'&select=*&order=id'),
-      sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc'),
-      sb('cucina_chefs?restaurant_id=eq.'+REST_ID+'&select=name,password,role,can_add_stock,can_stocktake,can_receive'),
-      sb('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&select=*&order=name')
+      sbRetry('cucina_items?restaurant_id=eq.'+REST_ID+'&select=*&order=id'),
+      sbRetry('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc'),
+      sbRetry('cucina_chefs?restaurant_id=eq.'+REST_ID+'&select=name,password,role,can_add_stock,can_stocktake,can_receive'),
+      sbRetry('cucina_suppliers?restaurant_id=eq.'+REST_ID+'&select=*&order=name')
     ]);
     items  = (await iRes.json()).map(r=>({
       id:r.id, item_code:r.item_code||'', name:r.name||'', italian:r.italian||'',
@@ -1862,7 +1903,9 @@ async function init() {
     suppliers = await sRes.json();
     populateLoginSelect();
   } catch(e) {
-    toast('数据库连接失败','err');
+    console.error('关键数据加载失败:', e);
+    showLoadErrorScreen();
+    return;
   }
   // 单独读取管理员密码哈希，出错不影响主流程
   try {
