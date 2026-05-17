@@ -1472,7 +1472,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v1.9.3';
+const APP_VERSION = 'v1.9.4';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -3888,6 +3888,13 @@ function renderOrders() {
     const itemCount = o.items?.length||0;
     const totalQty  = o.items?.reduce((s,i)=>s+(parseFloat(i.need)||0),0)||0;
     const checked = _selectedOrderIds.has(String(o.id)) ? 'checked' : '';
+    // 收集订单涉及的所有供应商（去重），一眼看出向谁订
+    const supList = [...new Set((o.items||[]).map(i=>(i.supplier||'').trim()).filter(Boolean))];
+    const supRow = (supList.length && !isConsume)
+      ? `<div style="margin-top:7px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          ${supList.map(s=>`<span style="font-size:11px;background:#f2e6d4;color:#6b4f1a;padding:2px 9px;border-radius:10px;font-weight:600;white-space:nowrap;">📦 ${s}</span>`).join('')}
+        </div>`
+      : '';
     return `
     <div class="order-card" style="position:relative;">
       <div style="position:absolute;top:12px;right:12px;z-index:2;">
@@ -3904,6 +3911,7 @@ function renderOrders() {
           <span class="icon">🕐</span><span>${o.created_at ? new Date(o.created_at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
           <span class="icon">👤</span><span>${o.chef||'-'}</span>
         </div>
+        ${supRow}
         <div class="order-footer-row">
           <span style="font-size:12px;color:var(--text2)">${t('colFood')||'食材'} <strong>${itemCount}</strong> ${t('ingredients')||'种'} · ${t('totalQty')||'总量'} <strong>${totalQty.toFixed(1)}</strong></span>
           <div style="display:flex;gap:8px;align-items:center;">
