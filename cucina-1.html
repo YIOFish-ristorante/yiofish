@@ -1027,6 +1027,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <div class="menu-item-text"><div class="title">批量上传图片</div><div class="sub">按文件名自动匹配食材</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="showBatchSupplierModal()">
+        <div class="menu-item-icon" style="background:#FFF3E0">🔄</div>
+        <div class="menu-item-text"><div class="title">批量改供应商</div><div class="sub">整体替换 / 勾选食材改供应商</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
     </div>
 
     <div class="menu-section">
@@ -1351,6 +1356,42 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   </div>
 </div>
 
+<!-- 批量改供应商 Modal -->
+<div class="modal-overlay" id="modal-batch-supplier">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔄 批量改供应商</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="bs-tab1" class="btn btn-primary" style="flex:1;" onclick="switchBatchSupTab(1)">按供应商替换</button>
+      <button id="bs-tab2" class="btn btn-ghost" style="flex:1;" onclick="switchBatchSupTab(2)">勾选食材</button>
+    </div>
+    <!-- 模式①：按供应商整体替换 -->
+    <div id="bs-mode1">
+      <label class="form-label">原供应商（要被替换掉的）</label>
+      <select id="bs-from" class="form-control" onchange="updateBatchSupCount()">
+        <option value="">-- 选择供应商 --</option>
+      </select>
+      <div id="bs-count" style="font-size:12px;color:#e67e22;margin:8px 0;min-height:16px;"></div>
+      <label class="form-label">新供应商</label>
+      <input id="bs-to1" class="form-control" list="bs-suppliers" placeholder="输入或选择新供应商" autocomplete="off">
+    </div>
+    <!-- 模式②：勾选食材 -->
+    <div id="bs-mode2" style="display:none;">
+      <input id="bs-search" class="form-control" placeholder="🔍 搜索食材名 / 供应商" oninput="renderBatchSupItems()" autocomplete="off">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:9px 0;">
+        <span id="bs-sel-count" style="font-size:12px;color:#888;">已选 0 个</span>
+        <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;" onclick="toggleBatchSupAll()">全选 / 取消</button>
+      </div>
+      <div id="bs-item-list" style="max-height:240px;overflow-y:auto;border:1px solid #e5e5e5;border-radius:8px;"></div>
+      <label class="form-label" style="margin-top:12px;">新供应商</label>
+      <input id="bs-to2" class="form-control" list="bs-suppliers" placeholder="输入或选择新供应商" autocomplete="off">
+    </div>
+    <datalist id="bs-suppliers"></datalist>
+    <button class="btn btn-primary" style="margin-top:14px;width:100%;" onclick="executeBatchSupplier()">执行批量修改</button>
+    <button class="btn btn-ghost" style="margin-top:8px;width:100%;" onclick="closeModal('modal-batch-supplier')">取消</button>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════
      MODALS
 ══════════════════════════════════ -->
@@ -1472,7 +1513,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v2.0.0';
+const APP_VERSION = 'v2.1.0';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -2028,15 +2069,34 @@ function showAdminLogin() { openModal('modal-admin-login'); }
 async function doAdminLogin() {
   const p = document.getElementById('admin-pass-input').value;
   if (!p) { toast('请输入管理员密码','err'); return; }
-  const pHash = await sha256(p);
-  if (!_adminPassHash || pHash !== _adminPassHash) { toast('管理员密码错误','err'); return; }
+
+  // 调 Worker 验证管理员密码（服务端验证，不依赖前端预加载）
+  let data;
+  try {
+    const res = await fetch(SB_URL+'/admin-login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ restaurantId: REST_ID, password: p })
+    });
+    data = await res.json();
+    if (!res.ok || !data.token) { toast('管理员密码错误','err'); return; }
+  } catch(e) {
+    console.error('管理员登录失败:', e);
+    toast('管理员登录失败','err');
+    return;
+  }
+
   isAdmin = true;
   closeModal('modal-admin-login');
-  // if already in app, show admin menu
-  if (currentUser) { document.getElementById('admin-menu').style.display='block'; }
-  else {
-    // login as admin without chef account
+  if (currentUser) {
+    // 已在 App 内（员工已登录）→ 仅提权，保留现有令牌和数据
+    document.getElementById('admin-menu').style.display='block';
+  } else {
+    // 直接管理员登录 → 用返回的令牌加载数据后进入
+    SB_KEY = data.token;
     currentUser = 'Admin';
+    const ok = await loadAllData();
+    if (!ok) return;
     showApp();
     initRealtime();
   }
@@ -5211,6 +5271,134 @@ async function saveFeatureFlags() {
 // ════════════════════════════════════════
 let _batchImgMatched = [];    // [{file, item}]
 let _batchImgUnmatched = [];  // [filename]
+
+// ════════════════════════════════════════
+// 批量改供应商
+// ════════════════════════════════════════
+let _batchSupMode = 1;
+
+function _bsEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function showBatchSupplierModal() {
+  if (!isAdmin) { toast('仅管理员可访问', 'err'); return; }
+  // 收集现有供应商（食材里实际用到的）
+  const sups = [...new Set(items.map(i => i.supplier).filter(Boolean))].sort();
+  // 模式① 原供应商下拉
+  const fromSel = document.getElementById('bs-from');
+  fromSel.innerHTML = '<option value="">-- 选择供应商 --</option>' +
+    sups.map(s => {
+      const n = items.filter(i => i.supplier === s).length;
+      return `<option value="${_bsEsc(s)}">${_bsEsc(s)}（${n}）</option>`;
+    }).join('');
+  // datalist（新供应商输入建议）
+  document.getElementById('bs-suppliers').innerHTML =
+    sups.map(s => `<option value="${_bsEsc(s)}">`).join('');
+  // 重置
+  document.getElementById('bs-count').textContent = '';
+  document.getElementById('bs-to1').value = '';
+  document.getElementById('bs-to2').value = '';
+  document.getElementById('bs-search').value = '';
+  switchBatchSupTab(1);
+  renderBatchSupItems();
+  openModal('modal-batch-supplier');
+}
+
+function switchBatchSupTab(tab) {
+  _batchSupMode = tab;
+  document.getElementById('bs-mode1').style.display = tab === 1 ? 'block' : 'none';
+  document.getElementById('bs-mode2').style.display = tab === 2 ? 'block' : 'none';
+  document.getElementById('bs-tab1').className = 'btn ' + (tab === 1 ? 'btn-primary' : 'btn-ghost');
+  document.getElementById('bs-tab2').className = 'btn ' + (tab === 2 ? 'btn-primary' : 'btn-ghost');
+}
+
+function updateBatchSupCount() {
+  const from = document.getElementById('bs-from').value;
+  const el = document.getElementById('bs-count');
+  if (!from) { el.textContent = ''; return; }
+  const n = items.filter(i => i.supplier === from).length;
+  el.textContent = `将影响 ${n} 个食材`;
+}
+
+function renderBatchSupItems() {
+  const kw = (document.getElementById('bs-search').value || '').toLowerCase().trim();
+  let list = items.filter(i => !i.discontinued);
+  if (kw) {
+    list = list.filter(i =>
+      (i.name || '').toLowerCase().includes(kw) ||
+      (i.italian || '').toLowerCase().includes(kw) ||
+      (i.supplier || '').toLowerCase().includes(kw)
+    );
+  }
+  const box = document.getElementById('bs-item-list');
+  if (!list.length) {
+    box.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">没有匹配的食材</div>';
+    updateBatchSupSelCount();
+    return;
+  }
+  box.innerHTML = list.map(i => `
+    <label style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid #f0f0f0;cursor:pointer;">
+      <input type="checkbox" class="bs-item-cb" value="${i.id}" onchange="updateBatchSupSelCount()" style="width:16px;height:16px;flex-shrink:0;">
+      <span style="flex:1;font-size:13px;">${_bsEsc(i.name || '(未命名)')}</span>
+      <span style="font-size:11px;color:#999;white-space:nowrap;">${_bsEsc(i.supplier || '无供应商')}</span>
+    </label>`).join('');
+  updateBatchSupSelCount();
+}
+
+function updateBatchSupSelCount() {
+  const n = document.querySelectorAll('.bs-item-cb:checked').length;
+  const el = document.getElementById('bs-sel-count');
+  if (el) el.textContent = `已选 ${n} 个`;
+}
+
+function toggleBatchSupAll() {
+  const cbs = document.querySelectorAll('.bs-item-cb');
+  const allChecked = cbs.length > 0 && [...cbs].every(c => c.checked);
+  cbs.forEach(c => { c.checked = !allChecked; });
+  updateBatchSupSelCount();
+}
+
+async function executeBatchSupplier() {
+  let query, affectedIds, newSup;
+  if (_batchSupMode === 1) {
+    const from = document.getElementById('bs-from').value;
+    newSup = document.getElementById('bs-to1').value.trim();
+    if (!from) { toast('请选择原供应商', 'err'); return; }
+    if (!newSup) { toast('请填写新供应商', 'err'); return; }
+    if (from === newSup) { toast('新旧供应商相同', 'err'); return; }
+    affectedIds = items.filter(i => i.supplier === from).map(i => i.id);
+    if (!affectedIds.length) { toast('该供应商名下没有食材', 'err'); return; }
+    if (!confirm(`确定把「${from}」名下的 ${affectedIds.length} 个食材，全部改成「${newSup}」吗？`)) return;
+    query = 'supplier=eq.' + encodeURIComponent(from);
+  } else {
+    affectedIds = [...document.querySelectorAll('.bs-item-cb:checked')].map(c => parseInt(c.value));
+    newSup = document.getElementById('bs-to2').value.trim();
+    if (!affectedIds.length) { toast('请勾选要修改的食材', 'err'); return; }
+    if (!newSup) { toast('请填写新供应商', 'err'); return; }
+    if (!confirm(`确定把选中的 ${affectedIds.length} 个食材，改成供应商「${newSup}」吗？`)) return;
+    query = 'id=in.(' + affectedIds.join(',') + ')';
+  }
+  try {
+    const res = await sb('cucina_items?' + query, {
+      method: 'PATCH',
+      body: JSON.stringify({ supplier: newSup })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    // 本地同步
+    affectedIds.forEach(id => {
+      const it = items.find(i => i.id === id);
+      if (it) it.supplier = newSup;
+    });
+    toast(`✅ 已修改 ${affectedIds.length} 个食材的供应商`);
+    closeModal('modal-batch-supplier');
+    if (typeof renderInventory === 'function') renderInventory();
+  } catch (e) {
+    console.error('批量改供应商失败:', e);
+    toast('修改失败：' + (e.message || '请重试'), 'err');
+  }
+}
 
 function showBatchImageModal() {
   if (!isAdmin) { toast('仅管理员可访问', 'err'); return; }
