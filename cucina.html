@@ -1010,6 +1010,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         <div class="menu-item-text"><div class="title" id="lbl-item-mgmt">物料管理</div><div class="sub" id="lbl-item-sub">新增、编辑物料信息</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="showItemsPublicModal()">
+        <div class="menu-item-icon" style="background:#FFFBEB">📚</div>
+        <div class="menu-item-text"><div class="title">从公共库导入食材</div><div class="sub">浏览所有餐厅共享的食材，批量导入</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
       <div class="menu-item" onclick="showSupplierModal()">
         <div class="menu-item-icon" style="background:#E6F4FF">📱</div>
         <div class="menu-item-text"><div class="title" id="lbl-supplier">供应商 WhatsApp</div><div class="sub" id="lbl-supplier-sub">设置各供应商联系方式</div></div>
@@ -1113,6 +1118,28 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
     <div id="clear-preview" style="font-size:13px;color:var(--text3);margin-bottom:16px;"></div>
     <button class="btn btn-primary" style="width:100%;margin-bottom:8px;background:var(--danger);" onclick="clearOrders()">确认隐藏</button>
     <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-clear-orders')">取消</button>
+  </div>
+</div>
+
+<!-- 📚 公共材料库 Modal -->
+<div class="modal-overlay" id="modal-items-public">
+  <div class="modal" style="max-width:560px;max-height:92vh;display:flex;flex-direction:column;padding:0;">
+    <div style="padding:16px 16px 8px;">
+      <div class="modal-title" style="margin-bottom:8px;">📚 公共材料库</div>
+      <input id="ip-search" class="form-control" placeholder="搜索食材名（中/意）..." oninput="ipSearchDebounced()" style="margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);">
+        <span id="ip-count">加载中...</span>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="ipSelectAll()">全选</button>
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="ipClearAll()">清空</button>
+        </div>
+      </div>
+    </div>
+    <div id="ip-list" style="flex:1;overflow-y:auto;padding:8px 16px;min-height:200px;"></div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-items-public')" style="flex:1;">取消</button>
+      <button class="btn btn-primary" id="ip-import-btn" onclick="importPublicSelected()" style="flex:2;" disabled>导入选中 (0)</button>
+    </div>
   </div>
 </div>
 
@@ -1526,7 +1553,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v2.2.0';
+const APP_VERSION = 'v2.3.0';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -2088,6 +2115,16 @@ async function init() {
       return;
     }
     restaurantInfo = rData;
+    if (restaurantInfo.status === 'pending') {
+      document.body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
+        <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+        <h2 style="color:#c9a961;">账户审核中</h2>
+        <p style="color:#666;">${restaurantInfo.name || REST_ID}</p>
+        <p style="color:#666;">您的注册已提交，正在等待管理员审核</p>
+        <p style="color:#999;font-size:13px;margin-top:8px;">审核通过后会以联系方式通知您</p>
+      </div>`;
+      return;
+    }
     if (restaurantInfo.status === 'suspended') {
       document.body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
         <div style="font-size:48px;margin-bottom:16px;">⏸️</div>
@@ -5328,6 +5365,7 @@ async function deleteStaff(n) {
 
 function renderItemsPanel() {
   document.getElementById('admin-panel-content').innerHTML = `
+    <button class="btn btn-ghost" onclick="showItemsPublicModal()" style="width:100%;margin-bottom:12px;border:1.5px dashed #c9a961;color:#c9a961;">📚 从公共库选食材</button>
     <p style="font-size:13px;font-weight:600;margin-bottom:12px">新增物料</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="form-group"><label class="form-label">货物号</label><input id="ni-code" class="form-control" placeholder="001"></div>
@@ -5380,6 +5418,157 @@ async function saveNewItem() {
     closeModal('modal-admin-panel');
     renderInventory();
   } catch(e){ toast('添加失败','err'); }
+}
+
+// ════════════════════════════════════════
+// 📚 公共材料库
+// ════════════════════════════════════════
+let _publicItems = [];
+let _publicMyKeys = new Set();      // 当前餐厅已有食材的 key
+let _publicSelected = new Set();    // 已勾选的 id
+
+async function showItemsPublicModal() {
+  _publicSelected.clear();
+  document.getElementById('ip-search').value = '';
+  document.getElementById('ip-list').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">加载中...</div>';
+  document.getElementById('ip-count').textContent = '加载中...';
+  updateIpImportBtn();
+  openModal('modal-items-public');
+  await loadItemsPublic('');
+}
+
+async function loadItemsPublic(q) {
+  try {
+    const url = SB_URL + '/items-public/list?limit=500' + (q ? '&q=' + encodeURIComponent(q) : '');
+    const res = await fetch(url, {
+      headers: { 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (!res.ok) throw new Error('加载失败');
+    const data = await res.json();
+    _publicItems = data.items || [];
+    _publicMyKeys = new Set(data.myKeys || []);
+    renderPublicList();
+  } catch (e) {
+    document.getElementById('ip-list').innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">加载失败：' + e.message + '</div>';
+    document.getElementById('ip-count').textContent = '加载失败';
+  }
+}
+
+function publicItemKey(p) {
+  return (p.name || '').toLowerCase() + '|' + (p.italian || '').toLowerCase();
+}
+
+function renderPublicList() {
+  const total = _publicItems.length;
+  const alreadyHave = _publicItems.filter(p => _publicMyKeys.has(publicItemKey(p))).length;
+  document.getElementById('ip-count').textContent = 
+    `共 ${total} 条 · 我已有 ${alreadyHave} 条 · 可导入 ${total - alreadyHave} 条`;
+
+  if (!total) {
+    document.getElementById('ip-list').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">没有匹配的食材</div>';
+    return;
+  }
+
+  document.getElementById('ip-list').innerHTML = _publicItems.map(p => {
+    const have = _publicMyKeys.has(publicItemKey(p));
+    const checked = _publicSelected.has(p.id);
+    const name = p.italian || p.name || '(未命名)';
+    const subName = (p.italian && p.name) ? p.name : '';
+    const meta = [p.spec, p.supplier, p.category].filter(Boolean).join(' · ');
+    const usage = p.use_count > 1 ? `<span style="font-size:11px;color:var(--text3);">用过 ${p.use_count}×</span>` : '';
+    return `
+    <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;${have ? 'opacity:0.45;cursor:not-allowed;' : 'cursor:pointer;'}background:${checked ? 'rgba(201,169,97,0.12)' : 'transparent'}">
+      <input type="checkbox" ${checked ? 'checked' : ''} ${have ? 'disabled' : ''} onchange="togglePublicCheck(${p.id})" style="width:18px;height:18px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtmlIp(name)} ${have ? '<span style="color:var(--text3);font-weight:normal;font-size:12px;">· 已添加</span>' : ''}</div>
+        ${subName ? `<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtmlIp(subName)}</div>` : ''}
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtmlIp(meta)} ${usage}</div>
+      </div>
+    </label>`;
+  }).join('');
+}
+
+function escapeHtmlIp(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+function togglePublicCheck(id) {
+  if (_publicSelected.has(id)) _publicSelected.delete(id);
+  else _publicSelected.add(id);
+  // 不重新 render（避免输入位置跳动），仅更新按钮 + 当前行高亮
+  updateIpImportBtn();
+  renderPublicList();
+}
+
+function updateIpImportBtn() {
+  const btn = document.getElementById('ip-import-btn');
+  if (!btn) return;
+  const n = _publicSelected.size;
+  btn.textContent = `导入选中 (${n})`;
+  btn.disabled = n === 0;
+}
+
+function ipSelectAll() {
+  _publicItems.forEach(p => {
+    if (!_publicMyKeys.has(publicItemKey(p))) _publicSelected.add(p.id);
+  });
+  updateIpImportBtn();
+  renderPublicList();
+}
+
+function ipClearAll() {
+  _publicSelected.clear();
+  updateIpImportBtn();
+  renderPublicList();
+}
+
+// 搜索 debounce
+let _ipSearchTimer = null;
+function ipSearchDebounced() {
+  clearTimeout(_ipSearchTimer);
+  _ipSearchTimer = setTimeout(() => {
+    const q = document.getElementById('ip-search').value.trim();
+    loadItemsPublic(q);
+  }, 280);
+}
+
+async function importPublicSelected() {
+  const ids = Array.from(_publicSelected);
+  if (!ids.length) return;
+  const btn = document.getElementById('ip-import-btn');
+  btn.disabled = true;
+  btn.textContent = '导入中...';
+  try {
+    const res = await fetch(SB_URL + '/items-public/import', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '导入失败');
+    toast(`✅ 已导入 ${data.imported} 条${data.skipped ? ` · 跳过 ${data.skipped} 条（已存在）` : ''}`);
+    closeModal('modal-items-public');
+    // 重新加载本地 items 数组
+    const r = await sb('cucina_items?restaurant_id=eq.' + REST_ID + '&select=*');
+    if (r.ok) {
+      const fresh = await r.json();
+      items.length = 0;
+      fresh.forEach(it => items.push({
+        ...it,
+        price: parseFloat(it.price || 0),
+        stock: parseFloat(it.stock || 0),
+        safety: parseFloat(it.safety || 1),
+        need: 0, checked: false
+      }));
+      renderInventory();
+    }
+  } catch (e) {
+    toast('导入失败：' + e.message, 'err');
+    btn.disabled = false;
+    updateIpImportBtn();
+  }
 }
 
 function renderPendingPanel() {
