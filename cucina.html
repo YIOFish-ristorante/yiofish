@@ -1568,7 +1568,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v2.4.4';
+const APP_VERSION = 'v2.4.5';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -3306,12 +3306,13 @@ async function exitSortMode() {
 // 排序模式下的渲染：按分类分组 + 拖动手柄
 function renderOrderListSortMode() {
   const container = document.getElementById('order-list');
-  // 按角色过滤
+  // 排序模式：永远只显示 chef=当前用户的食材（不管角色）
+  // —— buyer/admin 平时看全部，但排序时太多难排，只排自己要订的
   const _cu = (currentUser||'').toLowerCase().trim();
-  let listItems = items.filter(i => !i.discontinued);
-  if (!isAdmin && currentUserRole==='staff') {
-    listItems = listItems.filter(i => (i.chef||'').toLowerCase().trim() === _cu);
-  }
+  let listItems = items.filter(i =>
+    !i.discontinued &&
+    (i.chef||'').toLowerCase().trim() === _cu
+  );
 
   // 按分类分组
   const byCategory = {};
@@ -3334,7 +3335,7 @@ function renderOrderListSortMode() {
 
   // 渲染
   if (orderedCats.length === 0) {
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);">没有可排序的食材<br><span style="font-size:13px;">（你可能没分配食材，或当前角色看不到任何食材）</span></div>';
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);">没有你负责的食材<br><span style="font-size:13px;">手动排序只针对 <strong>chef = 你</strong> 的食材<br>请管理员先给你分配食材</span></div>';
     return;
   }
   let html = `
