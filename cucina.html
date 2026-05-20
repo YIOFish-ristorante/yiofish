@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="后厨系统">
-<link rel="apple-touch-icon" href="/icon-c.png">
+<link rel="apple-touch-icon" href="/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -985,6 +985,19 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       </div>
     </div>
 
+    <!-- 通知设置（仅 buyer/admin/supervisor 可见） -->
+    <div class="menu-section" id="push-setting-wrap" style="display:none">
+      <div class="menu-section-title">通知</div>
+      <div class="menu-item" style="cursor:default">
+        <div class="menu-item-icon" style="background:#FFF0F6">🔔</div>
+        <div class="menu-item-text">
+          <div class="title">推送通知</div>
+          <div class="sub" id="push-setting-status">未开启</div>
+        </div>
+        <button id="push-setting-btn" class="btn btn-primary" style="padding:6px 14px;font-size:13px;min-width:auto;">开启推送</button>
+      </div>
+    </div>
+
     <div class="menu-section" id="admin-menu" style="display:none">
       <div class="menu-section-title" id="lbl-admin-func">管理员功能</div>
       <div class="menu-item" onclick="showAdminPanel('staff')">
@@ -1513,7 +1526,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v2.1.1';
+const APP_VERSION = 'v2.2.0';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1549,6 +1562,192 @@ const SB_URL  = 'https://yio-api.zhou136103031.workers.dev';
 // 登录前为空字符串；doLogin() 成功后写入 JWT 令牌
 let SB_KEY  = '';
 const WA_NUM  = '393778826875';
+
+// ════════════════════════════════════════
+// 🔔 Web Push 推送通知（订阅 / 触发 / 与 SW 桥接）
+// ════════════════════════════════════════
+
+// ── IndexedDB：写入当前 auth，让 SW 收到推送后能读到 ──
+function _openAuthDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('yio-cucina-auth', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('auth');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function writeAuthToIDB(data) {
+  try {
+    const db = await _openAuthDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('auth', 'readwrite');
+      tx.objectStore('auth').put(data, 'current');
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { console.warn('[IDB] 写入失败', e); }
+}
+async function clearAuthFromIDB() {
+  try {
+    const db = await _openAuthDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('auth', 'readwrite');
+      tx.objectStore('auth').delete('current');
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {}
+}
+
+// ── 触发推送（提交订单 / 收货完成时调）──
+async function triggerPush(eventType) {
+  if (!SB_KEY) return;
+  try {
+    await fetch(SB_URL + '/push/trigger', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: eventType })
+    });
+  } catch (e) { console.warn('[Push] 触发失败', e); }
+}
+
+// ── 浏览器是否支持推送 ──
+function pushSupported() {
+  return 'serviceWorker' in navigator
+    && 'PushManager' in window
+    && 'Notification' in window;
+}
+
+// ── 拿当前 SW 的订阅对象（如果已订阅）──
+async function getCurrentPushSubscription() {
+  if (!pushSupported()) return null;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('/sw-cucina.js');
+    if (!reg) return null;
+    return await reg.pushManager.getSubscription();
+  } catch (e) { return null; }
+}
+
+// base64url → Uint8Array（订阅时 applicationServerKey 必须）
+function _urlB64ToUint8Array(b64) {
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const base64 = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+// ── 开启推送（订阅）──
+async function enablePush() {
+  if (!pushSupported()) { toast('此浏览器不支持推送', 'err'); return false; }
+
+  // 1. 申请通知权限
+  let perm = Notification.permission;
+  if (perm === 'default') perm = await Notification.requestPermission();
+  if (perm !== 'granted') { toast('需要授予通知权限', 'err'); return false; }
+
+  // 2. 拿 VAPID 公钥
+  let vapidKey;
+  try {
+    const r = await fetch(SB_URL + '/push/vapid-public-key');
+    const d = await r.json();
+    vapidKey = d.key;
+    if (!vapidKey) throw new Error('无 VAPID 公钥');
+  } catch (e) { toast('获取推送密钥失败', 'err'); return false; }
+
+  // 3. 订阅
+  let sub;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('/sw-cucina.js')
+                || await navigator.serviceWorker.ready;
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlB64ToUint8Array(vapidKey)
+    });
+  } catch (e) {
+    console.error('订阅失败', e);
+    toast('订阅失败：' + (e.message || e), 'err');
+    return false;
+  }
+
+  // 4. 把订阅发给 Worker 保存
+  try {
+    const r = await fetch(SB_URL + '/push/subscribe', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), userAgent: navigator.userAgent })
+    });
+    if (!r.ok) throw new Error('Worker 拒绝');
+  } catch (e) {
+    console.error('保存订阅失败', e);
+    toast('保存订阅失败', 'err');
+    return false;
+  }
+
+  toast('✅ 推送已开启');
+  return true;
+}
+
+// ── 关闭推送（取消订阅）──
+async function disablePush() {
+  const sub = await getCurrentPushSubscription();
+  if (!sub) return true;
+  const endpoint = sub.endpoint;
+  try { await sub.unsubscribe(); } catch (e) {}
+  try {
+    await fetch(SB_URL + '/push/unsubscribe', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint })
+    });
+  } catch (e) {}
+  toast('已关闭推送');
+  return true;
+}
+
+// ── 更新"通知设置"section 的 UI（按订阅状态切换按钮）──
+async function refreshPushSettingUI() {
+  const wrap = document.getElementById('push-setting-wrap');
+  const status = document.getElementById('push-setting-status');
+  const btn = document.getElementById('push-setting-btn');
+  if (!wrap || !status || !btn) return;
+
+  // 仅 admin/buyer/supervisor 角色显示
+  const canSee = isAdmin || ['admin','buyer','supervisor'].includes(currentUserRole);
+  wrap.style.display = canSee ? 'block' : 'none';
+  if (!canSee) return;
+
+  if (!pushSupported()) {
+    status.textContent = '此浏览器不支持';
+    btn.style.display = 'none';
+    return;
+  }
+
+  const sub = await getCurrentPushSubscription();
+  if (sub) {
+    status.textContent = '✅ 已开启';
+    btn.textContent = '关闭推送';
+    btn.className = 'btn btn-ghost';
+    btn.onclick = async () => {
+      btn.disabled = true;
+      await disablePush();
+      btn.disabled = false;
+      refreshPushSettingUI();
+    };
+  } else {
+    status.textContent = '未开启';
+    btn.textContent = '开启推送';
+    btn.className = 'btn btn-primary';
+    btn.onclick = async () => {
+      btn.disabled = true;
+      const ok = await enablePush();
+      btn.disabled = false;
+      if (ok) refreshPushSettingUI();
+    };
+  }
+  btn.style.display = '';
+}
 
 /** SheetJS：首屏不加载，导入/导出/孤儿对比前再拉取 */
 let _xlsxLoadPromise = null;
@@ -2059,6 +2258,14 @@ async function doLogin() {
   const ok = await loadAllData();
   if (!ok) { btn.disabled = false; return; }  // 加载失败已显示错误屏
 
+  // 写 IDB（让 SW 收到推送后能读到当前用户）
+  await writeAuthToIDB({
+    restaurantId: REST_ID,
+    username: currentUser,
+    token: SB_KEY,
+    role: currentUserRole
+  });
+
   btn.disabled = false;
   showApp();
   initRealtime();
@@ -2091,12 +2298,27 @@ async function doAdminLogin() {
   if (currentUser) {
     // 已在 App 内（员工已登录）→ 仅提权，保留现有令牌和数据
     document.getElementById('admin-menu').style.display='block';
+    // 更新 IDB 里的角色信息
+    await writeAuthToIDB({
+      restaurantId: REST_ID,
+      username: currentUser,
+      token: SB_KEY,
+      role: currentUserRole,
+      isAdmin: true
+    });
   } else {
     // 直接管理员登录 → 用返回的令牌加载数据后进入
     SB_KEY = data.token;
     currentUser = 'Admin';
     const ok = await loadAllData();
     if (!ok) return;
+    await writeAuthToIDB({
+      restaurantId: REST_ID,
+      username: 'Admin',
+      token: SB_KEY,
+      role: 'admin',
+      isAdmin: true
+    });
     showApp();
     initRealtime();
   }
@@ -2187,8 +2409,12 @@ async function deleteEditItem() {
   } catch(e) { toast('❌ 删除失败','err'); }
 }
 
-function doLogout() {
+async function doLogout() {
   teardownRealtime();
+  // 静默取消推送订阅（不影响主流程）
+  try { await disablePush(); } catch(e) {}
+  // 清 IDB（防止 SW 用过期令牌）
+  await clearAuthFromIDB();
   currentUser=null; isAdmin=false;
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
@@ -2209,6 +2435,8 @@ function showApp() {
   document.getElementById('profile-role').textContent = isAdmin ? (t('roleAdmin')||'管理员') : (roleLabel[currentUserRole]||t('roleStaff')||'员工');
   if (isAdmin) document.getElementById('admin-menu').style.display='block';
   else document.getElementById('admin-menu').style.display='none';
+  // 推送通知设置（仅 admin/buyer/supervisor 可见）
+  refreshPushSettingUI();
   // 库存/报表只有管理员看
   ['nav-inventory','nav-report'].forEach(id=>{
     const el = document.getElementById(id);
@@ -3106,6 +3334,8 @@ async function submitOrder() {
                  sel.length>0 ? '✅ 订单已提交' : '✅ 库存调整已记录';
     toast(msg2);
     if (sel.length > 0) {
+      // 触发推送：通知采购员/管理员/主管有新订单
+      triggerPush('new_order');
       switchTab('orders');
       updatePendingBadge();
       setTimeout(()=>{
@@ -3258,6 +3488,7 @@ async function bulkConfirmOrders() {
   renderOrders();
   updatePendingBadge();
   toast(`✅ 已确认收货 ${count} 条订单`);
+  if (count > 0) triggerPush('order_received');
 }
 
 // ── 清除已完成记录 ──
@@ -4258,6 +4489,8 @@ async function confirmReceive(id) {
     } else {
       toast('✅ 收货确认，库存已更新');
     }
+    // 触发推送：通知主管/管理员订单已收货
+    triggerPush('order_received');
   } catch(e) {
     toast('确认失败：'+e.message, 'err');
     if (btn) btn.disabled = false;
