@@ -1568,7 +1568,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v2.4.3';
+const APP_VERSION = 'v2.4.4';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -3418,6 +3418,13 @@ function collectSortFromDOM() {
     ).map(itEl => parseInt(itEl.dataset.id)).filter(n => !isNaN(n));
   });
   return result;
+}
+
+// 通用 HTML 转义（之前漏定义了，导致排序模式报错）
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+    { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
+  ));
 }
 
 function stepQty(id, d) {
