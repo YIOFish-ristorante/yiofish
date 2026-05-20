@@ -13,7 +13,7 @@ const CORE_ASSETS = [
   '/cucina.html',
   '/manifest-cucina.json',
   '/logo-c.png',
-  '/icon.png',
+  '/icon-c.png',
 ];
 
 // ── INSTALL：缓存核心资源 + 自动激活（静默升级，不打扰用户） ──
@@ -164,8 +164,8 @@ self.addEventListener('push', e => {
     if (!auth || !auth.token) {
       await self.registration.showNotification('🍽 YIO CucinaFlow', {
         body: '有新动态，打开 App 查看',
-        icon: '/icon.png',
-        badge: '/icon.png',
+        icon: '/icon-c.png',
+        badge: '/icon-c.png',
         tag: 'yio-cucina',
         renotify: true,
       });
@@ -198,8 +198,8 @@ self.addEventListener('push', e => {
 
     await self.registration.showNotification(title, {
       body,
-      icon: '/icon.png',
-      badge: '/icon.png',
+      icon: '/icon-c.png',
+      badge: '/icon-c.png',
       tag: 'yio-cucina-order',  // 同 tag 替换之前的，不会堆叠
       renotify: true,
       data: { restaurantId: auth.restaurantId || '' },
