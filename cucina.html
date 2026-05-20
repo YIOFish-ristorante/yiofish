@@ -788,6 +788,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   <div id="tab-order" class="page-content tab-page" style="display:none">
 
 
+    <div id="order-toolbar" style="padding:8px 12px;display:flex;justify-content:flex-end;">
+      <button id="btn-sort-mode" onclick="toggleSortMode()" style="padding:6px 12px;font-size:13px;background:#fff;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;">
+        <span id="sort-mode-label">⋮⋮ 排序</span>
+      </button>
+    </div>
 
     <div id="order-list"></div>
 
@@ -1553,7 +1558,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v2.3.0';
+const APP_VERSION = 'v2.4.0';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -2303,6 +2308,9 @@ async function doLogin() {
     role: currentUserRole
   });
 
+  // 加载用户的订货排序偏好（跨设备同步）
+  await loadUserSortOrder();
+
   btn.disabled = false;
   showApp();
   initRealtime();
@@ -2983,7 +2991,10 @@ function renderOrderList() {
   }
   // Sort: 今日周期+库存不足 → 最高优先级
   let sorted = [...items];
-  if (_orderSortMode === 'low') {
+  // 用户自定义排序优先（如果有）
+  if (_userSortOrder) {
+    sorted = applyCustomSortOrder(sorted, _userSortOrder);
+  } else if (_orderSortMode === 'low') {
     sorted.sort((a,b)=>{ const aL=stockStatus(a)==='low',bL=stockStatus(b)==='low'; return aL===bL?0:aL?-1:1; });
   } else if (_orderSortMode === 'today') {
     sorted.sort((a,b)=>{ const aT=isTodayCycle(a),bT=isTodayCycle(b); return aT===bT?0:aT?-1:1; });
@@ -3139,6 +3150,231 @@ let suppliers = []; // {name, wa_number}
 function filterOrderList(q) {
   _orderSearchQ = (q||'').toLowerCase().trim();
   renderOrderList();
+}
+
+// ════════════════════════════════════════
+// 订货系统：手动排序模式（按分类分组 + 拖动）
+// ════════════════════════════════════════
+let _userSortOrder = null;       // {categoryOrder:[], itemOrders:{cat:[ids]}}
+let _isInSortMode = false;
+let _sortableLoaded = false;
+let _sortableInstances = [];     // 保存 SortableJS 实例，方便销毁
+
+// 动态加载 SortableJS（按需）
+function ensureSortableLoaded() {
+  if (_sortableLoaded) return Promise.resolve(true);
+  return new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js';
+    s.onload = () => { _sortableLoaded = true; resolve(true); };
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
+
+// 从云端加载用户的排序偏好
+async function loadUserSortOrder() {
+  if (!SB_KEY) { _userSortOrder = null; return; }
+  try {
+    const r = await fetch(SB_URL + '/user-prefs/order_sort', {
+      headers: { 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (!r.ok) { _userSortOrder = null; return; }
+    const d = await r.json();
+    _userSortOrder = d.value || null;
+  } catch(e) { _userSortOrder = null; }
+}
+
+// 保存到云端
+async function saveUserSortOrder() {
+  if (!SB_KEY || !_userSortOrder) return false;
+  try {
+    const r = await fetch(SB_URL + '/user-prefs/order_sort', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ value: _userSortOrder })
+    });
+    return r.ok;
+  } catch(e) { return false; }
+}
+
+// 按 {categoryOrder, itemOrders} 应用到 items 数组
+function applyCustomSortOrder(items, sortData) {
+  if (!sortData) return items;
+  const byCategory = {};
+  items.forEach(item => {
+    const cat = item.category || '其他';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(item);
+  });
+
+  const orderedCats = [];
+  const used = new Set();
+  if (Array.isArray(sortData.categoryOrder)) {
+    sortData.categoryOrder.forEach(c => {
+      if (byCategory[c]) { orderedCats.push(c); used.add(c); }
+    });
+  }
+  Object.keys(byCategory).forEach(c => { if (!used.has(c)) orderedCats.push(c); });
+
+  const result = [];
+  orderedCats.forEach(cat => {
+    let catItems = byCategory[cat];
+    const order = sortData.itemOrders && sortData.itemOrders[cat];
+    if (Array.isArray(order)) {
+      const map = new Map(catItems.map(it => [it.id, it]));
+      const ordered = [];
+      order.forEach(id => { if (map.has(id)) { ordered.push(map.get(id)); map.delete(id); } });
+      map.forEach(it => ordered.push(it));
+      catItems = ordered;
+    }
+    result.push(...catItems);
+  });
+  return result;
+}
+
+// 进入/退出排序模式
+async function toggleSortMode() {
+  if (_isInSortMode) {
+    await exitSortMode();
+  } else {
+    await enterSortMode();
+  }
+}
+
+async function enterSortMode() {
+  const ok = await ensureSortableLoaded();
+  if (!ok) { toast('排序工具加载失败，请检查网络', 'err'); return; }
+  _isInSortMode = true;
+  document.getElementById('sort-mode-label').textContent = '✓ 完成排序';
+  document.getElementById('btn-sort-mode').style.background = 'var(--primary,#c9a961)';
+  document.getElementById('btn-sort-mode').style.color = '#fff';
+  document.getElementById('btn-sort-mode').style.borderColor = 'var(--primary,#c9a961)';
+  renderOrderListSortMode();
+}
+
+async function exitSortMode() {
+  // 收集当前 DOM 的顺序
+  const collected = collectSortFromDOM();
+  _userSortOrder = collected;
+  _isInSortMode = false;
+  // 清理 SortableJS 实例
+  _sortableInstances.forEach(s => { try { s.destroy(); } catch(e){} });
+  _sortableInstances = [];
+  // UI 复位
+  document.getElementById('sort-mode-label').textContent = '⋮⋮ 排序';
+  document.getElementById('btn-sort-mode').style.background = '#fff';
+  document.getElementById('btn-sort-mode').style.color = 'var(--text2)';
+  document.getElementById('btn-sort-mode').style.borderColor = 'var(--border)';
+  // 保存到云端 + 刷新
+  const saved = await saveUserSortOrder();
+  if (saved) toast('✅ 排序已保存');
+  else toast('保存失败，请重试', 'err');
+  renderOrderList();
+}
+
+// 排序模式下的渲染：按分类分组 + 拖动手柄
+function renderOrderListSortMode() {
+  const container = document.getElementById('order-list');
+  // 按角色过滤
+  const _cu = (currentUser||'').toLowerCase().trim();
+  let listItems = items.filter(i => !i.discontinued);
+  if (!isAdmin && currentUserRole==='staff') {
+    listItems = listItems.filter(i => (i.chef||'').toLowerCase().trim() === _cu);
+  }
+
+  // 按分类分组
+  const byCategory = {};
+  listItems.forEach(item => {
+    const cat = item.category || '其他';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(item);
+  });
+
+  // 应用已有排序
+  const sortData = _userSortOrder || {};
+  const orderedCats = [];
+  const used = new Set();
+  if (Array.isArray(sortData.categoryOrder)) {
+    sortData.categoryOrder.forEach(c => {
+      if (byCategory[c]) { orderedCats.push(c); used.add(c); }
+    });
+  }
+  Object.keys(byCategory).forEach(c => { if (!used.has(c)) orderedCats.push(c); });
+
+  // 渲染
+  let html = `
+    <div style="padding:12px 14px;margin-bottom:10px;background:#fff8e1;color:#8a6f3a;border-radius:8px;font-size:13px;text-align:center;border:1px dashed #c9a961;">
+      📌 拖动 <strong>分类标题</strong> 改变分类顺序<br>
+      拖动 <strong>食材</strong> 改变分类内的顺序<br>
+      完成后点 <strong>"✓ 完成排序"</strong> 保存
+    </div>
+    <div id="sort-categories">
+  `;
+  orderedCats.forEach(cat => {
+    let catItems = byCategory[cat];
+    const order = sortData.itemOrders && sortData.itemOrders[cat];
+    if (Array.isArray(order)) {
+      const map = new Map(catItems.map(it => [it.id, it]));
+      const ordered = [];
+      order.forEach(id => { if (map.has(id)) { ordered.push(map.get(id)); map.delete(id); } });
+      map.forEach(it => ordered.push(it));
+      catItems = ordered;
+    }
+    html += `
+      <div class="sort-category" data-cat="${escapeHtml(cat)}" style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff;">
+        <div class="sort-cat-header" style="padding:12px 14px;background:#fff8e1;font-weight:600;font-size:15px;color:#8a6f3a;cursor:grab;user-select:none;display:flex;align-items:center;gap:10px;">
+          <span style="color:#c9a961;font-size:18px;">⋮⋮</span>
+          ${escapeHtml(cat)}
+          <span style="margin-left:auto;font-size:13px;color:var(--text3);font-weight:normal;">(${catItems.length})</span>
+        </div>
+        <div class="sort-cat-items" data-cat="${escapeHtml(cat)}" style="padding:6px;">
+          ${catItems.map(item => `
+            <div class="sort-item-card" data-id="${item.id}" style="padding:10px 12px;margin:3px 0;background:#fafafa;border:1px solid #eee;border-radius:6px;cursor:grab;user-select:none;display:flex;align-items:center;gap:10px;font-size:14px;">
+              <span style="color:#c9a961;">⋮⋮</span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.italian || item.name || '(未命名)')}</span>
+              ${item.name && item.italian ? `<span style="color:var(--text3);font-size:12px;">${escapeHtml(item.name)}</span>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+
+  // 初始化 SortableJS
+  if (window.Sortable) {
+    // 分类标题可拖
+    _sortableInstances.push(
+      Sortable.create(document.getElementById('sort-categories'), {
+        handle: '.sort-cat-header',
+        animation: 150,
+      })
+    );
+    // 每个分类内的食材可拖（不跨分类）
+    document.querySelectorAll('.sort-cat-items').forEach(el => {
+      _sortableInstances.push(
+        Sortable.create(el, { animation: 150 })
+      );
+    });
+  }
+}
+
+// 从 DOM 收集当前顺序
+function collectSortFromDOM() {
+  const result = { categoryOrder: [], itemOrders: {} };
+  document.querySelectorAll('.sort-category').forEach(catEl => {
+    const cat = catEl.dataset.cat;
+    result.categoryOrder.push(cat);
+    result.itemOrders[cat] = Array.from(
+      catEl.querySelectorAll('.sort-item-card')
+    ).map(itEl => parseInt(itEl.dataset.id)).filter(n => !isNaN(n));
+  });
+  return result;
 }
 
 function stepQty(id, d) {
