@@ -649,12 +649,17 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
       <div style="font-size:11px;color:var(--text3);letter-spacing:1px;margin-bottom:10px;">排序方式</div>
       <select id="side-sort-select" onchange="applyOrderSort(this.value);hideSideMenu()"
         style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:14px;background:var(--surface);color:var(--text);">
-        <option value="default">默认（今日优先）</option>
+        <option value="default">默认（今日优先)</option>
         <option value="low">库存不足优先</option>
         <option value="today">今日订货</option>
         <option value="chef">按订货人</option>
         <option value="supplier">按供货商</option>
+        <option value="custom">🖐 我的排序</option>
       </select>
+      <button id="btn-sort-mode" onclick="toggleSortMode();hideSideMenu();"
+        style="width:100%;margin-top:10px;padding:9px 12px;border:1.5px dashed var(--primary,#c9a961);border-radius:8px;background:transparent;color:var(--primary,#c9a961);font-size:13px;font-weight:500;cursor:pointer;">
+        <span id="sort-mode-label">✏️ 编辑我的排序</span>
+      </button>
     </div>
     <div style="padding:8px 0;">
       <div onclick="showChangePass();hideSideMenu()"
@@ -792,11 +797,6 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   <div id="tab-order" class="page-content tab-page" style="display:none">
 
 
-    <div id="order-toolbar" style="padding:8px 12px;display:flex;justify-content:flex-end;">
-      <button id="btn-sort-mode" onclick="toggleSortMode()" style="padding:6px 12px;font-size:13px;background:#fff;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;">
-        <span id="sort-mode-label">⋮⋮ 排序</span>
-      </button>
-    </div>
 
     <div id="order-list"></div>
 
@@ -2995,8 +2995,8 @@ function renderOrderList() {
   }
   // Sort: 今日周期+库存不足 → 最高优先级
   let sorted = [...items];
-  // 用户自定义排序优先（如果有）
-  if (_userSortOrder) {
+  // 用户自定义顺序仅在 'custom' 模式下应用
+  if (_orderSortMode === 'custom' && _userSortOrder) {
     sorted = applyCustomSortOrder(sorted, _userSortOrder);
   } else if (_orderSortMode === 'low') {
     sorted.sort((a,b)=>{ const aL=stockStatus(a)==='low',bL=stockStatus(b)==='low'; return aL===bL?0:aL?-1:1; });
@@ -3146,6 +3146,9 @@ function renderOrderList() {
 
 function applyOrderSort(v) {
   _orderSortMode = v;
+  if (v === 'custom' && !_userSortOrder) {
+    toast('还没自定义排序，请点"编辑我的排序"开始', 'err');
+  }
   renderOrderList();
 }
 let _orderSortMode = 'default';
@@ -3256,7 +3259,7 @@ async function enterSortMode() {
   document.getElementById('sort-mode-label').textContent = '✓ 完成排序';
   document.getElementById('btn-sort-mode').style.background = 'var(--primary,#c9a961)';
   document.getElementById('btn-sort-mode').style.color = '#fff';
-  document.getElementById('btn-sort-mode').style.borderColor = 'var(--primary,#c9a961)';
+  document.getElementById('btn-sort-mode').style.borderStyle = 'solid';
   renderOrderListSortMode();
 }
 
@@ -3269,14 +3272,20 @@ async function exitSortMode() {
   _sortableInstances.forEach(s => { try { s.destroy(); } catch(e){} });
   _sortableInstances = [];
   // UI 复位
-  document.getElementById('sort-mode-label').textContent = '⋮⋮ 排序';
-  document.getElementById('btn-sort-mode').style.background = '#fff';
-  document.getElementById('btn-sort-mode').style.color = 'var(--text2)';
-  document.getElementById('btn-sort-mode').style.borderColor = 'var(--border)';
-  // 保存到云端 + 刷新
+  document.getElementById('sort-mode-label').textContent = '✏️ 编辑我的排序';
+  document.getElementById('btn-sort-mode').style.background = 'transparent';
+  document.getElementById('btn-sort-mode').style.color = 'var(--primary,#c9a961)';
+  document.getElementById('btn-sort-mode').style.borderStyle = 'dashed';
+  // 保存到云端 + 自动切到 "我的排序" 模式
   const saved = await saveUserSortOrder();
-  if (saved) toast('✅ 排序已保存');
-  else toast('保存失败，请重试', 'err');
+  if (saved) {
+    _orderSortMode = 'custom';
+    const sortSel = document.getElementById('side-sort-select');
+    if (sortSel) sortSel.value = 'custom';
+    toast('✅ 排序已保存');
+  } else {
+    toast('保存失败，请重试', 'err');
+  }
   renderOrderList();
 }
 
