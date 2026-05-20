@@ -101,3 +101,133 @@ self.addEventListener('message', e => {
     self.skipWaiting();
   }
 });
+
+// ════════════════════════════════════════════════════════════
+// Web Push 推送处理（无 payload，SW 收到后自己查状态）
+// ════════════════════════════════════════════════════════════
+
+const WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
+
+// ── IndexedDB：读主页面登录后写入的 auth ──
+function openAuthDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('yio-cucina-auth', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('auth');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function getAuth() {
+  try {
+    const db = await openAuthDB();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction('auth', 'readonly');
+      const req = tx.objectStore('auth').get('current');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+// ── 查"我有几单待处理 / 已发送"──
+async function fetchPushStatus(token) {
+  try {
+    const r = await fetch(WORKER_URL + '/push/status', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!r.ok) return null;
+    return await r.json(); // { pending, sent }
+  } catch (e) {
+    return null;
+  }
+}
+
+// ── 设置/清除 App Badge（角标，主屏幕图标右上角的红点数字）──
+async function setBadge(n) {
+  try {
+    if ('setAppBadge' in self.navigator) {
+      if (n > 0) await self.navigator.setAppBadge(n);
+      else await self.navigator.clearAppBadge();
+    }
+  } catch (e) {}
+}
+
+// ── PUSH 事件：收到推送 ──
+self.addEventListener('push', e => {
+  console.log('[SW] 收到推送');
+  e.waitUntil((async () => {
+    const auth = await getAuth();
+
+    // 没登录或没令牌 → 显示通用通知
+    if (!auth || !auth.token) {
+      await self.registration.showNotification('🍽 YIO CucinaFlow', {
+        body: '有新动态，打开 App 查看',
+        icon: '/icon.png',
+        badge: '/icon.png',
+        tag: 'yio-cucina',
+        renotify: true,
+      });
+      return;
+    }
+
+    // 查当前订单状态
+    const info = await fetchPushStatus(auth.token);
+    let title, body, badgeCount;
+
+    if (!info) {
+      title = '🍽 YIO CucinaFlow';
+      body = '有新动态，打开查看';
+      badgeCount = 1;
+    } else if (info.pending > 0) {
+      title = '🛒 新订货请求';
+      body = info.sent > 0
+        ? `${info.pending} 单待处理 · ${info.sent} 单待收货`
+        : `${info.pending} 单待处理`;
+      badgeCount = info.pending + info.sent;
+    } else if (info.sent > 0) {
+      title = '📦 订单已发送';
+      body = `${info.sent} 单待收货`;
+      badgeCount = info.sent;
+    } else {
+      title = '✅ 全部已收货';
+      body = '目前没有待办订单';
+      badgeCount = 0;
+    }
+
+    await self.registration.showNotification(title, {
+      body,
+      icon: '/icon.png',
+      badge: '/icon.png',
+      tag: 'yio-cucina-order',  // 同 tag 替换之前的，不会堆叠
+      renotify: true,
+      data: { restaurantId: auth.restaurantId || '' },
+    });
+
+    await setBadge(badgeCount);
+  })());
+});
+
+// ── NOTIFICATIONCLICK：点通知打开 App ──
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const restaurantId = (e.notification.data && e.notification.data.restaurantId) || '';
+  const targetUrl = restaurantId
+    ? '/cucina.html?r=' + encodeURIComponent(restaurantId)
+    : '/cucina.html';
+
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(clientList => {
+        // 已经打开了 → 聚焦那个 tab
+        for (const c of clientList) {
+          if (c.url.includes('cucina.html')) {
+            return c.focus();
+          }
+        }
+        // 否则开新窗口
+        return self.clients.openWindow(targetUrl);
+      })
+  );
+});
