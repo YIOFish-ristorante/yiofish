@@ -250,6 +250,10 @@ body {
   .order-item-card:hover { box-shadow: var(--shadow); }
 }
 .order-item-card.selected { border: 1.5px solid var(--primary); }
+/* 排序模式 SortableJS 视觉反馈 */
+.sort-chosen { background: #fff4d6 !important; box-shadow: 0 6px 20px rgba(201,169,97,0.35); }
+.sort-ghost { opacity: 0.35; }
+.sort-cat-header:active, .sort-item-card:active { cursor: grabbing; }
 .order-item-card.selected-low { border: 1.5px solid var(--primary); background: var(--primary-light); }
 .order-item-thumb {
   position: absolute; top: 14px; left: 14px;
@@ -3348,19 +3352,31 @@ function renderOrderListSortMode() {
 
   // 初始化 SortableJS
   if (window.Sortable) {
+    const commonOpts = {
+      animation: 150,
+      forceFallback: true,         // 关键：强制用 SortableJS 自己实现（兼容触摸屏 + PWA）
+      fallbackTolerance: 3,
+      delay: 80,                   // 长按 80ms 开始拖（避免和滚动冲突）
+      delayOnTouchOnly: true,      // 只触摸时延迟，鼠标即时
+      chosenClass: 'sort-chosen',  // 被选中时加的 class
+      ghostClass: 'sort-ghost',    // 占位元素的 class
+    };
     // 分类标题可拖
     _sortableInstances.push(
       Sortable.create(document.getElementById('sort-categories'), {
+        ...commonOpts,
         handle: '.sort-cat-header',
-        animation: 150,
       })
     );
     // 每个分类内的食材可拖（不跨分类）
     document.querySelectorAll('.sort-cat-items').forEach(el => {
       _sortableInstances.push(
-        Sortable.create(el, { animation: 150 })
+        Sortable.create(el, { ...commonOpts })
       );
     });
+  } else {
+    console.error('[Sort] Sortable 未定义，CDN 加载失败？');
+    toast('排序工具加载失败，请检查网络', 'err');
   }
 }
 
