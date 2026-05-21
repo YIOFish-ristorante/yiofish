@@ -595,6 +595,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 </head>
 <body>
 
+<!-- ═══════════════════════
+     试用期到期提醒横幅
+═══════════════════════ -->
+<div id="trial-banner" style="display:none;padding:10px 14px;text-align:center;font-size:13px;font-weight:500;border-bottom:1px solid;line-height:1.5;"></div>
+
 <div id="toast"></div>
 
 <!-- ══════════════════════════════════
@@ -1568,7 +1573,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v2.4.7';
+const APP_VERSION = 'v2.6.0';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -2115,6 +2120,46 @@ function showLoadErrorScreen() {
     </div>`;
 }
 
+// 试用期到期提醒横幅
+function showTrialBanner(expiresAt, restaurantName) {
+  const banner = document.getElementById('trial-banner');
+  if (!banner) return;
+  const expires = new Date(expiresAt);
+  const now = new Date();
+  const msLeft = expires.getTime() - now.getTime();
+  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+
+  // 剩 > 7 天：不打扰
+  if (daysLeft > 7) { banner.style.display = 'none'; return; }
+  // 剩 ≤ 0 天：已被上面的硬锁拦截，这里不会走到
+  if (daysLeft <= 0) { banner.style.display = 'none'; return; }
+
+  let bg, color, borderColor, icon, msg;
+  if (daysLeft > 3) {
+    // 黄色温和提醒
+    bg = '#fff8e1'; color = '#8a6f3a'; borderColor = '#c9a961'; icon = '⏰';
+    msg = `试用期还剩 <strong>${daysLeft}</strong> 天`;
+  } else {
+    // 红色紧急提醒
+    bg = '#fff0f0'; color = '#c0392b'; borderColor = '#e74c3c'; icon = '⚠️';
+    msg = `试用期还剩 <strong>${daysLeft}</strong> 天，请尽快续费！`;
+  }
+
+  const waMsg = encodeURIComponent('餐厅 ' + (restaurantName || REST_ID) + ' 申请续费');
+  banner.innerHTML = `
+    <span>${icon} ${msg}</span>
+    &nbsp;·&nbsp;
+    <a href="https://wa.me/393778826875?text=${waMsg}" target="_blank"
+       style="color:${color};text-decoration:underline;font-weight:600;">
+      💬 WhatsApp 联系续费
+    </a>
+  `;
+  banner.style.background = bg;
+  banner.style.color = color;
+  banner.style.borderBottomColor = borderColor;
+  banner.style.display = 'block';
+}
+
 async function init() {
   // ── 验证餐厅是否存在且有效（走 Worker 公开端点）──
   try {
@@ -2156,8 +2201,16 @@ async function init() {
         <p style="color:#666;">${restaurantInfo.name}</p>
         <p style="color:#666;">到期日：${restaurantInfo.expires_at}</p>
         <p style="color:#666;">请联系系统管理员续费</p>
+        <a href="https://wa.me/393778826875?text=Ciao!%20${encodeURIComponent('餐厅 ' + (restaurantInfo.name || REST_ID) + ' 申请续费')}" target="_blank"
+           style="margin-top:20px;padding:12px 24px;background:#25d366;color:#fff;border-radius:8px;text-decoration:none;font-weight:500;">
+          💬 WhatsApp 联系续费
+        </a>
       </div>`;
       return;
+    }
+    // ── 试用期剩余天数提醒（≤ 7 天显示横幅）──
+    if (restaurantInfo.expires_at) {
+      showTrialBanner(restaurantInfo.expires_at, restaurantInfo.name);
     }
     // 更新登录页标题为餐厅名称
     const subEl = document.getElementById('login-sub');
@@ -7486,104 +7539,77 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ── Supabase Realtime 实时订阅 ──
-let _realtimeTeardown = null;
+// ════════════════════════════════════════════════════════════
+// Realtime — 长轮询版（v2.6.0）
+// ════════════════════════════════════════════════════════════
+// 设计：每 8 秒轮询 cucina_orders；页面隐藏时暂停，可见时立即触发一次
+// 通过 Worker 走，多租户安全（Worker 用 JWT 强制注入 restaurant_id 过滤）
+let _realtimePollTimer = null;
+let _realtimeLastFingerprint = '';
+const REALTIME_POLL_INTERVAL = 5000;  // 5 秒
+
+function _ordersFingerprint(arr) {
+  if (!Array.isArray(arr)) return '';
+  return arr.map(function(o) {
+    return o.id + ':' + o.status + ':' + (o.items ? o.items.length : 0) + ':' + (o.hidden ? 1 : 0) + ':' + (o.received_items ? JSON.stringify(o.received_items).length : 0);
+  }).join('|');
+}
+
+async function _realtimePollOnce() {
+  if (!currentUser) return;
+  try {
+    const res = await sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc&limit=200');
+    if (!res.ok) return;
+    const newOrders = await res.json();
+    if (!Array.isArray(newOrders)) return;
+
+    const newFp = _ordersFingerprint(newOrders);
+    if (newFp === _realtimeLastFingerprint) return;
+    _realtimeLastFingerprint = newFp;
+
+    orders = newOrders.map(function(r) {
+      return {
+        id: r.id, created_at: r.created_at, restaurant_id: r.restaurant_id,
+        chef: r.chef, date: r.date, items: r.items || [], status: r.status,
+        type: r.type, buyer: r.buyer, received_items: r.received_items, hidden: !!r.hidden
+      };
+    });
+    if (currentTab === 'orders') renderOrders();
+    if (currentTab === 'receive') renderReceiveTab();
+    updatePendingBadge();
+    renderReceivePanel();
+  } catch(e) { /* 静默失败 */ }
+}
+
 function teardownRealtime() {
-  if (_realtimeTeardown) {
-    try { _realtimeTeardown(); } catch (e) {}
-    _realtimeTeardown = null;
+  if (_realtimePollTimer) {
+    clearInterval(_realtimePollTimer);
+    _realtimePollTimer = null;
   }
 }
 
 function initRealtime() {
-  // ⚠️ 安全改造阶段：实时同步（WebSocket）暂时禁用
-  // 原因：WebSocket 经 Worker 代理较复杂，留待后续阶段恢复。
-  // 影响：多设备间数据不再自动同步，需手动刷新（下拉刷新 / 重开 App）。
-  // 恢复方法：删掉下面这行 return 即可。
-  return;
   if (!currentUser) return;
   teardownRealtime();
-  const wsUrl = SB_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SB_KEY) + '&vsn=1.0.0';
-  let ws = null;
-  let heartbeatTimer = null;
-  let reconnectTimer = null;
+  _realtimeLastFingerprint = _ordersFingerprint(orders);
+  _realtimePollTimer = setInterval(_realtimePollOnce, REALTIME_POLL_INTERVAL);
 
-  function connect() {
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
-    clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
-    if (ws) {
-      try {
-        ws.onopen = ws.onclose = ws.onerror = ws.onmessage = null;
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close();
-      } catch (e) {}
-      ws = null;
-    }
-
-    ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-      console.log('Realtime 已连接');
-      ws.send(JSON.stringify({
-        topic: `realtime:public:cucina_orders:restaurant_id=eq.${REST_ID}`,
-        event: 'phx_join',
-        payload: {},
-        ref: '1'
-      }));
-      heartbeatTimer = setInterval(()=>{
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'}));
+  if (!window.__realtimeVisHandler) {
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible' && currentUser) {
+        _realtimePollOnce();
+        if (!_realtimePollTimer) {
+          _realtimePollTimer = setInterval(_realtimePollOnce, REALTIME_POLL_INTERVAL);
         }
-      }, 25000);
-    };
-
-    ws.onmessage = async (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.event === 'INSERT' || msg.event === 'UPDATE' || msg.event === 'DELETE') {
-          const res = await sb('cucina_orders?restaurant_id=eq.'+REST_ID+'&select=*&order=created_at.desc');
-          const newOrders = await res.json();
-          if (Array.isArray(newOrders)) {
-            orders = newOrders.map(r=>({
-              id:r.id, created_at:r.created_at, restaurant_id:r.restaurant_id,
-              chef:r.chef, date:r.date, items:r.items||[], status:r.status,
-              type:r.type, buyer:r.buyer, received_items:r.received_items, hidden:!!r.hidden
-            }));
-            if (currentTab==='orders') renderOrders();
-            if (currentTab==='receive') renderReceiveTab();
-            updatePendingBadge();
-            renderReceivePanel();
-          }
+      } else if (document.visibilityState === 'hidden') {
+        if (_realtimePollTimer) {
+          clearInterval(_realtimePollTimer);
+          _realtimePollTimer = null;
         }
-      } catch(e) {}
-    };
-
-    ws.onclose = () => {
-      clearInterval(heartbeatTimer);
-      heartbeatTimer = null;
-      ws = null;
-      reconnectTimer = setTimeout(()=>{ if (currentUser) connect(); }, 5000);
-    };
-
-    ws.onerror = () => { try { ws && ws.close(); } catch (e) {} };
+      }
+    });
+    window.__realtimeVisHandler = true;
   }
-
-  _realtimeTeardown = () => {
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
-    clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
-    if (ws) {
-      try {
-        ws.onopen = ws.onclose = ws.onerror = ws.onmessage = null;
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close();
-      } catch (e) {}
-      ws = null;
-    }
-  };
-
-  connect();
 }
 
 // 每分钟刷新订货提醒
