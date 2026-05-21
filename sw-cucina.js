@@ -57,6 +57,11 @@ self.addEventListener('fetch', e => {
     return; // 让浏览器原生处理
   }
 
+  // ①b Worker API（自己的 Cloudflare Worker）→ 网络优先，不缓存
+  if (url.hostname.includes('workers.dev')) {
+    return;
+  }
+
   // ② WhatsApp 跳转链接 → 不拦截
   if (url.hostname.includes('whatsapp.com') || url.hostname.includes('wa.me')) {
     return;
