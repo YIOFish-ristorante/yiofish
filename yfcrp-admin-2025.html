@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v4.6</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v4.7</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -276,7 +276,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v4.6</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v4.7</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -437,7 +437,9 @@ window.__origR = JSON.parse(JSON.stringify(_R));
 window.__origC = JSON.parse(JSON.stringify(_C));
 window.__origI = JSON.parse(JSON.stringify(_I));
 
-var ALL_TAGS = {
+// 标签定义（从数据库 restaurant_tags 表加载，按 RESTAURANT_ID 独立）
+// 这里保留默认值作为加载失败时的 fallback
+var DEFAULT_TAGS = {
   "1":{label:"Glutine",color:"#95a5a6",icon:"🌾"},
   "2":{label:"Crostacei",color:"#2980b9",icon:"🦐"},
   "3":{label:"Uova",color:"#f39c12",icon:"🥚"},
@@ -451,6 +453,7 @@ var ALL_TAGS = {
   "vegano":{label:"Vegano",color:"#27ae60",icon:"🌿"},
   "new":{label:"Novità",color:"#8e44ad",icon:"✨"}
 };
+var ALL_TAGS = {};  // 运行时从数据库填充（按当前 RESTAURANT_ID）
 
 /*__MENUS_START__*/
 var MENUS = [
@@ -489,7 +492,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.6</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.7</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -518,7 +521,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.6</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.7</span>';
   }
   loadAll();
 }
@@ -702,19 +705,29 @@ async function handleGoogleLogin(response) {
 
 async function reloadDishes() {
   try {
-    var [dRes, dm1Res, dm2Res, dm3Res] = await Promise.all([
+    var [dRes, dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
       sbFetch('dishes?select=*&order=id&limit=2000'),
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000')
+      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
+      sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
     var dishes = await dRes.json();
     var dm1 = await dm1Res.json();
     var dm2 = await dm2Res.json();
     var dm3 = await dm3Res.json();
     var dishMenus = dm1.concat(dm2).concat(dm3);
+    // 重载标签
+    var tagsData = await tagsRes.json();
+    if (Array.isArray(tagsData) && tagsData.length > 0) {
+      ALL_TAGS = {};
+      tagsData.forEach(function(t) {
+        ALL_TAGS[t.tag_id] = {label: t.label, color: t.color, icon: t.icon};
+      });
+    }
     I = dishes.map(function(d) {
       var menus = {};
+      var soldOut = d.sold_out || false;  // 兼容旧数据
       dishMenus.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
           menus[dm.menu_id] = {
@@ -723,6 +736,7 @@ async function reloadDishes() {
             max_qty: parseInt(dm.max_qty) || 0,
             sconto: parseInt(dm.sconto) || 0
           };
+          if (dm.sold_out === true) soldOut = true;
         });
       return {
         id: d.id,
@@ -731,7 +745,7 @@ async function reloadDishes() {
         desc: d.description || '',
         image: d.image || '',
         tags: d.tags || [],
-        sold_out: d.sold_out || false,
+        sold_out: soldOut,
         menus: menus
       };
     });
@@ -787,19 +801,33 @@ async function loadAll() {
       }
     });
     // dish_menus超过1000条，分3次加载
-    var [dm1Res, dm2Res, dm3Res] = await Promise.all([
+    var [dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000')
+      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
+      sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
     var dm1 = await dm1Res.json();
     var dm2 = await dm2Res.json();
     var dm3 = await dm3Res.json();
     var dishMenus = dm1.concat(dm2).concat(dm3);
+    
+    // 加载标签（按 RESTAURANT_ID 独立）
+    var tagsData = await tagsRes.json();
+    ALL_TAGS = {};
+    if (Array.isArray(tagsData) && tagsData.length > 0) {
+      tagsData.forEach(function(t) {
+        ALL_TAGS[t.tag_id] = {label: t.label, color: t.color, icon: t.icon};
+      });
+    } else {
+      // 数据库无数据时 fallback 用默认标签
+      ALL_TAGS = JSON.parse(JSON.stringify(DEFAULT_TAGS));
+    }
 
     // 合并菜品和菜单价格，格式和原admin一致
     I = dishes.map(function(d) {
       var menus = {};
+      var soldOut = d.sold_out || false;  // 兼容旧数据：先取 dishes.sold_out 作初值
       dishMenus.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
           menus[dm.menu_id] = {
@@ -808,6 +836,8 @@ async function loadAll() {
             max_qty: parseInt(dm.max_qty) || 0,
             sconto: parseInt(dm.sconto) || 0
           };
+          // dish_menus 里任一行 sold_out=true → 这道菜在本店售罄
+          if (dm.sold_out === true) soldOut = true;
         });
       return {
         id: d.id,
@@ -816,7 +846,7 @@ async function loadAll() {
         desc: d.description || '',
         image: d.image || '',
         tags: d.tags || [],
-        sold_out: d.sold_out || false,
+        sold_out: soldOut,
         menus: menus
       };
     });
@@ -1056,7 +1086,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.6</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.7</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1158,8 +1188,8 @@ async function saveDishToDB(dish) {
     name: dish.name,
     description: dish.desc || '',
     image: dish.image || '',
-    tags: dish.tags || [],
-    sold_out: !!dish.sold_out
+    tags: dish.tags || []
+    // sold_out 移到 dish_menus，每家独立
   };
   if (dish._isNew) {
     if (!dish.id) delete dbDish.id; // 没指定id就让数据库自动分配
@@ -1180,7 +1210,7 @@ async function saveDishToDB(dish) {
   await sbFetch('dish_menus?dish_id=eq.' + dish.id + '&restaurant_id=eq.' + RESTAURANT_ID, {
     method: 'DELETE'
   });
-  // 当前店铺插入用户设置的值
+  // 当前店铺插入用户设置的值（含 sold_out，按店独立售罄）
   var menuRows = MENUS.map(function(m) {
     var ms = dish.menus[m.id] || {};
     return {
@@ -1190,7 +1220,8 @@ async function saveDishToDB(dish) {
       enabled: !!ms.on,
       price: parseFloat(ms.price) || 0,
       max_qty: parseInt(ms.max_qty) || 0,
-      sconto: parseInt(ms.sconto) || 0
+      sconto: parseInt(ms.sconto) || 0,
+      sold_out: !!dish.sold_out  // 按当前店写售罄
     };
   });
   var res2 = await sbFetch('dish_menus', {
@@ -1642,6 +1673,7 @@ async function delCat(idx){
 
 function renderTags(){
   var keys = Object.keys(ALL_TAGS);
+  var storeName = (R && R.name) || RESTAURANT_ID || '当前店铺';
   var rows = keys.map(function(tid){
     var tg = ALL_TAGS[tid];
     var cnt = I.filter(function(it){ return (it.tags||[]).indexOf(tid)>=0; }).length;
@@ -1649,7 +1681,7 @@ function renderTags(){
     return '<div class="cat-row">'      +'<div class="cat-icon-box" style="font-size:20px">'+tg.icon+'</div>'      +'<div class="cat-info"><div class="cat-name-t">'+badge+'</div>'      +'<div class="cat-id-t">id: '+tid+' · '+cnt+' piatti</div></div>'      +'<button class="btn btn-sm btn-gold-s" onclick="openEditTag(\'"+tid+"\')">编辑</button>'      +'<button class="btn btn-sm btn-red" onclick="delTag(\'"+tid+"\')">删除</button>'      +'</div>';
   }).join('');
   $('content').innerHTML =
-    '<div class="page-head"><div><h1>🏷️ 标签管理</h1><p>共 '+keys.length+' 个标签</p></div>'      +'<button class="btn btn-gold" onclick="openAddTag()">＋ 添加标签</button></div>'    +'<div class="card" style="padding:0">'+rows+'</div>';
+    '<div class="page-head"><div><h1>🏷️ 标签管理</h1><p>📍 '+storeName+' · 共 '+keys.length+' 个标签（每家店独立设置）</p></div>'      +'<button class="btn btn-gold" onclick="openAddTag()">＋ 添加标签</button></div>'    +'<div class="card" style="padding:0">'+rows+'</div>';
 }
 var _editTagId = null;
 function openAddTag(){
@@ -1667,29 +1699,57 @@ function openEditTag(tid){
   $('ft-id').disabled=true;
   openModal('tag-modal');
 }
-function saveTag(){
+async function saveTag(){
   var id=$('ft-id').value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
   var label=$('ft-label').value.trim();
   var icon=$('ft-icon').value.trim()||'🏷️';
   var color=$('ft-color').value||'#95a5a6';
   if(!label){ toast('⚠️ 请填写名称'); return; }
   if(!id){ toast('⚠️ 请填写ID'); return; }
-  if(_editTagId===null){
-    if(ALL_TAGS[id]){ toast('⚠️ ID已存在'); return; }
-    ALL_TAGS[id]={label:label,color:color,icon:icon};
-    toast('✅ 已添加');
-  } else {
-    ALL_TAGS[_editTagId]={label:label,color:color,icon:icon};
-    toast('✅ 已更新');
-  }
-  markDirty(); closeModal(); renderTags();
-  if($('cnt-t')) $('cnt-t').textContent=Object.keys(ALL_TAGS).length;
+  try {
+    if(_editTagId===null){
+      if(ALL_TAGS[id]){ toast('⚠️ ID已存在'); return; }
+      // 新增：POST 到数据库
+      var sortOrder = Object.keys(ALL_TAGS).length + 1;
+      var res = await sbFetch('restaurant_tags', {
+        method:'POST',
+        body: JSON.stringify({
+          restaurant_id: RESTAURANT_ID,
+          tag_id: id,
+          label: label,
+          icon: icon,
+          color: color,
+          sort_order: sortOrder
+        })
+      });
+      if(!res.ok){ var er=await res.text(); throw new Error('保存失败: '+er); }
+      ALL_TAGS[id]={label:label,color:color,icon:icon};
+      toast('✅ 已添加');
+    } else {
+      // 编辑：PATCH 数据库
+      var res = await sbFetch('restaurant_tags?restaurant_id=eq.'+RESTAURANT_ID+'&tag_id=eq.'+encodeURIComponent(_editTagId), {
+        method:'PATCH',
+        body: JSON.stringify({label:label, icon:icon, color:color})
+      });
+      if(!res.ok){ var er=await res.text(); throw new Error('保存失败: '+er); }
+      ALL_TAGS[_editTagId]={label:label,color:color,icon:icon};
+      toast('✅ 已更新');
+    }
+    markSaved(); closeModal(); renderTags();
+    if($('cnt-t')) $('cnt-t').textContent=Object.keys(ALL_TAGS).length;
+  } catch(e) { toast('❌ '+e.message); }
 }
-function delTag(tid){
+async function delTag(tid){
   if(!confirm('删除标签「'+ALL_TAGS[tid].label+'」？\n已使用此标签的菜品不会受影响。')) return;
-  delete ALL_TAGS[tid];
-  markDirty(); toast('🗑 已删除'); renderTags();
-  if($('cnt-t')) $('cnt-t').textContent=Object.keys(ALL_TAGS).length;
+  try {
+    var res = await sbFetch('restaurant_tags?restaurant_id=eq.'+RESTAURANT_ID+'&tag_id=eq.'+encodeURIComponent(tid), {
+      method:'DELETE'
+    });
+    if(!res.ok){ var er=await res.text(); throw new Error('删除失败: '+er); }
+    delete ALL_TAGS[tid];
+    toast('🗑 已删除'); renderTags();
+    if($('cnt-t')) $('cnt-t').textContent=Object.keys(ALL_TAGS).length;
+  } catch(e) { toast('❌ '+e.message); }
 }
 
 // ════════════════════════════════════
