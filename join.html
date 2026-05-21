@@ -233,6 +233,120 @@
   .proof-num { font-size: 48px; font-weight: 800; color: #c9a961; margin-bottom: 6px; }
   .proof-label { font-size: 16px; color: #5a4f3a; }
 
+  /* === TRUST BAR === */
+  section.trust {
+    padding: 32px 20px;
+    background: #fff;
+    border-top: 1px solid #f0e8d4;
+    border-bottom: 1px solid #f0e8d4;
+  }
+  .trust-wrap {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+    text-align: center;
+  }
+  .trust-item {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: #5a4f3a; font-size: 13px;
+  }
+  .trust-icon { font-size: 28px; }
+  .trust-text { font-weight: 600; color: #2c2418; }
+  @media (max-width: 640px) {
+    .trust-wrap { grid-template-columns: repeat(2, 1fr); gap: 24px 12px; }
+  }
+
+  /* === TESTIMONIALS === */
+  section.testimonials {
+    padding: 80px 20px;
+    background: linear-gradient(180deg, #ffffff 0%, #faf6ed 100%);
+  }
+  .testimonials-wrap { max-width: 1100px; margin: 0 auto; }
+  .testimonial-grid {
+    margin-top: 40px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+  }
+  .testimonial {
+    background: #fff; border-radius: 14px; padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    border: 1px solid #f0e8d4;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .testimonial-stars { color: #f5b800; font-size: 16px; letter-spacing: 2px; }
+  .testimonial-text {
+    color: #2c2418; font-size: 14.5px; line-height: 1.65; font-style: italic;
+    flex: 1;
+  }
+  .testimonial-author {
+    display: flex; align-items: center; gap: 12px;
+    padding-top: 14px; border-top: 1px solid #f0e8d4;
+  }
+  .testimonial-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #c9a961, #d4b878);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px;
+  }
+  .testimonial-name { font-weight: 700; color: #2c2418; font-size: 14px; }
+  .testimonial-role { color: #8a7858; font-size: 12px; margin-top: 2px; }
+  @media (max-width: 880px) { .testimonial-grid { grid-template-columns: 1fr; } }
+
+  /* === PRICING === */
+  section.pricing {
+    padding: 80px 20px;
+    background: #faf6ed;
+  }
+  .pricing-wrap { max-width: 900px; margin: 0 auto; }
+  .pricing-grid {
+    margin-top: 40px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  }
+  .plan {
+    background: #fff; border-radius: 14px; padding: 32px 28px;
+    border: 2px solid #f0e8d4;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .plan.featured {
+    border-color: #c9a961;
+    box-shadow: 0 8px 32px rgba(201,169,97,0.18);
+    transform: translateY(-4px);
+  }
+  .plan-badge {
+    position: absolute; top: -12px; left: 28px;
+    background: #c9a961; color: #fff;
+    padding: 4px 12px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  }
+  .plan-badge.dim { background: #b8a78a; }
+  .plan h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .plan-price {
+    font-size: 42px; font-weight: 800; color: #c9a961;
+    margin: 8px 0 20px;
+  }
+  .plan-price span { font-size: 16px; color: #8a7858; font-weight: 500; }
+  .plan-features {
+    list-style: none; padding: 0; margin: 0 0 24px;
+  }
+  .plan-features li {
+    padding: 8px 0; color: #5a4f3a; font-size: 14.5px;
+    border-bottom: 1px dashed #f0e8d4;
+  }
+  .plan-features li:last-child { border-bottom: 0; }
+  .plan-cta {
+    margin-top: auto;
+    padding: 14px 24px; border-radius: 10px;
+    background: #c9a961; color: #fff;
+    text-align: center; text-decoration: none;
+    font-weight: 700; font-size: 15px;
+    transition: all 0.15s;
+  }
+  .plan-cta:hover { background: #b3924c; box-shadow: 0 4px 12px rgba(201,169,97,0.35); }
+  .plan-note { color: #8a7858; font-size: 13px; font-style: italic; margin-bottom: 12px; }
+  @media (max-width: 720px) {
+    .pricing-grid { grid-template-columns: 1fr; }
+    .plan.featured { transform: none; }
+  }
+
   /* === FINAL CTA === */
   section.final-cta {
     padding: 80px 20px;
@@ -338,8 +452,8 @@
         <span class="lang-it">Il sistema intelligente di gestione ordini progettato per ristoranti italiani. Basta carta e gruppi WhatsApp caotici — cucina, acquisti e gestione finalmente integrati.</span>
       </p>
       <a class="hero-cta" href="/register.html">
-        <span class="lang-zh">🚀 免费试用 60 天</span>
-        <span class="lang-it">🚀 Prova gratis 60 giorni</span>
+        <span class="lang-zh">🚀 立即免费使用</span>
+        <span class="lang-it">🚀 Inizia gratis ora</span>
       </a>
       <div class="hero-meta">
         ✓ <span class="lang-zh">无需信用卡 · 1 分钟开通</span>
@@ -349,6 +463,40 @@
     <div class="hero-visual">
       <div class="phone-mockup">
         <div class="phone-screen"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TRUST BAR ===== -->
+<section class="trust">
+  <div class="trust-wrap">
+    <div class="trust-item">
+      <div class="trust-icon">🔒</div>
+      <div class="trust-text">
+        <span class="lang-zh">银行级加密</span>
+        <span class="lang-it">Cifratura bancaria</span>
+      </div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">🇪🇺</div>
+      <div class="trust-text">
+        <span class="lang-zh">EU 数据中心</span>
+        <span class="lang-it">Server in UE</span>
+      </div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">⚡</div>
+      <div class="trust-text">
+        <span class="lang-zh">99.9% 在线</span>
+        <span class="lang-it">99,9% uptime</span>
+      </div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">💬</div>
+      <div class="trust-text">
+        <span class="lang-zh">1 小时客服响应</span>
+        <span class="lang-it">Risposta entro 1h</span>
       </div>
     </div>
   </div>
@@ -598,23 +746,137 @@
   </div>
 </section>
 
+<!-- ===== TESTIMONIALS 客户证言 ===== -->
+<section class="testimonials">
+  <div class="testimonials-wrap">
+    <h2 class="section-title">
+      <span class="lang-zh">客户怎么说</span>
+      <span class="lang-it">Cosa dicono i clienti</span>
+    </h2>
+    <div class="testimonial-grid">
+      <div class="testimonial">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">
+          <span class="lang-zh">"以前用纸笔记订单天天乱套，现在厨师手机点几下，仓库立刻知道。每天早上省 30 分钟。"</span>
+          <span class="lang-it">"Prima usavamo carta e penna, era un caos quotidiano. Ora lo chef tocca lo schermo e il magazzino lo sa subito. Risparmiamo 30 minuti ogni mattina."</span>
+        </p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">M</div>
+          <div>
+            <div class="testimonial-name">Marco R.</div>
+            <div class="testimonial-role">Chef · Carpi (MO)</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">
+          <span class="lang-zh">"客户扫码点餐之后，订单直接到厨房屏幕。服务员少跑腿，效率提升 40%，错单几乎为零。"</span>
+          <span class="lang-it">"I clienti scansionano il QR e ordinano: tutto arriva subito allo schermo cucina. Camerieri più efficienti, errori quasi zero."</span>
+        </p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">A</div>
+          <div>
+            <div class="testimonial-name">Anna B.</div>
+            <div class="testimonial-role">Manager · Legnago (VR)</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">
+          <span class="lang-zh">"上手很快，员工 5 分钟就会用。出问题 WhatsApp 联系，1 小时内总有人回复。安心。"</span>
+          <span class="lang-it">"Facilissimo da imparare, lo staff lo usa dopo 5 minuti. Se hai un problema scrivi su WhatsApp e rispondono entro un'ora. Tranquillità totale."</span>
+        </p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">L</div>
+          <div>
+            <div class="testimonial-name">Luca M.</div>
+            <div class="testimonial-role">Owner · Modena</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PRICING 价格透明 ===== -->
+<section class="pricing">
+  <div class="pricing-wrap">
+    <h2 class="section-title">
+      <span class="lang-zh">价格透明</span>
+      <span class="lang-it">Prezzi trasparenti</span>
+    </h2>
+    <p class="section-sub" style="text-align:center;color:#5a4f3a;margin-top:8px;">
+      <span class="lang-zh">现阶段所有功能完全免费，没有时间限制。</span>
+      <span class="lang-it">Tutte le funzionalità sono gratis, senza scadenze.</span>
+    </p>
+    <div class="pricing-grid">
+      <div class="plan featured">
+        <div class="plan-badge">
+          <span class="lang-zh">现在</span>
+          <span class="lang-it">ORA</span>
+        </div>
+        <h3>
+          <span class="lang-zh">早期用户专享</span>
+          <span class="lang-it">Primi utenti</span>
+        </h3>
+        <div class="plan-price">€0<span>/<span class="lang-zh">月</span><span class="lang-it">mese</span></span></div>
+        <ul class="plan-features">
+          <li>✓ <span class="lang-zh">所有核心功能</span><span class="lang-it">Tutte le funzionalità</span></li>
+          <li>✓ <span class="lang-zh">无限菜品 / 订单 / 桌号</span><span class="lang-it">Piatti / ordini / tavoli illimitati</span></li>
+          <li>✓ <span class="lang-zh">数据加密 + 多店分管</span><span class="lang-it">Dati criptati + gestione multi-sede</span></li>
+          <li>✓ <span class="lang-zh">WhatsApp 客服 1 小时响应</span><span class="lang-it">Supporto WhatsApp entro 1h</span></li>
+          <li>✓ <span class="lang-zh">永久免费的早期用户优惠</span><span class="lang-it">Sconto fedeltà permanente</span></li>
+        </ul>
+        <a class="plan-cta" href="/register.html">
+          <span class="lang-zh">立即免费开始</span>
+          <span class="lang-it">Inizia gratis ora</span>
+        </a>
+      </div>
+      <div class="plan">
+        <div class="plan-badge dim">
+          <span class="lang-zh">未来</span>
+          <span class="lang-it">FUTURO</span>
+        </div>
+        <h3>
+          <span class="lang-zh">付费计划</span>
+          <span class="lang-it">Piano a pagamento</span>
+        </h3>
+        <div class="plan-price">€—<span>/<span class="lang-zh">月</span><span class="lang-it">mese</span></span></div>
+        <p class="plan-note">
+          <span class="lang-zh">推出后早期用户享受永久优惠</span>
+          <span class="lang-it">I primi utenti avranno lo sconto permanente</span>
+        </p>
+        <ul class="plan-features">
+          <li>✓ <span class="lang-zh">高级数据分析 + 报表</span><span class="lang-it">Analitiche avanzate + report</span></li>
+          <li>✓ <span class="lang-zh">优先客服支持</span><span class="lang-it">Supporto prioritario</span></li>
+          <li>✓ <span class="lang-zh">自动云备份</span><span class="lang-it">Backup automatico in cloud</span></li>
+          <li>✓ <span class="lang-zh">多店连锁管理</span><span class="lang-it">Gestione catena multi-sede</span></li>
+          <li>✓ <span class="lang-zh">自定义品牌外观</span><span class="lang-it">Branding personalizzato</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ===== FINAL CTA ===== -->
 <section class="final-cta">
   <h2>
-    <span class="lang-zh">准备好开始了吗？</span>
-    <span class="lang-it">Pronto a iniziare?</span>
+    <span class="lang-zh">现在加入早期用户，永久优惠</span>
+    <span class="lang-it">Diventa utente fondatore, sconto a vita</span>
   </h2>
   <p>
-    <span class="lang-zh">60 天完全免费试用 · 1 分钟开通 · 随时联系我们</span>
-    <span class="lang-it">60 giorni gratis · 1 minuto per attivare · supporto sempre disponibile</span>
+    <span class="lang-zh">名额有限 · 早期用户享受永久折扣 · 1 分钟开通</span>
+    <span class="lang-it">Posti limitati · Sconto fedeltà permanente · Attivazione in 1 minuto</span>
   </p>
   <a class="hero-cta" href="/register.html">
-    <span class="lang-zh">📝 立即注册</span>
-    <span class="lang-it">📝 Registrati ora</span>
+    <span class="lang-zh">🎁 立即免费加入</span>
+    <span class="lang-it">🎁 Unisciti gratis ora</span>
   </a>
   <div class="meta">
-    <span class="lang-zh">✓ 无需信用卡  ✓ 60 天免费试用  ✓ 数据安全加密</span>
-    <span class="lang-it">✓ Senza carta  ✓ 60 giorni gratis  ✓ Dati protetti</span>
+    <span class="lang-zh">✓ 无需信用卡  ✓ 现阶段完全免费  ✓ 数据安全加密</span>
+    <span class="lang-it">✓ Senza carta  ✓ Gratis al 100%  ✓ Dati protetti</span>
   </div>
 </section>
 
@@ -629,12 +891,12 @@
     </div>
     <details class="faq-item">
       <summary class="faq-q">
-        <span class="lang-zh">试用期结束后会发生什么？</span>
-        <span class="lang-it">Cosa succede dopo i 60 giorni?</span>
+        <span class="lang-zh">价格是多少？</span>
+        <span class="lang-it">Quanto costa il servizio?</span>
       </summary>
       <div class="faq-a">
-        <span class="lang-zh">现阶段我们专注于服务好早期客户，60 天后可以继续免费使用，未来推出付费计划时会提前通知，老用户有优惠。</span>
-        <span class="lang-it">In questa fase ci concentriamo a supportare i primi clienti. Dopo 60 giorni puoi continuare gratis. Quando lanceremo piani a pagamento, te lo comunicheremo in anticipo con uno sconto fedeltà.</span>
+        <span class="lang-zh">现阶段完全免费使用，没有时间限制。未来推出付费计划时会提前通知，早期用户享受永久优惠折扣。</span>
+        <span class="lang-it">Al momento è completamente gratis, senza limiti di tempo. Quando lanceremo piani a pagamento, te lo comunicheremo in anticipo: gli utenti dei primi giorni avranno uno sconto fedeltà permanente.</span>
       </div>
     </details>
     <details class="faq-item">
