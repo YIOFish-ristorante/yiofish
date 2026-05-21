@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v4.9</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -276,7 +276,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v4.9</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -316,6 +316,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     </button>
     <button class="s-btn" id="nav-permissions" onclick="showPage('permissions')" style="display:none;">
       <span class="s-ico">🔐</span>权限管理
+    </button>
+    <button class="s-btn" id="nav-backup" onclick="downloadBackup()" style="display:none;">
+      <span class="s-ico">📦</span>数据备份
     </button>
   </aside>
   <main class="content" id="content">
@@ -492,7 +495,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.9</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -521,7 +524,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.9</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.0</span>';
   }
   loadAll();
 }
@@ -868,6 +871,8 @@ async function loadAll() {
     if (CURRENT_ROLE === 'super') {
       var permBtn = document.getElementById('nav-permissions');
       if (permBtn) permBtn.style.display = '';
+      var backupBtn = document.getElementById('nav-backup');
+      if (backupBtn) backupBtn.style.display = '';
       // 显示店铺切换器
       var switcher = document.getElementById('store-switcher');
       if (switcher) {
@@ -1043,6 +1048,46 @@ function showSupplierModal() {
   if (modal) modal.style.display = 'flex';
 }
 
+// ════════════════════════════════════════════════════════════
+// 完整数据备份（super_admin 用）
+// ════════════════════════════════════════════════════════════
+async function downloadBackup() {
+  if (!confirm('确认下载完整数据备份？\n\n这会拉取所有表的全部数据（可能需要 10-30 秒）。\n备份文件含管理员密码 hash，请妥善保管。')) return;
+  
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+  if (!token) { toast('❌ 未登录'); return; }
+
+  toast('⏳ 正在生成备份，请稍候...');
+  try {
+    var res = await fetch(WORKER_URL + '/admin/backup', {
+      method: 'POST',
+      headers: {'Authorization': 'Bearer ' + token},
+      cache: 'no-store'
+    });
+    if (!res.ok) {
+      var errText = '';
+      try { var er = await res.json(); errText = er.error || ''; } catch(e) {}
+      throw new Error('HTTP ' + res.status + (errText ? ': ' + errText : ''));
+    }
+    
+    // 直接用响应作为 blob 触发下载
+    var blob = await res.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'yiofish-backup-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + 
+                 new Date().toISOString().slice(11,16).replace(':','') + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    
+    toast('✅ 备份已下载（' + Math.round(blob.size/1024) + ' KB）');
+  } catch(e) {
+    toast('❌ 备份失败: ' + e.message);
+  }
+}
+
 async function loadAdminAccounts() {
   try {
     var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
@@ -1095,7 +1140,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v4.9</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
