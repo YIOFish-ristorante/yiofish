@@ -471,13 +471,13 @@ var MENUS = [
 // ════════════════════════════════════
 //  Supabase 配置
 // ════════════════════════════════════
-var SUPABASE_URL = 'https://cnavkgfrqvfuafcbmldg.supabase.co';
-var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYXZrZ2ZycXZmdWFmY2JtbGRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MTE1MjIsImV4cCI6MjA5MzA4NzUyMn0.JX0ECOAVy-BVklCSsJE5n3j-owz1Ti-GOV4MtrWYlPI';
+// ⚠️ 已迁移到 Worker（v2.5.0）—— anon key 已彻底移除
+var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var RESTAURANT_ID = 'carpi'; // 默认，会被showStoreSelect覆盖
 var CURRENT_ROLE = 'super'; // 'super' 或 'store_admin'
-// SB_URL和SB_KEY使用SUPABASE_URL和SUPABASE_KEY
-var SB_URL = SUPABASE_URL;
-var SB_KEY = SUPABASE_KEY;
+var ADMIN_TOKEN = '';        // 登录后从 Worker 拿到
+// SB_URL兼容字段
+var SB_URL = WORKER_URL;
 
 var STORES = [
   {id: 'carpi',   name: 'YIO Fish Carpi',   address: 'Viale dell\'Industria 19, Carpi'},
@@ -528,14 +528,12 @@ function sbFetch(path, opts) {
   var fetchOpts = {
     method: opts.method || 'GET',
     headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json',
       'Prefer': opts.prefer || 'return=minimal'
     }
   };
   if (opts.body) fetchOpts.body = opts.body;
-  return fetch(SUPABASE_URL + '/rest/v1/' + path, fetchOpts);
+  return fetch(WORKER_URL + '/public/rest/v1/' + path, fetchOpts);
 }
 
 // ════════════════════════════════════
@@ -565,7 +563,6 @@ var _fSearch = '', _fCat = '__all__', _fMenu = '__all__';
 //  密码锁
 // ════════════════════════════════════
 var _lockSession = 'yf_admin_auth';
-var ADMIN_PASSWORD_HASH = '33991d1b60f039bcf43b395c087fe5fedfe898ed7e556b01665e73baafd63ae3';
 var ALLOWED_EMAILS = ['zhou136103031@gmail.com'];
 
 async function verifyLock() {
@@ -575,32 +572,28 @@ async function verifyLock() {
   console.log('login attempt - username:', username);
   var val = input ? input.value : '';
   var errEl = document.getElementById('lock-error');
-  var encoder = new TextEncoder();
-  var data = encoder.encode(val);
-  var hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  var hashArray = Array.from(new Uint8Array(hashBuffer));
-  var hashHex = hashArray.map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
 
-  // 如果填了username → 店铺管理员登录
+  // 如果填了username → 店铺管理员登录（走 Worker）
   if (username) {
     try {
-      var _url = 'https://cnavkgfrqvfuafcbmldg.supabase.co';
-      var _key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYXZrZ2ZycXZmdWFmY2JtbGRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MTE1MjIsImV4cCI6MjA5MzA4NzUyMn0.JX0ECOAVy-BVklCSsJE5n3j-owz1Ti-GOV4MtrWYlPI';
-      var res = await fetch(_url + '/rest/v1/admin_accounts?username=eq.' + encodeURIComponent(username) + '&select=*', {
-        headers: {'apikey': _key, 'Authorization': 'Bearer ' + _key}
+      var res = await fetch(WORKER_URL + '/store-admin/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: username, password: val})
       });
-      var accounts = await res.json();
-      if (accounts && accounts[0] && accounts[0].password_hash === hashHex) {
-        var acc = accounts[0];
+      var data = await res.json();
+      if (res.ok && data.token) {
+        ADMIN_TOKEN = data.token;
         CURRENT_ROLE = 'store_admin';
-        RESTAURANT_ID = acc.restaurant_id;
-        try { sessionStorage.setItem(_lockSession, 'store_admin:' + username + ':' + acc.restaurant_id); } catch(e) {}
+        RESTAURANT_ID = data.restaurantId;
+        try { sessionStorage.setItem(_lockSession, 'store_admin:' + username + ':' + data.restaurantId); } catch(e) {}
+        try { sessionStorage.setItem('yf_admin_token', data.token); } catch(e) {}
         document.getElementById('lock-screen').style.display = 'none';
         applyStoreAdminUI();
         loadAll();
         return;
       } else {
-        if (errEl) errEl.textContent = 'USERNAME O PASSWORD ERRATI';
+        if (errEl) errEl.textContent = data.error || 'USERNAME O PASSWORD ERRATI';
         if (input) { input.style.borderColor = '#c0392b'; input.value = ''; }
         setTimeout(function() { if (input) input.style.borderColor = 'rgba(212,171,72,.3)'; if(errEl) errEl.textContent=''; }, 800);
         return;
@@ -611,23 +604,35 @@ async function verifyLock() {
     }
   }
 
-  // 没有username → 超级管理员登录
-  if (hashHex === ADMIN_PASSWORD_HASH) {
-    CURRENT_ROLE = 'super';
-    try { sessionStorage.setItem(_lockSession, 'pwd'); } catch(e) {}
-    document.getElementById('lock-screen').style.display = 'none';
-    loadAll();
-  } else {
-    if (errEl) errEl.textContent = 'PASSWORD ERRATA';
-    if (input) {
-      input.style.borderColor = '#c0392b';
-      input.value = '';
-      setTimeout(function() {
-        input.style.borderColor = 'rgba(212,171,72,.3)';
-        if (errEl) errEl.textContent = '';
-        input.focus();
-      }, 800);
+  // 没有username → 超级管理员登录（走 Worker）
+  try {
+    var res = await fetch(WORKER_URL + '/super-admin/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({password: val})
+    });
+    var data = await res.json();
+    if (res.ok && data.token) {
+      ADMIN_TOKEN = data.token;
+      CURRENT_ROLE = 'super';
+      try { sessionStorage.setItem(_lockSession, 'pwd'); } catch(e) {}
+      try { sessionStorage.setItem('yf_admin_token', data.token); } catch(e) {}
+      document.getElementById('lock-screen').style.display = 'none';
+      loadAll();
+    } else {
+      if (errEl) errEl.textContent = data.error || 'PASSWORD ERRATA';
+      if (input) {
+        input.style.borderColor = '#c0392b';
+        input.value = '';
+        setTimeout(function() {
+          input.style.borderColor = 'rgba(212,171,72,.3)';
+          if (errEl) errEl.textContent = '';
+          input.focus();
+        }, 800);
+      }
     }
+  } catch(e) {
+    if (errEl) errEl.textContent = 'ERRORE: ' + e.message;
   }
 }
 
@@ -846,10 +851,15 @@ var _permActiveStore = '';
 
 async function loadPermissions() {
   try {
-    var res = await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions?select=*', {
-      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/admin-permissions/list', {
+      headers: {'Authorization': 'Bearer ' + token}
     });
     var data = await res.json();
+    if (!Array.isArray(data)) {
+      console.error('loadPermissions: not super admin?', data);
+      return;
+    }
     _permData = {};
     data.forEach(function(r) {
       if (!_permData[r.restaurant_id]) _permData[r.restaurant_id] = {};
@@ -895,26 +905,14 @@ function renderPermList() {
 
 async function togglePerm(storeId, key, enabled) {
   try {
-    // 先查是否存在
-    var chk = await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions?restaurant_id=eq.'+storeId+'&perm_key=eq.'+key+'&select=id', {
-      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/admin-permissions/toggle', {
+      method: 'POST',
+      headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'},
+      body: JSON.stringify({restaurantId: storeId, permKey: key, enabled: enabled})
     });
-    var rows = await chk.json();
-    if (rows && rows.length > 0) {
-      // 已存在→PATCH
-      await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions?restaurant_id=eq.'+storeId+'&perm_key=eq.'+key, {
-        method: 'PATCH',
-        headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json'},
-        body: JSON.stringify({enabled: enabled})
-      });
-    } else {
-      // 不存在→POST
-      await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions', {
-        method: 'POST',
-        headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json'},
-        body: JSON.stringify({restaurant_id: storeId, perm_key: key, enabled: enabled})
-      });
-    }
+    var data = await res.json();
+    if (!res.ok) { toast('❌ '+(data.error||'更新失败')); return; }
     if (!_permData[storeId]) _permData[storeId] = {};
     _permData[storeId][key] = enabled;
     renderPermList();
@@ -925,15 +923,16 @@ async function togglePerm(storeId, key, enabled) {
 async function loadMyPermissions() {
   if (CURRENT_ROLE !== 'store_admin') return;
   try {
-    var res = await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_permissions?restaurant_id=eq.'+RESTAURANT_ID+'&select=*', {
-      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/admin-permissions/mine', {
+      headers: {'Authorization': 'Bearer ' + token}
     });
     var data = await res.json();
+    if (!Array.isArray(data)) { console.error('loadMyPermissions failed:', data); return; }
     var myPerms = {};
     data.forEach(function(r){ myPerms[r.perm_key] = r.enabled; });
     window._myPerms = myPerms;
     applyPermissions(myPerms);
-    // 如果当前在设置页面，重新渲染让section控制生效
     if (typeof renderSettings === 'function' && typeof _page !== 'undefined' && _page === 'settings') {
       renderSettings();
     }
@@ -994,10 +993,15 @@ function showSupplierModal() {
 
 async function loadAdminAccounts() {
   try {
-    var res = await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_accounts?select=*&order=restaurant_id', {
-      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/store-admin/list', {
+      headers: {'Authorization': 'Bearer ' + token}
     });
     var accounts = await res.json();
+    if (!Array.isArray(accounts)) {
+      console.error('loadAdminAccounts: not super admin?', accounts);
+      return;
+    }
     var el = document.getElementById('admin-accounts-list');
     if (!el) return;
     el.innerHTML = accounts.map(function(a) {
@@ -1017,17 +1021,20 @@ async function updateAdminPwd(id) {
   var input = document.getElementById('new-pwd-' + id);
   var val = input ? input.value : '';
   if (!val || val.length < 6) { toast('⚠️ 密码至少6位'); return; }
-  var encoder = new TextEncoder();
-  var hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(val));
-  var hashHex = Array.from(new Uint8Array(hashBuffer)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
   try {
-    await fetch('https://cnavkgfrqvfuafcbmldg.supabase.co/rest/v1/admin_accounts?id=eq.' + id, {
-      method: 'PATCH',
-      headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json'},
-      body: JSON.stringify({password_hash: hashHex})
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/store-admin/update-password', {
+      method: 'POST',
+      headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'},
+      body: JSON.stringify({id: id, password: val})
     });
-    if (input) input.value = '';
-    toast('✅ 密码已更新');
+    var data = await res.json();
+    if (res.ok) {
+      if (input) input.value = '';
+      toast('✅ 密码已更新');
+    } else {
+      toast('❌ ' + (data.error || '更新失败'));
+    }
   } catch(e) { toast('❌ 更新失败'); }
 }
 
@@ -2460,14 +2467,8 @@ async function addTablesBatch() {
   var added = 0;
   for (var j = 0; j < toAdd.length; j++) {
     try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/table_configs', {
+      var res = await sbFetch('table_configs', {
         method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
         body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: toAdd[j], guest_count: 2})
       });
       if (res.ok) {

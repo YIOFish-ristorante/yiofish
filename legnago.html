@@ -644,39 +644,20 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 // ════════════════════════════════════
 // Supabase 配置
 // ════════════════════════════════════
-var SUPABASE_URL = 'https://cnavkgfrqvfuafcbmldg.supabase.co';
-var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYXZrZ2ZycXZmdWFmY2JtbGRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MTE1MjIsImV4cCI6MjA5MzA4NzUyMn0.JX0ECOAVy-BVklCSsJE5n3j-owz1Ti-GOV4MtrWYlPI';
+// ⚠️ 已迁移到 Worker（v2.5.0）—— anon key 已彻底移除
+var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var RESTAURANT_ID = 'legnago';
 
 function sbFetch(path, opts) {
   opts = opts || {};
-  return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+  return fetch(WORKER_URL + '/public/rest/v1/' + path, {
     method: opts.method || 'GET',
     headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json',
       'Prefer': opts.prefer || 'return=minimal'
     },
     body: opts.body || undefined
   });
-}
-
-async function sbRpc(functionName, args) {
-  var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + encodeURIComponent(functionName), {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    },
-    body: JSON.stringify(args || {})
-  });
-  var txt = await res.text();
-  var j = null;
-  try { j = txt ? JSON.parse(txt) : null; } catch (e) {}
-  return { ok: res.ok, status: res.status, body: j };
 }
 
 // ════════════════════════════════════
@@ -1300,7 +1281,7 @@ function cartTotal() {
 
 function fmt(n) { return '€ ' + Number(n).toFixed(2).replace('.', ','); }
 
-async function addItem(it) {
+function addItem(it) {
   var activeDine = !isAsporto; // 是否堂食
   var mq = it.max_qty || 0;
   var cur = (isAsporto ? cart_asporto : cart_dine)[it.id] || 0;
@@ -1315,7 +1296,8 @@ async function addItem(it) {
   if (!isAsporto) {
     var hasPrice = (parseFloat(it.price) || 0) > 0;
     if (!hasPrice) {
-      var roundCheck = canAddItem(1);
+      // 检查轮次限制
+      var roundCheck = canAddItem();
       if (!roundCheck.ok) {
         toast('⚠️ ' + roundCheck.msg);
         return;
@@ -1361,16 +1343,6 @@ async function addItem(it) {
           return;
         }
       }
-
-      var tnum = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
-      if (tnum && ((SETTINGS.round_max || 0) > 0 || (SETTINGS.round_total || 0) > 0)) {
-        var br = await bumpRoundPending(1, getRoundSoftCapForBump());
-        if (!br.ok) {
-          toast('⚠️ ' + (br.error === 'over_cap' ? 'Limite ayce tavolo: troppi piatti nei carrelli (tutti i telefoni).' : (br.msg || 'Prenotazione tavolo fallita')));
-          return;
-        }
-        adjustPendingBumpAcc(tnum, 1);
-      }
     }
   }
 
@@ -1407,16 +1379,17 @@ function getCatName(catId) {
   return catId;
 }
 
-async function changeQty(it, d) {
+function changeQty(it, d) {
   var c = isAsporto ? cart_asporto : cart_dine;
   var mq = it.max_qty || 0;
   var nv = Math.max(0, (c[it.id] || 0) + d);
   if (d > 0 && mq > 0 && nv > mq) nv = mq;
 
+  // 加菜时检查轮次限制
   if (d > 0 && !isAsporto) {
     var hasPrice2 = (parseFloat(it.price) || 0) > 0;
     if (!hasPrice2) {
-      var roundCheck2 = canAddItem(d);
+      var roundCheck2 = canAddItem();
       if (!roundCheck2.ok) {
         toast('⚠️ ' + roundCheck2.msg);
         return;
@@ -1424,6 +1397,7 @@ async function changeQty(it, d) {
     }
   }
 
+  // 加菜时检查分类限制
   if (d > 0 && !isAsporto) {
     var hasPrice = (parseFloat(it.price) || 0) > 0;
     if (!hasPrice && currentMenuId) {
@@ -1446,19 +1420,6 @@ async function changeQty(it, d) {
     }
   }
 
-  var tnum = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
-  if (!isAsporto && tnum && ((SETTINGS.round_max || 0) > 0 || (SETTINGS.round_total || 0) > 0)) {
-    var hasAyce = (parseFloat(it.price) || 0) === 0;
-    if (hasAyce && d !== 0) {
-      var br = await bumpRoundPending(d, d > 0 ? getRoundSoftCapForBump() : 99999999);
-      if (!br.ok) {
-        toast('⚠️ ' + (br.error === 'over_cap' && d > 0 ? 'Limite ayce tavolo: troppi piatti nei carrelli.' : (br.msg || 'Aggiornamento tavolo fallito')));
-        return;
-      }
-      adjustPendingBumpAcc(tnum, d);
-    }
-  }
-
   c[it.id] = nv;
   if (c[it.id] === 0) delete c[it.id];
   saveCartToLS();
@@ -1478,7 +1439,7 @@ function updateItemUI(itemId) {
     var btn = document.createElement('button');
     btn.className = 'add-btn';
     btn.textContent = '+';
-    (function(i){ btn.onclick = function(){ addItem(i).catch(function(e){ console.error(e); }); }; })(it);
+    (function(i){ btn.onclick = function(){ addItem(i); }; })(it);
     el.appendChild(btn);
   } else if (q === 0 && qs > 0) {
     var div = document.createElement('div');
@@ -1490,7 +1451,7 @@ function updateItemUI(itemId) {
     var bp = document.createElement('button');
     bp.className = 'qbtn';
     bp.textContent = '+';
-    (function(i){ bp.onclick = function(){ addItem(i).catch(function(e){ console.error(e); }); }; })(it);
+    (function(i){ bp.onclick = function(){ addItem(i); }; })(it);
     div.appendChild(sp);
     div.appendChild(bp);
     el.appendChild(div);
@@ -1510,7 +1471,7 @@ function updateItemUI(itemId) {
     var bp = document.createElement('button');
     bp.className = 'qbtn';
     bp.textContent = '+';
-    (function(i){ bm.onclick = function(){ changeQty(i,-1).catch(function(e){ console.error(e); }); }; bp.onclick = function(){ changeQty(i,+1).catch(function(e){ console.error(e); }); }; })(it);
+    (function(i){ bm.onclick = function(){ changeQty(i,-1); }; bp.onclick = function(){ changeQty(i,+1); }; })(it);
     row.appendChild(bm);
     row.appendChild(sp);
     row.appendChild(bp);
@@ -1565,14 +1526,15 @@ function updateCartButtons() {
     var roundRow2 = document.getElementById('round-row');
     if (roundMax > 0 || roundTotal > 0) {
       if (roundRow2) roundRow2.style.display = 'flex';
-      updateRoundUI();
+      if (tVal) loadTableSession(tVal);
+      else updateRoundUI();
     } else {
       if (roundRow2) roundRow2.style.display = 'none';
     }
     if (btnNotify) {
       if (SETTINGS.notify_enabled) {
         btnNotify.style.display = 'block';
-        refreshDineNotifyButtonState();
+        btnNotify.disabled = false;
       } else {
         btnNotify.style.display = 'none';
       }
@@ -1625,7 +1587,7 @@ function renderCartBody() {
       var bm = document.createElement('button'); bm.className = 'qbtn'; bm.textContent = '−';
       var sp = document.createElement('span'); sp.className = 'qnum'; sp.textContent = qty;
       var bp = document.createElement('button'); bp.className = 'qbtn'; bp.textContent = '+';
-      (function(i){ bm.onclick = function(){ changeQty(i,-1).catch(function(e){ console.error(e); }); }; bp.onclick = function(){ changeQty(i,+1).catch(function(e){ console.error(e); }); }; })(it);
+      (function(i){ bm.onclick = function(){ changeQty(i,-1); }; bp.onclick = function(){ changeQty(i,+1); }; })(it);
       qc.appendChild(bm); qc.appendChild(sp); qc.appendChild(bp);
       row.appendChild(th); row.appendChild(info); row.appendChild(qc);
       el.appendChild(row);
@@ -1741,15 +1703,13 @@ async function loadTableSession(tableNum) {
           round_number: 1,
           order_count: 0,
           active_ids: [_clientId],
-          first_order_at: null,
-          round_pending_count: 0
+          first_order_at: null
         })
       });
-      _tableSession = {round_number: 1, order_count: 0, active_ids: [_clientId], first_order_at: null, round_pending_count: 0};
+      _tableSession = {round_number: 1, order_count: 0, active_ids: [_clientId], first_order_at: null};
     }
     updateRoundUI();
     updateGuestCountUI();
-    await reconcileRoundPendingWithServer(tableNum);
     // 启动同步轮询
     startSyncInterval(tableNum);
   } catch(e) { console.log('loadTableSession error:', e); }
@@ -1778,25 +1738,7 @@ function updateGuestCountUI() {
 async function resetTableSession(tableNum) {
   if (!tableNum) return;
   try {
-    var delRes = await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
-    if (!delRes.ok) {
-      var errTxt = await delRes.text().catch(function() { return ''; });
-      toast('❌ Errore reset (' + delRes.status + '): ' + (errTxt || 'richiesta rifiutata').slice(0, 180));
-      return;
-    }
-    var verifyRes = await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum) + '&select=id');
-    if (!verifyRes.ok) {
-      toast('⚠️ Impossibile verificare il reset (' + verifyRes.status + '). Ricarico la sessione…');
-      await loadTableSession(tableNum);
-      return;
-    }
-    var still = await verifyRes.json();
-    if (still && still.length > 0) {
-      toast('❌ Reset non applicato: la sessione esiste ancora (verifica permessi Supabase / n. tavolo).');
-      await loadTableSession(tableNum);
-      return;
-    }
-    clearPendingBumpAcc(tableNum);
+    await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
     _tableSession = null;
     _roundCartCount = 0;
     cart_dine = {};
@@ -1808,238 +1750,49 @@ async function resetTableSession(tableNum) {
   } catch(e) { toast('❌ Errore reset: ' + e.message); }
 }
 
-/** 堂食购物车中计入轮次的件数：仅当前菜单价为 0 的菜（与 addItem / changeQty 一致） */
-function countAycePiecesInDineCart() {
-  var n = 0;
-  for (var id in cart_dine) {
-    var row = getItemForMenu(id);
-    if (row && (parseFloat(row.price) || 0) === 0) n += cart_dine[id];
-  }
-  return n;
-}
-
-/** 轮次时间策略：最后一轮无视 10 分钟窗口（仍可点满本轮 ayce 上限） */
-function dineRoundContext(now) {
-  var roundMax = SETTINGS.round_max || 0;
-  var roundTotal = SETTINGS.round_total || 0;
-  var roundInterval = SETTINGS.round_interval || 0;
-  var t = now ? new Date(now) : new Date();
-  var cur = _tableSession ? (_tableSession.round_number || 1) : 1;
-  var roundLimit = roundMax * guestCount;
-  var roundStart = _tableSession && _tableSession.round_start_at ? new Date(_tableSession.round_start_at) : null;
-  var elapsed = roundStart ? (t - roundStart) / 60000 : 999;
-  var isFinal = roundTotal > 0 && cur >= roundTotal;
-  var inSameRound = !!(roundStart && elapsed < roundInterval) || isFinal;
-  return {
-    roundMax: roundMax, roundTotal: roundTotal, roundInterval: roundInterval,
-    cur: cur, roundLimit: roundLimit, roundStart: roundStart, elapsed: elapsed,
-    isFinal: isFinal, inSameRound: inSameRound
-  };
-}
-
-/** Cap per RPC yio_bump_round_pending: in attesa prossimo turno → molto alto */
-function getRoundSoftCapForBump() {
-  var roundMax = SETTINGS.round_max || 0;
-  var roundTotal = SETTINGS.round_total || 0;
-  if (roundMax === 0) return 99999999;
-  var ctx = dineRoundContext();
-  var cap = ctx.roundLimit;
-  var rs = _tableSession ? (_tableSession.round_sent_count || 0) : 0;
-  var atCap = rs >= cap;
-  var waitingNextRound = _tableSession && roundTotal > 0 && !ctx.isFinal && atCap && ctx.roundStart && ctx.elapsed < ctx.roundInterval;
-  if (waitingNextRound) return 99999999;
-  return cap;
-}
-
-function pendingBumpAccKey(tableNum) {
-  return 'yiofish_bumpacc_' + RESTAURANT_ID + '_' + String(tableNum == null ? '' : tableNum);
-}
-
-function readPendingBumpAcc(tableNum) {
-  return parseInt(sessionStorage.getItem(pendingBumpAccKey(tableNum)) || '0', 10) || 0;
-}
-
-function writePendingBumpAcc(tableNum, n) {
-  sessionStorage.setItem(pendingBumpAccKey(tableNum), String(Math.max(0, n | 0)));
-}
-
-function adjustPendingBumpAcc(tableNum, delta) {
-  writePendingBumpAcc(tableNum, readPendingBumpAcc(tableNum) + delta);
-}
-
-function clearPendingBumpAcc(tableNum) {
-  sessionStorage.removeItem(pendingBumpAccKey(tableNum));
-}
-
-async function bumpRoundPending(delta, softCap) {
-  var tableNum = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
-  if (!tableNum || !RESTAURANT_ID || !delta) {
-    return { ok: true, pending: _tableSession ? (_tableSession.round_pending_count || 0) : 0 };
-  }
-  var res = await sbRpc('yio_bump_round_pending', {
-    p_restaurant_id: RESTAURANT_ID,
-    p_table_number: tableNum,
-    p_delta: delta,
-    p_soft_cap: typeof softCap === 'number' ? softCap : 99999999
-  });
-  var b = res.body;
-  if (Array.isArray(b)) b = b[0];
-  if (!res.ok) {
-    var msg = (b && (b.message || b.hint)) || ('HTTP ' + res.status);
-    return { ok: false, pending: _tableSession ? (_tableSession.round_pending_count || 0) : 0, msg: String(msg) };
-  }
-  if (b && b.ok === false) {
-    return { ok: false, pending: b.pending, sent: b.sent, error: b.error, cap: b.cap };
-  }
-  if (b && typeof b.pending === 'number' && _tableSession) {
-    _tableSession.round_pending_count = b.pending;
-  }
-  return { ok: true, pending: (b && b.pending) || 0, sent: (b && b.sent) };
-}
-
-async function trimAyceCartUntilServerCap(tableNum, softCap) {
-  if (!_tableSession) return;
-  var rs = _tableSession.round_sent_count || 0;
-  var pen = _tableSession.round_pending_count || 0;
-  var cap = typeof softCap === 'number' ? softCap : 99999999;
-  var before = countAycePiecesInDineCart();
-  var changed = false;
-  while (countAycePiecesInDineCart() > 0) {
-    var c = countAycePiecesInDineCart();
-    if (rs + pen + c <= cap) break;
-    var moved = false;
-    for (var id in cart_dine) {
-      var row = getItemForMenu(id);
-      if (row && (parseFloat(row.price) || 0) === 0 && cart_dine[id] > 0) {
-        cart_dine[id]--;
-        if (cart_dine[id] <= 0) delete cart_dine[id];
-        moved = true;
-        changed = true;
-        break;
-      }
-    }
-    if (!moved) break;
-  }
-  var after = countAycePiecesInDineCart();
-  var d = after - before;
-  if (d !== 0) {
-    await bumpRoundPending(d, 99999999);
-    adjustPendingBumpAcc(tableNum, d);
-  }
-  if (changed) {
-    saveCartToLS();
-    ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
-    updateCartUI();
-    toast('⚠️ Carrello ayce ridotto per il limite tavolo (tutti i telefoni)');
-  }
-}
-
-async function reconcileRoundPendingWithServer(tableNum) {
-  if (!tableNum || isAsporto) return;
-  if (!(SETTINGS.round_max || 0) && !(SETTINGS.round_total || 0)) return;
-  if (!_tableSession) return;
-  var soft = getRoundSoftCapForBump();
-  var acc = readPendingBumpAcc(tableNum);
-  var c = countAycePiecesInDineCart();
-  var delta = c - acc;
-  if (delta === 0) return;
-  await trimAyceCartUntilServerCap(tableNum, soft);
-  c = countAycePiecesInDineCart();
-  acc = readPendingBumpAcc(tableNum);
-  delta = c - acc;
-  if (delta === 0) return;
-  var br = await bumpRoundPending(delta, soft);
-  if (!br.ok) {
-    toast('⚠️ Limite tavolo ayce: sincronizzazione fallita. Controlla la connessione o esegui la migration Supabase (round_pending_count + RPC).');
-    return;
-  }
-  adjustPendingBumpAcc(tableNum, delta);
-}
-
-/** 本次将发送的 ayce 件数 pendingAyce 是否允许（0 时不校验，供仅备注/叫服务员） */
-function getAyceRoundBlockReason(pendingAyce) {
-  if (!pendingAyce) return null;
-  var roundMax = SETTINGS.round_max || 0;
-  var roundTotal = SETTINGS.round_total || 0;
-  if (roundMax === 0 && roundTotal === 0) return null;
-  var ctx = dineRoundContext();
-  if (roundTotal > 0 && ctx.cur > roundTotal) {
-    return 'Hai completato tutti i ' + roundTotal + ' turni';
-  }
-  var totalMax = ctx.roundLimit * roundTotal;
-  var oc = _tableSession ? (_tableSession.order_count || 0) : 0;
-  if (roundTotal > 0 && roundMax > 0 && oc + pendingAyce > totalMax) {
-    return 'Limite totale ' + totalMax + ' piatti ayce raggiunto';
-  }
-  if (!_tableSession) {
-    if (pendingAyce > ctx.roundLimit) {
-      return 'Limite turno: massimo ' + ctx.roundLimit + ' piatti ayce';
-    }
-    return null;
-  }
-  var rs = _tableSession ? (_tableSession.round_sent_count || 0) : 0;
-  var prospectiveRound = ctx.cur;
-  var prospectiveSent = rs + pendingAyce;
-  if (!ctx.inSameRound && !ctx.isFinal) {
-    prospectiveRound = Math.min(ctx.cur + 1, roundTotal);
-    prospectiveSent = pendingAyce;
-  }
-  if (prospectiveRound > roundTotal) {
-    return 'Hai completato tutti i ' + roundTotal + ' turni';
-  }
-  if (prospectiveSent > ctx.roundLimit) {
-    if (ctx.isFinal) {
-      return 'Ultimo turno: massimo ' + ctx.roundLimit + ' piatti ayce';
-    }
-    if (ctx.inSameRound && ctx.roundStart && ctx.elapsed < ctx.roundInterval) {
-      var remaining = Math.ceil(ctx.roundInterval - ctx.elapsed);
-      return 'Limite turno: attendi ' + remaining + ' minut' + (remaining === 1 ? 'o' : 'i') + ' o riduci i piatti ayce';
-    }
-    return 'Limite turno: riduci i piatti ayce';
-  }
-  return null;
-}
-
 async function recordRoundSent(tableNum) {
   if (!tableNum) return;
   var roundMax = SETTINGS.round_max || 0;
   var roundTotal = SETTINGS.round_total || 0;
   var roundInterval = SETTINGS.round_interval || 0;
   if (roundMax === 0 && roundTotal === 0) return;
-  var sentCount = countAycePiecesInDineCart();
-  if (sentCount === 0) return;
-
   try {
     var now = new Date();
     var nowISO = now.toISOString();
-    var roundStart = _tableSession && _tableSession.round_start_at ? new Date(_tableSession.round_start_at) : null;
-    var elapsed = roundStart ? (now - roundStart) / 60000 : 999;
-    var isFinal = roundTotal > 0 && (_tableSession ? (_tableSession.round_number || 1) : 1) >= roundTotal;
-    var inSameRound = !!(roundStart && elapsed < roundInterval) || isFinal;
+    var sentCount = 0;
+    for (var id in cart_dine) {
+      var it2 = getItemById(id);
+      if (it2) {
+        var hasP = false;
+        if (it2.menus) { for (var mid in it2.menus) { if ((parseFloat(it2.menus[mid].price)||0)>0){hasP=true;break;} } }
+        if (!hasP) sentCount += cart_dine[id];
+      }
+    }
 
     if (_tableSession) {
+      var roundStart = _tableSession.round_start_at ? new Date(_tableSession.round_start_at) : null;
+      var elapsed = roundStart ? (now - roundStart) / 60000 : 999;
+      var inSameRound = roundStart && elapsed < roundInterval;
+
       var newRound, newRoundStart, newRoundSentCount;
       if (inSameRound) {
         newRound = _tableSession.round_number || 1;
         newRoundStart = _tableSession.round_start_at;
         newRoundSentCount = (_tableSession.round_sent_count || 0) + sentCount;
       } else {
-        newRound = Math.min((_tableSession.round_number || 1) + 1, roundTotal);
+        newRound = (_tableSession.round_number || 1) + 1;
         newRoundStart = nowISO;
         newRoundSentCount = sentCount;
       }
       var newTotalCount = (_tableSession.order_count || 0) + sentCount;
       var firstAt = _tableSession.first_order_at || nowISO;
-      var oldPen = _tableSession.round_pending_count || 0;
-      var newPen = Math.max(0, oldPen - sentCount);
 
       await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {
         method: 'PATCH',
         body: JSON.stringify({
           round_number: newRound, last_sent_at: nowISO,
           order_count: newTotalCount, first_order_at: firstAt,
-          round_start_at: newRoundStart, round_sent_count: newRoundSentCount,
-          round_pending_count: newPen
+          round_start_at: newRoundStart, round_sent_count: newRoundSentCount
         })
       });
       _tableSession.round_number = newRound;
@@ -2048,7 +1801,6 @@ async function recordRoundSent(tableNum) {
       _tableSession.first_order_at = firstAt;
       _tableSession.round_start_at = newRoundStart;
       _tableSession.round_sent_count = newRoundSentCount;
-      _tableSession.round_pending_count = newPen;
     } else {
       await sbFetch('table_sessions', {
         method: 'POST',
@@ -2056,14 +1808,12 @@ async function recordRoundSent(tableNum) {
           restaurant_id: RESTAURANT_ID, table_number: tableNum,
           round_number: 1, last_sent_at: nowISO, order_count: sentCount,
           first_order_at: nowISO, round_start_at: nowISO, round_sent_count: sentCount,
-          round_pending_count: 0,
           active_ids: [_clientId]
         })
       });
       _tableSession = {
         round_number: 1, last_sent_at: nowISO, order_count: sentCount,
-        first_order_at: nowISO, round_start_at: nowISO, round_sent_count: sentCount,
-        round_pending_count: 0
+        first_order_at: nowISO, round_start_at: nowISO, round_sent_count: sentCount
       };
     }
     updateRoundUI();
@@ -2073,54 +1823,43 @@ async function recordRoundSent(tableNum) {
 function getRoundStatus() {
   var roundMax = SETTINGS.round_max || 0;
   var roundTotal = SETTINGS.round_total || 0;
+  var roundInterval = SETTINGS.round_interval || 0;
   if (roundMax === 0 && roundTotal === 0) return {ok: true};
 
-  var ctx = dineRoundContext();
-  if (roundTotal > 0 && ctx.cur > roundTotal) {
+  var currentRound = _tableSession ? (_tableSession.round_number || 1) : 1;
+
+  if (roundTotal > 0 && currentRound > roundTotal) {
     return {ok: false, msg: 'Hai completato tutti i ' + roundTotal + ' turni'};
   }
-  var rs = _tableSession ? (_tableSession.round_sent_count || 0) : 0;
-  if (ctx.roundMax > 0 && rs >= ctx.roundLimit) {
-    if (ctx.isFinal) {
-      return {ok: false, msg: 'Ultimo turno: limite piatti ayce raggiunto'};
-    }
-    if (ctx.inSameRound && ctx.roundStart && ctx.elapsed < ctx.roundInterval) {
-      var remaining = Math.ceil(ctx.roundInterval - ctx.elapsed);
-      return {ok: false, msg: 'Limite turno raggiunto, prossimo turno tra ' + remaining + ' minut' + (remaining === 1 ? 'o' : 'i'), countdown: remaining};
+
+  if (_tableSession && _tableSession.round_start_at && roundMax > 0) {
+    var elapsed = (new Date() - new Date(_tableSession.round_start_at)) / 60000;
+    if (elapsed < roundInterval) {
+      var roundSent = _tableSession.round_sent_count || 0;
+      var roundLimit = roundMax * guestCount;
+      if (roundSent >= roundLimit) {
+        var remaining = Math.ceil(roundInterval - elapsed);
+        return {ok: false, msg: 'Limite turno raggiunto, prossimo turno tra ' + remaining + ' minut' + (remaining===1?'o':'i'), countdown: remaining};
+      }
     }
   }
-  return {ok: true, round: ctx.cur, roundTotal: roundTotal, roundMax: roundMax};
-}
 
-/** 堂食：发送按钮保持可点；被挡时 title 提示，实际拦截在 sendNotify 用 toast */
-function refreshDineNotifyButtonState() {
-  var btnNotify = document.getElementById('btn-notify');
-  if (!btnNotify || !SETTINGS.notify_enabled || isAsporto) return;
-  btnNotify.disabled = false;
-  var pendingAyce = countAycePiecesInDineCart();
-  var ayceSendBlock = pendingAyce > 0 ? getAyceRoundBlockReason(pendingAyce) : null;
-  btnNotify.title = ayceSendBlock || '';
+  return {ok: true, round: currentRound, roundTotal: roundTotal, roundMax: roundMax};
 }
 
 function updateRoundUI() {
+  var status = getRoundStatus();
   var roundMax = SETTINGS.round_max || 0;
   var roundTotal = SETTINGS.round_total || 0;
-  if (roundMax === 0 && roundTotal === 0) {
-    refreshDineNotifyButtonState();
-    return;
-  }
+  if (roundMax === 0 && roundTotal === 0) return;
 
   var roundInfoEl = document.getElementById('round-info');
-  if (!roundInfoEl) {
-    refreshDineNotifyButtonState();
-    return;
-  }
+  if (!roundInfoEl) return;
 
   var currentRound = _tableSession ? (_tableSession.round_number || 1) : 1;
 
   var roundRow = document.getElementById('round-row');
   if (roundRow) roundRow.style.display = 'flex';
-  var status = getRoundStatus();
   if (!status.ok) {
     roundInfoEl.innerHTML = '⏳ ' + status.msg;
     roundInfoEl.style.color = '#e74c3c';
@@ -2130,43 +1869,44 @@ function updateRoundUI() {
     roundInfoEl.innerHTML = '🍽️ ' + roundText + maxText;
     roundInfoEl.style.color = 'var(--gold)';
   }
-  refreshDineNotifyButtonState();
 }
 
-function canAddItem(delta) {
+function canAddItem() {
   var roundMax = SETTINGS.round_max || 0;
   var roundTotal = SETTINGS.round_total || 0;
   if (roundMax === 0 && roundTotal === 0) return {ok: true};
-  var d = (typeof delta === 'number' && delta > 0) ? delta : 1;
+  // 注意：加菜时不检查间隔，只有发送时才检查
 
   var thisRoundCount = 0;
   for (var k in cart_dine) {
-    var row = getItemForMenu(k);
-    if (row && (parseFloat(row.price) || 0) === 0) {
+    var kit = getItemForMenu(k);
+    if (kit && (parseFloat(kit.price) || 0) === 0) {
       thisRoundCount += cart_dine[k];
     }
   }
+  var roundInterval = SETTINGS.round_interval || 0;
+  var roundSentCount = 0;
+  if (_tableSession && _tableSession.round_start_at) {
+    var elapsed = (new Date() - new Date(_tableSession.round_start_at)) / 60000;
+    if (elapsed < roundInterval) {
+      roundSentCount = _tableSession.round_sent_count || 0;
+    }
+  }
+  var roundLimit = roundMax * guestCount;
+  var totalThisRound = roundSentCount + thisRoundCount;
+  if (roundMax > 0 && totalThisRound >= roundLimit) {
+    var remaining = Math.max(0, roundLimit - roundSentCount);
+    return {ok: false, msg: 'Limite turno: max ' + remaining + ' piatti rimanenti questo turno'};
+  }
 
+  // 总量检查（跨设备）：order_count（已发送）+ 本轮cart_dine
   if (roundMax > 0 && roundTotal > 0) {
     var totalMax = roundMax * guestCount * roundTotal;
     var alreadySent = _tableSession ? (_tableSession.order_count || 0) : 0;
     if (alreadySent + thisRoundCount >= totalMax) {
-      return {ok: false, msg: 'Limite totale ayce: max ' + totalMax + ' piatti (' + roundMax + '/turno × ' + guestCount + ' persone × ' + roundTotal + ' turni)'};
+      return {ok: false, msg: 'Limite totale raggiunto: max ' + totalMax + ' piatti (' + roundMax + '/turno × ' + guestCount + ' persone × ' + roundTotal + ' turni)'};
     }
   }
-
-  if (roundMax > 0 && _tableSession) {
-    var ctx = dineRoundContext();
-    var rs = _tableSession.round_sent_count || 0;
-    var pen = _tableSession.round_pending_count || 0;
-    var cap = ctx.roundLimit;
-    var waitingNextRound = roundTotal > 0 && !ctx.isFinal && (rs >= cap) && ctx.roundStart && ctx.elapsed < ctx.roundInterval;
-    if (!waitingNextRound && rs + pen + d > cap) {
-      var rem = Math.max(0, cap - rs - pen);
-      return {ok: false, msg: 'Limite turno (tavolo): posti ayce insufficienti (restano ca. ' + rem + ' tra tutti i telefoni). Attendi la sincronizzazione.'};
-    }
-  }
-
   return {ok: true};
 }
 
@@ -2210,15 +1950,15 @@ function confirmResetRound() {
   resetTableSession(tableNum);
 }
 
-async function sendNotify() {
+function sendNotify() {
   var tableNum = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
   if (!tableNum) { toast('⚠️ Inserisci il numero del tavolo'); return; }
   var note = (document.getElementById('order-note') || {}).value || '';
   note = note.trim();
   if (!cartCount() && !note) { toast('⚠️ Aggiungi piatti o scrivi una nota'); return; }
-  var pendingAyce = countAycePiecesInDineCart();
-  var ayceBlock = getAyceRoundBlockReason(pendingAyce);
-  if (ayceBlock) { toast('⚠️ ' + ayceBlock); return; }
+  // 发送前检查间隔限制
+  var roundStatus = getRoundStatus();
+  if (!roundStatus.ok) { toast('⚠️ ' + roundStatus.msg); return; }
   var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Legnago*', '', '🪑 Tavolo: ' + tableNum, ''];
   for (var id in cart_dine) {
     var it = getItemForMenu(id);
@@ -2226,9 +1966,7 @@ async function sendNotify() {
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
   if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
-  if (pendingAyce > 0) {
-    await recordRoundSent(tableNum);
-  }
+  // 把已发送的菜品合并进sent记录，清空当前购物车
   for (var sid in cart_dine) {
     cart_dine_sent[sid] = (cart_dine_sent[sid] || 0) + cart_dine[sid];
   }
@@ -2236,8 +1974,8 @@ async function sendNotify() {
   saveCartToLS();
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
-  writePendingBumpAcc(tableNum, 0);
-  toast('✅ Richiesta pronta — apri WhatsApp per inviarla');
+  // 记录轮次
+  recordRoundSent(tableNum);
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
@@ -2314,7 +2052,6 @@ function sendOrder() {
   saveCartToLS();
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
-  toast('✅ Ordine pronto — apri WhatsApp per inviarlo');
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
@@ -2336,20 +2073,10 @@ document.getElementById('cart-fab').onclick = openCart;
 document.getElementById('cart-close').onclick = closeCart;
 document.getElementById('cart-overlay').onclick = closeCart;
 var btnDine = document.getElementById('btn-clear-dine');
-if (btnDine) btnDine.onclick = async function() {
-  var tableNum = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
-  var n = countAycePiecesInDineCart();
-  if (n > 0 && tableNum && !isAsporto && ((SETTINGS.round_max || 0) > 0 || (SETTINGS.round_total || 0) > 0)) {
-    var br = await bumpRoundPending(-n, 99999999);
-    if (!br.ok) {
-      toast('⚠️ ' + (br.error === 'no_session' ? 'Sessione tavolo assente: inserisci il tavolo e riprova.' : (br.msg || 'Impossibile aggiornare il conteggio tavolo')));
-      return;
-    }
-  }
+if (btnDine) btnDine.onclick = function() {
   cart_dine = {};
   cart_dine_sent = {};
   clearCartLS();
-  if (tableNum) writePendingBumpAcc(tableNum, 0);
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
 };
