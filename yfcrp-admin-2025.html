@@ -207,6 +207,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 .lock-error { color: #c0392b; font-size: 11px; letter-spacing: 1px; margin-top: 14px; min-height: 16px; }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- yio-error-log -->
+  <script src="/yio-error-log.js?app=yfcrp-admin"></script>
 </head>
 <body>
 
@@ -216,7 +219,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.1</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -276,7 +279,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.1</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -319,6 +322,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     </button>
     <button class="s-btn" id="nav-backup" onclick="downloadBackup()" style="display:none;">
       <span class="s-ico">📦</span>数据备份
+    </button>
+    <button class="s-btn" id="nav-errorlog" onclick="showPage('errorlog')" style="display:none;">
+      <span class="s-ico">📋</span>错误日志
     </button>
   </aside>
   <main class="content" id="content">
@@ -495,7 +501,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.1</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -524,7 +530,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.1</span>';
   }
   loadAll();
 }
@@ -873,6 +879,8 @@ async function loadAll() {
       if (permBtn) permBtn.style.display = '';
       var backupBtn = document.getElementById('nav-backup');
       if (backupBtn) backupBtn.style.display = '';
+      var errBtn = document.getElementById('nav-errorlog');
+      if (errBtn) errBtn.style.display = '';
       // 显示店铺切换器
       var switcher = document.getElementById('store-switcher');
       if (switcher) {
@@ -1088,6 +1096,118 @@ async function downloadBackup() {
   }
 }
 
+// ════════════════════════════════════════════════════════════
+// 错误日志页面（super_admin 用）
+// ════════════════════════════════════════════════════════════
+var _errLogFilter = { app: '', showResolved: false };
+
+async function renderErrorLogPage() {
+  var content = document.getElementById('content');
+  if (!content) return;
+  content.innerHTML = 
+    '<div style="padding:0;">'
+    + '<div class="page-head"><div><h1>📋 错误日志</h1><p>所有前端 JS 错误的实时记录</p></div></div>'
+    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">'
+    + '  <select id="errlog-app-filter" onchange="errLogFilterChange()" class="form-control" style="width:auto;padding:6px 10px;">'
+    + '    <option value="">全部应用</option>'
+    + '    <option value="cucina">cucina</option>'
+    + '    <option value="yfcrp-admin">yfcrp-admin</option>'
+    + '    <option value="carpi">carpi</option>'
+    + '    <option value="legnago">legnago</option>'
+    + '    <option value="register">register</option>'
+    + '  </select>'
+    + '  <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:#666;">'
+    + '    <input type="checkbox" id="errlog-show-resolved" onchange="errLogFilterChange()"> 显示已解决'
+    + '  </label>'
+    + '  <button class="btn btn-sm" onclick="loadErrorLogs()">🔄 刷新</button>'
+    + '  <button class="btn btn-sm" onclick="clearOldErrorLogs()" style="margin-left:auto;background:#eee;color:#666;">🗑 清理 30 天前已解决</button>'
+    + '</div>'
+    + '<div id="errlog-list" style="display:flex;flex-direction:column;gap:8px;">加载中...</div>'
+    + '</div>';
+  document.getElementById('errlog-show-resolved').checked = _errLogFilter.showResolved;
+  document.getElementById('errlog-app-filter').value = _errLogFilter.app;
+  await loadErrorLogs();
+}
+
+function errLogFilterChange() {
+  _errLogFilter.app = document.getElementById('errlog-app-filter').value;
+  _errLogFilter.showResolved = document.getElementById('errlog-show-resolved').checked;
+  loadErrorLogs();
+}
+
+async function loadErrorLogs() {
+  var listEl = document.getElementById('errlog-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#999;">加载中...</div>';
+
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+  var url = WORKER_URL + '/admin/error-logs?limit=200';
+  if (_errLogFilter.showResolved) url += '&all=1';
+  if (_errLogFilter.app) url += '&app=' + encodeURIComponent(_errLogFilter.app);
+
+  try {
+    var res = await fetch(url, { headers: {'Authorization': 'Bearer ' + token}, cache:'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var logs = await res.json();
+    if (!Array.isArray(logs) || logs.length === 0) {
+      listEl.innerHTML = '<div style="padding:40px;text-align:center;color:#999;">✨ 没有错误，一切正常！</div>';
+      return;
+    }
+    listEl.innerHTML = logs.map(function(log) {
+      var color = log.level === 'error' ? '#e74c3c' : (log.level === 'warning' ? '#f39c12' : '#3498db');
+      var dt = new Date(log.created_at);
+      var when = dt.toLocaleString('it-IT', {hour12: false});
+      return '<div style="border:1px solid #eee;border-left:4px solid ' + color + ';border-radius:8px;padding:12px 16px;background:' + (log.resolved ? '#f8f8f8' : '#fff') + ';' + (log.resolved ? 'opacity:0.6;' : '') + '">'
+        + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;">'
+        + '  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">'
+        + '    <span style="background:' + color + ';color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">' + escapeHtml(log.app) + '</span>'
+        + (log.restaurant_id ? '    <span style="background:#eee;color:#666;padding:2px 8px;border-radius:4px;font-size:11px;">🏪 ' + escapeHtml(log.restaurant_id) + '</span>' : '')
+        + (log.user_name ? '    <span style="background:#eee;color:#666;padding:2px 8px;border-radius:4px;font-size:11px;">👤 ' + escapeHtml(log.user_name) + '</span>' : '')
+        + '    <span style="color:#999;font-size:12px;">' + when + '</span>'
+        + '  </div>'
+        + (log.resolved ? '<span style="color:#27ae60;font-size:11px;">✓ 已解决</span>' : '<button class="btn btn-sm" onclick="resolveError(' + log.id + ')" style="padding:4px 10px;font-size:12px;background:#27ae60;color:#fff;">标记已解决</button>')
+        + '</div>'
+        + '<div style="font-size:13px;font-weight:600;color:#2c2418;margin-bottom:6px;word-break:break-word;">' + escapeHtml(log.message) + '</div>'
+        + (log.stack ? '<details style="margin-top:6px;"><summary style="cursor:pointer;font-size:11px;color:#999;">查看堆栈</summary><pre style="font-size:11px;background:#fafafa;padding:8px;border-radius:4px;margin-top:6px;overflow-x:auto;color:#666;white-space:pre-wrap;">' + escapeHtml(log.stack) + '</pre></details>' : '')
+        + (log.url ? '<div style="font-size:11px;color:#999;margin-top:6px;">📍 ' + escapeHtml(log.url) + '</div>' : '')
+        + '</div>';
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#e74c3c;">加载失败: ' + e.message + '</div>';
+  }
+}
+
+async function resolveError(id) {
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+  try {
+    var res = await fetch(WORKER_URL + '/admin/error-logs/resolve', {
+      method: 'POST',
+      headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'},
+      body: JSON.stringify({id: id})
+    });
+    if (res.ok) {
+      toast('✅ 已标记');
+      loadErrorLogs();
+    } else throw new Error('HTTP ' + res.status);
+  } catch(e) { toast('❌ 失败: ' + e.message); }
+}
+
+async function clearOldErrorLogs() {
+  if (!confirm('清理 30 天前的已解决错误日志？')) return;
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+  try {
+    var res = await fetch(WORKER_URL + '/admin/error-logs/clear', {
+      method: 'POST',
+      headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'},
+      body: JSON.stringify({days: 30})
+    });
+    if (res.ok) {
+      toast('✅ 清理完成');
+      loadErrorLogs();
+    } else throw new Error('HTTP ' + res.status);
+  } catch(e) { toast('❌ 失败: ' + e.message); }
+}
+
 async function loadAdminAccounts() {
   try {
     var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
@@ -1140,7 +1260,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.1</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1399,6 +1519,14 @@ function showPage(p){
       _permActiveStore = STORES[0].id;
       loadPermissions();
     }
+    return;
+  }
+  if (p === 'errorlog') {
+    _page = 'errorlog';
+    document.querySelectorAll('.s-btn').forEach(function(b){ b.classList.remove('active'); });
+    var nb = document.getElementById('nav-errorlog');
+    if (nb) nb.classList.add('active');
+    renderErrorLogPage();
     return;
   }
   _page = p;
