@@ -525,12 +525,16 @@ function selectStore(storeId) {
 
 function sbFetch(path, opts) {
   opts = opts || {};
+  var token = '';
+  try { token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN || ''; } catch(e) {}
+  var headers = {
+    'Content-Type': 'application/json',
+    'Prefer': opts.prefer || 'return=minimal'
+  };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
   var fetchOpts = {
     method: opts.method || 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Prefer': opts.prefer || 'return=minimal'
-    }
+    headers: headers
   };
   if (opts.body) fetchOpts.body = opts.body;
   return fetch(WORKER_URL + '/public/rest/v1/' + path, fetchOpts);
