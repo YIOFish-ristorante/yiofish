@@ -649,21 +649,29 @@ function toggleLockPwd() {
   }
 }
 
-function handleGoogleLogin(response) {
+async function handleGoogleLogin(response) {
   try {
     // 解析JWT token获取用户信息
     var payload = JSON.parse(atob(response.credential.split('.')[1]));
     var email = payload.email;
     var errEl = document.getElementById('lock-error');
 
-    if (ALLOWED_EMAILS.length === 0 || ALLOWED_EMAILS.indexOf(email) >= 0) {
-      // 登录成功
+    // 走 Worker 验证邮箱白名单 + 拿 super_admin token
+    var res = await fetch(WORKER_URL + '/google-admin/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: email})
+    });
+    var data = await res.json();
+    if (res.ok && data.token) {
+      ADMIN_TOKEN = data.token;
+      CURRENT_ROLE = 'super';
       try { sessionStorage.setItem(_lockSession, email); } catch(e) {}
+      try { sessionStorage.setItem('yf_admin_token', data.token); } catch(e) {}
       document.getElementById('lock-screen').style.display = 'none';
       loadAll();
     } else {
-      // 邮箱不在白名单
-      if (errEl) errEl.textContent = 'ACCESSO NON AUTORIZZATO: ' + email;
+      if (errEl) errEl.textContent = 'ACCESSO NON AUTORIZZATO: ' + (data.error || email);
     }
   } catch(e) {
     var errEl = document.getElementById('lock-error');
