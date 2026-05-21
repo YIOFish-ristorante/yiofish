@@ -462,7 +462,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.0.6 · 2026-05-21</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.1.0 · 2026-05-21</span></div>
 </div>
 </div>
 
@@ -668,7 +668,10 @@ var CATS = [];
 var ALL_ITEMS = [];
 var DISH_MENUS = [];
 var SETTINGS = {notify_enabled: false, takeaway_enabled: true, is_open: true};
-var TAGS = {"1":{"label":"Glutine","color":"#95a5a6","icon":"🌾"},"2":{"label":"Crostacei","color":"#2980b9","icon":"🦐"},"3":{"label":"Uova","color":"#f39c12","icon":"🥚"},"4":{"label":"Pesce","color":"#3498db","icon":"🐟"},"6":{"label":"Soia","color":"#16a085","icon":"🫘"},"7":{"label":"Latte","color":"#f1c40f","icon":"🥛"},"8":{"label":"Frutta a guscio","color":"#e74c3c","icon":"🌰"},"11":{"label":"Sesamo","color":"#e67e22","icon":"🌱"},"14":{"label":"Molluschi","color":"#2980b9","icon":"🦑"},"piccante":{"label":"Piccante","color":"#c0392b","icon":"🌶"},"vegano":{"label":"Vegano","color":"#27ae60","icon":"🌿"},"new":{"label":"Novità","color":"#8e44ad","icon":"✨"}};
+// 过敏源标签 - 运行时从 restaurant_tags 表加载（按 RESTAURANT_ID 独立）
+var TAGS = {};
+// 默认 fallback（数据库无数据时使用）
+var DEFAULT_TAGS = {"1":{"label":"Glutine","color":"#95a5a6","icon":"🌾"},"2":{"label":"Crostacei","color":"#2980b9","icon":"🦐"},"3":{"label":"Uova","color":"#f39c12","icon":"🥚"},"4":{"label":"Pesce","color":"#3498db","icon":"🐟"},"6":{"label":"Soia","color":"#16a085","icon":"🫘"},"7":{"label":"Latte","color":"#f1c40f","icon":"🥛"},"8":{"label":"Frutta a guscio","color":"#e74c3c","icon":"🌰"},"11":{"label":"Sesamo","color":"#e67e22","icon":"🌱"},"14":{"label":"Molluschi","color":"#2980b9","icon":"🦑"},"piccante":{"label":"Piccante","color":"#c0392b","icon":"🌶"},"vegano":{"label":"Vegano","color":"#27ae60","icon":"🌿"},"new":{"label":"Novità","color":"#8e44ad","icon":"✨"}};
 
 var MENU_CONFIGS = {}; // 从Supabase加载
 var MENU_CAT_LIMITS = {}; // {menuId: {catId: limit}}
@@ -787,23 +790,40 @@ async function loadAll() {
       };
     });
 
-    // dish_menus超过1000条，分3次加载
-    var [dm1Res, dm2Res, dm3Res] = await Promise.all([
+    // dish_menus超过1000条，分3次加载 + 同时加载本店标签
+    var [dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000')
+      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
+      sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
     var dishMenus = (await dm1Res.json()).concat(await dm2Res.json()).concat(await dm3Res.json());
     DISH_MENUS = dishMenus;
 
-    // 合并菜品和菜单价格
+    // 加载本店过敏源标签
+    var tagsData = await tagsRes.json();
+    if (Array.isArray(tagsData) && tagsData.length > 0) {
+      TAGS = {};
+      tagsData.forEach(function(t){
+        TAGS[t.tag_id] = {label: t.label, color: t.color, icon: t.icon};
+      });
+    } else {
+      TAGS = JSON.parse(JSON.stringify(DEFAULT_TAGS));
+    }
+
+    // 合并菜品和菜单价格（tags + sold_out 从 dish_menus 读，按店独立）
     ALL_ITEMS = dishes.map(function(d) {
       var menus = {};
+      var soldOut = false;
+      var dishTags = null;
       DISH_MENUS.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
           menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0 };
+          if (dm.sold_out === true) soldOut = true;
+          if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
-      return { id: d.id, category: d.category_id, name: d.name, desc: d.description, image: d.image, tags: d.tags || [], sold_out: d.sold_out, menus: menus };
+      if (dishTags === null) dishTags = d.tags || [];
+      return { id: d.id, category: d.category_id, name: d.name, desc: d.description, image: d.image, tags: dishTags, sold_out: soldOut, menus: menus };
     });
 
     document.getElementById('loading-overlay').style.display = 'none';
@@ -875,19 +895,33 @@ async function reloadMenuData() {
         menuLimit: mc.menu_limit || 0
       };
     });
-    var [dm1Res, dm2Res, dm3Res] = await Promise.all([
+    var [dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
       sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000')
+      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
+      sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
     DISH_MENUS = (await dm1Res.json()).concat(await dm2Res.json()).concat(await dm3Res.json());
+    // 重载标签
+    var tagsData = await tagsRes.json();
+    if (Array.isArray(tagsData) && tagsData.length > 0) {
+      TAGS = {};
+      tagsData.forEach(function(t){
+        TAGS[t.tag_id] = {label: t.label, color: t.color, icon: t.icon};
+      });
+    }
     ALL_ITEMS = dishes.map(function(d) {
       var menus = {};
+      var soldOut = false;
+      var dishTags = null;
       DISH_MENUS.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
           menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0 };
+          if (dm.sold_out === true) soldOut = true;
+          if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
-      return { id: d.id, category: d.category_id, name: d.name, desc: d.description||'', image: d.image||'', tags: d.tags||[], sold_out: d.sold_out||false, menus: menus };
+      if (dishTags === null) dishTags = d.tags || [];
+      return { id: d.id, category: d.category_id, name: d.name, desc: d.description||'', image: d.image||'', tags: dishTags, sold_out: soldOut, menus: menus };
     });
     if (currentMenuId) openMenuView(currentMenuId);
   } catch(e) { console.log('reload failed:', e); }
