@@ -475,7 +475,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.7 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.8 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -1325,8 +1325,14 @@ function mkCard(it, delay) {
     sb.textContent = 'Esaurito';
     iw.appendChild(sb);
   }
-  // 在 ASPORTO 视图 + CONSEGNA 模式下，所有菜的折扣统一变成 CONSEGNA_SCONTO
-  var displaySconto = (isAsporto && order_mode === 'consegna') ? CONFIG.CONSEGNA_SCONTO : (it.sconto || 0);
+  // 折扣徽章（数据驱动：sconto=0 的菜永不显示徽章）
+  var dbSconto = it.sconto || 0;
+  var displaySconto;
+  if (isAsporto && order_mode === 'consegna') {
+    displaySconto = dbSconto > 0 ? CONFIG.CONSEGNA_SCONTO : 0;
+  } else {
+    displaySconto = dbSconto;
+  }
   if (displaySconto > 0) {
     var scb = document.createElement('div');
     scb.className = 'scbadge';
@@ -1382,7 +1388,8 @@ function mkCard(it, delay) {
   var prdiv = document.createElement('div');
   prdiv.className = 'cprice';
   var dispPrice = effectivePrice(it);
-  var effSconto = (isAsporto && order_mode === 'consegna') ? CONFIG.CONSEGNA_SCONTO : (it.sconto || 0);
+  // 用上面已计算的 displaySconto，避免重复
+  var effSconto = displaySconto;
   if (dispPrice > 0) {
     var sym = document.createElement('span');
     sym.className = 'sym';
@@ -1435,10 +1442,18 @@ function cartCount() {
 }
 
 // 取单品在当前购物车模式下的实际单价（已应用折扣）
+// 数据驱动：只有数据库 sconto > 0 的菜才会在 CONSEGNA 模式下也享受 10% 折扣
+// 后台把某菜的 ASPORTO sconto 清零 → ASPORTO 和 CONSEGNA 都不打折（适合酒水/甜点）
 function effectivePrice(it) {
   if (!it) return 0;
-  // 仅在 asporto 视图 + consegna 模式 时用全局 10%，否则用 DB sconto
-  var sconto = (isAsporto && order_mode === 'consegna') ? CONFIG.CONSEGNA_SCONTO : (it.sconto || 0);
+  var dbSconto = it.sconto || 0;
+  var sconto;
+  if (isAsporto && order_mode === 'consegna') {
+    // CONSEGNA 模式：仅当数据库本来就有折扣时才用 10% 覆盖
+    sconto = dbSconto > 0 ? CONFIG.CONSEGNA_SCONTO : 0;
+  } else {
+    sconto = dbSconto;
+  }
   return sconto > 0 ? it.price * (1 - sconto/100) : it.price;
 }
 
