@@ -473,7 +473,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.3 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.5 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -556,20 +556,6 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 
     <!-- ── ASPORTO / CONSEGNA 区域 ── -->
     <div id="asporto-section" style="display:none">
-
-      <!-- 模式切换 -->
-      <div id="mode-switch" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
-        <button id="mode-btn-asporto" onclick="setOrderMode('asporto')" type="button"
-          style="background:#d4ab48;color:#1a1510;border:none;border-radius:var(--r);padding:10px 6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:1px;">
-          📦 ASPORTO
-          <div style="font-size:10px;font-weight:300;opacity:.8;margin-top:2px;">Ritiro · −20%</div>
-        </button>
-        <button id="mode-btn-consegna" onclick="setOrderMode('consegna')" type="button"
-          style="background:transparent;color:#ede5d4;border:1px solid rgba(255,255,255,.2);border-radius:var(--r);padding:10px 6px;font-size:12px;font-weight:400;cursor:pointer;font-family:inherit;letter-spacing:1px;">
-          🛵 CONSEGNA
-          <div style="font-size:10px;font-weight:300;opacity:.7;margin-top:2px;">A domicilio · −10%</div>
-        </button>
-      </div>
 
       <!-- 配送须知（仅 CONSEGNA 显示） -->
       <div id="consegna-info" style="display:none;background:rgba(212,171,72,.1);border:1px solid rgba(212,171,72,.3);border-radius:var(--r);padding:8px 10px;margin-bottom:10px;font-size:11px;color:#d4ab48;line-height:1.5;">
@@ -1155,10 +1141,18 @@ function openMenuView(menuId) {
 
   var cfg = MENU_CONFIG[menuId] || {label: menuId, emoji: '🍽️', color: '#c8a84c'};
 
-  // 设置徽章
+  // 设置徽章（ASPORTO 菜单按模式动态显示）
   var badge = document.getElementById('menu-badge');
-  badge.textContent = cfg.emoji + ' ' + cfg.label.toUpperCase();
-  badge.style.background = cfg.color;
+  if (isAsporto && order_mode === 'consegna') {
+    badge.textContent = '🛵 CONSEGNA';
+    badge.style.background = '#2196f3';
+  } else if (isAsporto) {
+    badge.textContent = '📦 ASPORTO';
+    badge.style.background = '#e67e22';
+  } else {
+    badge.textContent = cfg.emoji + ' ' + cfg.label.toUpperCase();
+    badge.style.background = cfg.color;
+  }
 
   // 设置信息行
   var info = document.getElementById('menu-info');
@@ -1329,10 +1323,12 @@ function mkCard(it, delay) {
     sb.textContent = 'Esaurito';
     iw.appendChild(sb);
   }
-  if (it.sconto > 0) {
+  // 在 ASPORTO 视图 + CONSEGNA 模式下，所有菜的折扣统一变成 CONSEGNA_SCONTO
+  var displaySconto = (isAsporto && order_mode === 'consegna') ? CONFIG.CONSEGNA_SCONTO : (it.sconto || 0);
+  if (displaySconto > 0) {
     var scb = document.createElement('div');
     scb.className = 'scbadge';
-    scb.textContent = '-' + it.sconto + '%';
+    scb.textContent = '-' + displaySconto + '%';
     iw.appendChild(scb);
   }
   if (it.max_qty > 0) {
@@ -1384,8 +1380,8 @@ function mkCard(it, delay) {
     prdiv.appendChild(document.createTextNode(' ' + Number(dispPrice).toFixed(2).replace('.', ',')));
     if (effSconto > 0) {
       var orig = document.createElement('span');
-      orig.style.cssText = 'font-size:10px;color:var(--muted2);text-decoration:line-through;margin-left:4px;';
-      orig.textContent = Number(it.price).toFixed(2).replace('.', ',');
+      orig.style.cssText = 'font-size:13px;color:rgba(237,229,212,.55);text-decoration:line-through;margin-left:6px;font-weight:400;';
+      orig.textContent = '€ ' + Number(it.price).toFixed(2).replace('.', ',');
       prdiv.appendChild(orig);
     }
   }
@@ -2251,20 +2247,6 @@ function setOrderMode(mode) {
 
 function applyOrderModeUI() {
   var isC = (order_mode === 'consegna');
-  var btnA = document.getElementById('mode-btn-asporto');
-  var btnC = document.getElementById('mode-btn-consegna');
-  if (btnA) {
-    btnA.style.background = isC ? 'transparent' : '#d4ab48';
-    btnA.style.color = isC ? '#ede5d4' : '#1a1510';
-    btnA.style.border = isC ? '1px solid rgba(255,255,255,.2)' : 'none';
-    btnA.style.fontWeight = isC ? '400' : '500';
-  }
-  if (btnC) {
-    btnC.style.background = isC ? '#d4ab48' : 'transparent';
-    btnC.style.color = isC ? '#1a1510' : '#ede5d4';
-    btnC.style.border = isC ? 'none' : '1px solid rgba(255,255,255,.2)';
-    btnC.style.fontWeight = isC ? '500' : '400';
-  }
   // 显示/隐藏 consegna 字段
   var info = document.getElementById('consegna-info');
   if (info) info.style.display = isC ? 'block' : 'none';
