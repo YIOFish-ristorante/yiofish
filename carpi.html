@@ -284,6 +284,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .cph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 44px; background: linear-gradient(135deg, var(--card2), var(--card)); }
 .scbadge { position: absolute; bottom: 8px; left: 8px; background: #27ae60; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
 .mqbadge { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.72); color: var(--gold); font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--gold); }
+.mqbadge.under-new { top: 38px; } /* NEW 徽章存在时 mqbadge 下移 */
+.newbadge { position: absolute; top: 8px; right: 8px; background: #e74c3c; color: #fff; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 10px; letter-spacing: 1px; box-shadow: 0 2px 6px rgba(231,76,60,.5); }
 .sbadge { position: absolute; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; font-size: 12px; letter-spacing: 3px; color: #fff; text-transform: uppercase; }
 .cbody { padding: 12px; display: flex; flex-direction: column; flex: 1; gap: 6px; }
 .ctags { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -473,7 +475,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.6 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.7 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -1331,9 +1333,17 @@ function mkCard(it, delay) {
     scb.textContent = '-' + displaySconto + '%';
     iw.appendChild(scb);
   }
+  // NEW 徽章（任何带 "new" 标签的菜品都显示，所有菜单都生效）
+  var isNew = (it.tags || []).indexOf('new') >= 0;
+  if (isNew) {
+    var nb = document.createElement('div');
+    nb.className = 'newbadge';
+    nb.textContent = 'NEW';
+    iw.appendChild(nb);
+  }
   if (it.max_qty > 0) {
     var mb = document.createElement('div');
-    mb.className = 'mqbadge';
+    mb.className = 'mqbadge' + (isNew ? ' under-new' : '');
     mb.textContent = 'max ' + it.max_qty;
     iw.appendChild(mb);
   }
@@ -1343,6 +1353,7 @@ function mkCard(it, delay) {
   var te = document.createElement('div');
   te.className = 'ctags';
   (it.tags || []).forEach(function(t) {
+    if (t === 'new') return; // 已经在图片上显示了 NEW 徽章，底部不再重复
     var td = TAGS[t];
     if (!td) return;
     var sp = document.createElement('span');
