@@ -305,18 +305,20 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .cov { position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 900; opacity: 0; pointer-events: none; transition: opacity .25s; }
 .cov.on { opacity: 1; pointer-events: all; }
 .cdr {
-  position: fixed; right: 0; top: 0; bottom: 0;
+  position: fixed; right: 0; top: 0;
   width: 100%; max-width: min(440px, 100vw);
+  height: 100vh; /* fallback */
+  height: 100dvh; /* iOS/Android 软键盘弹出时自动缩小 */
   background: var(--surface); border-left: 1px solid var(--border);
   z-index: 910; display: flex; flex-direction: column;
   transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
   overflow: hidden;
 }
 .cdr.on { transform: translateX(0); }
-.chd { padding: 16px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.chd { padding: 16px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .chd h2 { font-family: "Cormorant Garamond", serif; font-size: 22px; font-weight: 300; letter-spacing: 2px; }
 .ccls { background: none; border: none; color: var(--muted2); font-size: 24px; padding: 4px; cursor: pointer; }
-.cbdy { flex: 1; overflow-y: auto; padding: 8px 0; }
+.cbdy { flex: 1; overflow-y: auto; padding: 8px 0; min-height: 0; }
 .cempty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted2); gap: 12px; }
 .ci { display: flex; gap: 6px; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); overflow: hidden; }
 .ci-th { width: 44px; height: 44px; flex-shrink: 0; border-radius: 2px; overflow: hidden; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 20px; }
@@ -327,7 +329,13 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .ci-qty { display: flex; align-items: center; border: 1px solid var(--border2); border-radius: var(--r); overflow: hidden; flex-shrink: 0; }
 .ci-qty .qbtn { width: 26px; height: 28px; font-size: 15px; }
 .ci-qty .qnum { min-width: 22px; font-size: 12px; }
-.cft { border-top: 1px solid var(--border); padding: 16px 14px 28px; }
+.cft {
+  border-top: 1px solid var(--border);
+  padding: 12px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
+  overflow-y: auto;
+  max-height: 65vh; /* 表单太长可滚动 */
+}
 .csub { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
 .csub span:first-child { font-size: 12px; color: var(--muted2); }
 .ctotal { font-family: "Cormorant Garamond", serif; font-size: 28px; font-weight: 300; color: var(--gold); }
@@ -443,7 +451,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
   </div>
   <div class="action-row">
     <button class="btn btn-ghost" onclick="openModal('reservationModal')">PRENOTA</button>
-    <button class="btn btn-ghost" onclick="openMenuView('asporto')">TAKEAWAY</button>
+    <button class="btn btn-ghost" onclick="openTakeawayChoice()">TAKEAWAY</button>
   </div>
   <div class="status" id="status">CARICAMENTO...</div>
   <button class="btn btn-gold menu-btn" id="btnBevande"  onclick="openMenuView('bevande')">MENU BEVANDE</button>
@@ -465,7 +473,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.0 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.1 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -571,21 +579,25 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <!-- Nome (sempre) -->
       <div class="table-input-wrap" id="asporto-name-wrap">
         <label>Il tuo nome</label>
-        <input type="text" id="asporto-name" placeholder="Es. Mario Rossi" oninput="onConsegnaFormChange()">
+        <input type="text" id="asporto-name" placeholder="Es. Mario Rossi" oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
       </div>
 
       <!-- Telefono (solo consegna) -->
       <div class="table-input-wrap" id="consegna-phone-wrap" style="display:none">
         <label>Telefono</label>
-        <input type="tel" id="consegna-phone" placeholder="+39 ..." oninput="onConsegnaFormChange()">
+        <input type="tel" id="consegna-phone" placeholder="+39 ..." oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
       </div>
 
-      <!-- Indirizzo + autocomplete (solo consegna) -->
-      <div class="table-input-wrap" id="consegna-address-wrap" style="display:none;position:relative;">
+      <!-- Indirizzo (solo consegna) - manuale + bottone GPS opzionale -->
+      <div class="table-input-wrap" id="consegna-address-wrap" style="display:none;">
         <label>Indirizzo di consegna</label>
-        <input type="text" id="consegna-address" placeholder="Via, civico, città..." autocomplete="off"
-          oninput="onAddressInput()" onfocus="onAddressInput()">
-        <div id="consegna-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;background:#1a1a1a;border:1px solid var(--border2);border-top:none;border-radius:0 0 var(--r) var(--r);max-height:180px;overflow-y:auto;z-index:10;"></div>
+        <div style="display:flex;gap:6px;align-items:stretch;">
+          <input type="text" id="consegna-address" placeholder="Via, città" autocomplete="street-address"
+            style="flex:1;min-width:0;" oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
+          <button type="button" id="consegna-gps-btn" onclick="requestGpsLocation()"
+            style="flex:0 0 auto;background:rgba(212,171,72,.15);border:1px solid rgba(212,171,72,.4);border-radius:var(--r);padding:0 10px;font-size:11px;color:#d4ab48;cursor:pointer;font-family:inherit;white-space:nowrap;"
+            title="Usa la mia posizione GPS (opzionale)">📍 GPS</button>
+        </div>
         <div id="consegna-distance" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
       </div>
 
@@ -593,11 +605,11 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <div id="consegna-extra-wrap" style="display:none;grid-template-columns:1fr 2fr;gap:8px;">
         <div class="table-input-wrap" style="margin-bottom:8px;">
           <label>Civico</label>
-          <input type="text" id="consegna-civico" placeholder="N°" oninput="onConsegnaFormChange()">
+          <input type="text" id="consegna-civico" placeholder="N°" oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
         </div>
         <div class="table-input-wrap" style="margin-bottom:8px;">
           <label>Citofono / Note ingresso</label>
-          <input type="text" id="consegna-citofono" placeholder="Rossi · 2° piano" oninput="onConsegnaFormChange()">
+          <input type="text" id="consegna-citofono" placeholder="Rossi · 2° piano" oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
         </div>
       </div>
 
@@ -610,7 +622,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         </select>
       </div>
 
-      <textarea id="asporto-note" placeholder="Note (opzionale): allergie, richieste speciali..."
+      <textarea id="asporto-note" placeholder="Note (opzionale): allergie, richieste speciali..." onfocus="scrollInputIntoView(this)"
         style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:55px;font-family:inherit;margin-bottom:8px;"></textarea>
 
       <!-- Riepilogo prezzi (solo consegna o quando c'è sconto extra) -->
@@ -646,6 +658,32 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <textarea class="form-field" id="res-note" placeholder="Note (opzionale): allergie, richieste speciali..." style="resize:none;height:80px;margin-top:4px"></textarea>
     <button class="btn btn-gold" style="margin-top:6px" onclick="sendReservation()">INVIA SU WHATSAPP</button>
     <button class="btn-close" onclick="closeModal('reservationModal')">Annulla</button>
+  </div>
+</div>
+
+<!-- ══════════ TAKEAWAY 模式选择弹窗 ══════════ -->
+<div class="overlay" id="takeawayChoiceModal">
+  <div class="sheet">
+    <div class="drag-bar"></div>
+    <h3>TAKEAWAY</h3>
+    <p class="notice" style="text-align:center;margin-bottom:18px;">Come preferisci ricevere il tuo ordine?</p>
+    <button onclick="chooseTakeaway('asporto')"
+      style="width:100%;background:rgba(230,126,34,.15);border:1px solid rgba(230,126,34,.45);border-radius:var(--r);padding:18px 14px;margin-bottom:10px;color:#ede5d4;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;">
+      <div style="font-size:32px;flex-shrink:0;">📦</div>
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:500;letter-spacing:1.5px;">ASPORTO</div>
+        <div style="font-size:11px;opacity:.65;margin-top:3px;">Ritiro in negozio · Sconto 20%</div>
+      </div>
+    </button>
+    <button onclick="chooseTakeaway('consegna')"
+      style="width:100%;background:rgba(33,150,243,.12);border:1px solid rgba(33,150,243,.4);border-radius:var(--r);padding:18px 14px;margin-bottom:10px;color:#ede5d4;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;">
+      <div style="font-size:32px;flex-shrink:0;">🛵</div>
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:500;letter-spacing:1.5px;">CONSEGNA</div>
+        <div style="font-size:11px;opacity:.65;margin-top:3px;">A domicilio · Sconto 10% · Min €30</div>
+      </div>
+    </button>
+    <button class="btn-close" onclick="closeModal('takeawayChoiceModal')">Annulla</button>
   </div>
 </div>
 
@@ -1663,15 +1701,18 @@ function updateCartButtons() {
         if (order_mode === 'consegna') {
           var phone = (document.getElementById('consegna-phone') || {}).value || '';
           phone = phone.trim();
+          var addrText = (document.getElementById('consegna-address') || {}).value || '';
+          addrText = addrText.trim();
           var civico = (document.getElementById('consegna-civico') || {}).value || '';
           civico = civico.trim();
           if (!phone) canSend = false;
-          if (!consegna_geo) canSend = false;
-          else if (consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
+          if (!addrText) canSend = false;
+          if (!civico) canSend = false;
+          // 仅当客人点了 GPS 才校验距离
+          if (consegna_geo && consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
             canSend = false;
             blockMsg = 'Fuori zona di consegna';
           }
-          if (!civico) canSend = false;
           // 起送价（菜品折扣后，不含配送费）
           if (canSend && cartSubtotal() < CONFIG.CONSEGNA_MIN_ORDER) {
             canSend = false;
@@ -2171,6 +2212,19 @@ function sendNotify() {
 // ════════════════════════════════════
 // ASPORTO / CONSEGNA 模式（v1.5.0）
 // ════════════════════════════════════
+function openTakeawayChoice() {
+  // 把弹窗里两个按钮的选中态根据当前 order_mode 高亮
+  openModal('takeawayChoiceModal');
+}
+
+function chooseTakeaway(mode) {
+  closeModal('takeawayChoiceModal');
+  setOrderMode(mode);
+  openMenuView('asporto');
+  // 进入后立即打开购物车抽屉，方便客人看到表单
+  // 注：先不自动打开，让客人先选菜 — 实际使用感更自然
+}
+
 function setOrderMode(mode) {
   if (mode !== 'asporto' && mode !== 'consegna') return;
   order_mode = mode;
@@ -2226,83 +2280,33 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// 地址自动补全（OpenStreetMap Nominatim，免费、无 key）
-var _addrDebounce = null;
-var _addrAbort = null;
-
-function onAddressInput() {
-  // 用户重新输入 = 取消已有的位置选择
-  if (consegna_geo) {
-    consegna_geo = null;
-    updateDistanceDisplay();
-  }
-  onConsegnaFormChange();
-  var q = (document.getElementById('consegna-address') || {}).value || '';
-  q = q.trim();
-  var box = document.getElementById('consegna-suggestions');
-  if (!box) return;
-  if (q.length < 4) { box.style.display = 'none'; box.innerHTML = ''; return; }
-  // 防抖
-  if (_addrDebounce) clearTimeout(_addrDebounce);
-  if (_addrAbort) { try { _addrAbort.abort(); } catch(e){} }
-  _addrDebounce = setTimeout(function() {
-    _addrAbort = new AbortController();
-    // 限制范围在意大利北部（粗略 viewbox：北纬 43.5-46，东经 9-13）
-    var url = 'https://nominatim.openstreetmap.org/search?format=json'
-      + '&q=' + encodeURIComponent(q)
-      + '&countrycodes=it&limit=5&addressdetails=1'
-      + '&viewbox=9.0,46.0,13.0,43.5&bounded=1';
-    fetch(url, { signal: _addrAbort.signal, headers: { 'Accept': 'application/json' } })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        renderAddressSuggestions(data || []);
-      })
-      .catch(function(){});
-  }, 450);
-}
-
-function renderAddressSuggestions(list) {
-  var box = document.getElementById('consegna-suggestions');
-  if (!box) return;
-  if (!list || !list.length) {
-    box.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:rgba(237,229,212,.5);">Nessun indirizzo trovato</div>';
-    box.style.display = 'block';
+// 客人点 📍 GPS 按钮：用浏览器 Geolocation API（免费、无 key）
+function requestGpsLocation() {
+  if (!navigator.geolocation) {
+    toast('⚠️ GPS non disponibile sul tuo dispositivo');
     return;
   }
-  box.innerHTML = '';
-  list.forEach(function(item) {
-    var div = document.createElement('div');
-    div.style.cssText = 'padding:9px 12px;font-size:12px;color:#ede5d4;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;';
-    div.textContent = item.display_name;
-    div.onmouseover = function(){ div.style.background = 'rgba(212,171,72,.1)'; };
-    div.onmouseout = function(){ div.style.background = 'transparent'; };
-    div.onclick = function() { selectAddress(item); };
-    box.appendChild(div);
-  });
-  box.style.display = 'block';
-}
-
-function selectAddress(item) {
-  var lat = parseFloat(item.lat);
-  var lng = parseFloat(item.lon);
-  if (isNaN(lat) || isNaN(lng)) return;
-  var dist = haversineKm(CONFIG.RESTAURANT_LAT, CONFIG.RESTAURANT_LNG, lat, lng);
-  consegna_geo = {
-    lat: lat, lng: lng,
-    label: item.display_name,
-    distance_km: dist
-  };
-  var inp = document.getElementById('consegna-address');
-  if (inp) inp.value = item.display_name;
-  // 尝试从 OSM 自动填入门牌号
-  if (item.address && item.address.house_number) {
-    var civicoEl = document.getElementById('consegna-civico');
-    if (civicoEl && !civicoEl.value) civicoEl.value = item.address.house_number;
-  }
-  var box = document.getElementById('consegna-suggestions');
-  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
-  updateDistanceDisplay();
-  onConsegnaFormChange();
+  var btn = document.getElementById('consegna-gps-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ...'; }
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      var dist = haversineKm(CONFIG.RESTAURANT_LAT, CONFIG.RESTAURANT_LNG, lat, lng);
+      consegna_geo = { lat: lat, lng: lng, distance_km: dist, source: 'gps' };
+      if (btn) { btn.disabled = false; btn.textContent = '✓ GPS'; btn.style.background = 'rgba(39,174,96,.15)'; btn.style.borderColor = 'rgba(39,174,96,.4)'; btn.style.color = '#27ae60'; }
+      updateDistanceDisplay();
+      onConsegnaFormChange();
+    },
+    function(err) {
+      if (btn) { btn.disabled = false; btn.textContent = '📍 GPS'; }
+      var msg = 'Impossibile ottenere la posizione';
+      if (err.code === 1) msg = 'Permesso GPS negato. Inserisci l\'indirizzo manualmente';
+      else if (err.code === 3) msg = 'GPS troppo lento. Riprova o inserisci manualmente';
+      toast('⚠️ ' + msg);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
 }
 
 function updateDistanceDisplay() {
@@ -2312,19 +2316,27 @@ function updateDistanceDisplay() {
   var d = consegna_geo.distance_km;
   var dStr = d.toFixed(1) + ' km';
   if (d <= CONFIG.CONSEGNA_RANGE_NEAR_KM) {
-    el.innerHTML = '✓ Distanza: ' + dStr + ' · Consegna €' + CONFIG.CONSEGNA_FEE_NEAR;
+    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Consegna €' + CONFIG.CONSEGNA_FEE_NEAR;
     el.style.color = '#27ae60';
   } else if (d <= CONFIG.CONSEGNA_RANGE_MAX_KM) {
-    el.innerHTML = '✓ Distanza: ' + dStr + ' · Consegna €' + CONFIG.CONSEGNA_FEE_FAR;
+    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Consegna €' + CONFIG.CONSEGNA_FEE_FAR;
     el.style.color = '#d4ab48';
   } else {
-    el.innerHTML = '✗ Distanza: ' + dStr + ' · Fuori zona (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)';
+    el.innerHTML = '✗ Posizione GPS: ' + dStr + ' · Fuori zona (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)';
     el.style.color = '#e74c3c';
   }
 }
 
 function onConsegnaFormChange() {
   updateCartButtons();
+}
+
+// iOS 软键盘弹出后把当前焦点输入框滚入视野
+function scrollInputIntoView(el) {
+  if (!el) return;
+  setTimeout(function() {
+    try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch(e) {}
+  }, 250); // 等键盘动画
 }
 
 // 计算并渲染价格明细（仅在 consegna 或有配送费时显示）
@@ -2423,36 +2435,41 @@ function sendOrder() {
     // 校验 CONSEGNA 必填
     var phone = (document.getElementById('consegna-phone') || {}).value || '';
     phone = phone.trim();
+    var addrText = (document.getElementById('consegna-address') || {}).value || '';
+    addrText = addrText.trim();
     var civico = (document.getElementById('consegna-civico') || {}).value || '';
     civico = civico.trim();
     var citofono = (document.getElementById('consegna-citofono') || {}).value || '';
     citofono = citofono.trim();
     if (!phone) { toast('⚠️ Inserisci il telefono'); return; }
-    if (!consegna_geo) { toast("⚠️ Seleziona un indirizzo dall'elenco"); return; }
-    if (consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
+    if (!addrText) { toast('⚠️ Inserisci l\'indirizzo di consegna'); return; }
+    if (!civico) { toast('⚠️ Inserisci il numero civico'); return; }
+    // 如果客人点了 GPS，校验距离；没点 GPS 就跳过距离校验
+    if (consegna_geo && consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
       toast('⚠️ Indirizzo fuori zona di consegna (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)');
       return;
     }
-    if (!civico) { toast('⚠️ Inserisci il numero civico'); return; }
     if (cartSubtotal() < CONFIG.CONSEGNA_MIN_ORDER) {
       toast('⚠️ Ordine minimo €' + CONFIG.CONSEGNA_MIN_ORDER);
       return;
     }
     var fee = consegnaFee();
     var sub = cartSubtotal();
-    var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + consegna_geo.lat + ',' + consegna_geo.lng;
     lines = [
       '🛵 *ORDINE CONSEGNA - Yio Fish Carpi*',
       '',
       '👤 Nome: ' + nome,
       '📞 Tel: ' + phone,
-      '📍 Indirizzo: ' + consegna_geo.label,
+      '📍 Indirizzo: ' + addrText,
       '🏠 Civico: ' + civico + (citofono ? ' · ' + citofono : ''),
-      '📏 Distanza: ' + consegna_geo.distance_km.toFixed(1) + ' km',
-      '🗺️ Mappa: ' + mapsUrl,
-      '⏰ Consegna: ' + orario,
-      ''
+      '⏰ Consegna: ' + orario
     ];
+    if (consegna_geo) {
+      var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + consegna_geo.lat + ',' + consegna_geo.lng;
+      lines.push('📏 GPS: ' + consegna_geo.distance_km.toFixed(1) + ' km');
+      lines.push('🗺️ Posizione: ' + mapsUrl);
+    }
+    lines.push('');
     for (var id in cart_asporto) {
       var it = getItemForMenu(id);
       if (it) {
