@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>YIO Fish · Carpi</title>
+<title>YIO Fish · Legnago</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
@@ -284,6 +284,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .cph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 44px; background: linear-gradient(135deg, var(--card2), var(--card)); }
 .scbadge { position: absolute; bottom: 8px; left: 8px; background: #27ae60; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
 .mqbadge { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.72); color: var(--gold); font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--gold); }
+.mqbadge.under-new { top: 38px; } /* NEW 徽章存在时 mqbadge 下移 */
+.newbadge { position: absolute; top: 8px; right: 8px; background: #e74c3c; color: #fff; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 10px; letter-spacing: 1px; box-shadow: 0 2px 6px rgba(231,76,60,.5); }
 .sbadge { position: absolute; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; font-size: 12px; letter-spacing: 3px; color: #fff; text-transform: uppercase; }
 .cbody { padding: 12px; display: flex; flex-direction: column; flex: 1; gap: 6px; }
 .ctags { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -305,18 +307,20 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .cov { position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 900; opacity: 0; pointer-events: none; transition: opacity .25s; }
 .cov.on { opacity: 1; pointer-events: all; }
 .cdr {
-  position: fixed; right: 0; top: 0; bottom: 0;
+  position: fixed; right: 0; top: 0;
   width: 100%; max-width: min(440px, 100vw);
+  height: 100vh; /* fallback */
+  height: 100dvh; /* iOS/Android 软键盘弹出时自动缩小 */
   background: var(--surface); border-left: 1px solid var(--border);
   z-index: 910; display: flex; flex-direction: column;
   transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
   overflow: hidden;
 }
 .cdr.on { transform: translateX(0); }
-.chd { padding: 16px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.chd { padding: 16px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .chd h2 { font-family: "Cormorant Garamond", serif; font-size: 22px; font-weight: 300; letter-spacing: 2px; }
 .ccls { background: none; border: none; color: var(--muted2); font-size: 24px; padding: 4px; cursor: pointer; }
-.cbdy { flex: 1; overflow-y: auto; padding: 8px 0; }
+.cbdy { flex: 1; overflow-y: auto; padding: 8px 0; min-height: 0; }
 .cempty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted2); gap: 12px; }
 .ci { display: flex; gap: 6px; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); overflow: hidden; }
 .ci-th { width: 44px; height: 44px; flex-shrink: 0; border-radius: 2px; overflow: hidden; background: var(--card); display: flex; align-items: center; justify-content: center; font-size: 20px; }
@@ -327,7 +331,13 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .ci-qty { display: flex; align-items: center; border: 1px solid var(--border2); border-radius: var(--r); overflow: hidden; flex-shrink: 0; }
 .ci-qty .qbtn { width: 26px; height: 28px; font-size: 15px; }
 .ci-qty .qnum { min-width: 22px; font-size: 12px; }
-.cft { border-top: 1px solid var(--border); padding: 16px 14px 28px; }
+.cft {
+  border-top: 1px solid var(--border);
+  padding: 12px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
+  overflow-y: auto;
+  max-height: 65vh; /* 表单太长可滚动 */
+}
 .csub { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
 .csub span:first-child { font-size: 12px; color: var(--muted2); }
 .ctotal { font-family: "Cormorant Garamond", serif; font-size: 28px; font-weight: 300; color: var(--gold); }
@@ -443,7 +453,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
   </div>
   <div class="action-row">
     <button class="btn btn-ghost" onclick="openModal('reservationModal')">PRENOTA</button>
-    <button class="btn btn-ghost" onclick="openMenuView('asporto')">ASPORTO</button>
+    <button class="btn btn-ghost" onclick="openTakeawayChoice()">TAKEAWAY</button>
   </div>
   <div class="status" id="status">CARICAMENTO...</div>
   <button class="btn btn-gold menu-btn" id="btnBevande"  onclick="openMenuView('bevande')">MENU BEVANDE</button>
@@ -458,14 +468,14 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <a href="https://instagram.com/yio_fish_carpi" class="icon-btn" target="_blank">
       <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.332 3.608 1.308.975.975 1.245 2.242 1.308 3.607.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.332 2.633-1.308 3.608-.975.975-2.242 1.245-3.607 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.332-3.608-1.308-.975-.975-1.245-2.242-1.308-3.607-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.332-2.633 1.308-3.608.975-.975 2.242-1.245 3.607-1.308 1.266-.058 1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.058-1.281.072-1.689.072-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.28-.058-1.688-.072-4.947-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
     </a>
-    <a href="tel:0598726624" class="icon-btn">
+    <a href="tel:+393773476774" class="icon-btn">
       <svg viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg>
     </a>
-    <a href="https://www.google.com/maps/dir/?api=1&destination=YIO+Fish+Restaurant+-+Sushi+Carpi&destination_place_id=ChIJZYFFEdiNf0cRrsH3-9a0o2M" class="icon-btn" target="_blank">
+    <a href="https://www.google.com/maps/dir/?api=1&destination=Yio+Fish+Legnago+Viale+Europa+20" class="icon-btn" target="_blank">
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.1.0 · 2026-05-21</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.2.0 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -546,25 +556,72 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       </div>
     </div>
 
-    <!-- ── 外卖区域 ── -->
+    <!-- ── ASPORTO / CONSEGNA 区域 ── -->
     <div id="asporto-section" style="display:none">
+
+      <!-- 配送须知（仅 CONSEGNA 显示） -->
+      <div id="consegna-info" style="display:none;background:rgba(212,171,72,.1);border:1px solid rgba(212,171,72,.3);border-radius:var(--r);padding:8px 10px;margin-bottom:10px;font-size:11px;color:#d4ab48;line-height:1.5;">
+        Entro 5km: min €35 · consegna €3<br>
+        Da 5 a 8km: min €50 · consegna €5<br>
+        Oltre 8km non disponibile · 📍 GPS obbligatorio
+      </div>
+
+      <!-- Nome (sempre) -->
       <div class="table-input-wrap" id="asporto-name-wrap">
         <label>Il tuo nome</label>
-        <input type="text" id="asporto-name" placeholder="Es. Mario Rossi" oninput="updateCartButtons()">
+        <input type="text" id="asporto-name" placeholder="Es. Mario Rossi" oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
       </div>
+
+      <!-- Telefono (solo consegna) -->
+      <div class="table-input-wrap" id="consegna-phone-wrap" style="display:none">
+        <label>Telefono</label>
+        <input type="tel" id="consegna-phone" placeholder="+39 ..." oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
+      </div>
+
+      <!-- Indirizzo (solo consegna) - manuale + bottone GPS opzionale -->
+      <div class="table-input-wrap" id="consegna-address-wrap" style="display:none;">
+        <label>Indirizzo di consegna</label>
+        <div style="display:flex;gap:6px;align-items:stretch;">
+          <input type="text" id="consegna-address" placeholder="Via, città" autocomplete="street-address"
+            style="flex:1;min-width:0;" oninput="onAddressTextChange()" onfocus="scrollInputIntoView(this)">
+          <button type="button" id="consegna-gps-btn" onclick="requestGpsLocation()"
+            style="flex:0 0 auto;background:rgba(212,171,72,.15);border:1px solid rgba(212,171,72,.4);border-radius:var(--r);padding:0 10px;font-size:11px;color:#d4ab48;cursor:pointer;font-family:inherit;white-space:nowrap;"
+            title="Usa la mia posizione GPS (obbligatorio)">📍 GPS</button>
+        </div>
+        <div id="consegna-distance" style="font-size:11px;margin-top:4px;min-height:14px;color:rgba(237,229,212,.5);">📍 Tocca "GPS" per verificare la zona di consegna</div>
+      </div>
+
+      <!-- Civico + Citofono (solo consegna) -->
+      <div id="consegna-extra-wrap" style="display:none;grid-template-columns:1fr 2fr;gap:8px;">
+        <div class="table-input-wrap" style="margin-bottom:8px;">
+          <label>Civico</label>
+          <input type="text" id="consegna-civico" placeholder="N°" oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
+        </div>
+        <div class="table-input-wrap" style="margin-bottom:8px;">
+          <label>Citofono / Note ingresso</label>
+          <input type="text" id="consegna-citofono" placeholder="Rossi · 2° piano" oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
+        </div>
+      </div>
+
+      <!-- Orario -->
       <div class="table-input-wrap" id="asporto-time-wrap">
-        <label>Orario di ritiro</label>
-        <select id="asporto-time" onchange="updateCartButtons()"
+        <label><span id="orario-label">Orario di ritiro</span></label>
+        <select id="asporto-time" onchange="onConsegnaFormChange()"
           style="width:100%;background:#1a1a1a;border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:#ede5d4;outline:none;-webkit-appearance:none;-webkit-text-fill-color:#ede5d4;">
           <option value="">Seleziona orario...</option>
         </select>
       </div>
-      <textarea id="asporto-note" placeholder="Note (opzionale): allergie, richieste speciali..."
-        style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:65px;font-family:inherit;margin-bottom:8px;"></textarea>
+
+      <textarea id="asporto-note" placeholder="Note (opzionale): allergie, richieste speciali..." onfocus="scrollInputIntoView(this)"
+        style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--text2);outline:none;resize:none;height:55px;font-family:inherit;margin-bottom:8px;"></textarea>
+
+      <!-- Riepilogo prezzi (solo consegna o quando c'è sconto extra) -->
+      <div id="price-summary" style="display:none;background:rgba(255,255,255,.04);border-radius:var(--r);padding:9px 11px;margin-bottom:8px;font-size:12px;line-height:1.7;"></div>
+
       <!-- 按钮行 -->
       <div style="display:flex;gap:8px;margin-top:4px;">
-        <button id="btn-order" onclick="sendOrder()" disabled
-          style="flex:1;background:#d4ab48;border:none;border-radius:var(--r);padding:12px 8px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-family:inherit;font-weight:500;">📲 Invia su WhatsApp</button>
+        <button id="btn-order" onclick="sendOrder()"
+          style="flex:1;background:#d4ab48;border:none;border-radius:var(--r);padding:12px 8px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-family:inherit;font-weight:500;opacity:0.6;">📲 Invia su WhatsApp</button>
         <button id="btn-clear-asporto"
           style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:var(--r);padding:12px 8px;font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;">Svuota</button>
       </div>
@@ -591,6 +648,32 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <textarea class="form-field" id="res-note" placeholder="Note (opzionale): allergie, richieste speciali..." style="resize:none;height:80px;margin-top:4px"></textarea>
     <button class="btn btn-gold" style="margin-top:6px" onclick="sendReservation()">INVIA SU WHATSAPP</button>
     <button class="btn-close" onclick="closeModal('reservationModal')">Annulla</button>
+  </div>
+</div>
+
+<!-- ══════════ TAKEAWAY 模式选择弹窗 ══════════ -->
+<div class="overlay" id="takeawayChoiceModal">
+  <div class="sheet">
+    <div class="drag-bar"></div>
+    <h3>TAKEAWAY</h3>
+    <p class="notice" style="text-align:center;margin-bottom:18px;">Come preferisci ricevere il tuo ordine?</p>
+    <button onclick="chooseTakeaway('asporto')"
+      style="width:100%;background:rgba(230,126,34,.15);border:1px solid rgba(230,126,34,.45);border-radius:var(--r);padding:18px 14px;margin-bottom:10px;color:#ede5d4;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;">
+      <div style="font-size:32px;flex-shrink:0;">📦</div>
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:500;letter-spacing:1.5px;">ASPORTO</div>
+        <div style="font-size:11px;opacity:.65;margin-top:3px;">Ritiro in negozio · Sconto 20%</div>
+      </div>
+    </button>
+    <button onclick="chooseTakeaway('consegna')"
+      style="width:100%;background:rgba(33,150,243,.12);border:1px solid rgba(33,150,243,.4);border-radius:var(--r);padding:18px 14px;margin-bottom:10px;color:#ede5d4;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;">
+      <div style="font-size:32px;flex-shrink:0;">🛵</div>
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:500;letter-spacing:1.5px;">CONSEGNA</div>
+        <div style="font-size:11px;opacity:.65;margin-top:3px;">A domicilio · Sconto 10% · Min €35/€50</div>
+      </div>
+    </button>
+    <button class="btn-close" onclick="closeModal('takeawayChoiceModal')">Annulla</button>
   </div>
 </div>
 
@@ -696,11 +779,19 @@ var cart_dine_sent = {}; // 已发送的堂食菜品（灰色显示）
 var cart_asporto_sent = {}; // 已发送的打包菜品（灰色显示）
 var guestCount = 1;  // 人数（服务员控制）
 
-// ── localStorage持久化 ──
-var LS_KEY_DINE = 'yiofish_cart_dine_carpi';
-var LS_KEY_SENT = 'yiofish_cart_sent_carpi';
+// ── ASPORTO/CONSEGNA 模式（v1.5.0）──
+// 'asporto'  = ritiro in negozio (sconto come da DB, default 20%)
+// 'consegna' = consegna a domicilio (sconto fisso 10% + spese consegna)
+var order_mode = 'asporto';
+var consegna_geo = null; // {lat, lng, label, distance_km} dopo selezione indirizzo
 
-var LS_KEY_ASP = 'yiofish_cart_asporto_carpi';
+// ── localStorage持久化 ──
+var LS_KEY_DINE = 'yiofish_cart_dine_legnago';
+var LS_KEY_SENT = 'yiofish_cart_sent_legnago';
+
+var LS_KEY_ASP = 'yiofish_cart_asporto_legnago';
+var LS_KEY_MODE = 'yiofish_order_mode_legnago';
+var LS_KEY_CONSEGNA_FORM = 'yiofish_consegna_form_legnago';
 function saveCartToLS() {
   try {
     var now = Date.now();
@@ -723,11 +814,21 @@ function loadCartFromLS() {
     if (a) { var obj3 = JSON.parse(a); if (now - obj3.ts < FOUR_HOURS) cart_asporto = obj3.data || {}; }
     var as = localStorage.getItem(LS_KEY_ASP+'_sent');
     if (as) { var obj4 = JSON.parse(as); if (now - obj4.ts < FOUR_HOURS) cart_asporto_sent = obj4.data || {}; }
+    // 模式（无过期限制：默认就 asporto）
+    var m = localStorage.getItem(LS_KEY_MODE);
+    if (m === 'consegna' || m === 'asporto') order_mode = m;
   } catch(e) {}
 }
 
+function saveOrderModeToLS() {
+  try { localStorage.setItem(LS_KEY_MODE, order_mode); } catch(e) {}
+}
+
 function clearCartLS() {
-  try { localStorage.removeItem(LS_KEY_DINE); localStorage.removeItem(LS_KEY_SENT); localStorage.removeItem(LS_KEY_ASP); localStorage.removeItem(LS_KEY_ASP+'_sent'); } catch(e) {}
+  try {
+    localStorage.removeItem(LS_KEY_DINE); localStorage.removeItem(LS_KEY_SENT);
+    localStorage.removeItem(LS_KEY_ASP); localStorage.removeItem(LS_KEY_ASP+'_sent');
+  } catch(e) {}
 }
 var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
 var _tableSession = null;  // 当前桌号的轮次状态
@@ -940,7 +1041,17 @@ var CONFIG = {
   WA_NUMBER: "393773476774",
   LUNCH_START: 11*60, LUNCH_KITCHEN_CLOSE: 15*60, LUNCH_END: 16*60,
   DINNER_START: 17*60, DINNER_KITCHEN_CLOSE: 23*60, DINNER_END: 23*60+59,
-  TIMER_WARNING_MINS: 25
+  TIMER_WARNING_MINS: 25,
+  // ── Consegna a domicilio ──
+  RESTAURANT_LAT: 45.1928,        // Viale Europa 20, Legnago VR
+  RESTAURANT_LNG: 11.3033,
+  CONSEGNA_SCONTO: 10,            // % sconto in modalità consegna (sovrascrive lo sconto per piatto)
+  CONSEGNA_FEE_NEAR: 3,           // €  ≤ 5 km
+  CONSEGNA_FEE_FAR: 5,            // €  > 5 km, ≤ 8 km
+  CONSEGNA_RANGE_NEAR_KM: 5,
+  CONSEGNA_RANGE_MAX_KM: 8,       // oltre = rifiuto
+  CONSEGNA_MIN_ORDER: 35,         // € minimo entro 5km (scontato, prima della consegna)
+  CONSEGNA_MIN_ORDER_FAR: 50      // € minimo 5-8km
 };
 var isAdmin = false;
 var logoClickCount = 0;
@@ -1032,10 +1143,18 @@ function openMenuView(menuId) {
 
   var cfg = MENU_CONFIG[menuId] || {label: menuId, emoji: '🍽️', color: '#c8a84c'};
 
-  // 设置徽章
+  // 设置徽章（ASPORTO 菜单按模式动态显示）
   var badge = document.getElementById('menu-badge');
-  badge.textContent = cfg.emoji + ' ' + cfg.label.toUpperCase();
-  badge.style.background = cfg.color;
+  if (isAsporto && order_mode === 'consegna') {
+    badge.textContent = '🛵 CONSEGNA';
+    badge.style.background = '#2196f3';
+  } else if (isAsporto) {
+    badge.textContent = '📦 ASPORTO';
+    badge.style.background = '#e67e22';
+  } else {
+    badge.textContent = cfg.emoji + ' ' + cfg.label.toUpperCase();
+    badge.style.background = cfg.color;
+  }
 
   // 设置信息行
   var info = document.getElementById('menu-info');
@@ -1206,15 +1325,25 @@ function mkCard(it, delay) {
     sb.textContent = 'Esaurito';
     iw.appendChild(sb);
   }
-  if (it.sconto > 0) {
+  // 在 ASPORTO 视图 + CONSEGNA 模式下，所有菜的折扣统一变成 CONSEGNA_SCONTO
+  var displaySconto = (isAsporto && order_mode === 'consegna') ? CONFIG.CONSEGNA_SCONTO : (it.sconto || 0);
+  if (displaySconto > 0) {
     var scb = document.createElement('div');
     scb.className = 'scbadge';
-    scb.textContent = '-' + it.sconto + '%';
+    scb.textContent = '-' + displaySconto + '%';
     iw.appendChild(scb);
+  }
+  // NEW 徽章（任何带 "new" 标签的菜品都显示，所有菜单都生效）
+  var isNew = (it.tags || []).indexOf('new') >= 0;
+  if (isNew) {
+    var nb = document.createElement('div');
+    nb.className = 'newbadge';
+    nb.textContent = 'NEW';
+    iw.appendChild(nb);
   }
   if (it.max_qty > 0) {
     var mb = document.createElement('div');
-    mb.className = 'mqbadge';
+    mb.className = 'mqbadge' + (isNew ? ' under-new' : '');
     mb.textContent = 'max ' + it.max_qty;
     iw.appendChild(mb);
   }
@@ -1224,6 +1353,7 @@ function mkCard(it, delay) {
   var te = document.createElement('div');
   te.className = 'ctags';
   (it.tags || []).forEach(function(t) {
+    if (t === 'new') return; // 已经在图片上显示了 NEW 徽章，底部不再重复
     var td = TAGS[t];
     if (!td) return;
     var sp = document.createElement('span');
@@ -1251,17 +1381,18 @@ function mkCard(it, delay) {
   ft.className = 'cfoot';
   var prdiv = document.createElement('div');
   prdiv.className = 'cprice';
-  var dispPrice = it.sconto > 0 ? it.price * (1 - it.sconto/100) : it.price;
+  var dispPrice = effectivePrice(it);
+  var effSconto = (isAsporto && order_mode === 'consegna') ? CONFIG.CONSEGNA_SCONTO : (it.sconto || 0);
   if (dispPrice > 0) {
     var sym = document.createElement('span');
     sym.className = 'sym';
     sym.textContent = '€';
     prdiv.appendChild(sym);
     prdiv.appendChild(document.createTextNode(' ' + Number(dispPrice).toFixed(2).replace('.', ',')));
-    if (it.sconto > 0) {
+    if (effSconto > 0) {
       var orig = document.createElement('span');
-      orig.style.cssText = 'font-size:10px;color:var(--muted2);text-decoration:line-through;margin-left:4px;';
-      orig.textContent = Number(it.price).toFixed(2).replace('.', ',');
+      orig.style.cssText = 'font-size:13px;color:rgba(237,229,212,.55);text-decoration:line-through;margin-left:6px;font-weight:400;';
+      orig.textContent = '€ ' + Number(it.price).toFixed(2).replace('.', ',');
       prdiv.appendChild(orig);
     }
   }
@@ -1303,17 +1434,44 @@ function cartCount() {
   return n;
 }
 
-function cartTotal() {
+// 取单品在当前购物车模式下的实际单价（已应用折扣）
+function effectivePrice(it) {
+  if (!it) return 0;
+  // 仅在 asporto 视图 + consegna 模式 时用全局 10%，否则用 DB sconto
+  var sconto = (isAsporto && order_mode === 'consegna') ? CONFIG.CONSEGNA_SCONTO : (it.sconto || 0);
+  return sconto > 0 ? it.price * (1 - sconto/100) : it.price;
+}
+
+// 仅菜品小计（不含配送费）
+function cartSubtotal() {
   var c = isAsporto ? cart_asporto : cart_dine;
   var t = 0;
   for (var id in c) {
     var it = getItemForMenu(id);
-    if (it) {
-      var p = it.sconto > 0 ? it.price * (1 - it.sconto/100) : it.price;
-      t += p * c[id];
-    }
+    if (it) t += effectivePrice(it) * c[id];
   }
   return t;
+}
+
+// 配送费（仅 consegna 模式 + 已选地址）
+function consegnaFee() {
+  if (!isAsporto || order_mode !== 'consegna' || !consegna_geo) return 0;
+  var d = consegna_geo.distance_km;
+  if (d == null) return 0;
+  if (d <= CONFIG.CONSEGNA_RANGE_NEAR_KM) return CONFIG.CONSEGNA_FEE_NEAR;
+  if (d <= CONFIG.CONSEGNA_RANGE_MAX_KM) return CONFIG.CONSEGNA_FEE_FAR;
+  return 0; // > 8km: 拒单（在 sendOrder/updateCartButtons 处理）
+}
+
+// 起送价（根据距离不同：≤5km €35 / 5-8km €50 / 未取 GPS 默认 €35）
+function currentMinOrder() {
+  if (!consegna_geo) return CONFIG.CONSEGNA_MIN_ORDER;
+  if (consegna_geo.distance_km <= CONFIG.CONSEGNA_RANGE_NEAR_KM) return CONFIG.CONSEGNA_MIN_ORDER;
+  return CONFIG.CONSEGNA_MIN_ORDER_FAR;
+}
+
+function cartTotal() {
+  return cartSubtotal() + consegnaFee();
 }
 
 function fmt(n) { return '€ ' + Number(n).toFixed(2).replace('.', ','); }
@@ -1546,10 +1704,41 @@ function updateCartButtons() {
   if (isAsporto) {
     if (dineSection) dineSection.style.display = 'none';
     if (asportoSection) asportoSection.style.display = 'block';
+    // 应用模式 UI（隐藏/显示 consegna 字段）
+    applyOrderModeUI();
+    renderPriceSummary();
     if (SETTINGS.takeaway_enabled) {
       var nameVal = asportoName ? asportoName.value.trim() : '';
       var timeVal = asportoTime ? asportoTime.value : '';
-      if (btnOrder) { btnOrder.style.display = 'block'; btnOrder.disabled = false; }
+      if (btnOrder) {
+        btnOrder.style.display = 'block';
+        // 按钮永远可点，点击时 sendOrder 会逐项校验并 toast
+        btnOrder.disabled = false;
+        // 计算视觉状态（半透明=未就绪，full=就绪）
+        var ready = (n > 0) && nameVal && timeVal;
+        var hintText = '';
+        if (order_mode === 'consegna') {
+          var phone = (document.getElementById('consegna-phone') || {}).value || '';
+          phone = phone.trim();
+          var addrText = (document.getElementById('consegna-address') || {}).value || '';
+          addrText = addrText.trim();
+          var civico = (document.getElementById('consegna-civico') || {}).value || '';
+          civico = civico.trim();
+          if (!phone || !addrText || !civico) ready = false;
+          if (!consegna_geo) ready = false;
+          else if (consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
+            ready = false;
+            hintText = ' · Fuori zona';
+          }
+          var minOrd2 = currentMinOrder();
+          if (ready && cartSubtotal() < minOrd2) {
+            ready = false;
+            hintText = ' · Min €' + minOrd2;
+          }
+        }
+        btnOrder.style.opacity = ready ? '1' : '0.6';
+        btnOrder.textContent = '📲 Invia su WhatsApp' + hintText;
+      }
     } else {
       if (btnOrder) btnOrder.style.display = 'none';
     }
@@ -1616,7 +1805,7 @@ function renderCartBody() {
       } else th.textContent = icon;
       var info = document.createElement('div');
       info.className = 'ci-info';
-      var p = it.sconto > 0 ? it.price * (1 - it.sconto/100) : it.price;
+      var p = effectivePrice(it);
       info.innerHTML = '<div class="ci-name">' + it.name + '</div>' +
         '<div class="ci-price">' + fmt(p) + ' × ' + qty + ' = ' + fmt(p * qty) + '</div>';
       var qc = document.createElement('div');
@@ -1652,7 +1841,7 @@ function renderCartBody() {
       th.textContent = icon;
       var info2 = document.createElement('div');
       info2.className = 'ci-info';
-      var p = it.sconto > 0 ? it.price * (1 - it.sconto/100) : it.price;
+      var p = effectivePrice(it);
       info2.innerHTML = '<div class="ci-name">' + it.name + '</div>' +
         '<div class="ci-price">' + (p > 0 ? fmt(p) + ' × ' + qty + ' = ' + fmt(p * qty) : '× ' + qty) + '</div>';
       var qc = document.createElement('div');
@@ -1708,8 +1897,10 @@ async function loadTableSession(tableNum) {
       var created = new Date(s.created_at);
       var now = new Date();
       if ((now - created) > 4 * 60 * 60 * 1000) {
+        // 4小时过期，删除旧session并重新加载
         await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
         _tableSession = null;
+        // 递归重新加载
         return loadTableSession(tableNum);
       }
       // 检查active_ids人数限制
@@ -1775,13 +1966,16 @@ function updateGuestCountUI() {
 async function resetTableSession(tableNum) {
   if (!tableNum) return;
   try {
+    // 删除旧记录
     await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
     _tableSession = null;
     _roundCartCount = 0;
+    // 清除本地购物车
     cart_dine = {};
     cart_dine_sent = {};
     saveCartToLS();
     updateRoundUI();
+    // 重新加载session（创建新的）
     await loadTableSession(tableNum);
     toast('✅ Tavolo ' + tableNum + ' resettato');
   } catch(e) { toast('❌ Errore reset: ' + e.message); }
@@ -1796,6 +1990,7 @@ async function recordRoundSent(tableNum) {
   try {
     var now = new Date();
     var nowISO = now.toISOString();
+    // 计算本次发送的菜品数（price=0的菜）
     var sentCount = 0;
     for (var id in cart_dine) {
       var it2 = getItemById(id);
@@ -1807,16 +2002,19 @@ async function recordRoundSent(tableNum) {
     }
 
     if (_tableSession) {
+      // 判断是否还在当前轮的时间窗口内
       var roundStart = _tableSession.round_start_at ? new Date(_tableSession.round_start_at) : null;
       var elapsed = roundStart ? (now - roundStart) / 60000 : 999;
       var inSameRound = roundStart && elapsed < roundInterval;
 
       var newRound, newRoundStart, newRoundSentCount;
       if (inSameRound) {
+        // 同一轮内，累加
         newRound = _tableSession.round_number || 1;
         newRoundStart = _tableSession.round_start_at;
         newRoundSentCount = (_tableSession.round_sent_count || 0) + sentCount;
       } else {
+        // 进入新一轮，重置round_start和round_sent_count
         newRound = (_tableSession.round_number || 1) + 1;
         newRoundStart = nowISO;
         newRoundSentCount = sentCount;
@@ -1827,9 +2025,12 @@ async function recordRoundSent(tableNum) {
       await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {
         method: 'PATCH',
         body: JSON.stringify({
-          round_number: newRound, last_sent_at: nowISO,
-          order_count: newTotalCount, first_order_at: firstAt,
-          round_start_at: newRoundStart, round_sent_count: newRoundSentCount
+          round_number: newRound,
+          last_sent_at: nowISO,
+          order_count: newTotalCount,
+          first_order_at: firstAt,
+          round_start_at: newRoundStart,
+          round_sent_count: newRoundSentCount
         })
       });
       _tableSession.round_number = newRound;
@@ -1839,6 +2040,7 @@ async function recordRoundSent(tableNum) {
       _tableSession.round_start_at = newRoundStart;
       _tableSession.round_sent_count = newRoundSentCount;
     } else {
+      // 第一次发送，新建session
       await sbFetch('table_sessions', {
         method: 'POST',
         body: JSON.stringify({
@@ -1861,17 +2063,20 @@ function getRoundStatus() {
   var roundMax = SETTINGS.round_max || 0;
   var roundTotal = SETTINGS.round_total || 0;
   var roundInterval = SETTINGS.round_interval || 0;
-  if (roundMax === 0 && roundTotal === 0) return {ok: true};
+  if (roundMax === 0 && roundTotal === 0) return {ok: true}; // 未启用
 
   var currentRound = _tableSession ? (_tableSession.round_number || 1) : 1;
 
+  // 检查是否超过总轮数
   if (roundTotal > 0 && currentRound > roundTotal) {
     return {ok: false, msg: 'Hai completato tutti i ' + roundTotal + ' turni'};
   }
 
+  // 检查本轮已发送量是否达到上限（10分钟窗口内累积）
   if (_tableSession && _tableSession.round_start_at && roundMax > 0) {
     var elapsed = (new Date() - new Date(_tableSession.round_start_at)) / 60000;
     if (elapsed < roundInterval) {
+      // 还在本轮时间窗口内
       var roundSent = _tableSession.round_sent_count || 0;
       var roundLimit = roundMax * guestCount;
       if (roundSent >= roundLimit) {
@@ -1914,6 +2119,7 @@ function canAddItem() {
   if (roundMax === 0 && roundTotal === 0) return {ok: true};
   // 注意：加菜时不检查间隔，只有发送时才检查
 
+  // 本轮已点：cart_dine里所有菜（price=0）
   var thisRoundCount = 0;
   for (var k in cart_dine) {
     var kit = getItemForMenu(k);
@@ -1921,14 +2127,17 @@ function canAddItem() {
       thisRoundCount += cart_dine[k];
     }
   }
+  // 本轮已发送量（来自session的round_sent_count）
   var roundInterval = SETTINGS.round_interval || 0;
   var roundSentCount = 0;
   if (_tableSession && _tableSession.round_start_at) {
     var elapsed = (new Date() - new Date(_tableSession.round_start_at)) / 60000;
     if (elapsed < roundInterval) {
+      // 还在本轮时间窗口内
       roundSentCount = _tableSession.round_sent_count || 0;
     }
   }
+  // 本轮总量上限 = roundMax × guestCount
   var roundLimit = roundMax * guestCount;
   var totalThisRound = roundSentCount + thisRoundCount;
   if (roundMax > 0 && totalThisRound >= roundLimit) {
@@ -2016,6 +2225,179 @@ function sendNotify() {
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
+// ════════════════════════════════════
+// ASPORTO / CONSEGNA 模式（v1.5.0）
+// ════════════════════════════════════
+function openTakeawayChoice() {
+  // 把弹窗里两个按钮的选中态根据当前 order_mode 高亮
+  openModal('takeawayChoiceModal');
+}
+
+function chooseTakeaway(mode) {
+  closeModal('takeawayChoiceModal');
+  setOrderMode(mode);
+  openMenuView('asporto');
+  // 进入后立即打开购物车抽屉，方便客人看到表单
+  // 注：先不自动打开，让客人先选菜 — 实际使用感更自然
+}
+
+function setOrderMode(mode) {
+  if (mode !== 'asporto' && mode !== 'consegna') return;
+  order_mode = mode;
+  saveOrderModeToLS();
+  applyOrderModeUI();
+  // 切换后重新算价格 / 渲染购物车
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+  updateCartUI();
+}
+
+function applyOrderModeUI() {
+  var isC = (order_mode === 'consegna');
+  // 显示/隐藏 consegna 字段
+  var info = document.getElementById('consegna-info');
+  if (info) info.style.display = isC ? 'block' : 'none';
+  var phoneWrap = document.getElementById('consegna-phone-wrap');
+  if (phoneWrap) phoneWrap.style.display = isC ? 'block' : 'none';
+  var addrWrap = document.getElementById('consegna-address-wrap');
+  if (addrWrap) addrWrap.style.display = isC ? 'block' : 'none';
+  var extraWrap = document.getElementById('consegna-extra-wrap');
+  if (extraWrap) extraWrap.style.display = isC ? 'grid' : 'none';
+  // 标签
+  var orarioLabel = document.getElementById('orario-label');
+  if (orarioLabel) orarioLabel.textContent = isC ? 'Orario di consegna' : 'Orario di ritiro';
+  // 时间下拉首选项文字
+  var sel = document.getElementById('asporto-time');
+  if (sel && sel.options.length > 0) sel.options[0].textContent = isC ? 'Seleziona orario consegna...' : 'Seleziona orario...';
+}
+
+// Haversine: 两点间直线距离 (km)
+function haversineKm(lat1, lng1, lat2, lng2) {
+  var R = 6371;
+  var toRad = function(d) { return d * Math.PI / 180; };
+  var dLat = toRad(lat2 - lat1);
+  var dLng = toRad(lng2 - lng1);
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+          Math.sin(dLng/2) * Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// 客人点 📍 GPS 按钮：用浏览器 Geolocation API（免费、无 key）
+function requestGpsLocation() {
+  if (!navigator.geolocation) {
+    toast('⚠️ GPS non disponibile sul tuo dispositivo');
+    return;
+  }
+  var btn = document.getElementById('consegna-gps-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ...'; }
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      var dist = haversineKm(CONFIG.RESTAURANT_LAT, CONFIG.RESTAURANT_LNG, lat, lng);
+      consegna_geo = { lat: lat, lng: lng, distance_km: dist, source: 'gps' };
+      if (btn) { btn.disabled = false; btn.textContent = '✓ GPS'; btn.style.background = 'rgba(39,174,96,.15)'; btn.style.borderColor = 'rgba(39,174,96,.4)'; btn.style.color = '#27ae60'; }
+      updateDistanceDisplay();
+      onConsegnaFormChange();
+    },
+    function(err) {
+      if (btn) { btn.disabled = false; btn.textContent = '📍 GPS'; }
+      var msg = 'Impossibile ottenere la posizione';
+      if (err.code === 1) msg = 'Permesso GPS negato. Inserisci l\'indirizzo manualmente';
+      else if (err.code === 3) msg = 'GPS troppo lento. Riprova o inserisci manualmente';
+      toast('⚠️ ' + msg);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+function updateDistanceDisplay() {
+  var el = document.getElementById('consegna-distance');
+  if (!el) return;
+  if (!consegna_geo) { el.textContent = ''; return; }
+  var d = consegna_geo.distance_km;
+  var dStr = d.toFixed(1) + ' km';
+  if (d <= CONFIG.CONSEGNA_RANGE_NEAR_KM) {
+    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Min €' + CONFIG.CONSEGNA_MIN_ORDER + ' · Consegna €' + CONFIG.CONSEGNA_FEE_NEAR;
+    el.style.color = '#27ae60';
+  } else if (d <= CONFIG.CONSEGNA_RANGE_MAX_KM) {
+    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Min €' + CONFIG.CONSEGNA_MIN_ORDER_FAR + ' · Consegna €' + CONFIG.CONSEGNA_FEE_FAR;
+    el.style.color = '#d4ab48';
+  } else {
+    el.innerHTML = '✗ Posizione GPS: ' + dStr + ' · Fuori zona (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)';
+    el.style.color = '#e74c3c';
+  }
+}
+
+function onConsegnaFormChange() {
+  updateCartButtons();
+}
+
+// 客人改地址 = 之前的 GPS 钉位失效（位置必须跟地址一致）
+function onAddressTextChange() {
+  if (consegna_geo) {
+    consegna_geo = null;
+    var btn = document.getElementById('consegna-gps-btn');
+    if (btn) {
+      btn.textContent = '📍 GPS';
+      btn.style.background = 'rgba(212,171,72,.15)';
+      btn.style.borderColor = 'rgba(212,171,72,.4)';
+      btn.style.color = '#d4ab48';
+    }
+    var distEl = document.getElementById('consegna-distance');
+    if (distEl) {
+      distEl.innerHTML = '📍 Tocca "GPS" per verificare la zona di consegna';
+      distEl.style.color = 'rgba(237,229,212,.5)';
+    }
+  }
+  onConsegnaFormChange();
+}
+
+// iOS 软键盘弹出后把当前焦点输入框滚入视野
+function scrollInputIntoView(el) {
+  if (!el) return;
+  setTimeout(function() {
+    try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch(e) {}
+  }, 250); // 等键盘动画
+}
+
+// 把指定 id 的输入框聚焦并滚到视野（toast 提示后用）
+function focusField(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch(e) {}
+  setTimeout(function(){ try { el.focus(); } catch(e){} }, 350);
+}
+
+// 计算并渲染价格明细（仅在 consegna 或有配送费时显示）
+function renderPriceSummary() {
+  var box = document.getElementById('price-summary');
+  if (!box) return;
+  if (order_mode !== 'consegna') { box.style.display = 'none'; return; }
+  var sub = cartSubtotal();
+  var fee = consegnaFee();
+  if (sub <= 0) { box.style.display = 'none'; return; }
+  // 算未折扣的"原价"，用于显示节省了多少
+  var c = cart_asporto;
+  var orig = 0;
+  for (var id in c) {
+    var it = getItemForMenu(id);
+    if (it) orig += (it.price || 0) * c[id];
+  }
+  var saved = orig - sub;
+  var html = '';
+  html += '<div style="display:flex;justify-content:space-between;"><span style="opacity:.7;">Subtotale</span><span>' + fmt(sub) + '</span></div>';
+  if (saved > 0.01) {
+    html += '<div style="display:flex;justify-content:space-between;color:#5DCAA5;"><span>Sconto consegna ' + CONFIG.CONSEGNA_SCONTO + '%</span><span>−' + fmt(saved) + '</span></div>';
+  }
+  if (fee > 0) {
+    html += '<div style="display:flex;justify-content:space-between;"><span style="opacity:.7;">Spese consegna</span><span>+' + fmt(fee) + '</span></div>';
+  }
+  html += '<div style="display:flex;justify-content:space-between;padding-top:5px;margin-top:4px;border-top:1px solid rgba(255,255,255,.1);font-weight:500;"><span>Totale</span><span style="color:#d4ab48;">' + fmt(sub + fee) + '</span></div>';
+  box.innerHTML = html;
+  box.style.display = 'block';
+}
+
 // 外卖发送
 function buildAsportoTimes() {
   var sel = document.getElementById('asporto-time');
@@ -2066,21 +2448,103 @@ function buildAsportoTimes() {
 }
 
 function sendOrder() {
+  // 0. 购物车不能空
+  if (cartCount() === 0) {
+    toast('⚠️ Aggiungi almeno un piatto al carrello');
+    return;
+  }
+
   var nameEl = document.getElementById('asporto-name');
   var timeEl = document.getElementById('asporto-time');
   var nome = nameEl ? nameEl.value.trim() : '';
   var orario = timeEl ? timeEl.value : '';
-  if (!nome) { toast('⚠️ Inserisci il tuo nome'); return; }
-  if (!orario) { toast("⚠️ Seleziona l'orario di ritiro"); return; }
   var note = (document.getElementById('asporto-note') || {}).value || '';
   note = note.trim();
-  var lines = ['📦 *ORDINE ASPORTO - Yio Fish Legnago*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orario, ''];
-  for (var id in cart_asporto) {
-    var it = getItemForMenu(id);
-    if (it) lines.push('• ' + it.name + ' x' + cart_asporto[id] + (it.price > 0 ? ' (' + fmt(it.price * cart_asporto[id]) + ')' : ''));
+
+  var lines = [];
+  if (order_mode === 'consegna') {
+    // CONSEGNA 模式：按用户填表顺序逐项检查
+    var phone = (document.getElementById('consegna-phone') || {}).value || '';
+    phone = phone.trim();
+    var addrText = (document.getElementById('consegna-address') || {}).value || '';
+    addrText = addrText.trim();
+    var civico = (document.getElementById('consegna-civico') || {}).value || '';
+    civico = civico.trim();
+    var citofono = (document.getElementById('consegna-citofono') || {}).value || '';
+    citofono = citofono.trim();
+
+    // 1. 名字
+    if (!nome) { toast('⚠️ Inserisci il tuo nome'); focusField('asporto-name'); return; }
+    // 2. 电话
+    if (!phone) { toast('⚠️ Inserisci il telefono'); focusField('consegna-phone'); return; }
+    // 3. 地址文字
+    if (!addrText) { toast('⚠️ Inserisci l\'indirizzo di consegna'); focusField('consegna-address'); return; }
+    // 4. 门牌号
+    if (!civico) { toast('⚠️ Inserisci il numero civico'); focusField('consegna-civico'); return; }
+    // 5. GPS 必填
+    if (!consegna_geo) {
+      toast('⚠️ Tocca 📍 GPS per verificare la zona di consegna');
+      return;
+    }
+    // 6. 距离不能超
+    if (consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
+      toast('⚠️ Indirizzo fuori zona di consegna (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)');
+      return;
+    }
+    // 7. 时间
+    if (!orario) { toast("⚠️ Seleziona l'orario di consegna"); focusField('asporto-time'); return; }
+    // 8. 起送价（按距离档位）
+    var minOrd = currentMinOrder();
+    if (cartSubtotal() < minOrd) {
+      var manca = (minOrd - cartSubtotal()).toFixed(2).replace('.',',');
+      toast('⚠️ Ordine minimo €' + minOrd + ' (mancano €' + manca + ')');
+      return;
+    }
+
+    var fee = consegnaFee();
+    var sub = cartSubtotal();
+    var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + consegna_geo.lat + ',' + consegna_geo.lng;
+    lines = [
+      '🛵 *ORDINE CONSEGNA - Yio Fish Legnago*',
+      '',
+      '👤 Nome: ' + nome,
+      '📞 Tel: ' + phone,
+      '📍 Indirizzo: ' + addrText,
+      '🏠 Civico: ' + civico + (citofono ? ' · ' + citofono : ''),
+      '📏 GPS: ' + consegna_geo.distance_km.toFixed(1) + ' km',
+      '🗺️ Posizione: ' + mapsUrl,
+      '⏰ Consegna: ' + orario,
+      ''
+    ];
+    for (var id in cart_asporto) {
+      var it = getItemForMenu(id);
+      if (it) {
+        var p = effectivePrice(it);
+        lines.push('• ' + it.name + ' x' + cart_asporto[id] + (p > 0 ? ' (' + fmt(p * cart_asporto[id]) + ')' : ''));
+      }
+    }
+    lines.push('');
+    lines.push('💵 Subtotale: ' + fmt(sub));
+    if (fee > 0) lines.push('🛵 Consegna: ' + fmt(fee));
+    lines.push('💰 *Totale: ' + fmt(sub + fee) + '*');
+    if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
+  } else {
+    // ASPORTO classico
+    if (!nome) { toast('⚠️ Inserisci il tuo nome'); focusField('asporto-name'); return; }
+    if (!orario) { toast("⚠️ Seleziona l'orario di ritiro"); focusField('asporto-time'); return; }
+
+    lines = ['📦 *ORDINE ASPORTO - Yio Fish Legnago*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orario, ''];
+    for (var id2 in cart_asporto) {
+      var it2 = getItemForMenu(id2);
+      if (it2) {
+        var p2 = effectivePrice(it2);
+        lines.push('• ' + it2.name + ' x' + cart_asporto[id2] + (p2 > 0 ? ' (' + fmt(p2 * cart_asporto[id2]) + ')' : ''));
+      }
+    }
+    if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
+    if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
   }
-  if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
-  if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
+
   // 把已发送菜品转移到sent记录，清空购物车
   for (var sid in cart_asporto) {
     cart_asporto_sent[sid] = (cart_asporto_sent[sid] || 0) + cart_asporto[sid];
