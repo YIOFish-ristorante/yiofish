@@ -473,7 +473,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.5 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.6 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -618,8 +618,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 
       <!-- 按钮行 -->
       <div style="display:flex;gap:8px;margin-top:4px;">
-        <button id="btn-order" onclick="sendOrder()" disabled
-          style="flex:1;background:#d4ab48;border:none;border-radius:var(--r);padding:12px 8px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-family:inherit;font-weight:500;">📲 Invia su WhatsApp</button>
+        <button id="btn-order" onclick="sendOrder()"
+          style="flex:1;background:#d4ab48;border:none;border-radius:var(--r);padding:12px 8px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-family:inherit;font-weight:500;opacity:0.6;">📲 Invia su WhatsApp</button>
         <button id="btn-clear-asporto"
           style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:var(--r);padding:12px 8px;font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;">Svuota</button>
       </div>
@@ -1701,9 +1701,11 @@ function updateCartButtons() {
       var timeVal = asportoTime ? asportoTime.value : '';
       if (btnOrder) {
         btnOrder.style.display = 'block';
-        // 基础校验
-        var canSend = (n > 0) && nameVal && timeVal;
-        var blockMsg = '';
+        // 按钮永远可点，点击时 sendOrder 会逐项校验并 toast
+        btnOrder.disabled = false;
+        // 计算视觉状态（半透明=未就绪，full=就绪）
+        var ready = (n > 0) && nameVal && timeVal;
+        var hintText = '';
         if (order_mode === 'consegna') {
           var phone = (document.getElementById('consegna-phone') || {}).value || '';
           phone = phone.trim();
@@ -1711,27 +1713,20 @@ function updateCartButtons() {
           addrText = addrText.trim();
           var civico = (document.getElementById('consegna-civico') || {}).value || '';
           civico = civico.trim();
-          if (!phone) canSend = false;
-          if (!addrText) canSend = false;
-          if (!civico) canSend = false;
-          // GPS 必填
-          if (!consegna_geo) {
-            canSend = false;
-            if (addrText && civico && phone) blockMsg = 'Tocca 📍 GPS per confermare zona';
-          } else if (consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
-            canSend = false;
-            blockMsg = 'Fuori zona di consegna';
+          if (!phone || !addrText || !civico) ready = false;
+          if (!consegna_geo) ready = false;
+          else if (consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
+            ready = false;
+            hintText = ' · Fuori zona';
           }
-          // 起送价（菜品折扣后，不含配送费；按距离不同）
-          var minOrd = currentMinOrder();
-          if (canSend && cartSubtotal() < minOrd) {
-            canSend = false;
-            blockMsg = 'Minimo €' + minOrd + ' (mancano €' + (minOrd - cartSubtotal()).toFixed(2).replace('.',',') + ')';
+          var minOrd2 = currentMinOrder();
+          if (ready && cartSubtotal() < minOrd2) {
+            ready = false;
+            hintText = ' · Min €' + minOrd2;
           }
         }
-        btnOrder.disabled = !canSend;
-        btnOrder.style.opacity = canSend ? '1' : '0.5';
-        btnOrder.textContent = blockMsg ? ('⚠ ' + blockMsg) : '📲 Invia su WhatsApp';
+        btnOrder.style.opacity = ready ? '1' : '0.6';
+        btnOrder.textContent = '📲 Invia su WhatsApp' + hintText;
       }
     } else {
       if (btnOrder) btnOrder.style.display = 'none';
@@ -2355,6 +2350,14 @@ function scrollInputIntoView(el) {
   }, 250); // 等键盘动画
 }
 
+// 把指定 id 的输入框聚焦并滚到视野（toast 提示后用）
+function focusField(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch(e) {}
+  setTimeout(function(){ try { el.focus(); } catch(e){} }, 350);
+}
+
 // 计算并渲染价格明细（仅在 consegna 或有配送费时显示）
 function renderPriceSummary() {
   var box = document.getElementById('price-summary');
@@ -2434,21 +2437,22 @@ function buildAsportoTimes() {
 }
 
 function sendOrder() {
+  // 0. 购物车不能空
+  if (cartCount() === 0) {
+    toast('⚠️ Aggiungi almeno un piatto al carrello');
+    return;
+  }
+
   var nameEl = document.getElementById('asporto-name');
   var timeEl = document.getElementById('asporto-time');
   var nome = nameEl ? nameEl.value.trim() : '';
   var orario = timeEl ? timeEl.value : '';
-  if (!nome) { toast('⚠️ Inserisci il tuo nome'); return; }
-  if (!orario) {
-    toast(order_mode === 'consegna' ? "⚠️ Seleziona l'orario di consegna" : "⚠️ Seleziona l'orario di ritiro");
-    return;
-  }
   var note = (document.getElementById('asporto-note') || {}).value || '';
   note = note.trim();
 
   var lines = [];
   if (order_mode === 'consegna') {
-    // 校验 CONSEGNA 必填
+    // CONSEGNA 模式：按用户填表顺序逐项检查
     var phone = (document.getElementById('consegna-phone') || {}).value || '';
     phone = phone.trim();
     var addrText = (document.getElementById('consegna-address') || {}).value || '';
@@ -2457,22 +2461,35 @@ function sendOrder() {
     civico = civico.trim();
     var citofono = (document.getElementById('consegna-citofono') || {}).value || '';
     citofono = citofono.trim();
-    if (!phone) { toast('⚠️ Inserisci il telefono'); return; }
-    if (!addrText) { toast('⚠️ Inserisci l\'indirizzo di consegna'); return; }
-    if (!civico) { toast('⚠️ Inserisci il numero civico'); return; }
-    // GPS 必填
+
+    // 1. 名字
+    if (!nome) { toast('⚠️ Inserisci il tuo nome'); focusField('asporto-name'); return; }
+    // 2. 电话
+    if (!phone) { toast('⚠️ Inserisci il telefono'); focusField('consegna-phone'); return; }
+    // 3. 地址文字
+    if (!addrText) { toast('⚠️ Inserisci l\'indirizzo di consegna'); focusField('consegna-address'); return; }
+    // 4. 门牌号
+    if (!civico) { toast('⚠️ Inserisci il numero civico'); focusField('consegna-civico'); return; }
+    // 5. GPS 必填
     if (!consegna_geo) {
       toast('⚠️ Tocca 📍 GPS per verificare la zona di consegna');
       return;
     }
+    // 6. 距离不能超
     if (consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
       toast('⚠️ Indirizzo fuori zona di consegna (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)');
       return;
     }
-    if (cartSubtotal() < currentMinOrder()) {
-      toast('⚠️ Ordine minimo €' + currentMinOrder());
+    // 7. 时间
+    if (!orario) { toast("⚠️ Seleziona l'orario di consegna"); focusField('asporto-time'); return; }
+    // 8. 起送价（按距离档位）
+    var minOrd = currentMinOrder();
+    if (cartSubtotal() < minOrd) {
+      var manca = (minOrd - cartSubtotal()).toFixed(2).replace('.',',');
+      toast('⚠️ Ordine minimo €' + minOrd + ' (mancano €' + manca + ')');
       return;
     }
+
     var fee = consegnaFee();
     var sub = cartSubtotal();
     var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + consegna_geo.lat + ',' + consegna_geo.lng;
@@ -2502,6 +2519,9 @@ function sendOrder() {
     if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
   } else {
     // ASPORTO classico
+    if (!nome) { toast('⚠️ Inserisci il tuo nome'); focusField('asporto-name'); return; }
+    if (!orario) { toast("⚠️ Seleziona l'orario di ritiro"); focusField('asporto-time'); return; }
+
     lines = ['📦 *ORDINE ASPORTO - Yio Fish Carpi*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orario, ''];
     for (var id2 in cart_asporto) {
       var it2 = getItemForMenu(id2);
