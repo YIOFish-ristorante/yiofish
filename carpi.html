@@ -473,7 +473,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.1 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.3 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -573,7 +573,9 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 
       <!-- 配送须知（仅 CONSEGNA 显示） -->
       <div id="consegna-info" style="display:none;background:rgba(212,171,72,.1);border:1px solid rgba(212,171,72,.3);border-radius:var(--r);padding:8px 10px;margin-bottom:10px;font-size:11px;color:#d4ab48;line-height:1.5;">
-        Minimo €30 · Consegna €3 (entro 5km) o €5 (5-8km) · Oltre 8km non disponibile
+        Entro 5km: min €35 · consegna €3<br>
+        Da 5 a 8km: min €50 · consegna €5<br>
+        Oltre 8km non disponibile · 📍 GPS obbligatorio
       </div>
 
       <!-- Nome (sempre) -->
@@ -593,12 +595,12 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <label>Indirizzo di consegna</label>
         <div style="display:flex;gap:6px;align-items:stretch;">
           <input type="text" id="consegna-address" placeholder="Via, città" autocomplete="street-address"
-            style="flex:1;min-width:0;" oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
+            style="flex:1;min-width:0;" oninput="onAddressTextChange()" onfocus="scrollInputIntoView(this)">
           <button type="button" id="consegna-gps-btn" onclick="requestGpsLocation()"
             style="flex:0 0 auto;background:rgba(212,171,72,.15);border:1px solid rgba(212,171,72,.4);border-radius:var(--r);padding:0 10px;font-size:11px;color:#d4ab48;cursor:pointer;font-family:inherit;white-space:nowrap;"
-            title="Usa la mia posizione GPS (opzionale)">📍 GPS</button>
+            title="Usa la mia posizione GPS (obbligatorio)">📍 GPS</button>
         </div>
-        <div id="consegna-distance" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
+        <div id="consegna-distance" style="font-size:11px;margin-top:4px;min-height:14px;color:rgba(237,229,212,.5);">📍 Tocca "GPS" per verificare la zona di consegna</div>
       </div>
 
       <!-- Civico + Citofono (solo consegna) -->
@@ -680,7 +682,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <div style="font-size:32px;flex-shrink:0;">🛵</div>
       <div style="flex:1;">
         <div style="font-size:15px;font-weight:500;letter-spacing:1.5px;">CONSEGNA</div>
-        <div style="font-size:11px;opacity:.65;margin-top:3px;">A domicilio · Sconto 10% · Min €30</div>
+        <div style="font-size:11px;opacity:.65;margin-top:3px;">A domicilio · Sconto 10% · Min €35/€50</div>
       </div>
     </button>
     <button class="btn-close" onclick="closeModal('takeawayChoiceModal')">Annulla</button>
@@ -1060,7 +1062,8 @@ var CONFIG = {
   CONSEGNA_FEE_FAR: 5,            // €  > 5 km, ≤ 8 km
   CONSEGNA_RANGE_NEAR_KM: 5,
   CONSEGNA_RANGE_MAX_KM: 8,       // oltre = rifiuto
-  CONSEGNA_MIN_ORDER: 30          // € minimo (scontato, prima della consegna)
+  CONSEGNA_MIN_ORDER: 35,         // € minimo entro 5km (scontato, prima della consegna)
+  CONSEGNA_MIN_ORDER_FAR: 50      // € minimo 5-8km
 };
 var isAdmin = false;
 var logoClickCount = 0;
@@ -1453,6 +1456,13 @@ function consegnaFee() {
   return 0; // > 8km: 拒单（在 sendOrder/updateCartButtons 处理）
 }
 
+// 起送价（根据距离不同：≤5km €35 / 5-8km €50 / 未取 GPS 默认 €35）
+function currentMinOrder() {
+  if (!consegna_geo) return CONFIG.CONSEGNA_MIN_ORDER;
+  if (consegna_geo.distance_km <= CONFIG.CONSEGNA_RANGE_NEAR_KM) return CONFIG.CONSEGNA_MIN_ORDER;
+  return CONFIG.CONSEGNA_MIN_ORDER_FAR;
+}
+
 function cartTotal() {
   return cartSubtotal() + consegnaFee();
 }
@@ -1708,15 +1718,19 @@ function updateCartButtons() {
           if (!phone) canSend = false;
           if (!addrText) canSend = false;
           if (!civico) canSend = false;
-          // 仅当客人点了 GPS 才校验距离
-          if (consegna_geo && consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
+          // GPS 必填
+          if (!consegna_geo) {
+            canSend = false;
+            if (addrText && civico && phone) blockMsg = 'Tocca 📍 GPS per confermare zona';
+          } else if (consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
             canSend = false;
             blockMsg = 'Fuori zona di consegna';
           }
-          // 起送价（菜品折扣后，不含配送费）
-          if (canSend && cartSubtotal() < CONFIG.CONSEGNA_MIN_ORDER) {
+          // 起送价（菜品折扣后，不含配送费；按距离不同）
+          var minOrd = currentMinOrder();
+          if (canSend && cartSubtotal() < minOrd) {
             canSend = false;
-            blockMsg = 'Minimo €' + CONFIG.CONSEGNA_MIN_ORDER + ' (mancano €' + (CONFIG.CONSEGNA_MIN_ORDER - cartSubtotal()).toFixed(2).replace('.',',') + ')';
+            blockMsg = 'Minimo €' + minOrd + ' (mancano €' + (minOrd - cartSubtotal()).toFixed(2).replace('.',',') + ')';
           }
         }
         btnOrder.disabled = !canSend;
@@ -2316,10 +2330,10 @@ function updateDistanceDisplay() {
   var d = consegna_geo.distance_km;
   var dStr = d.toFixed(1) + ' km';
   if (d <= CONFIG.CONSEGNA_RANGE_NEAR_KM) {
-    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Consegna €' + CONFIG.CONSEGNA_FEE_NEAR;
+    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Min €' + CONFIG.CONSEGNA_MIN_ORDER + ' · Consegna €' + CONFIG.CONSEGNA_FEE_NEAR;
     el.style.color = '#27ae60';
   } else if (d <= CONFIG.CONSEGNA_RANGE_MAX_KM) {
-    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Consegna €' + CONFIG.CONSEGNA_FEE_FAR;
+    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Min €' + CONFIG.CONSEGNA_MIN_ORDER_FAR + ' · Consegna €' + CONFIG.CONSEGNA_FEE_FAR;
     el.style.color = '#d4ab48';
   } else {
     el.innerHTML = '✗ Posizione GPS: ' + dStr + ' · Fuori zona (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)';
@@ -2329,6 +2343,26 @@ function updateDistanceDisplay() {
 
 function onConsegnaFormChange() {
   updateCartButtons();
+}
+
+// 客人改地址 = 之前的 GPS 钉位失效（位置必须跟地址一致）
+function onAddressTextChange() {
+  if (consegna_geo) {
+    consegna_geo = null;
+    var btn = document.getElementById('consegna-gps-btn');
+    if (btn) {
+      btn.textContent = '📍 GPS';
+      btn.style.background = 'rgba(212,171,72,.15)';
+      btn.style.borderColor = 'rgba(212,171,72,.4)';
+      btn.style.color = '#d4ab48';
+    }
+    var distEl = document.getElementById('consegna-distance');
+    if (distEl) {
+      distEl.innerHTML = '📍 Tocca "GPS" per verificare la zona di consegna';
+      distEl.style.color = 'rgba(237,229,212,.5)';
+    }
+  }
+  onConsegnaFormChange();
 }
 
 // iOS 软键盘弹出后把当前焦点输入框滚入视野
@@ -2444,17 +2478,22 @@ function sendOrder() {
     if (!phone) { toast('⚠️ Inserisci il telefono'); return; }
     if (!addrText) { toast('⚠️ Inserisci l\'indirizzo di consegna'); return; }
     if (!civico) { toast('⚠️ Inserisci il numero civico'); return; }
-    // 如果客人点了 GPS，校验距离；没点 GPS 就跳过距离校验
-    if (consegna_geo && consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
+    // GPS 必填
+    if (!consegna_geo) {
+      toast('⚠️ Tocca 📍 GPS per verificare la zona di consegna');
+      return;
+    }
+    if (consegna_geo.distance_km > CONFIG.CONSEGNA_RANGE_MAX_KM) {
       toast('⚠️ Indirizzo fuori zona di consegna (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)');
       return;
     }
-    if (cartSubtotal() < CONFIG.CONSEGNA_MIN_ORDER) {
-      toast('⚠️ Ordine minimo €' + CONFIG.CONSEGNA_MIN_ORDER);
+    if (cartSubtotal() < currentMinOrder()) {
+      toast('⚠️ Ordine minimo €' + currentMinOrder());
       return;
     }
     var fee = consegnaFee();
     var sub = cartSubtotal();
+    var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + consegna_geo.lat + ',' + consegna_geo.lng;
     lines = [
       '🛵 *ORDINE CONSEGNA - Yio Fish Carpi*',
       '',
@@ -2462,14 +2501,11 @@ function sendOrder() {
       '📞 Tel: ' + phone,
       '📍 Indirizzo: ' + addrText,
       '🏠 Civico: ' + civico + (citofono ? ' · ' + citofono : ''),
-      '⏰ Consegna: ' + orario
+      '📏 GPS: ' + consegna_geo.distance_km.toFixed(1) + ' km',
+      '🗺️ Posizione: ' + mapsUrl,
+      '⏰ Consegna: ' + orario,
+      ''
     ];
-    if (consegna_geo) {
-      var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + consegna_geo.lat + ',' + consegna_geo.lng;
-      lines.push('📏 GPS: ' + consegna_geo.distance_km.toFixed(1) + ' km');
-      lines.push('🗺️ Posizione: ' + mapsUrl);
-    }
-    lines.push('');
     for (var id in cart_asporto) {
       var it = getItemForMenu(id);
       if (it) {
