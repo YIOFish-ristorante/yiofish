@@ -244,7 +244,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.7</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.8</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -304,12 +304,17 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.7</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.8</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
     <select id="store-switcher" onchange="switchStore(this.value)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 8px;font-size:12px;color:#f4f1ec;cursor:pointer;font-family:inherit;display:none;">
     </select>
+    <style>
+      /* 下拉展开后的选项：深色文字+白底，保证清晰可读 */
+      #store-switcher option { color:#2c2c2c; background:#ffffff; }
+      #store-switcher option:checked { background:#d4a843; color:#1a1a1a; font-weight:600; }
+    </style>
     <button class="btn btn-ghost btn-sm" id="create-store-btn" onclick="openCreateStore()" style="display:none;color:#27ae60;border-color:rgba(39,174,96,.4);" title="创建新餐厅">➕ Ristorante</button>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="color:#c0392b;">⬅ 退出</button>
     <button class="btn btn-green btn-sm" id="publish-btn" onclick="publishMenu()">🚀 发布菜单</button>
@@ -579,12 +584,20 @@ var STORES = [
   {id: 'imola',   name: 'YIO Fish Imola',    address: 'Via Giuseppe Fanin 21, Imola BO'}
 ];
 
+// 店铺切换器显示名：始终带上 id 以区分（数据库里 name 可能都叫 "Yio Fish"）
+function storeLabel(s) {
+  var nm = (s.name || s.id || '').trim();
+  // 名字里已含 id（不分大小写）就不重复加
+  if (nm.toLowerCase().indexOf(String(s.id).toLowerCase()) >= 0) return nm;
+  return nm + ' (' + s.id + ')';
+}
+
 function applyStoreAdminUI() {
   // 店铺管理员：更新标题显示店铺名
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.7</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.8</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -613,7 +626,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.7</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.8</span>';
   }
   loadAll();
 }
@@ -984,7 +997,7 @@ async function loadAll() {
       if (switcher) {
         switcher.style.display = '';
         switcher.innerHTML = STORES.map(function(s){
-          return '<option value="'+s.id+'"'+(s.id===RESTAURANT_ID?' selected':'')+'>'+s.name+'</option>';
+          return '<option value="'+s.id+'"'+(s.id===RESTAURANT_ID?' selected':'')+'>'+storeLabel(s)+'</option>';
         }).join('');
       }
       // 创建餐厅按钮（仅 super 可见）
@@ -1371,7 +1384,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.7</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.8</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2420,7 +2433,7 @@ async function saveNewStore() {
     var switcher = document.getElementById('store-switcher');
     if (switcher) {
       switcher.innerHTML = STORES.map(function(s){
-        return '<option value="'+s.id+'"'+(s.id===RESTAURANT_ID?' selected':'')+'>'+s.name+'</option>';
+        return '<option value="'+s.id+'"'+(s.id===RESTAURANT_ID?' selected':'')+'>'+storeLabel(s)+'</option>';
       }).join('');
     }
 
