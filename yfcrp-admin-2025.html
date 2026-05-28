@@ -28,6 +28,17 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .save-label{font-size:11px;color:rgba(244,241,236,.5);display:flex;align-items:center;gap:5px;}
 
+/* ── 手机端 topbar 自适应（窄屏自动换行+缩小，不影响桌面）── */
+@media (max-width:640px){
+  .topbar{height:auto;min-height:54px;flex-wrap:wrap;padding:8px 12px;gap:6px;
+    justify-content:flex-start;}
+  .t-left{flex:1 1 auto;min-width:0;}
+  .t-logo{font-size:17px;letter-spacing:2px;}
+  .t-title{display:none;}            /* 手机端隐藏「菜单管理后台」字样，省空间 */
+  .t-right{flex:1 1 100%;flex-wrap:wrap;gap:6px;justify-content:flex-start;}
+  .save-label{order:3;flex:1 1 100%;}  /* 自动保存提示单独占一行 */
+}
+
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;
   border-radius:var(--r);font-size:12px;font-family:inherit;font-weight:400;
@@ -174,7 +185,20 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 .cat-name-t{font-size:13px;font-weight:400;}
 .cat-id-t{font-size:11px;color:var(--muted2);}
 
-@media(max-width:640px){.sidebar{display:none;}.content{padding:18px 14px 60px;}}
+@media(max-width:640px){
+  /* 手机端：侧边栏改为顶部横向滚动标签栏（所有功能都点得到）*/
+  .layout{flex-direction:column;min-height:auto;}
+  .sidebar{width:100%;height:auto;position:sticky;top:54px;z-index:200;
+    display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;
+    padding:6px 8px;gap:4px;border-right:none;border-bottom:1px solid var(--border);
+    -webkit-overflow-scrolling:touch;}
+  .sidebar .s-label,.sidebar .s-div{display:none;}  /* 横排时隐藏分组标题和分隔线 */
+  .s-btn{width:auto;flex:0 0 auto;white-space:nowrap;padding:8px 12px;
+    border-left:none;border-bottom:2px solid transparent;border-radius:6px;font-size:12px;}
+  .s-btn.active{border-left:none;border-bottom-color:var(--gold);}
+  .s-cnt{margin-left:6px;}
+  .content{padding:18px 14px 60px;}
+}
 
 .btn-green{background:#27ae60;color:#fff;}.btn-green:hover{background:#2ecc71;}
 .btn-green:disabled{background:#95a5a6;cursor:default;}
@@ -219,7 +243,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.3</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.4</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -279,7 +303,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.3</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.4</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -502,7 +526,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.3</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.4</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -531,7 +555,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.3</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.4</span>';
   }
   loadAll();
 }
@@ -1273,7 +1297,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.3</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.4</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
