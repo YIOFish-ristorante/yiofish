@@ -244,7 +244,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.8</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.9</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -304,7 +304,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.8</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.9</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -597,7 +597,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.8</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.9</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -626,7 +626,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.8</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.9</span>';
   }
   loadAll();
 }
@@ -811,10 +811,10 @@ async function handleGoogleLogin(response) {
 async function reloadDishes() {
   try {
     var [dRes, dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
-      sbFetch('dishes?select=*&order=id&limit=2000'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
+      sbFetch('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000'),
+      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
+      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
+      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
       sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
     var dishes = await dRes.json();
@@ -873,7 +873,7 @@ async function loadAll() {
       sbFetch('restaurants?id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('categories?select=*&order=sort_order'),
-      sbFetch('dishes?select=*&order=id&limit=2000')
+      sbFetch('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000')
     ]);
     var rData = await rRes.json();
     if (rData[0]) R = rData[0];
@@ -911,9 +911,9 @@ async function loadAll() {
     });
     // dish_menus超过1000条，分3次加载
     var [dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetch('dish_menus?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
+      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
+      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
+      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
       sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
     var dm1 = await dm1Res.json();
@@ -1384,7 +1384,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.8</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.9</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1403,14 +1403,14 @@ async function bulkEnableCatInMenu(menuId, catId) {
     for (var i = 0; i < ids.length; i++) {
       var did = ids[i];
       // 先查是否存在记录
-      var chk = await sbFetch('dish_menus?restaurant_id=eq.'+RESTAURANT_ID+'&dish_id=eq.'+did+'&menu_id=eq.'+menuId+'&select=id');
+      var chk = await sbFetch('dish_menus_v2?restaurant_id=eq.'+RESTAURANT_ID+'&dish_id=eq.'+did+'&menu_id=eq.'+menuId+'&select=id');
       var rows = await chk.json();
       if (rows && rows.length > 0) {
-        await sbFetch('dish_menus?restaurant_id=eq.'+RESTAURANT_ID+'&dish_id=eq.'+did+'&menu_id=eq.'+menuId, {
+        await sbFetch('dish_menus_v2?restaurant_id=eq.'+RESTAURANT_ID+'&dish_id=eq.'+did+'&menu_id=eq.'+menuId, {
           method:'PATCH', body: JSON.stringify({enabled: true})
         });
       } else {
-        await sbFetch('dish_menus', {
+        await sbFetch('dish_menus_v2', {
           method:'POST',
           body: JSON.stringify({restaurant_id:RESTAURANT_ID, dish_id:did, menu_id:menuId, enabled:true, price:0, max_qty:0, sconto:0, sconto_consegna:0})
         });
@@ -1429,7 +1429,7 @@ async function bulkDisableCatInMenu(menuId, catId) {
     var dishesInCat = I.filter(function(it){ return it.category === catId; });
     var ids = dishesInCat.map(function(d){ return d.id; });
     for (var i = 0; i < ids.length; i++) {
-      await sbFetch('dish_menus?restaurant_id=eq.'+RESTAURANT_ID+'&dish_id=eq.'+ids[i]+'&menu_id=eq.'+menuId, {
+      await sbFetch('dish_menus_v2?restaurant_id=eq.'+RESTAURANT_ID+'&dish_id=eq.'+ids[i]+'&menu_id=eq.'+menuId, {
         method:'PATCH', body: JSON.stringify({enabled: false})
       });
     }
@@ -1480,38 +1480,42 @@ async function saveRestaurantToDB(data) {
 }
 
 async function saveDishToDB(dish) {
+  // v2 表结构：id 是数据库自增，dish_no 是菜品号（用户输入）
   var dbDish = {
-    id: dish.id,
+    restaurant_id: RESTAURANT_ID,
+    dish_no: dish.dish_no || dish.id,  // 菜品号（兼容旧字段名）
     category_id: dish.category,
     name: dish.name,
     description: dish.desc || '',
     image: dish.image || ''
-    // tags 和 sold_out 移到 dish_menus，每家独立
+    // tags 和 sold_out 在 dish_menus_v2，每家独立
   };
   if (dish._isNew) {
-    if (!dish.id) delete dbDish.id; // 没指定id就让数据库自动分配
-    else dbDish.id = dish.id;
-    var res = await sbFetch('dishes', {
+    // 新增：不指定 id（让 db 自增）。如果用户没输入菜品号，让 db 也自增 dish_no... 但 dish_no NOT NULL，必须有值
+    if (!dbDish.dish_no) { throw new Error('请填写菜品号'); }
+    var res = await sbFetch('dishes_v2', {
       method: 'POST', body: JSON.stringify(dbDish), prefer: 'return=representation'
     });
     if (!res.ok) { var er=await res.text(); throw new Error('添加菜品失败: '+er); }
     var newDish = await res.json();
-    dish.id = newDish[0].id;
+    dish.id = newDish[0].id;       // 新自增 id
+    dish.dish_no = newDish[0].dish_no;
   } else {
-    var res = await sbFetch('dishes?id=eq.' + dish.id, {
+    // 编辑：用 dishes_v2.id（自增）找记录
+    var res = await sbFetch('dishes_v2?id=eq.' + dish.id, {
       method: 'PATCH', body: JSON.stringify(dbDish)
     });
     if (!res.ok) throw new Error('更新菜品失败');
   }
-  // 先删除当前店铺的旧记录
-  await sbFetch('dish_menus?dish_id=eq.' + dish.id + '&restaurant_id=eq.' + RESTAURANT_ID, {
+  // 先删除当前店铺的旧 dish_menus 记录
+  await sbFetch('dish_menus_v2?dish_id=eq.' + dish.id + '&restaurant_id=eq.' + RESTAURANT_ID, {
     method: 'DELETE'
   });
-  // 当前店铺插入用户设置的值（含 sold_out 和 tags，按店独立）
+  // 当前店铺插入用户设置的值
   var menuRows = MENUS.map(function(m) {
     var ms = dish.menus[m.id] || {};
     return {
-      dish_id: dish.id,
+      dish_id: dish.id,             // v2 自增 id
       restaurant_id: RESTAURANT_ID,
       menu_id: m.id,
       enabled: !!ms.on,
@@ -1519,37 +1523,42 @@ async function saveDishToDB(dish) {
       max_qty: parseInt(ms.max_qty) || 0,
       sconto: parseInt(ms.sconto) || 0,
       sconto_consegna: parseInt(ms.sconto_consegna) || 0,
-      sold_out: !!dish.sold_out,  // 按当前店写售罄
-      tags: dish.tags || []        // 按当前店写标签
+      sold_out: !!dish.sold_out,
+      tags: dish.tags || []
     };
   });
-  var res2 = await sbFetch('dish_menus', {
+  var res2 = await sbFetch('dish_menus_v2', {
     method: 'POST', body: JSON.stringify(menuRows)
   });
   if (!res2.ok) throw new Error('保存菜单价格失败');
-  // 新菜添加时，为其他店铺也创建默认记录（enabled=false, price=0）
-  if (dish._isNew && STORES && STORES.length > 1) {
-    var otherStores = STORES.filter(function(s){ return s.id !== RESTAURANT_ID; });
-    for (var i = 0; i < otherStores.length; i++) {
-      var otherStore = otherStores[i];
-      // 先检查是否已存在
-      var chkRes = await sbFetch('dish_menus?dish_id=eq.' + dish.id + '&restaurant_id=eq.' + otherStore.id + '&select=id');
-      var chk = await chkRes.json();
-      if (!chk || chk.length === 0) {
-        var defaultRows = MENUS.map(function(m) {
+  // 方案X-限定：新菜如果是 carpi 或 legnago，给另一家也建骨架（互通）
+  // imola 新菜不建骨架（imola 菜单完全独立）
+  if (dish._isNew && (RESTAURANT_ID === 'carpi' || RESTAURANT_ID === 'legnago')) {
+    var twinStore = (RESTAURANT_ID === 'carpi') ? 'legnago' : 'carpi';
+    // 检查 twin 店是否已有同 dish_no 的菜（避免重复）
+    var chkUrl = 'dishes_v2?restaurant_id=eq.' + twinStore + '&dish_no=eq.' + dbDish.dish_no + '&select=id';
+    var chkRes = await sbFetch(chkUrl);
+    var chk = chkRes.ok ? await chkRes.json() : [];
+    if (!chk || chk.length === 0) {
+      // 在 twin 店建一条 dishes_v2 骨架
+      var twinDish = Object.assign({}, dbDish);
+      twinDish.restaurant_id = twinStore;
+      var tdRes = await sbFetch('dishes_v2', {
+        method: 'POST', body: JSON.stringify(twinDish), prefer: 'return=representation'
+      });
+      if (tdRes.ok) {
+        var tdData = await tdRes.json();
+        var twinId = tdData[0].id;
+        // 给 twin 店建默认 dish_menus_v2（全部 enabled=false）
+        var twinMenus = MENUS.map(function(m) {
           return {
-            dish_id: dish.id,
-            restaurant_id: otherStore.id,
-            menu_id: m.id,
-            enabled: false,
-            price: 0,
-            max_qty: 0,
-            sconto: 0,
-            sconto_consegna: 0
+            dish_id: twinId, restaurant_id: twinStore, menu_id: m.id,
+            enabled: false, price: 0, max_qty: 0, sconto: 0, sconto_consegna: 0,
+            sold_out: false, tags: []
           };
         });
-        await sbFetch('dish_menus', {
-          method: 'POST', body: JSON.stringify(defaultRows)
+        await sbFetch('dish_menus_v2', {
+          method: 'POST', body: JSON.stringify(twinMenus)
         });
       }
     }
@@ -1557,8 +1566,9 @@ async function saveDishToDB(dish) {
 }
 
 async function deleteDishFromDB(id) {
-  await sbFetch('dish_menus?dish_id=eq.' + id + '&restaurant_id=eq.' + RESTAURANT_ID, { method: 'DELETE' });
-  await sbFetch('dishes?id=eq.' + id, { method: 'DELETE' });
+  // 只删当前店的（v2 表按店隔离，不影响其他店）
+  await sbFetch('dish_menus_v2?dish_id=eq.' + id + '&restaurant_id=eq.' + RESTAURANT_ID, { method: 'DELETE' });
+  await sbFetch('dishes_v2?id=eq.' + id, { method: 'DELETE' });
 }
 
 async function saveCatToDB(cat, isNew) {
@@ -2124,6 +2134,8 @@ var IM_NEWCAT_META = {
 };
 
 function openImportMenu() {
+  toast('⚠️ 导入功能维护中（v2 表迁移后未完成适配），暂时禁用以保护数据。请联系开发恢复。'); return;
+  // 以下旧代码暂保留，未来修复后启用
   if (CURRENT_ROLE !== 'super') { toast('❌ 仅超级管理员可导入'); return; }
   if (typeof XLSX === 'undefined') { toast('❌ Excel 解析库未加载，请刷新页面重试'); return; }
   _importData = null; _importNewCats = [];
@@ -2352,7 +2364,7 @@ async function importSaveDish(dish) {
     if (!pr.ok) throw new Error('添加失败');
   }
   // 删当前店旧 dish_menus
-  await sbFetch('dish_menus?dish_id=eq.' + encodeURIComponent(dish.id) + '&restaurant_id=eq.' + RESTAURANT_ID, { method:'DELETE' });
+  await sbFetch('dish_menus_v2?dish_id=eq.' + encodeURIComponent(dish.id) + '&restaurant_id=eq.' + RESTAURANT_ID, { method:'DELETE' });
   // 插入当前店 dish_menus（所有菜单）
   var menuRows = MENUS.map(function(m){
     var ms = dish.menus[m.id] || {};
@@ -2363,7 +2375,7 @@ async function importSaveDish(dish) {
       sold_out: false, tags: dish.tags || []
     };
   });
-  var mr = await sbFetch('dish_menus', { method:'POST', prefer:'return=minimal', body: JSON.stringify(menuRows) });
+  var mr = await sbFetch('dish_menus_v2', { method:'POST', prefer:'return=minimal', body: JSON.stringify(menuRows) });
   if (!mr.ok) throw new Error('菜单写入失败');
 }
 
