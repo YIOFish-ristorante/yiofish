@@ -244,7 +244,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.10.0-rc1</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.10.0-rc1-fix</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -304,7 +304,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.10.0-rc1</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.10.0-rc1-fix</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -597,7 +597,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc1-fix</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -626,7 +626,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc1-fix</span>';
   }
   loadAll();
 }
@@ -1386,7 +1386,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc1</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc1-fix</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2146,18 +2146,16 @@ var IM_NEWCAT_META = {
 };
 
 function openImportMenu() {
-  toast('⚠️ 导入功能维护中（v2 表迁移后未完成适配），暂时禁用以保护数据。请联系开发恢复。'); return;
-  // 以下旧代码暂保留，未来修复后启用
   if (CURRENT_ROLE !== 'super') { toast('❌ 仅超级管理员可导入'); return; }
   if (typeof XLSX === 'undefined') { toast('❌ Excel 解析库未加载，请刷新页面重试'); return; }
-  _importData = null; _importNewCats = [];
-  $('im-store').textContent = RESTAURANT_ID;
-  $('im-file').value = '';
-  $('im-parse-result').style.display = 'none';
-  $('im-step1').style.display = '';
-  $('im-step2').style.display = 'none';
-  $('im-confirm-btn').style.display = 'none';
-  $('im-cancel-btn').textContent = '取消';
+  _importData = null; _importNewCats = []; _importStats = null;
+  if ($('im-store')) $('im-store').textContent = RESTAURANT_ID;
+  if ($('im-file')) $('im-file').value = '';
+  if ($('im-parse-result')) $('im-parse-result').style.display = 'none';
+  if ($('im-step1')) $('im-step1').style.display = '';
+  if ($('im-step2')) $('im-step2').style.display = 'none';
+  if ($('im-confirm-btn')) $('im-confirm-btn').style.display = 'none';
+  if ($('im-cancel-btn')) $('im-cancel-btn').textContent = '取消';
   openModal('import-menu-modal');
 }
 
