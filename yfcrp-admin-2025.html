@@ -244,7 +244,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.9.5</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.10.0-rc1</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -304,7 +304,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.9.5</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.10.0-rc1</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -597,7 +597,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.9.5</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc1</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -626,7 +626,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.9.5</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc1</span>';
   }
   loadAll();
 }
@@ -1386,7 +1386,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.9.5</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc1</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2200,19 +2200,28 @@ function importProcessRows(rows) {
   for (var ri = hdrIdx+1; ri < rows.length; ri++) {
     var row = rows[ri];
     if (!row) continue;
-    var id = row[col['ID']];
+    var idRaw = row[col['ID']];
     var name = row[col['Nome']];
-    if (id === null || id === undefined || String(id).trim()==='') continue;
+    if (idRaw === null || idRaw === undefined || String(idRaw).trim()==='') continue;
     if (!name || String(name).trim()==='') continue;
-    id = String(id).trim();
+    // v2: ID = dish_no（菜品号，整数）
+    var dishNo = parseInt(String(idRaw).trim(), 10);
+    if (!dishNo || dishNo < 1) {
+      warnings.push('行 ' + (ri+1) + '：菜品号无效 "' + idRaw + '"，已跳过');
+      continue;
+    }
     var cat = row[col['Categoria']] ? String(row[col['Categoria']]).trim() : '';
+    if (!cat) {
+      warnings.push('#' + dishNo + ' ' + name + '：缺分类，已跳过');
+      continue;
+    }
 
-    // 分类检查
-    if (cat && !existCats[cat] && !newCatsSet[cat]) {
+    // 分类检查（不在数据库 → 标记为新分类）
+    if (!existCats[cat] && !newCatsSet[cat]) {
       newCatsSet[cat] = true;
     }
 
-    // 菜单配置
+    // 菜单配置（每个菜单独立 enabled / max_qty）
     var menus = {};
     Object.keys(IM_MENU_COLS).forEach(function(mcol){
       var mid = IM_MENU_COLS[mcol];
@@ -2238,29 +2247,72 @@ function importProcessRows(rows) {
 
     // 价格为空警告
     var hasPrice = row[col['Prezzo']]!==null && row[col['Prezzo']]!==undefined && String(row[col['Prezzo']]).trim()!=='';
-    if (!hasPrice) warnings.push(id + ' ' + name + '（无价格）');
+    if (!hasPrice) warnings.push('#' + dishNo + ' ' + name + '（无价格）');
+
+    // v2: 图片名按方案 A 补零
+    var imgName = (dishNo < 10) ? ('images/0' + dishNo + '.webp') : ('images/' + dishNo + '.webp');
 
     dishes.push({
-      id: id,
+      dish_no: dishNo,      // v2: 菜品号
       category: cat,
       name: String(name).trim(),
       desc: row[col['Descrizione']] ? String(row[col['Descrizione']]).trim() : '',
-      image: 'images/' + id + '.webp',
+      image: imgName,
       tags: tags,
       menus: menus
     });
   }
 
+  // === v2 关键：和当前数据库对比，生成统计 ===
+  // ALL_ITEMS 是当前店已加载的菜（loadAll 时填充）
+  var dbByNo = {};
+  (ALL_ITEMS||[]).forEach(function(d){ if (d.dish_no) dbByNo[d.dish_no] = d; });
+  var excelNos = {};
+  dishes.forEach(function(d){ excelNos[d.dish_no] = true; });
+
+  var toAdd = [], toUpdate = [], toDeactivate = [];
+  // Excel 里的菜：要新增 or 更新
+  dishes.forEach(function(d){
+    if (dbByNo[d.dish_no]) toUpdate.push(d);
+    else toAdd.push(d);
+  });
+  // 数据库有但 Excel 没的菜：要下架
+  (ALL_ITEMS||[]).forEach(function(d){
+    if (d.dish_no && !excelNos[d.dish_no]) {
+      // 判断当前是否还有任何菜单 enabled
+      var hasEnabled = false;
+      if (d.menus) {
+        for (var k in d.menus) if (d.menus[k] && d.menus[k].on) { hasEnabled = true; break; }
+      }
+      if (hasEnabled) toDeactivate.push(d);
+    }
+  });
+
   _importData = dishes;
   _importNewCats = Object.keys(newCatsSet);
+  _importStats = { toAdd: toAdd, toUpdate: toUpdate, toDeactivate: toDeactivate };
 
-  // 渲染预览
-  var summary = '✅ 解析到 <b>' + dishes.length + '</b> 道菜品';
+  // ========== 渲染预览（v2 增强）==========
+  var summary = '✅ Excel 解析到 <b>' + dishes.length + '</b> 道菜品';
+  summary += '<div style="margin-top:8px;padding:10px;background:rgba(39,174,96,.08);border-left:3px solid #27ae60;border-radius:4px">';
+  summary += '<div style="font-weight:600;margin-bottom:6px">导入预览（执行后效果）：</div>';
+  summary += '<div>🟢 新增：<b>' + toAdd.length + '</b> 道菜</div>';
+  summary += '<div>🔵 更新：<b>' + toUpdate.length + '</b> 道菜（菜名/价格/上架状态等）</div>';
+  summary += '<div>🟡 下架：<b>' + toDeactivate.length + '</b> 道菜（数据库有但 Excel 没有，将设为 enabled=false，数据保留）</div>';
+  summary += '<div style="margin-top:6px;font-size:12px;color:var(--muted)">导入只影响当前店：<b>' + RESTAURANT_ID + '</b>，不会污染其他店</div>';
+  summary += '</div>';
+
+  // 警告：上传不完整 Excel 风险
+  if (toDeactivate.length > 0) {
+    summary += '<div style="margin-top:8px;padding:10px;background:rgba(243,156,18,.12);border-left:3px solid #f39c12;border-radius:4px;font-size:12px">';
+    summary += '⚠️ <b>注意</b>：将下架 ' + toDeactivate.length + ' 道菜。如果这是误操作（例如只想改几道却传了不完整 Excel），请先检查 Excel 是否包含所有现有菜品。零散改菜建议用 admin 直接编辑。';
+    summary += '</div>';
+  }
   $('im-summary').innerHTML = summary;
 
   if (_importNewCats.length) {
     $('im-newcats').style.display = '';
-    $('im-newcats').innerHTML = '<div style="font-size:13px;color:#b8860b">⚠️ 将自动创建 ' + _importNewCats.length + ' 个新分类：' +
+    $('im-newcats').innerHTML = '<div style="font-size:13px;color:#b8860b;padding:8px;background:rgba(241,196,15,.1);border-radius:4px">⚠️ 将自动创建 ' + _importNewCats.length + ' 个新分类：' +
       _importNewCats.map(function(c){
         var meta = IM_NEWCAT_META[c] || {name:c,icon:'🍽️'};
         return meta.icon + ' ' + c + '(' + meta.name + ')';
@@ -2272,34 +2324,53 @@ function importProcessRows(rows) {
   if (warnings.length) {
     $('im-warnings').style.display = '';
     var wshow = warnings.slice(0, 5).join('、') + (warnings.length>5?(' 等 '+warnings.length+' 项'):'');
-    $('im-warnings').innerHTML = '<div style="font-size:12px;color:#c0392b">⚠️ ' + warnings.length + ' 道菜无价格（仍可导入，之后补）：' + wshow + '</div>';
+    $('im-warnings').innerHTML = '<div style="font-size:12px;color:#c0392b">⚠️ ' + warnings.length + ' 项提示：' + wshow + '</div>';
   } else {
     $('im-warnings').style.display = 'none';
   }
 
-  // 预览表（前 50 行）
+  // 预览表（前 50 行，标注操作类型）
   var th = '<tr style="position:sticky;top:0;background:var(--card);border-bottom:2px solid var(--border)">'+
-    '<th style="padding:6px;text-align:left">ID</th><th style="padding:6px;text-align:left">分类</th>'+
-    '<th style="padding:6px;text-align:left">名称</th><th style="padding:6px;text-align:right">价格</th>'+
-    '<th style="padding:6px;text-align:left">菜单</th></tr>';
-  var trs = dishes.slice(0, 50).map(function(d){
-    var onMenus = Object.keys(d.menus).filter(function(m){return d.menus[m].on;}).join(',');
+    '<th style="padding:6px;text-align:left">操作</th>'+
+    '<th style="padding:6px;text-align:left">编号</th><th style="padding:6px;text-align:left">分类</th>'+
+    '<th style="padding:6px;text-align:left">名称</th><th style="padding:6px;text-align:right">价格</th></tr>';
+  // 显示前 50 道（先 toAdd 再 toUpdate）
+  var preview = toAdd.concat(toUpdate).slice(0, 50);
+  var trs = preview.map(function(d){
+    var op = dbByNo[d.dish_no] ? '<span style="color:#3498db">更新</span>' : '<span style="color:#27ae60">新增</span>';
     var price = d.menus.pranzo.price || d.menus.bevande.price || d.menus.dessert.price || 0;
     return '<tr style="border-bottom:1px solid var(--border)">'+
-      '<td style="padding:6px">'+d.id+'</td>'+
+      '<td style="padding:6px">'+op+'</td>'+
+      '<td style="padding:6px">'+d.dish_no+'</td>'+
       '<td style="padding:6px">'+d.category+'</td>'+
       '<td style="padding:6px">'+d.name+'</td>'+
-      '<td style="padding:6px;text-align:right">'+(price?('€'+price):'-')+'</td>'+
-      '<td style="padding:6px;font-size:10px;color:var(--muted)">'+onMenus+'</td></tr>';
+      '<td style="padding:6px;text-align:right">'+(price?('€'+price):'-')+'</td></tr>';
   }).join('');
-  if (dishes.length > 50) trs += '<tr><td colspan="5" style="padding:8px;text-align:center;color:var(--muted)">… 其余 '+(dishes.length-50)+' 道未显示</td></tr>';
+  // 下架的菜也显示几行
+  if (toDeactivate.length) {
+    toDeactivate.slice(0, 10).forEach(function(d){
+      trs += '<tr style="border-bottom:1px solid var(--border);background:rgba(243,156,18,.05)">'+
+        '<td style="padding:6px"><span style="color:#f39c12">下架</span></td>'+
+        '<td style="padding:6px">'+d.dish_no+'</td>'+
+        '<td style="padding:6px">'+d.category+'</td>'+
+        '<td style="padding:6px">'+d.name+'</td>'+
+        '<td style="padding:6px;text-align:right;color:var(--muted)">-</td></tr>';
+    });
+    if (toDeactivate.length > 10) trs += '<tr><td colspan="5" style="padding:8px;text-align:center;color:var(--muted)">… 还有 '+(toDeactivate.length-10)+' 道菜将下架</td></tr>';
+  }
+  var totalPreview = preview.length + Math.min(toDeactivate.length, 10);
+  var totalActual = toAdd.length + toUpdate.length + toDeactivate.length;
+  if (totalActual > totalPreview) trs += '<tr><td colspan="5" style="padding:8px;text-align:center;color:var(--muted)">… 仅显示部分，实际共 '+totalActual+' 道菜将受影响</td></tr>';
   $('im-preview-table').innerHTML = th + trs;
 
   $('im-parse-result').style.display = '';
-  $('im-confirm-btn').style.display = dishes.length ? '' : 'none';
+  $('im-confirm-btn').style.display = (toAdd.length + toUpdate.length + toDeactivate.length) > 0 ? '' : 'none';
 }
 
 async function importExecute() {
+  toast('⚠️ 导入执行功能开发中（第 2 步）。预览功能已可用，请先确认 Excel 解析和统计是否正确。');
+  return;
+  // 以下旧代码暂保留（v1 版本，待重写为 v2）
   if (!_importData || !_importData.length) { toast('没有可导入的数据'); return; }
   $('im-step1').style.display = 'none';
   $('im-step2').style.display = '';
