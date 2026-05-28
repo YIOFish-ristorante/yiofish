@@ -475,7 +475,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.2 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.3 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -779,7 +779,7 @@ var cart_dine_sent = {}; // 已发送的堂食菜品（灰色显示）
 var cart_asporto_sent = {}; // 已发送的打包菜品（灰色显示）
 var guestCount = 1;  // 人数（服务员控制）
 
-// ── ASPORTO/CONSEGNA 模式（v1.5.2）──
+// ── ASPORTO/CONSEGNA 模式（v1.5.3）──
 // 'asporto'  = ritiro in negozio (sconto come da DB, default 20%)
 // 'consegna' = consegna a domicilio (sconto fisso 10% + spese consegna)
 var order_mode = 'asporto';
@@ -2256,7 +2256,7 @@ function sendNotify() {
 }
 
 // ════════════════════════════════════
-// ASPORTO / CONSEGNA 模式（v1.5.2）
+// ASPORTO / CONSEGNA 模式（v1.5.3）
 // ════════════════════════════════════
 function openTakeawayChoice() {
   // 根据后台设置控制「外送 CONSEGNA」是否可选
@@ -2709,7 +2709,9 @@ document.getElementById('search-input').addEventListener('input', function() {
     var m = it.menus[currentMenuId];
     if (!m || !m.on) return false;
     if (!q) return true;
-    return it.name.toLowerCase().indexOf(q) >= 0 || (it.desc||'').toLowerCase().indexOf(q) >= 0 || (it.dish_no && String(it.dish_no).indexOf(q) >= 0);
+    // 纯数字按 dish_no 精确；否则 name/desc 模糊
+    if (/^\d+$/.test(q)) return it.dish_no === parseInt(q);
+    return it.name.toLowerCase().indexOf(q) >= 0 || (it.desc||'').toLowerCase().indexOf(q) >= 0;
   }).map(function(it) {
     var m = it.menus[currentMenuId];
     return Object.assign({}, it, {price: m.price, max_qty: m.max_qty, sconto: m.sconto, sconto_consegna: m.sconto_consegna});
