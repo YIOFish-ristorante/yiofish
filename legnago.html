@@ -475,7 +475,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.0 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.2 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -779,7 +779,7 @@ var cart_dine_sent = {}; // 已发送的堂食菜品（灰色显示）
 var cart_asporto_sent = {}; // 已发送的打包菜品（灰色显示）
 var guestCount = 1;  // 人数（服务员控制）
 
-// ── ASPORTO/CONSEGNA 模式（v1.5.0）──
+// ── ASPORTO/CONSEGNA 模式（v1.5.2）──
 // 'asporto'  = ritiro in negozio (sconto come da DB, default 20%)
 // 'consegna' = consegna a domicilio (sconto fisso 10% + spese consegna)
 var order_mode = 'asporto';
@@ -859,14 +859,17 @@ var isAsporto = false;
 function displayDishHTML(it) {
   var safeName = String(it.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   if (it.dish_no) {
-    return '<span style="color:#999;font-size:0.85em;font-weight:600;margin-right:6px">#' +
-           it.dish_no + '</span>' + safeName;
+    var n = it.dish_no < 10 ? '0' + it.dish_no : it.dish_no;
+    return n + ' / ' + safeName;
   }
   return safeName;
 }
 // 纯文本版（用于订单消息、搜索等）
 function displayDishText(it) {
-  if (it.dish_no) return '#' + it.dish_no + ' ' + (it.name||'');
+  if (it.dish_no) {
+    var n = it.dish_no < 10 ? '0' + it.dish_no : it.dish_no;
+    return n + ' / ' + (it.name||'');
+  }
   return (it.name||'');
 }
 
@@ -2253,7 +2256,7 @@ function sendNotify() {
 }
 
 // ════════════════════════════════════
-// ASPORTO / CONSEGNA 模式（v1.5.0）
+// ASPORTO / CONSEGNA 模式（v1.5.2）
 // ════════════════════════════════════
 function openTakeawayChoice() {
   // 根据后台设置控制「外送 CONSEGNA」是否可选
