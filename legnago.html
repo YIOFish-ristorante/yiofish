@@ -475,7 +475,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.2.1 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.2.2 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -922,7 +922,7 @@ async function loadAll() {
       var dishTags = null;
       DISH_MENUS.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
-          menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0 };
+          menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0, sconto_consegna: (dm.sconto_consegna != null ? parseInt(dm.sconto_consegna) : null) };
           if (dm.sold_out === true) soldOut = true;
           if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
@@ -1020,7 +1020,7 @@ async function reloadMenuData() {
       var dishTags = null;
       DISH_MENUS.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
-          menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0 };
+          menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0, sconto_consegna: (dm.sconto_consegna != null ? parseInt(dm.sconto_consegna) : null) };
           if (dm.sold_out === true) soldOut = true;
           if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
@@ -1171,7 +1171,7 @@ function openMenuView(menuId) {
     return m && m.on;
   }).map(function(it) {
     var m = it.menus[menuId];
-    return Object.assign({}, it, { price: m.price, max_qty: m.max_qty, sconto: m.sconto });
+    return Object.assign({}, it, { price: m.price, max_qty: m.max_qty, sconto: m.sconto, sconto_consegna: m.sconto_consegna });
   });
 
   // 渲染菜品
@@ -1325,13 +1325,12 @@ function mkCard(it, delay) {
     sb.textContent = 'Esaurito';
     iw.appendChild(sb);
   }
-  // 折扣徽章（数据驱动：sconto=0 的菜永不显示徽章）
-  var dbSconto = it.sconto || 0;
+  // 折扣徽章（数据驱动：CONSEGNA 用 sconto_consegna，ASPORTO 用 sconto）
   var displaySconto;
   if (isAsporto && order_mode === 'consegna') {
-    displaySconto = dbSconto > 0 ? CONFIG.CONSEGNA_SCONTO : 0;
+    displaySconto = (it.sconto_consegna != null) ? (it.sconto_consegna || 0) : (it.sconto || 0);
   } else {
-    displaySconto = dbSconto;
+    displaySconto = it.sconto || 0;
   }
   if (displaySconto > 0) {
     var scb = document.createElement('div');
@@ -1421,7 +1420,7 @@ function getItemForMenu(id) {
   if (!it || !currentMenuId) return null;
   var m = it.menus[currentMenuId];
   if (!m) return null;
-  return Object.assign({}, it, {price: m.price, max_qty: m.max_qty, sconto: m.sconto});
+  return Object.assign({}, it, {price: m.price, max_qty: m.max_qty, sconto: m.sconto, sconto_consegna: m.sconto_consegna});
 }
 
 function toast(msg, duration) {
@@ -1441,16 +1440,14 @@ function cartCount() {
 }
 
 // 取单品在当前购物车模式下的实际单价（已应用折扣）
-// 数据驱动：只有数据库 sconto > 0 的菜才会在 CONSEGNA 模式下也享受 10% 折扣
-// 后台把某菜的 ASPORTO sconto 清零 → ASPORTO 和 CONSEGNA 都不打折（适合酒水/甜点）
+// 数据驱动：CONSEGNA 模式用 sconto_consegna（每菜独立），不存在则用 sconto
 function effectivePrice(it) {
   if (!it) return 0;
-  var dbSconto = it.sconto || 0;
   var sconto;
   if (isAsporto && order_mode === 'consegna') {
-    sconto = dbSconto > 0 ? CONFIG.CONSEGNA_SCONTO : 0;
+    sconto = (it.sconto_consegna != null) ? (it.sconto_consegna || 0) : (it.sconto || 0);
   } else {
-    sconto = dbSconto;
+    sconto = it.sconto || 0;
   }
   return sconto > 0 ? it.price * (1 - sconto/100) : it.price;
 }
@@ -2616,7 +2613,7 @@ document.getElementById('search-input').addEventListener('input', function() {
     return it.name.toLowerCase().indexOf(q) >= 0 || (it.desc||'').toLowerCase().indexOf(q) >= 0;
   }).map(function(it) {
     var m = it.menus[currentMenuId];
-    return Object.assign({}, it, {price: m.price, max_qty: m.max_qty, sconto: m.sconto});
+    return Object.assign({}, it, {price: m.price, max_qty: m.max_qty, sconto: m.sconto, sconto_consegna: m.sconto_consegna});
   });
   renderMenuItems(items);
 });
