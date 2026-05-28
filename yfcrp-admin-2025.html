@@ -219,7 +219,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.2</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.3</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -279,7 +279,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.2</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.3</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -383,7 +383,8 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
         <label><input type="checkbox" id="mp-asporto" onchange="togglePrice('asporto')"><span style="color:#2980b9">📦 打包 Asporto</span></label>
         <div class="mp-price"><span class="mp-sym">€</span><input type="number" id="pp-asporto" placeholder="0.00" step="0.5" min="0" disabled=""></div>
         <div class="mp-limit"><span class="mp-limit-lbl">限</span><input type="number" id="mq-asporto" placeholder="0" min="0" step="1" disabled="" title="限点次数（0=不限）"></div>
-        <div class="mp-sconto"><span class="mp-sconto-lbl">%折</span><input type="number" id="sc-asporto" placeholder="0" min="0" max="100" step="1" disabled="" title="Sconto %（0=nessuno）"></div>
+        <div class="mp-sconto"><span class="mp-sconto-lbl" title="Sconto Asporto / 打包折扣%">%A</span><input type="number" id="sc-asporto" placeholder="0" min="0" max="100" step="1" disabled="" title="Sconto Asporto %（打包折扣，0=nessuno）"></div>
+        <div class="mp-sconto"><span class="mp-sconto-lbl" style="color:#2980b9" title="Sconto Consegna / 外送折扣%">%C</span><input type="number" id="scc-asporto" placeholder="0" min="0" max="100" step="1" disabled="" title="Sconto Consegna %（外送折扣，0=nessuno）"></div>
       </div>
     </div>
     <div class="fg" style="margin-bottom:10px"><label>过敏原标签</label><div class="tag-grid" id="f-tags"></div></div>
@@ -501,7 +502,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.3</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -530,7 +531,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.3</span>';
   }
   loadAll();
 }
@@ -744,7 +745,8 @@ async function reloadDishes() {
             on: dm.enabled,
             price: parseFloat(dm.price) || 0,
             max_qty: parseInt(dm.max_qty) || 0,
-            sconto: parseInt(dm.sconto) || 0
+            sconto: parseInt(dm.sconto) || 0,
+            sconto_consegna: parseInt(dm.sconto_consegna) || 0
           };
           if (dm.sold_out === true) soldOut = true;
           if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
@@ -848,7 +850,8 @@ async function loadAll() {
             on: dm.enabled,
             price: parseFloat(dm.price) || 0,
             max_qty: parseInt(dm.max_qty) || 0,
-            sconto: parseInt(dm.sconto) || 0
+            sconto: parseInt(dm.sconto) || 0,
+            sconto_consegna: parseInt(dm.sconto_consegna) || 0
           };
           // dish_menus 里任一行 sold_out=true → 这道菜在本店售罄
           if (dm.sold_out === true) soldOut = true;
@@ -1270,7 +1273,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.2</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.3</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1298,7 +1301,7 @@ async function bulkEnableCatInMenu(menuId, catId) {
       } else {
         await sbFetch('dish_menus', {
           method:'POST',
-          body: JSON.stringify({restaurant_id:RESTAURANT_ID, dish_id:did, menu_id:menuId, enabled:true, price:0, max_qty:0, sconto:0})
+          body: JSON.stringify({restaurant_id:RESTAURANT_ID, dish_id:did, menu_id:menuId, enabled:true, price:0, max_qty:0, sconto:0, sconto_consegna:0})
         });
       }
       updated++;
@@ -1404,6 +1407,7 @@ async function saveDishToDB(dish) {
       price: parseFloat(ms.price) || 0,
       max_qty: parseInt(ms.max_qty) || 0,
       sconto: parseInt(ms.sconto) || 0,
+      sconto_consegna: parseInt(ms.sconto_consegna) || 0,
       sold_out: !!dish.sold_out,  // 按当前店写售罄
       tags: dish.tags || []        // 按当前店写标签
     };
@@ -1429,7 +1433,8 @@ async function saveDishToDB(dish) {
             enabled: false,
             price: 0,
             max_qty: 0,
-            sconto: 0
+            sconto: 0,
+            sconto_consegna: 0
           };
         });
         await sbFetch('dish_menus', {
@@ -1656,6 +1661,11 @@ function openEditDish(id){
     $('pp-'+m.id).disabled = !isOn;
     if($('mq-'+m.id)){ $('mq-'+m.id).value = isOn ? (ms.max_qty||0) : ''; $('mq-'+m.id).disabled = !isOn; }
     if($('sc-'+m.id)){ $('sc-'+m.id).value = isOn ? (ms.sconto||0) : ''; $('sc-'+m.id).disabled = !isOn; }
+    // ASPORTO 行额外有 %C（外送折扣）输入框
+    if(m.id==='asporto' && $('scc-asporto')){
+      $('scc-asporto').value = isOn ? (ms.sconto_consegna||0) : '';
+      $('scc-asporto').disabled = !isOn;
+    }
   });
   openModal('dish-modal');
 }
@@ -1684,12 +1694,14 @@ function togglePrice(mid){
   var pp = $('pp-'+mid);
   var mq = $('mq-'+mid);
   var sc = $('sc-'+mid);
+  var scc = (mid==='asporto') ? $('scc-asporto') : null;
   if(on){
     // 重新勾选：恢复之前保存的值
     pp.disabled = false;
     if(pp.dataset.saved !== undefined && pp.dataset.saved !== '') pp.value = pp.dataset.saved;
     if(mq){ mq.disabled = false; if(mq.dataset.saved !== undefined) mq.value = mq.dataset.saved; }
     if(sc){ sc.disabled = false; if(sc.dataset.saved !== undefined) sc.value = sc.dataset.saved; }
+    if(scc){ scc.disabled = false; if(scc.dataset.saved !== undefined) scc.value = scc.dataset.saved; }
   } else {
     // 取消勾选：保存当前值再清空显示
     pp.dataset.saved = pp.value;
@@ -1697,6 +1709,7 @@ function togglePrice(mid){
     pp.value = '';
     if(mq){ mq.dataset.saved = mq.value; mq.disabled = true; mq.value = ''; }
     if(sc){ sc.dataset.saved = sc.value; sc.disabled = true; sc.value = ''; }
+    if(scc){ scc.dataset.saved = scc.value; scc.disabled = true; scc.value = ''; }
   }
 }
 
@@ -1709,7 +1722,9 @@ async function saveDish(){
     var p = parseFloat($('pp-'+m.id).value)||0;
     var mq = $('mq-'+m.id) ? (parseInt($('mq-'+m.id).value)||0) : 0;
     var sc = $('sc-'+m.id) ? (parseInt($('sc-'+m.id).value)||0) : 0;
-    menus[m.id] = {on:on, price:on?p:0, max_qty:mq, sconto:sc};
+    // ASPORTO 行额外保存 %C（外送折扣）；其他菜单恒为 0
+    var scc = (m.id==='asporto' && $('scc-asporto')) ? (parseInt($('scc-asporto').value)||0) : 0;
+    menus[m.id] = {on:on, price:on?p:0, max_qty:mq, sconto:sc, sconto_consegna:scc};
   });
   var customId = parseInt($('f-id').value) || null;
   var dish = {
@@ -2020,6 +2035,7 @@ function makeMenuHTML(menuDef){
         price: it.menus[menuDef.id].price||0,
         max_qty: (it.menus[menuDef.id].max_qty)||0,
         sconto: (it.menus[menuDef.id].sconto)||0,
+        sconto_consegna: (it.menus[menuDef.id].sconto_consegna)||0,
         sold_out: it.sold_out ? true : false
       });
     }
