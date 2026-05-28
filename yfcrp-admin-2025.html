@@ -244,7 +244,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.10.0-rc4-debug</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.10.0-rc5</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -304,7 +304,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.10.0-rc4-debug</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.10.0-rc5</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -597,7 +597,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc4-debug</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc5</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -626,7 +626,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc4-debug</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc5</span>';
   }
   loadAll();
 }
@@ -663,6 +663,7 @@ var _MENU_CAT_LIMITS = {}; // {menuId: {catId: limit}}
 var _dirty = false;
 var _page = 'dishes';
 var _editDishId = null;
+var _editDishNo = null;  // 编辑时保留原菜品号
 var _editCatIdx = null;
 var _editTagId = null;
 var _fSearch = '', _fCat = '__all__', _fMenu = '__all__';
@@ -1386,7 +1387,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc4-debug</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc5</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1504,8 +1505,12 @@ async function saveDishToDB(dish) {
     dish.dish_no = newDish[0].dish_no;
   } else {
     // 编辑：用 dishes_v2.id（自增）找记录
+    // 重要：编辑时不修改 dish_no 字段（保留原菜品号，避免覆盖）
+    var patchDish = Object.assign({}, dbDish);
+    delete patchDish.dish_no;
+    delete patchDish.restaurant_id;  // 也不该改
     var res = await sbFetch('dishes_v2?id=eq.' + dish.id, {
-      method: 'PATCH', body: JSON.stringify(dbDish)
+      method: 'PATCH', body: JSON.stringify(patchDish)
     });
     if (!res.ok) throw new Error('更新菜品失败');
   }
@@ -1762,6 +1767,7 @@ function renderDishes(){
 
 function openAddDish(){
   _editDishId = null;
+  _editDishNo = null;
   $('dm-title').textContent = '添加菜品';
   if ($('f-id')) $('f-id').value = '';
   setTimeout(updateIdHint, 50);
@@ -1782,6 +1788,7 @@ function openEditDish(id){
   for(var i=0;i<I.length;i++) if(I[i].id===id){ it=I[i]; break; }
   if(!it) return;
   _editDishId = id;
+  _editDishNo = it.dish_no;  // 关键：保留原菜品号，编辑不动它
   $('dm-title').textContent = '编辑菜品';
   $('f-name').value = it.name;
   $('f-desc').value = it.desc||'';
@@ -1865,6 +1872,7 @@ async function saveDish(){
   var customId = parseInt($('f-id').value) || null;
   var dish = {
     id: _editDishId || customId,
+    dish_no: _editDishNo || customId,  // 编辑用原号；新增用用户输入
     category: $('f-cat').value,
     name: name,
     desc: $('f-desc').value.trim(),
