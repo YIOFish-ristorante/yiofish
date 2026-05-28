@@ -475,7 +475,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.7.3 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.8.0 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -854,6 +854,23 @@ var isAsporto = false;
 // ════════════════════════════════════
 // 加载数据
 // ════════════════════════════════════
+
+// 显示菜品号 + 菜名（# 号样式：小一号、深灰）
+function displayDishHTML(it) {
+  var safeName = String(it.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if (it.dish_no) {
+    return '<span style="color:#999;font-size:0.85em;font-weight:600;margin-right:6px">#' +
+           it.dish_no + '</span>' + safeName;
+  }
+  return safeName;
+}
+
+// 纯文本版（用于订单消息、搜索等）
+function displayDishText(it) {
+  if (it.dish_no) return '#' + it.dish_no + ' ' + (it.name||'');
+  return (it.name||'');
+}
+
 async function loadAll() {
   try {
     // 并行加载
@@ -927,7 +944,7 @@ async function loadAll() {
           if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
       if (dishTags === null) dishTags = d.tags || [];
-      return { id: d.id, category: d.category_id, name: d.name, desc: d.description, image: d.image, tags: dishTags, sold_out: soldOut, menus: menus };
+      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description, image: d.image, tags: dishTags, sold_out: soldOut, menus: menus };
     });
 
     document.getElementById('loading-overlay').style.display = 'none';
@@ -1026,7 +1043,7 @@ async function reloadMenuData() {
           if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
       if (dishTags === null) dishTags = d.tags || [];
-      return { id: d.id, category: d.category_id, name: d.name, desc: d.description||'', image: d.image||'', tags: dishTags, sold_out: soldOut, menus: menus };
+      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description||'', image: d.image||'', tags: dishTags, sold_out: soldOut, menus: menus };
     });
     if (currentMenuId) openMenuView(currentMenuId);
   } catch(e) { console.log('reload failed:', e); }
@@ -1373,7 +1390,7 @@ function mkCard(it, delay) {
 
   var nm = document.createElement('div');
   nm.className = 'cname';
-  nm.textContent = it.name;
+  nm.innerHTML = displayDishHTML(it);
   body.appendChild(nm);
 
   if (it.desc) {
@@ -1819,7 +1836,7 @@ function renderCartBody() {
       var info = document.createElement('div');
       info.className = 'ci-info';
       var p = effectivePrice(it);
-      info.innerHTML = '<div class="ci-name">' + it.name + '</div>' +
+      info.innerHTML = '<div class="ci-name">' + displayDishHTML(it) + '</div>' +
         '<div class="ci-price">' + fmt(p) + ' × ' + qty + ' = ' + fmt(p * qty) + '</div>';
       var qc = document.createElement('div');
       qc.className = 'ci-qty';
@@ -1855,7 +1872,7 @@ function renderCartBody() {
       var info2 = document.createElement('div');
       info2.className = 'ci-info';
       var p = effectivePrice(it);
-      info2.innerHTML = '<div class="ci-name">' + it.name + '</div>' +
+      info2.innerHTML = '<div class="ci-name">' + displayDishHTML(it) + '</div>' +
         '<div class="ci-price">' + (p > 0 ? fmt(p) + ' × ' + qty + ' = ' + fmt(p * qty) : '× ' + qty) + '</div>';
       var qc = document.createElement('div');
       qc.className = 'ci-qty';
@@ -2221,7 +2238,7 @@ function sendNotify() {
   var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Carpi*', '', '🪑 Tavolo: ' + tableNum, ''];
   for (var id in cart_dine) {
     var it = getItemForMenu(id);
-    if (it) lines.push('• ' + it.name + ' x' + cart_dine[id]);
+    if (it) lines.push('• ' + displayDishText(it) + ' x' + cart_dine[id]);
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
   if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
@@ -2620,7 +2637,7 @@ function sendOrder() {
       var it = getItemForMenu(id);
       if (it) {
         var p = effectivePrice(it);
-        lines.push('• ' + it.name + ' x' + cart_asporto[id] + (p > 0 ? ' (' + fmt(p * cart_asporto[id]) + ')' : ''));
+        lines.push('• ' + displayDishText(it) + ' x' + cart_asporto[id] + (p > 0 ? ' (' + fmt(p * cart_asporto[id]) + ')' : ''));
       }
     }
     lines.push('');
@@ -2700,7 +2717,7 @@ document.getElementById('search-input').addEventListener('input', function() {
     var m = it.menus[currentMenuId];
     if (!m || !m.on) return false;
     if (!q) return true;
-    return it.name.toLowerCase().indexOf(q) >= 0 || (it.desc||'').toLowerCase().indexOf(q) >= 0;
+    return it.name.toLowerCase().indexOf(q) >= 0 || (it.desc||'').toLowerCase().indexOf(q) >= 0 || (it.dish_no && String(it.dish_no).indexOf(q) >= 0);
   }).map(function(it) {
     var m = it.menus[currentMenuId];
     return Object.assign({}, it, {price: m.price, max_qty: m.max_qty, sconto: m.sconto, sconto_consegna: m.sconto_consegna});
