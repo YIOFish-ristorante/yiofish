@@ -475,7 +475,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.0 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.1 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -2268,6 +2268,8 @@ function setOrderMode(mode) {
   // 切换后重新算价格 / 渲染购物车
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
+  // 模式不同 → 可选时段不同，重建时间下拉
+  buildAsportoTimes();
 }
 
 function applyOrderModeUI() {
@@ -2418,43 +2420,75 @@ function renderPriceSummary() {
 }
 
 // 外卖发送
-function buildAsportoTimes() {
-  var sel = document.getElementById('asporto-time');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Seleziona orario...</option>';
+// ── CONSEGNA 外送时段规则（按星期）──
+// 0=周日 1=周一 ... 6=周六。lunch=午餆12-15可送, dinner=晚餆19-23可送
+var CONSEGNA_SCHEDULE = {
+  0: { lunch: false, dinner: true  },  // 周日：只晚餐
+  1: { lunch: true,  dinner: true  },  // 周一
+  2: { lunch: true,  dinner: true  },  // 周二
+  3: { lunch: true,  dinner: true  },  // 周三
+  4: { lunch: true,  dinner: true  },  // 周四
+  5: { lunch: true,  dinner: true  },  // 周五
+  6: { lunch: true,  dinner: false }   // 周六：只午餐（晚上忙不送）
+};
+var GIORNI_IT = ['Domenica','Luned\u00ec','Marted\u00ec','Mercoled\u00ec','Gioved\u00ec','Venerd\u00ec','Sabato'];
+
+// 取当前罗马时间：{day:星期(0-6), minutes:当天分钟数}
+function getRomeNow() {
   var now = new Date();
-  // 意大利时间（UTC+1或UTC+2夏令时）
   var isDST = (function() {
     var jan = new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
     var jul = new Date(now.getFullYear(), 6, 1).getTimezoneOffset();
     return now.getTimezoneOffset() < Math.max(jan, jul);
   })();
   var romeOffset = isDST ? 120 : 60;
-  var romeMinutes = now.getUTCHours() * 60 + now.getUTCMinutes() + romeOffset;
-  if (romeMinutes >= 1440) romeMinutes -= 1440;
+  var totalMin = now.getUTCHours()*60 + now.getUTCMinutes() + romeOffset;
+  var dayShift = 0;
+  if (totalMin >= 1440) { totalMin -= 1440; dayShift = 1; }
+  else if (totalMin < 0) { totalMin += 1440; dayShift = -1; }
+  var day = (now.getUTCDay() + dayShift + 7) % 7;
+  return { day: day, minutes: totalMin };
+}
 
-  var slots = [];
+function buildAsportoTimes() {
+  var sel = document.getElementById('asporto-time');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Seleziona orario...</option>';
+
+  var rome = getRomeNow();
+  var romeMinutes = rome.minutes;
+  var today = rome.day;
+  var isConsegna = (order_mode === 'consegna');
+
   var lunchStart = 12*60, lunchEnd = 15*60;
   var dinnerStart = 19*60, dinnerEnd = 23*60;
   var minTime = romeMinutes + 30;
 
-  // 今天的时间段
-  for (var t = lunchStart; t <= lunchEnd; t += 30) {
-    if (t >= minTime) slots.push((Math.floor(t/60)<10?'0':'')+Math.floor(t/60)+':'+(t%60<10?'0':'')+t%60);
-  }
-  for (var t2 = dinnerStart; t2 <= dinnerEnd; t2 += 30) {
-    if (t2 >= minTime) slots.push((Math.floor(t2/60)<10?'0':'')+Math.floor(t2/60)+':'+(t2%60<10?'0':'')+t2%60);
+  function slotsForDay(dayOfWeek, applyMinTime, dayLabel) {
+    var out = [];
+    var rule = isConsegna ? (CONSEGNA_SCHEDULE[dayOfWeek] || {lunch:true,dinner:true})
+                          : {lunch:true, dinner:true};
+    function pushRange(start, end) {
+      for (var t = start; t <= end; t += 30) {
+        if (applyMinTime && t < minTime) continue;
+        var hh = (Math.floor(t/60)<10?'0':'')+Math.floor(t/60);
+        var mm = (t%60<10?'0':'')+(t%60);
+        out.push((dayLabel||'') + hh + ':' + mm);
+      }
+    }
+    if (rule.lunch)  pushRange(lunchStart, lunchEnd);
+    if (rule.dinner) pushRange(dinnerStart, dinnerEnd);
+    return out;
   }
 
-  // 如果今天没有时间了，显示明天的时间
-  var prefix = '';
+  var slots = slotsForDay(today, true, '');
+
   if (slots.length === 0) {
-    prefix = 'Domani · ';
-    for (var t3 = lunchStart; t3 <= lunchEnd; t3 += 30) {
-      slots.push(prefix+(Math.floor(t3/60)<10?'0':'')+Math.floor(t3/60)+':'+(t3%60<10?'0':'')+t3%60);
-    }
-    for (var t4 = dinnerStart; t4 <= dinnerEnd; t4 += 30) {
-      slots.push(prefix+(Math.floor(t4/60)<10?'0':'')+Math.floor(t4/60)+':'+(t4%60<10?'0':'')+t4%60);
+    for (var i = 1; i <= 7; i++) {
+      var d = (today + i) % 7;
+      var label = (i === 1) ? 'Domani \u00b7 ' : GIORNI_IT[d] + ' \u00b7 ';
+      var daySlots = slotsForDay(d, false, label);
+      if (daySlots.length > 0) { slots = daySlots; break; }
     }
   }
 
@@ -2464,6 +2498,31 @@ function buildAsportoTimes() {
     opt.textContent = s;
     sel.appendChild(opt);
   });
+}
+
+// 判断当前罗马时间是否在 CONSEGNA 可外送时段内
+function consegnaWindowNow() {
+  var rome = getRomeNow();
+  var m = rome.minutes, today = rome.day;
+  var lunchStart=12*60, lunchEnd=15*60, dinnerStart=19*60, dinnerEnd=23*60;
+  var rule = CONSEGNA_SCHEDULE[today] || {lunch:true, dinner:true};
+  var openNow = (rule.lunch && m>=lunchStart && m<=lunchEnd) ||
+                (rule.dinner && m>=dinnerStart && m<=dinnerEnd);
+  if (openNow) return { open: true, nextMsg: '' };
+
+  for (var i = 0; i <= 7; i++) {
+    var d = (today + i) % 7;
+    var r = CONSEGNA_SCHEDULE[d] || {lunch:true, dinner:true};
+    if (i === 0) {
+      if (r.lunch && m < lunchStart) return { open:false, nextMsg:'Prossima consegna: oggi 12:00\u201315:00' };
+      if (r.dinner && m < dinnerStart) return { open:false, nextMsg:'Prossima consegna: oggi 19:00\u201323:00' };
+      continue;
+    }
+    var giorno = (i === 1) ? 'domani' : GIORNI_IT[d];
+    if (r.lunch)  return { open:false, nextMsg:'Prossima consegna: ' + giorno + ' 12:00\u201315:00' };
+    if (r.dinner) return { open:false, nextMsg:'Prossima consegna: ' + giorno + ' 19:00\u201323:00' };
+  }
+  return { open:false, nextMsg:'' };
 }
 
 function sendOrder() {
@@ -2512,6 +2571,12 @@ function sendOrder() {
     }
     // 7. 时间
     if (!orario) { toast("⚠️ Seleziona l'orario di consegna"); focusField('asporto-time'); return; }
+    // 外送时段校验
+    var cw = consegnaWindowNow();
+    if (!cw.open) {
+      toast('🚵 Consegna non disponibile ora. ' + cw.nextMsg);
+      return;
+    }
     // 8. 起送价（按距离档位）
     var minOrd = currentMinOrder();
     if (cartSubtotal() < minOrd) {
