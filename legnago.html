@@ -475,7 +475,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.2.2 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.3.0 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -665,7 +665,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <div style="font-size:11px;opacity:.65;margin-top:3px;">Ritiro in negozio · Sconto 20%</div>
       </div>
     </button>
-    <button onclick="chooseTakeaway('consegna')"
+    <button id="takeaway-consegna-btn" onclick="chooseTakeaway('consegna')"
       style="width:100%;background:rgba(33,150,243,.12);border:1px solid rgba(33,150,243,.4);border-radius:var(--r);padding:18px 14px;margin-bottom:10px;color:#ede5d4;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;">
       <div style="font-size:32px;flex-shrink:0;">🛵</div>
       <div style="flex:1;">
@@ -753,7 +753,7 @@ var R = {name:"Yio Fish", subtitle:"Ristorante Giapponese · Legnago", phone:"37
 var CATS = [];
 var ALL_ITEMS = [];
 var DISH_MENUS = [];
-var SETTINGS = {notify_enabled: false, takeaway_enabled: true, is_open: true};
+var SETTINGS = {notify_enabled: false, takeaway_enabled: true, consegna_enabled: true, is_open: true};
 // 过敏源标签 - 运行时从 restaurant_tags 表加载（按 RESTAURANT_ID 独立）
 var TAGS = {};
 // 默认 fallback（数据库无数据时使用）
@@ -969,6 +969,7 @@ async function checkNewPublish() {
     // 更新开关状态
     SETTINGS.notify_enabled = s.notify_enabled;
     SETTINGS.takeaway_enabled = s.takeaway_enabled;
+    SETTINGS.consegna_enabled = s.consegna_enabled;
     SETTINGS.is_open = s.is_open;
     SETTINGS.round_max = s.round_max || 0;
     SETTINGS.round_total = s.round_total || 0;
@@ -2239,16 +2240,24 @@ function sendNotify() {
 // ASPORTO / CONSEGNA 模式（v1.5.0）
 // ════════════════════════════════════
 function openTakeawayChoice() {
-  // 把弹窗里两个按钮的选中态根据当前 order_mode 高亮
+  // 根据后台设置控制「外送 CONSEGNA」是否可选
+  var consegnaBtn = document.getElementById('takeaway-consegna-btn');
+  if (consegnaBtn) {
+    var consegnaOn = (SETTINGS.consegna_enabled !== false);
+    consegnaBtn.style.display = consegnaOn ? '' : 'none';
+  }
   openModal('takeawayChoiceModal');
 }
 
 function chooseTakeaway(mode) {
+  // 防御：外送已关闭时不允许选 consegna（强制回退到 asporto）
+  if (mode === 'consegna' && SETTINGS.consegna_enabled === false) {
+    toast('Consegna a domicilio non disponibile al momento');
+    mode = 'asporto';
+  }
   closeModal('takeawayChoiceModal');
   setOrderMode(mode);
   openMenuView('asporto');
-  // 进入后立即打开购物车抽屉，方便客人看到表单
-  // 注：先不自动打开，让客人先选菜 — 实际使用感更自然
 }
 
 function setOrderMode(mode) {
