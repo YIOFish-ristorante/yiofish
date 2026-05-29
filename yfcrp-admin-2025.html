@@ -140,8 +140,11 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 /* TAGS */
 .tag-grid{display:flex;flex-wrap:wrap;gap:5px;padding:6px 0;}
 .t-chip{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:2px;
-  font-size:10px;border:1px solid;cursor:pointer;opacity:.35;user-select:none;}
-.t-chip.on{opacity:1;font-weight:400;}
+  font-size:10px;border:1px solid;cursor:pointer;opacity:.7;user-select:none;
+  background:transparent;transition:all .15s;}
+.t-chip:hover{opacity:.9;}
+.t-chip.on{opacity:1;font-weight:600;color:#fff !important;}
+/* .on 的背景色用 inline style 设置（按各标签颜色） */
 
 /* MODAL */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:500;
@@ -244,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.11.1</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.11.2</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -304,7 +307,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.11.1</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.11.2</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -657,7 +660,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.2</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -686,7 +689,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.2</span>';
   }
   loadAll();
 }
@@ -1449,7 +1452,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.1</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.2</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1894,12 +1897,20 @@ function buildTagPicker(sel){
   var wrap = $('f-tags'); wrap.innerHTML='';
   Object.keys(ALL_TAGS).forEach(function(k){
     var td = ALL_TAGS[k];
+    var isOn = sel.indexOf(k)>=0;
     var chip = document.createElement('div');
-    chip.className = 't-chip'+(sel.indexOf(k)>=0?' on':'');
-    chip.style.color = td.color; chip.style.borderColor = td.color;
+    chip.className = 't-chip'+(isOn?' on':'');
+    chip.style.borderColor = td.color;
+    chip.style.color = isOn ? '#fff' : td.color;
+    chip.style.backgroundColor = isOn ? td.color : 'transparent';
     chip.textContent = td.icon+' '+td.label;
     chip.dataset.key = k;
-    chip.onclick = function(){ this.classList.toggle('on'); };
+    chip.dataset.color = td.color;
+    chip.onclick = function(){
+      var on = this.classList.toggle('on');
+      this.style.backgroundColor = on ? this.dataset.color : 'transparent';
+      this.style.color = on ? '#fff' : this.dataset.color;
+    };
     wrap.appendChild(chip);
   });
 }
