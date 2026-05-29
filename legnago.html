@@ -247,9 +247,75 @@ body {
   overflow-x: auto; white-space: nowrap; scrollbar-width: none;
   padding: 0 8px; position: sticky; top: 0; z-index: 190;
   box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  display: flex; align-items: stretch;
 }
 .catnav::-webkit-scrollbar { display: none; }
-.catnav-inner { display: inline-flex; }
+.catnav-inner { display: inline-flex; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.catnav-inner::-webkit-scrollbar { display: none; }
+/* ≡ 全部分类按钮（固定在最左，不随横滑） */
+.cat-all-btn {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: var(--nav-h);
+  background: linear-gradient(90deg, var(--surface) 70%, transparent);
+  color: var(--gold); border: none; border-right: 1px solid var(--border);
+  cursor: pointer; font-size: 20px; line-height: 1;
+  transition: color .18s, background .18s;
+}
+.cat-all-btn:hover { color: var(--text); background: rgba(200,168,76,.08); }
+.cat-all-btn:active { background: rgba(200,168,76,.15); }
+/* 全屏分类导航 */
+.cat-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  display: none; align-items: flex-start; justify-content: center;
+  animation: catfade .2s ease;
+}
+.cat-overlay.show { display: flex; }
+@keyframes catfade { from{opacity:0} to{opacity:1} }
+.cat-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  max-width: 560px; width: calc(100% - 32px); max-height: calc(100vh - 80px);
+  margin-top: 40px; overflow: hidden;
+  display: flex; flex-direction: column;
+  animation: catslide .25s ease;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+@keyframes catslide { from{transform:translateY(-20px);opacity:0} to{transform:translateY(0);opacity:1} }
+.cat-panel-hdr {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  background: linear-gradient(180deg, rgba(200,168,76,.06), transparent);
+}
+.cat-panel-hdr h3 {
+  font-family: "Cormorant Garamond", serif; font-size: 20px; color: var(--gold);
+  font-weight: 400; letter-spacing: 2px; margin: 0;
+}
+.cat-panel-close {
+  background: none; border: none; color: var(--muted2); cursor: pointer;
+  font-size: 24px; line-height: 1; padding: 4px 8px;
+  border-radius: 6px; transition: color .15s, background .15s;
+}
+.cat-panel-close:hover { color: var(--text); background: rgba(255,255,255,.05); }
+.cat-grid {
+  overflow-y: auto; padding: 14px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+@media (min-width: 480px) { .cat-grid { grid-template-columns: repeat(4, 1fr); } }
+.cat-cell {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 8px; text-align: center; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  transition: transform .15s, border-color .15s, background .15s;
+}
+.cat-cell:hover { transform: translateY(-2px); border-color: rgba(200,168,76,.4); background: rgba(200,168,76,.05); }
+.cat-cell:active { transform: translateY(0); }
+.cat-cell.active { border-color: var(--gold); background: rgba(200,168,76,.1); }
+.cat-cell .ic { font-size: 26px; line-height: 1; }
+.cat-cell .nm {
+  font-size: 11px; color: var(--text2); font-weight: 400; letter-spacing: .5px;
+  line-height: 1.3; min-height: 28px; display: flex; align-items: center; justify-content: center;
+}
+.cat-cell .ct { font-size: 10px; color: var(--muted); }
 .cbtn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 0 16px; height: var(--nav-h); font-size: 13px; font-weight: 300;
@@ -475,7 +541,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.5.3 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.6.0 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -488,7 +554,19 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <div class="mhdr-div"><div class="mhdr-line"></div><div class="mhdr-dot"></div><div class="mhdr-line"></div></div>
     <div class="mhdr-info" id="menu-info"></div>
   </header>
-  <nav class="catnav"><div class="catnav-inner" id="catnav-inner"></div></nav>
+  <nav class="catnav">
+    <button class="cat-all-btn" id="cat-all-btn" aria-label="所有分类" title="所有分类">☰</button>
+    <div class="catnav-inner" id="catnav-inner"></div>
+  </nav>
+  <div class="cat-overlay" id="cat-overlay">
+    <div class="cat-panel">
+      <div class="cat-panel-hdr">
+        <h3>CATEGORIE</h3>
+        <button class="cat-panel-close" id="cat-panel-close" aria-label="关闭">×</button>
+      </div>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
   <main id="menu-main"></main>
   <div class="toolbar">
     <button class="back-fab" id="back-fab" onclick="closeMenuView()">
@@ -779,7 +857,7 @@ var cart_dine_sent = {}; // 已发送的堂食菜品（灰色显示）
 var cart_asporto_sent = {}; // 已发送的打包菜品（灰色显示）
 var guestCount = 1;  // 人数（服务员控制）
 
-// ── ASPORTO/CONSEGNA 模式（v1.5.3）──
+// ── ASPORTO/CONSEGNA 模式（v1.6.0）──
 // 'asporto'  = ritiro in negozio (sconto come da DB, default 20%)
 // 'consegna' = consegna a domicilio (sconto fisso 10% + spese consegna)
 var order_mode = 'asporto';
@@ -1224,11 +1302,55 @@ function closeMenuView() {
 var scrollLock = false, scrollLockTimer = null;
 var obs = null;
 
+// 跳到分类 + 横滑条聚焦
+function jumpToCategory(catId) {
+  scrollLock = true;
+  clearTimeout(scrollLockTimer);
+  document.querySelectorAll('.cbtn').forEach(function(b) {
+    b.className = 'cbtn' + (b.getAttribute('data-id') === catId ? ' active' : '');
+  });
+  document.querySelectorAll('.cat-cell').forEach(function(c) {
+    c.className = 'cat-cell' + (c.getAttribute('data-id') === catId ? ' active' : '');
+  });
+  var sec = document.getElementById('sec-' + catId);
+  if (sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+  scrollLockTimer = setTimeout(function(){ scrollLock = false; }, 1000);
+  // 同步把横滑条对应分类滚到中间
+  var navEl = document.getElementById('catnav-inner');
+  var activeBtn = navEl ? navEl.querySelector('.cbtn.active') : null;
+  if (activeBtn && navEl) {
+    navEl.scrollLeft = activeBtn.offsetLeft - navEl.offsetWidth/2 + activeBtn.offsetWidth/2;
+  }
+}
+
+// 全屏分类导航开/关
+function openCatOverlay() {
+  var ov = document.getElementById('cat-overlay');
+  if (ov) ov.classList.add('show');
+}
+function closeCatOverlay() {
+  var ov = document.getElementById('cat-overlay');
+  if (ov) ov.classList.remove('show');
+}
+// 绑定按钮事件（在 DOM ready 之后）
+document.addEventListener('DOMContentLoaded', function(){
+  var btn = document.getElementById('cat-all-btn');
+  if (btn) btn.onclick = openCatOverlay;
+  var closeBtn = document.getElementById('cat-panel-close');
+  if (closeBtn) closeBtn.onclick = closeCatOverlay;
+  var ov = document.getElementById('cat-overlay');
+  if (ov) ov.onclick = function(e) {
+    if (e.target === ov) closeCatOverlay();  // 点击遮罩区关闭
+  };
+});
+
 function renderMenuItems(items) {
   var nav = document.getElementById('catnav-inner');
   var main = document.getElementById('menu-main');
+  var grid = document.getElementById('cat-grid');
   nav.innerHTML = '';
   main.innerHTML = '';
+  if (grid) grid.innerHTML = '';
 
   // 建立分类组
   var groups = {};
@@ -1242,28 +1364,31 @@ function renderMenuItems(items) {
     if (!groups[cat.id] || !groups[cat.id].length) return;
 
     // 导航按钮
+    // 导航按钮
     var btn = document.createElement('button');
     btn.className = 'cbtn' + (firstCat ? ' active' : '');
     btn.setAttribute('data-id', cat.id);
     btn.innerHTML = '<span>' + cat.icon + '</span><span>' + cat.name + '</span>';
-    btn.onclick = function() {
-      scrollLock = true;
-      clearTimeout(scrollLockTimer);
-      document.querySelectorAll('.cbtn').forEach(function(b) {
-        b.className = 'cbtn' + (b.getAttribute('data-id') === cat.id ? ' active' : '');
-      });
-      var sec = document.getElementById('sec-' + cat.id);
-      if (sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
-      scrollLockTimer = setTimeout(function(){ scrollLock = false; }, 1000);
-      // 手动滚动分类导航，不用scrollIntoView避免页面横向偏移
-      var navEl = document.getElementById('catnav-inner');
-      var activeBtn = navEl ? navEl.querySelector('.cbtn.active') : null;
-      if (activeBtn && navEl && navEl.parentNode) {
-        var nav = navEl.parentNode;
-        nav.scrollLeft = activeBtn.offsetLeft - nav.offsetWidth/2 + activeBtn.offsetWidth/2;
-      }
-    };
+    btn.onclick = function() { jumpToCategory(cat.id); };
     nav.appendChild(btn);
+
+    // 网格按钮（弹出 panel 用）
+    if (grid) {
+      var cell = document.createElement('button');
+      cell.className = 'cat-cell' + (firstCat ? ' active' : '');
+      cell.setAttribute('data-id', cat.id);
+      var count = groups[cat.id].length;
+      cell.innerHTML =
+        '<div class="ic">' + cat.icon + '</div>' +
+        '<div class="nm">' + cat.name + '</div>' +
+        '<div class="ct">' + count + ' 道</div>';
+      cell.onclick = function() {
+        closeCatOverlay();
+        jumpToCategory(cat.id);
+      };
+      grid.appendChild(cell);
+    }
+
     firstCat = false;
 
     // 分类区块
@@ -2256,7 +2381,7 @@ function sendNotify() {
 }
 
 // ════════════════════════════════════
-// ASPORTO / CONSEGNA 模式（v1.5.3）
+// ASPORTO / CONSEGNA 模式（v1.6.0）
 // ════════════════════════════════════
 function openTakeawayChoice() {
   // 根据后台设置控制「外送 CONSEGNA」是否可选
