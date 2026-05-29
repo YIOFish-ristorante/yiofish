@@ -240,9 +240,11 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   border: 1px solid rgba(226, 231, 240, 0.9);
-  padding: 14px 130px 14px 70px;
+  padding: 12px 14px;
   margin-bottom: 10px;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;
 }
 .order-item-card:hover { box-shadow: var(--shadow-md); }
@@ -297,6 +299,69 @@ input[type=number] { -moz-appearance: textfield; }
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .qty-unit { font-size: 12px; color: var(--text3); }
+
+/* ════════════════════════════════════════
+   订货卡片 Grid 布局 (v2.7.62 重构)
+   ════════════════════════════════════════ */
+.oic-top {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 12px;
+  align-items: flex-start;
+}
+.oic-thumb {
+  width: 80px; height: 80px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #eef2f7, #e2e8f0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: var(--text3);
+  overflow: hidden; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+.oic-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.oic-info { min-width: 0; cursor: pointer; }
+.oic-info .oic-code { font-size: 11px; color: var(--text3); margin-bottom: 2px; }
+.oic-info .oic-name { font-weight: 600; font-size: 15px; line-height: 1.25; }
+.oic-info .oic-chef { font-size: 11px; color: var(--primary); margin-top: 3px; }
+.oic-info .oic-status { font-size: 11px; margin-top: 3px; color: var(--text3); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.oic-check { width: 22px; height: 22px; accent-color: var(--primary); cursor: pointer; margin-top: 2px; }
+.oic-last {
+  font-size: 11px; color: #6b4f1a;
+  background: #f2e6d4;
+  padding: 4px 8px; border-radius: 6px;
+  display: inline-block;
+  max-width: max-content;
+}
+.oic-stock {
+  font-size: 12px; color: var(--text2);
+}
+.oic-stock .low { color: var(--danger); font-weight: 600; }
+.oic-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+.oic-bottom.full { grid-template-columns: 1fr; }
+.oic-consume, .oic-order { display: flex; flex-direction: column; gap: 3px; }
+.oic-order { align-items: flex-end; }
+.oic-lbl { font-size: 11px; color: var(--text3); }
+.oic-ctrl { display: flex; align-items: center; gap: 4px; }
+.oic-ctrl button {
+  width: 36px; height: 36px;
+  border: 1px solid #ddd; border-radius: 8px;
+  background: #f5f5f5; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.oic-ctrl .qty-input,
+.oic-ctrl input[type=number] {
+  width: 48px; padding: 6px 2px; text-align: center;
+  border: 1px solid #ddd; border-radius: 8px;
+  font-size: 14px; font-weight: 500;
+  background: #f5f5f5; color: var(--text); outline: none;
+}
+.oic-ctrl .qty-input { cursor: pointer; }
+.oic-unit { font-size: 11px; color: var(--text3); margin-top: 2px; }
 .forecast-tag {
   font-size: 10px; font-weight: 600; color: var(--ok); background: var(--ok-light);
   padding: 2px 6px; border-radius: 6px;
@@ -602,7 +667,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   <div style="max-width:420px;margin:60px auto 0;background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 4px 24px rgba(180,150,100,0.12);">
     <div style="text-align:center;margin-bottom:22px;">
       <img src="/logo.png" alt="YKI" style="height:60px;margin-bottom:8px;">
-      <div style="color:#8a7858;font-size:13px;letter-spacing:2px;">SUPPLY HUB</div>
+      <div style="color:#8a7858;font-size:13px;letter-spacing:2px;">YKI SUPPLY HUB</div>
     </div>
     <div style="font-size:18px;font-weight:600;margin-bottom:6px;color:#2c2418;">请输入餐厅代号</div>
     <div style="font-size:13px;color:#8a7858;margin-bottom:18px;">您的餐厅在注册时设置的短代号</div>
@@ -623,9 +688,19 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 </div>
 <script>
 (function() {
+  var LAST_RID_KEY = 'yki_last_rid';
   var params = new URLSearchParams(location.search);
   var r = (params.get('r') || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
   if (!r) {
+    // 没 ?r= 参数:先看 localStorage 有没有上次的代号
+    var lastRid = '';
+    try { lastRid = (localStorage.getItem(LAST_RID_KEY) || '').toLowerCase().replace(/[^a-z0-9_]/g, ''); } catch(e) {}
+    if (lastRid) {
+      // 有上次的代号 → 直接跳转,不显示 picker
+      location.replace('/cucina.html?r=' + encodeURIComponent(lastRid));
+      return;
+    }
+    // 真的没记忆 → 显示 picker
     document.documentElement.style.background = 'linear-gradient(135deg,#faf6ed 0%,#f0e8d4 100%)';
     document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('rid-picker').style.display = '';
@@ -636,6 +711,9 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
         e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
       });
     });
+  } else {
+    // 有 ?r= 参数 → 顺便存到 localStorage,下次没参数也能记得
+    try { localStorage.setItem(LAST_RID_KEY, r); } catch(e) {}
   }
 })();
 function ridPickerGo() {
@@ -646,6 +724,7 @@ function ridPickerGo() {
     err.style.display = '';
     return;
   }
+  try { localStorage.setItem('yki_last_rid', v); } catch(e) {}
   location.href = '/cucina.html?r=' + encodeURIComponent(v);
 }
 </script>
@@ -1101,6 +1180,16 @@ function ridPickerGo() {
         <div class="menu-item-text"><div class="title">从公共库导入食材</div><div class="sub">浏览所有餐厅共享的食材，批量导入</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="showSupCatalogModal()">
+        <div class="menu-item-icon" style="background:#FEF3C7">🔍</div>
+        <div class="menu-item-text"><div class="title">浏览供应商目录</div><div class="sub">从供应商产品目录一键导入到我的食材库</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item" onclick="showSyncPricesModal()">
+        <div class="menu-item-icon" style="background:#FEE2E2">💰</div>
+        <div class="menu-item-text"><div class="title">同步供应商价格</div><div class="sub">从供应商最新目录一键更新现有食材价格</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
       <div class="menu-item" onclick="showSupplierModal()">
         <div class="menu-item-icon" style="background:#E6F4FF">📱</div>
         <div class="menu-item-text"><div class="title" id="lbl-supplier">供应商 WhatsApp</div><div class="sub" id="lbl-supplier-sub">设置各供应商联系方式</div></div>
@@ -1111,7 +1200,7 @@ function ridPickerGo() {
         <div class="menu-item-text"><div class="title" id="lbl-approve">审批订单</div><div class="sub" id="pending-badge-text">查看待处理订单</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
-      <div class="menu-item" onclick="showChangeAdminPass()">
+      <div class="menu-item" id="menu-change-admin-pass-top" onclick="showChangeAdminPass()">
         <div class="menu-item-icon" style="background:#FFF0F0">🔐</div>
         <div class="menu-item-text"><div class="title">修改管理员密码</div><div class="sub">更改管理后台登录密码</div></div>
         <span class="menu-item-arrow">›</span>
@@ -1140,9 +1229,14 @@ function ridPickerGo() {
 
     <div class="menu-section">
       <div class="menu-section-title" id="lbl-system">系统</div>
-      <div class="menu-item" onclick="showChangePass()">
+      <div class="menu-item" id="menu-change-pass" onclick="showChangePass()">
         <div class="menu-item-icon" style="background:#F0F4FF">🔑</div>
         <div class="menu-item-text"><div class="title" id="lbl-change-pass">修改密码</div><div class="sub" id="lbl-change-pass-sub">更改登录密码</div></div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item" id="menu-change-admin-pass-bottom" onclick="showChangeAdminPass()" style="display:none;">
+        <div class="menu-item-icon" style="background:#FFF0F0">🔐</div>
+        <div class="menu-item-text"><div class="title">修改管理员密码</div><div class="sub">更改管理后台登录密码</div></div>
         <span class="menu-item-arrow">›</span>
       </div>
       <div class="menu-item" onclick="doLogout()" style="color:var(--danger)">
@@ -1226,6 +1320,93 @@ function ridPickerGo() {
       <button class="btn btn-ghost" onclick="closeModal('modal-items-public')" style="flex:1;">取消</button>
       <button class="btn btn-primary" id="ip-import-btn" onclick="importPublicSelected()" style="flex:2;" disabled>导入选中 (0)</button>
     </div>
+  </div>
+</div>
+
+<!-- 🔍 浏览供应商目录 Modal -->
+<div class="modal-overlay" id="modal-sup-catalog">
+  <div class="modal" style="max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-handle"></div>
+    <div style="padding:0 4px;flex-shrink:0;">
+      <div class="modal-title" style="margin-bottom:8px;">🔍 浏览供应商目录</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        选择供应商,勾选要的产品,一键添加到我的食材库(连价格一起带过来)
+      </div>
+      <select id="sc-supplier-select" onchange="onSupCatalogSupplierChange()"
+              style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;margin-bottom:8px;">
+        <option value="">— 请选择供应商 —</option>
+      </select>
+      <input id="sc-search-input" type="search" placeholder="搜索产品(中文 / 意语 / 编码)"
+             oninput="onSupCatalogSearchInput()"
+             style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:8px;display:none;">
+      <div id="sc-info" style="font-size:12px;color:var(--text-dim);margin-bottom:6px;"></div>
+      <div id="sc-legend" style="font-size:10px;color:var(--text-dim);margin-bottom:6px;display:none;">
+        <span style="background:#dcfce7;color:#16a34a;padding:1px 6px;border-radius:4px;margin-right:4px;">🔗 已绑定</span>
+        <span style="background:#fef3c7;color:#d97706;padding:1px 6px;border-radius:4px;margin-right:4px;">📝 同名</span>
+        <span style="background:#e0e7ff;color:#4f46e5;padding:1px 6px;border-radius:4px;">🔍 可能</span>
+        <span style="margin-left:4px;">点彩色行可绑定</span>
+      </div>
+    </div>
+    <div id="sc-list" style="flex:1;overflow-y:auto;min-height:200px;border:1px solid var(--border);border-radius:8px;background:#fafafa;padding:4px;">
+      <div style="text-align:center;color:#aaa;padding:40px 20px;">请先选择供应商</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-sup-catalog')" style="flex:1;">取消</button>
+      <button class="btn btn-primary" id="sc-import-btn" onclick="importSupCatalogSelected()" style="flex:2;" disabled>导入选中 (0)</button>
+    </div>
+  </div>
+</div>
+
+<!-- 💰 同步供应商价格 Modal -->
+<div class="modal-overlay" id="modal-sync-prices">
+  <div class="modal" style="max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-handle"></div>
+    <div style="padding:0 4px;flex-shrink:0;">
+      <div class="modal-title" style="margin-bottom:8px;">💰 同步供应商价格</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        把你的食材跟供应商最新目录比对,一键更新涨价/降价的产品。
+      </div>
+      <div id="sp-summary" style="font-size:13px;color:var(--text2);margin-bottom:6px;"></div>
+    </div>
+    <div id="sp-list" style="flex:1;overflow-y:auto;min-height:200px;border:1px solid var(--border);border-radius:8px;background:#fafafa;padding:4px;">
+      <div style="text-align:center;color:#aaa;padding:40px 20px;">点击下方"扫描差异"开始</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-sync-prices')" style="flex:1;">取消</button>
+      <button class="btn btn-primary" id="sp-apply-btn" onclick="applySyncPrices()" style="flex:2;" disabled>更新选中 (0)</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🔍 找对应(子 modal,叠在同步价格上) -->
+<div class="modal-overlay" id="modal-find-match" style="z-index:2000;">
+  <div class="modal" style="max-height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-handle"></div>
+    <div style="padding:0 4px;flex-shrink:0;">
+      <div class="modal-title" style="margin-bottom:4px;">🔍 找对应产品</div>
+      <div style="font-size:13px;color:var(--text2);">
+        我的食材:<b id="fm-item-title">—</b>
+      </div>
+      <div id="fm-item-sub" style="font-size:11px;color:var(--text-dim);margin-bottom:8px;"></div>
+      <input id="fm-search" type="search" placeholder="自定义关键词搜索(中文/意语/编码)"
+             oninput="onFmSearchInput()"
+             style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:8px;">
+    </div>
+    <div id="fm-list" style="flex:1;overflow-y:auto;min-height:200px;border:1px solid var(--border);border-radius:8px;background:#fafafa;">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-find-match')" style="flex:1;">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 浏览供应商目录:产品详情(点卡片打开) -->
+<div class="modal-overlay" id="modal-sc-detail" style="z-index:2000;">
+  <div class="modal" style="max-height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="margin-bottom:8px;flex-shrink:0;">📦 产品详情</div>
+    <div id="scd-body" style="flex:1;overflow-y:auto;padding:0 4px;"></div>
+    <div id="scd-actions" style="display:flex;gap:8px;margin-top:12px;flex-shrink:0;"></div>
   </div>
 </div>
 
@@ -1703,7 +1884,7 @@ function ridPickerGo() {
 // ════════════════════════════════════════
 // 🎯 APP 版本号（唯一数据源，每次发版只改这一处！）
 // ════════════════════════════════════════
-const APP_VERSION = 'v2.7.44';
+const APP_VERSION = 'v2.7.63';
 
 // ════════════════════════════════════════
 // 🎛️ 功能开关（Feature Flags）
@@ -1730,6 +1911,12 @@ const ff = k => featureFlags[k] !== false;
 const IMG_MAX_SIZE = 250;   // 最大边长（像素）
 const IMG_QUALITY  = 0.50;  // 质量 0~1
 // 366 张 × ~10KB = ~3.7 MB（远低于 Supabase 1GB 免费额度）
+
+// ════════════════════════════════════════
+// ⏰ 订货提醒提前量（分钟）
+// ════════════════════════════════════════
+// 比如 deadline=22:00, lead=180 → 从 19:00 起开始提醒
+const ALERT_LEAD_MINUTES = 180;
 
 // ════════════════════════════════════════
 // API 代理（Cloudflare Worker）
@@ -2830,6 +3017,11 @@ function showTrialBanner(expiresAt, restaurantName) {
 }
 
 async function init() {
+  // 没有 ?r= 参数时,picker 页面会显示并要求输入,init 不继续
+  if (!REST_ID) {
+    return;
+  }
+
   // ── 验证餐厅是否存在且有效（走 Worker 公开端点）──
   try {
     const rRes = await fetch(SB_URL+'/restaurant-info?restaurantId='+encodeURIComponent(REST_ID));
@@ -3930,70 +4122,84 @@ function renderOrderList() {
     const isLow = ff('low_stock_highlight') && fc > 0;  // 开关：库存不足是否高亮
     const checked = item.checked;
     return `
-    <div class="order-item-card ${checked?(isLow?'selected-low':'selected'):''}" id="ocard-${item.id}" style="position:relative;">
-      <input type="checkbox" ${(item.orderModified||item.consume>0)?'checked':''}
-        onchange="toggleOrderItem(${item.id},this.checked)"
-        onclick="event.stopPropagation()"
-        style="position:absolute;bottom:10px;right:14px;width:22px;height:22px;accent-color:var(--primary);cursor:pointer;z-index:3;">
-      <div class="order-item-thumb" onclick="event.stopPropagation();showOrderItemDetail(${item.id})" title="${t('detailViewTip')}">
-        ${item.image_url
-          ? `<img src="${item.image_url}" alt="${item.name||''}" loading="lazy" onerror="this.parentNode.innerHTML='📦'">`
-          : `📦`}
+    <div class="order-item-card ${checked?(isLow?'selected-low':'selected'):''}" id="ocard-${item.id}">
+      <!-- 上区: 图 | 信息 | 复选框 -->
+      <div class="oic-top">
+        <div class="oic-thumb" onclick="event.stopPropagation();showOrderItemDetail(${item.id})" title="${t('detailViewTip')}">
+          ${item.image_url
+            ? `<img src="${item.image_url}" alt="${item.name||''}" loading="lazy" onerror="this.parentNode.innerHTML='📦'">`
+            : `📦`}
+        </div>
+        <div class="oic-info" onclick="showOrderItemDetail(${item.id})">
+          ${item.item_code?`<div class="oic-code">${item.item_code}</div>`:''}
+          <div class="oic-name">${displayName(item)}</div>
+          ${item.chef?`<div class="oic-chef">👤 ${item.chef}</div>`:''}
+          ${(()=>{
+            const parts = [];
+            if (isTodayCycle(item)) {
+              parts.push(`<span style="background:#e6f4ea;color:#2e7d32;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:600;">✅ 今日可订</span>`);
+            } else if (item.cycle && item.cycle.length>0) {
+              parts.push(`<span style="background:#f5f5f5;color:#999;font-size:10px;padding:2px 6px;border-radius:10px;">🔒 ${(item.cycle||[]).join('/')}</span>`);
+            }
+            if (item.supplier) parts.push(`<span style="color:var(--text3);">${item.supplier}</span>`);
+            return parts.length ? `<div class="oic-status">${parts.join('<span style="color:var(--text3);">·</span>')}</div>` : '';
+          })()}
+        </div>
+        <input type="checkbox" class="oic-check" ${(item.orderModified||item.consume>0)?'checked':''}
+          onchange="toggleOrderItem(${item.id},this.checked)"
+          onclick="event.stopPropagation()">
       </div>
-      <div class="order-item-info" onclick="showOrderItemDetail(${item.id})" style="cursor:pointer;">
-        ${item.item_code?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">${item.item_code}</div>`:''}
-        <div class="name">${displayName(item)}</div>
-        ${item.chef?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">👤 ${item.chef}</div>`:''}
-        ${(ff('show_stock')||ff('show_safety')||isTodayCycle(item)||(item.cycle&&item.cycle.length>0)||item.supplier)?`
-        <div class="stock-line" style="margin-top:4px;">
+
+      <!-- 上次订货(全宽) -->
+      ${ff('show_recent_order')?(()=>{
+        const r = getRecentOrder(item);
+        if (!r) return '<div class="oic-last" style="background:#fafafa;color:var(--text3);">📅 暂无订货记录</div>';
+        const timeTxt = r.days===0?'今天':(r.days===1?'昨天':r.days+'天前');
+        return `<div class="oic-last">📅 上次订 <strong>${r.qty}</strong>${item.spec?' '+item.spec:''} · ${timeTxt}${r.chef?' · '+r.chef:''}</div>`;
+      })():''}
+
+      <!-- 库存数字 -->
+      ${(ff('show_stock')||ff('show_safety'))?`
+        <div class="oic-stock">
           ${ff('show_stock')?`${t('colStock')}: <span class="${isLow?'low':''}">${item.stock}</span>`:''}
           ${ff('show_stock')&&ff('show_safety')?' · ':''}
           ${ff('show_safety')?`${t('colSafe')}: ${getSafety(item)}`:''}
-          ${isTodayCycle(item)
-            ? `<span style="background:#e6f4ea;color:#2e7d32;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:4px;font-weight:600;">✅ 今日可订</span>`
-            : (item.cycle&&item.cycle.length>0
-              ? `<span style="background:#f5f5f5;color:#999;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:4px;">🔒 ${(item.cycle||[]).join('/')}</span>`
-              : '')}
-          ${item.supplier?`${(ff('show_stock')||ff('show_safety'))?'· ':''}<span style="color:var(--text3)">${item.supplier}</span>`:''}
         </div>`:''}
-        ${ff('show_recent_order')?(()=>{
-          const r = getRecentOrder(item);
-          if (!r) return '<div style="font-size:11px;color:var(--text3);margin-top:4px;">📅 暂无订货记录</div>';
-          const timeTxt = r.days===0?'今天':(r.days===1?'昨天':r.days+'天前');
-          return `<div style="font-size:11px;color:#6b4f1a;margin-top:4px;background:#f2e6d4;padding:3px 8px;border-radius:6px;display:inline-block;">📅 上次订 <strong>${r.qty}</strong>${item.spec?' '+item.spec:''} · ${timeTxt}${r.chef?' · '+r.chef:''}</div>`;
-        })():''}
-        <div class="stock-line" style="margin-top:4px;">
-          ${ff('consume_track')&&(isAdmin||currentUserRole==='supervisor'||currentUserRole==='buyer'||(item.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim()||currentUserRole==='warehouse')?`
-          <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
-            <span style="font-size:13px;color:var(--text3);min-width:48px;">${t('consume')}:</span>
-            <button onclick="event.stopPropagation();stepConsume(${item.id},-1)"
-              style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-            <input type="number" step="1" value="${item.consume||0}"
-              style="width:48px;border:1px solid #ddd;border-radius:8px;padding:4px 2px;font-size:14px;text-align:center;"
-              onchange="setConsume(${item.id},this.value)"
-              onclick="event.stopPropagation()"
-              id="oconsume-${item.id}">
-            ${(isAdmin||currentUserPerms.can_add_stock)?`
-            <button onclick="event.stopPropagation();stepConsume(${item.id},+1)"
-              style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>`:''}
-          </div>`:''}
-        </div>
-      </div>
-      ${currentUserRole==='warehouse'?'':/* 仓库员没有订货区域 */`
-      <div class="order-qty-wrap">
-        <div class="order-qty-lbl" style="font-size:11px;color:var(--text3);">${t('orderQty')}</div>
-        <div style="display:flex;align-items:center;gap:4px;">
-          <button onclick="event.stopPropagation();stepQty(${item.id},-1)"
-            style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <div class="qty-input"
-               id="oqty-display-${item.id}"
-               onclick="event.stopPropagation();showQtyPad(${item.id})"
-               style="width:48px;text-align:center;padding:8px 0;border:1px solid #ddd;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;color:${item.orderModified?'var(--primary)':'var(--text3)'};background:${item.orderModified?'#faf6ec':'#f5f5f5'};">${item.need||0}</div>
-          <button onclick="event.stopPropagation();stepQty(${item.id},+1)"
-            style="width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
-        </div>
-        <span class="qty-unit" style="font-size:12px;color:var(--text3);">${item.spec||''}</span>
-      </div>`}
+
+      <!-- 下区: 库存调整 | 订货数量 -->
+      ${(()=>{
+        const showConsume = ff('consume_track')&&(isAdmin||currentUserRole==='supervisor'||currentUserRole==='buyer'||(item.chef||'').toLowerCase().trim()===(currentUser||'').toLowerCase().trim()||currentUserRole==='warehouse');
+        const showOrder = currentUserRole!=='warehouse';
+        if (!showConsume && !showOrder) return '';
+        const consumeBlock = showConsume?`
+          <div class="oic-consume">
+            <div class="oic-lbl">${t('consume')}:</div>
+            <div class="oic-ctrl">
+              <button onclick="event.stopPropagation();stepConsume(${item.id},-1)">−</button>
+              <input type="number" step="1" value="${item.consume||0}"
+                onchange="setConsume(${item.id},this.value)"
+                onclick="event.stopPropagation()"
+                id="oconsume-${item.id}">
+              ${(isAdmin||currentUserPerms.can_add_stock)?`
+              <button onclick="event.stopPropagation();stepConsume(${item.id},+1)">+</button>`:''}
+            </div>
+          </div>`:'';
+        const orderBlock = showOrder?`
+          <div class="oic-order">
+            <div class="oic-lbl">${t('orderQty')}</div>
+            <div class="oic-ctrl">
+              <button onclick="event.stopPropagation();stepQty(${item.id},-1)">−</button>
+              <div class="qty-input"
+                   id="oqty-display-${item.id}"
+                   onclick="event.stopPropagation();showQtyPad(${item.id})"
+                   style="width:48px;text-align:center;padding:8px 0;border:1px solid #ddd;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;color:${item.orderModified?'var(--primary)':'var(--text3)'};background:${item.orderModified?'#faf6ec':'#f5f5f5'};">${item.need||0}</div>
+              <button onclick="event.stopPropagation();stepQty(${item.id},+1)">+</button>
+            </div>
+            ${item.spec?`<div class="oic-unit">${item.spec}</div>`:''}
+          </div>`:'';
+        const klass = (showConsume && showOrder) ? '' : 'full';
+        return `<div class="oic-bottom ${klass}">${consumeBlock}${orderBlock}</div>`;
+      })()}
     </div>`;
   }).join('');
   updateOrderFooter();
@@ -5330,7 +5536,11 @@ function renderOrderAlertPanel() {
     if (!cycle.includes(todayDay)) return;
     const sup = suppliers.find(s=>(s.name||'').toLowerCase()===(item.supplier||'').toLowerCase());
     const deadline = sup?.order_deadline || '19:00';
-    if (nowTime < deadline.slice(0,5)) return; // 还没到截止时间，不提醒
+    // 提前 ALERT_LEAD_MINUTES 分钟开始提醒(避免 22 点截止才提醒员工已下班的情况)
+    const [dh, dm] = deadline.slice(0,5).split(':').map(Number);
+    const alertStartMin = dh*60 + (dm||0) - ALERT_LEAD_MINUTES;
+    const nowMin = new Date().getHours()*60 + new Date().getMinutes();
+    if (nowMin < alertStartMin) return; // 还没到提醒开始时间
     if (!staffWithTodayDuty[item.chef]) staffWithTodayDuty[item.chef] = new Set();
     staffWithTodayDuty[item.chef].add(item.supplier||'未知');
   });
@@ -5359,11 +5569,14 @@ function renderOrderAlertPanel() {
   if (pendingToday.length > 0) {
     const pendingSups = new Set();
     pendingToday.forEach(o=>(o.items||[]).forEach(i=>pendingSups.add(i.supplier||'未知')));
-    // 只提醒已过截止时间且今天是订货日的供应商
+    // 只提醒已过提醒开始时间且今天是订货日的供应商
     const overdue = [...pendingSups].filter(supName=>{
       const sup = suppliers.find(s=>(s.name||'').toLowerCase()===supName.toLowerCase());
       const deadline = sup?.order_deadline || '19:00';
-      if (nowTime < deadline.slice(0,5)) return false; // 还没到截止时间
+      const [dh, dm] = deadline.slice(0,5).split(':').map(Number);
+      const alertStartMin = dh*60 + (dm||0) - ALERT_LEAD_MINUTES;
+      const nowMin = new Date().getHours()*60 + new Date().getMinutes();
+      if (nowMin < alertStartMin) return false; // 还没到提醒开始时间
       // 检查今天是不是这个供应商的订货日
       const supItems = items.filter(i=>(i.supplier||'').toLowerCase()===supName.toLowerCase());
       return supItems.some(i=>{
@@ -5758,7 +5971,8 @@ function updateOrderAlerts() {
     if (!sup.order_deadline) return;
     const [dh, dm] = (sup.order_deadline||'19:00').split(':').map(Number);
     const deadlineMinutes = dh*60 + (dm||0);
-    if (nowMinutes < deadlineMinutes) return; // 还没到截止时间
+    const alertStartMinutes = deadlineMinutes - ALERT_LEAD_MINUTES;
+    if (nowMinutes < alertStartMinutes) return; // 还没到提醒开始时间
 
     // 找负责这个供应商物料的员工
     const supItems = items.filter(i=>
@@ -5797,7 +6011,7 @@ function updateOrderAlerts() {
       const sup = suppliers.find(s=>s.name.toLowerCase()===supName.toLowerCase());
       if (!sup||!sup.order_deadline) return;
       const [dh,dm] = sup.order_deadline.split(':').map(Number);
-      if (nowMinutes < dh*60+(dm||0)) return; // 还没到截止时间
+      if (nowMinutes < dh*60+(dm||0)-ALERT_LEAD_MINUTES) return; // 还没到提醒开始时间
       // 检查今天是不是这个供应商的订货日
       const supItems = items.filter(i=>(i.supplier||'').toLowerCase()===supName.toLowerCase());
       const hasTodayCycle = supItems.some(i=>isTodayCycleForDay(i, todayDay));
@@ -7828,6 +8042,13 @@ function renderProfile() {
   document.getElementById('profile-name').textContent = currentUser;
   document.getElementById('profile-role').textContent = isAdmin ? '管理员 · Admin' : '员工';
   updatePendingBadge();
+  // 管理员视图:把"修改管理员密码"放到底部"系统"组(代替"修改密码");员工视图反之
+  const topAdminPass = document.getElementById('menu-change-admin-pass-top');
+  const bottomAdminPass = document.getElementById('menu-change-admin-pass-bottom');
+  const myPass = document.getElementById('menu-change-pass');
+  if (topAdminPass) topAdminPass.style.display = isAdmin ? 'none' : '';
+  if (bottomAdminPass) bottomAdminPass.style.display = isAdmin ? '' : 'none';
+  if (myPass) myPass.style.display = isAdmin ? 'none' : '';
 }
 
 function showChangePwd() {
@@ -8177,7 +8398,7 @@ async function saveNewItem() {
     stock:document.getElementById('ni-stock').value||'0',
     safety:document.getElementById('ni-safety').value||'1',
     chef:document.getElementById('ni-chef').value,
-    departments:['厨房'], cycle:['星期一']
+    departments:['厨房'], cycle:['星期日']
   };
   try {
     const r=await sb('cucina_items',{method:'POST',prefer:'return=representation',body:JSON.stringify(newItem)});
@@ -8364,6 +8585,623 @@ async function importPublicSelected() {
     toast('导入失败：' + e.message, 'err');
     btn.disabled = false;
     updateIpImportBtn();
+  }
+}
+
+// ============================================================
+// v2.7.50: 浏览供应商目录 + 一键导入
+// ============================================================
+let _scCatalog = [];      // 当前供应商的目录
+let _scMyKeys = new Set();// 餐厅已有 items 的 name+italian 索引
+let _scSelected = new Set();// 用户勾选的目录 id
+let _scShowPrice = true;  // 当前供应商是否显示价格
+let _scSearchTimer = null;
+let _scCurrentSupplierId = 0;
+
+async function showSupCatalogModal() {
+  _scCatalog = [];
+  _scSelected.clear();
+  _scCurrentSupplierId = 0;
+  document.getElementById('sc-search-input').value = '';
+  document.getElementById('sc-search-input').style.display = 'none';
+  document.getElementById('sc-list').innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 20px;">加载供应商列表...</div>';
+  document.getElementById('sc-info').textContent = '';
+  updateScImportBtn();
+  openModal('modal-sup-catalog');
+
+  // 拉供应商列表
+  try {
+    const r = await fetch(SB_URL + '/supplier-catalog/suppliers', {
+      headers: { 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || '加载失败');
+    const sel = document.getElementById('sc-supplier-select');
+    sel.innerHTML = '<option value="">— 请选择供应商 —</option>' +
+      (d.suppliers || []).map(s => `<option value="${s.id}">${escapeHtml(s.display_name || s.name)}</option>`).join('');
+    document.getElementById('sc-list').innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 20px;">请先选择供应商</div>';
+    if (!(d.suppliers || []).length) {
+      document.getElementById('sc-list').innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 20px;">目前没有公开目录的供应商</div>';
+    }
+  } catch (e) {
+    document.getElementById('sc-list').innerHTML = `<div style="text-align:center;color:#d05050;padding:40px 20px;">加载失败:${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function onSupCatalogSupplierChange() {
+  const supplierId = parseInt(document.getElementById('sc-supplier-select').value || 0);
+  _scCurrentSupplierId = supplierId;
+  _scSelected.clear();
+  updateScImportBtn();
+  if (!supplierId) {
+    document.getElementById('sc-search-input').style.display = 'none';
+    document.getElementById('sc-list').innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 20px;">请先选择供应商</div>';
+    document.getElementById('sc-info').textContent = '';
+    return;
+  }
+  document.getElementById('sc-search-input').style.display = '';
+  document.getElementById('sc-search-input').value = '';
+  await loadSupCatalogItems(supplierId, '');
+}
+
+function onSupCatalogSearchInput() {
+  clearTimeout(_scSearchTimer);
+  _scSearchTimer = setTimeout(() => {
+    const q = document.getElementById('sc-search-input').value.trim();
+    if (_scCurrentSupplierId) loadSupCatalogItems(_scCurrentSupplierId, q);
+  }, 300);
+}
+
+async function loadSupCatalogItems(supplierId, q) {
+  document.getElementById('sc-list').innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 20px;">加载中...</div>';
+  document.getElementById('sc-info').textContent = '';
+  try {
+    const params = new URLSearchParams({ supplier_id: supplierId, limit: 2000 });
+    if (q) params.append('q', q);
+    const r = await fetch(SB_URL + '/supplier-catalog/items?' + params, {
+      headers: { 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || '加载失败');
+    _scCatalog = d.items || [];
+    _scMyKeys = new Set(d.myKeys || []);
+    _scShowPrice = d.show_price !== false;
+    renderSupCatalogList();
+    let info = `${escapeHtml(d.supplier.name)} · ${_scCatalog.length} 件产品${q ? `(搜索: ${escapeHtml(q)})` : ''}`;
+    if (!_scShowPrice) info += ` · <span style="color:#d97706;">🙈 价格已隐藏</span>`;
+    document.getElementById('sc-info').innerHTML = info;
+    // 有任何状态产品时显示图例
+    const hasStatus = _scCatalog.some(c => c.carpi_status);
+    document.getElementById('sc-legend').style.display = hasStatus ? '' : 'none';
+  } catch (e) {
+    document.getElementById('sc-list').innerHTML = `<div style="text-align:center;color:#d05050;padding:40px 20px;">加载失败:${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderSupCatalogList() {
+  const list = document.getElementById('sc-list');
+  if (!_scCatalog.length) {
+    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 20px;">没有产品</div>';
+    return;
+  }
+  list.innerHTML = _scCatalog.map(c => {
+    const status = c.carpi_status;  // 'bound' / 'same_name' / 'fuzzy' / null
+    const selected = _scSelected.has(c.id);
+    const imgHtml = c.image_url
+      ? `<img src="${escapeHtml(c.image_url)}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'">`
+      : `<div style="width:42px;height:42px;background:#eee;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>`;
+
+    let badge = '';
+    let bgColor = '#fff';
+    if (status === 'bound') {
+      badge = `<span style="font-size:10px;background:#dcfce7;color:#16a34a;padding:2px 6px;border-radius:4px;margin-left:6px;white-space:nowrap;">🔗 已绑定</span>`;
+      bgColor = '#f0fdf4';
+    } else if (status === 'same_name') {
+      badge = `<span style="font-size:10px;background:#fef3c7;color:#d97706;padding:2px 6px;border-radius:4px;margin-left:6px;white-space:nowrap;">📝 同名</span>`;
+      bgColor = '#fffbeb';
+    } else if (status === 'fuzzy') {
+      badge = `<span style="font-size:10px;background:#e0e7ff;color:#4f46e5;padding:2px 6px;border-radius:4px;margin-left:6px;white-space:nowrap;">🔍 可能</span>`;
+      bgColor = '#eef2ff';
+    }
+
+    // 已绑定的:不允许勾选(已经搞定了)
+    // 同名/模糊的:可以勾选,但点击行(非 checkbox)弹"已存在"对话框引导绑定
+    const isBound = status === 'bound';
+    const hasExisting = status === 'bound' || status === 'same_name' || status === 'fuzzy';
+
+    const carpiInfo = hasExisting && c.carpi_item_name
+      ? `<div style="font-size:10px;color:#888;margin-top:2px;">↳ 对应我的:${escapeHtml(c.carpi_item_name)}</div>`
+      : '';
+
+    return `
+      <div data-sc-id="${c.id}" style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid #eee;background:${bgColor};opacity:${isBound ? 0.7 : 1};">
+        <input type="checkbox" ${selected ? 'checked' : ''} ${isBound ? 'disabled' : ''}
+               onchange="event.stopPropagation();toggleScItem(${c.id})" style="flex-shrink:0;width:18px;height:18px;">
+        <div style="flex:1;min-width:0;display:flex;gap:10px;align-items:center;cursor:pointer;"
+             onclick="openScDetail(${c.id})">
+          ${imgHtml}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;display:flex;align-items:center;flex-wrap:wrap;">
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">
+                ${escapeHtml(c.name || c.italian || '?')}
+              </span>
+              ${badge}
+            </div>
+            <div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${c.italian ? escapeHtml(c.italian) : ''}${c.spec ? (c.italian ? ' · ' : '') + escapeHtml(c.spec) : ''}
+            </div>
+            ${carpiInfo}
+          </div>
+          <div style="font-size:13px;font-weight:600;color:#c9a961;flex-shrink:0;white-space:nowrap;">
+            ${c.price ? '€' + parseFloat(c.price).toFixed(2) : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 点击详情按钮 → 打开详情弹窗
+function openScDetail(catalogId) {
+  const c = _scCatalog.find(x => x.id === catalogId);
+  if (!c) return;
+  _scExistingTarget = c;  // 复用同一个变量,用于"绑定/导入"按钮
+
+  // 状态文字
+  let statusHtml = '';
+  if (c.carpi_status === 'bound') {
+    statusHtml = `<div style="background:#dcfce7;color:#16a34a;padding:8px;border-radius:6px;font-size:12px;margin-bottom:10px;">
+      🔗 <b>已绑定</b> · 对应:${escapeHtml(c.carpi_item_name || '?')}
+    </div>`;
+  } else if (c.carpi_status === 'same_name') {
+    statusHtml = `<div style="background:#fef3c7;color:#d97706;padding:8px;border-radius:6px;font-size:12px;margin-bottom:10px;">
+      📝 <b>同名已存在</b> · 对应:${escapeHtml(c.carpi_item_name || '?')}
+    </div>`;
+  } else if (c.carpi_status === 'fuzzy') {
+    statusHtml = `<div style="background:#e0e7ff;color:#4f46e5;padding:8px;border-radius:6px;font-size:12px;margin-bottom:10px;">
+      🔍 <b>可能已存在</b>(评分 ${c.carpi_fuzzy_score}) · 对应:${escapeHtml(c.carpi_item_name || '?')}
+    </div>`;
+  }
+
+  // 图片
+  const imgBlock = c.image_url
+    ? `<img src="${escapeHtml(c.image_url)}" style="width:100%;max-height:240px;object-fit:contain;background:#f5f5f5;border-radius:8px;margin-bottom:12px;" onerror="this.style.display='none'">`
+    : '';
+
+  // 字段表
+  const fields = [
+    ['中文名', c.name],
+    ['意语名', c.italian],
+    ['规格', c.spec],
+    ['编码', c.item_code],
+    ['分类', c.category],
+    ['价格', c.price ? '€' + parseFloat(c.price).toFixed(2) : (_scShowPrice ? '' : '🙈 供应商已隐藏')],
+  ].filter(([, v]) => v);
+  const fieldsHtml = fields.map(([k, v]) => `
+    <div style="display:flex;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;">
+      <div style="width:80px;color:#888;flex-shrink:0;">${k}</div>
+      <div style="flex:1;color:#333;font-weight:500;word-break:break-word;">${escapeHtml(String(v))}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('scd-body').innerHTML = statusHtml + imgBlock + fieldsHtml;
+
+  // 操作按钮区:根据状态变化
+  let actionsHtml = '';
+  if (c.carpi_status === 'bound') {
+    actionsHtml = `<button class="btn btn-ghost" onclick="closeModal('modal-sc-detail')" style="flex:1;">关闭</button>`;
+  } else if (c.carpi_status === 'same_name' || c.carpi_status === 'fuzzy') {
+    actionsHtml = `
+      <button class="btn btn-primary" onclick="bindExistingItem()" style="flex:1;">🔗 绑定到现有</button>
+      <button class="btn btn-ghost" onclick="forceImportNew()" style="flex:1;">➕ 仍要新建</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-sc-detail')" style="flex:1;">关闭</button>
+    `;
+  } else {
+    // 全新产品 → 加入选中
+    const selected = _scSelected.has(c.id);
+    actionsHtml = `
+      <button class="btn btn-primary" onclick="toggleScSelectFromDetail(${c.id});closeModal('modal-sc-detail');" style="flex:2;">
+        ${selected ? '☑ 取消选中' : '☐ 选中导入'}
+      </button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-sc-detail')" style="flex:1;">关闭</button>
+    `;
+  }
+  document.getElementById('scd-actions').innerHTML = actionsHtml;
+
+  openModal('modal-sc-detail');
+}
+
+function toggleScSelectFromDetail(id) {
+  toggleScItem(id);
+  // 重新渲染列表反映勾选状态
+  renderSupCatalogList();
+}
+
+// 已废弃:旧的"点击已有产品 → 简化弹窗",现在统一走 openScDetail
+function onScExistingClick(catalogId) {
+  openScDetail(catalogId);
+}
+
+let _scExistingTarget = null;
+
+async function bindExistingItem() {
+  if (!_scExistingTarget) return;
+  const c = _scExistingTarget;
+  try {
+    const r = await fetch(SB_URL + '/supplier-catalog/bind-existing', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bindings: [{ catalog_id: c.id, item_id: c.carpi_item_id }],
+        sync_price: true,
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || '绑定失败');
+    toast(`✓ 已绑定到「${c.carpi_item_name}」(并同步价格)`);
+    closeModal('modal-sc-detail');
+    // 重新加载列表反映状态
+    if (_scCurrentSupplierId) await loadSupCatalogItems(_scCurrentSupplierId,
+      document.getElementById('sc-search-input') ? document.getElementById('sc-search-input').value : '');
+  } catch (e) {
+    toast('绑定失败:' + e.message, 'err');
+  }
+}
+
+function forceImportNew() {
+  if (!_scExistingTarget) return;
+  // 强行导入:加入选中集合,关闭对话框,提醒用户去点"导入选中"
+  _scSelected.add(_scExistingTarget.id);
+  updateScImportBtn();
+  closeModal('modal-sc-detail');
+  toast('已加入选中,记得点底部"导入选中"按钮');
+  renderSupCatalogList();
+}
+
+function toggleScItem(id) {
+  if (_scSelected.has(id)) _scSelected.delete(id);
+  else _scSelected.add(id);
+  updateScImportBtn();
+}
+
+function updateScImportBtn() {
+  const btn = document.getElementById('sc-import-btn');
+  if (!btn) return;
+  const n = _scSelected.size;
+  btn.disabled = n === 0;
+  btn.textContent = `导入选中 (${n})`;
+}
+
+async function importSupCatalogSelected() {
+  const ids = Array.from(_scSelected);
+  if (!ids.length || !_scCurrentSupplierId) return;
+  const btn = document.getElementById('sc-import-btn');
+  btn.disabled = true;
+  btn.textContent = '导入中...';
+  try {
+    const r = await fetch(SB_URL + '/supplier-catalog/import', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supplier_id: _scCurrentSupplierId, catalog_ids: ids }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || '导入失败');
+    let msg = `✓ 导入 ${d.imported} 件`;
+    if (d.skipped) msg += `,跳过 ${d.skipped} 件(已存在)`;
+    toast(msg);
+    closeModal('modal-sup-catalog');
+    // 刷新本地 items 数据
+    await loadAllData();
+    if (currentTab === 'inventory') renderInventory();
+  } catch (e) {
+    toast('导入失败:' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    updateScImportBtn();
+  }
+}
+
+// ============================================================
+// v2.7.53: 同步供应商价格
+// ============================================================
+let _spChanged = [];      // 价格变了的列表
+let _spNotInCatalog = []; // v2.1.0: 未匹配的列表(可手动找)
+let _spManualMatches = new Map();  // v2.1.0: itemId -> {catalog_id, new_price, name}
+let _spSelected = new Set();// 用户勾选的 item id
+
+async function showSyncPricesModal() {
+  _spChanged = [];
+  _spNotInCatalog = [];
+  _spManualMatches = new Map();  // item_id -> {catalog_id, new_price, name}
+  _spSelected.clear();
+  document.getElementById('sp-summary').textContent = '';
+  document.getElementById('sp-list').innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 20px;">⏳ 正在扫描差异...</div>';
+  updateSpApplyBtn();
+  openModal('modal-sync-prices');
+
+  try {
+    const r = await fetch(SB_URL + '/supplier-catalog/sync-prices/diff', {
+      headers: { 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || '查询失败');
+
+    _spChanged = d.changed || [];
+    _spNotInCatalog = d.not_in_catalog || [];
+    // 默认全选已识别的变化
+    for (const c of _spChanged) _spSelected.add(c.id);
+
+    const summary = `共 ${d.total} 件食材 · ` +
+      `<b style="color:#dc2626;">${_spChanged.length} 件价格变了</b> · ` +
+      `<span style="color:#16a34a;">${(d.same || []).length} 件无变化</span> · ` +
+      `<b style="color:#d97706;">${_spNotInCatalog.length} 件未匹配(可手动找)</b>` +
+      (d.no_supplier_match ? ` · <span style="color:#888;">${d.no_supplier_match} 件 supplier 未对应公司</span>` : '');
+    document.getElementById('sp-summary').innerHTML = summary;
+
+    renderSpList();
+    updateSpApplyBtn();
+  } catch (e) {
+    document.getElementById('sp-list').innerHTML = `<div style="text-align:center;color:#d05050;padding:40px 20px;">扫描失败:${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderSpList() {
+  const list = document.getElementById('sp-list');
+  const totalChanges = _spChanged.length + _spManualMatches.size;
+  if (!totalChanges && !_spNotInCatalog.length) {
+    list.innerHTML = '<div style="text-align:center;color:#16a34a;padding:40px 20px;font-size:14px;">✅ 所有食材价格都跟供应商目录一致,没什么要更新的</div>';
+    return;
+  }
+
+  let html = '';
+
+  // 已识别价格变化部分
+  if (_spChanged.length) {
+    html += `
+      <div style="padding:10px 8px 6px;background:#fff5f5;border-bottom:1px solid #fecaca;">
+        <div style="font-size:12px;font-weight:600;color:#dc2626;margin-bottom:6px;">📊 价格变化 (${_spChanged.length})</div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+          <input type="checkbox" id="sp-select-all" onchange="toggleAllSp(this.checked)"
+                 ${_spChanged.every(c => _spSelected.has(c.id)) ? 'checked' : ''} style="width:14px;height:14px;">
+          全选这一组
+        </label>
+      </div>
+    `;
+    html += _spChanged.map(c => {
+      const selected = _spSelected.has(c.id);
+      const isUp = c.diff > 0;
+      const diffStr = (c.diff > 0 ? '+' : '') + c.diff.toFixed(2);
+      const boundIcon = c.bound ? ' 🔗' : '';
+      return `
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#fff;">
+          <input type="checkbox" ${selected ? 'checked' : ''}
+                 onchange="toggleSpItem(${c.id})" style="flex-shrink:0;width:18px;height:18px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${escapeHtml(c.name || c.italian || '?')}${boundIcon}
+            </div>
+            <div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${c.italian ? escapeHtml(c.italian) : ''}${c.spec ? (c.italian ? ' · ' : '') + escapeHtml(c.spec) : ''}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;line-height:1.2;">
+            <div style="font-size:10px;color:#888;text-decoration:line-through;">€${c.my_price.toFixed(2)}</div>
+            <div style="font-size:14px;font-weight:700;color:${isUp ? '#dc2626' : '#16a34a'};">€${c.new_price.toFixed(2)}</div>
+            <div style="font-size:10px;color:${isUp ? '#dc2626' : '#16a34a'};">${diffStr}</div>
+          </div>
+        </label>
+      `;
+    }).join('');
+  }
+
+  // 未匹配部分(每行一个"找对应"按钮)
+  if (_spNotInCatalog.length) {
+    html += `
+      <div style="padding:10px 8px 6px;background:#fffbeb;border-bottom:1px solid #fde68a;margin-top:8px;">
+        <div style="font-size:12px;font-weight:600;color:#d97706;margin-bottom:4px;">🔍 未自动匹配 (${_spNotInCatalog.length})</div>
+        <div style="font-size:11px;color:#888;">这些食材在供应商目录里没找到同名产品,点"找对应"手动选择</div>
+      </div>
+    `;
+    html += _spNotInCatalog.map(n => {
+      const matched = _spManualMatches.get(n.id);
+      if (matched) {
+        const isUp = (matched.new_price - n.my_price) > 0;
+        const diff = (matched.new_price - n.my_price).toFixed(2);
+        const selected = _spSelected.has(n.id);
+        return `
+          <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;background:#f0fdf4;">
+            <input type="checkbox" ${selected ? 'checked' : ''}
+                   onchange="toggleSpItem(${n.id})" style="flex-shrink:0;width:18px;height:18px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${escapeHtml(n.name || n.italian || '?')}
+              </div>
+              <div style="font-size:11px;color:#16a34a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ↓ ${escapeHtml(matched.name)}
+                <a href="#" onclick="event.preventDefault();event.stopPropagation();_spManualMatches.delete(${n.id});_spSelected.delete(${n.id});renderSpList();updateSpApplyBtn();" style="margin-left:4px;color:#dc2626;font-size:10px;">[取消]</a>
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;line-height:1.2;">
+              <div style="font-size:10px;color:#888;text-decoration:line-through;">€${n.my_price.toFixed(2)}</div>
+              <div style="font-size:14px;font-weight:700;color:${isUp ? '#dc2626' : '#16a34a'};">€${matched.new_price.toFixed(2)}</div>
+              <div style="font-size:10px;color:${isUp ? '#dc2626' : '#16a34a'};">${diff > 0 ? '+' : ''}${diff}</div>
+            </div>
+          </label>
+        `;
+      }
+      return `
+        <div style="padding:10px 12px;border-bottom:1px solid #eee;background:#fff;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${escapeHtml(n.name || n.italian || '?')}
+          </div>
+          <div style="font-size:11px;color:#888;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${n.italian ? escapeHtml(n.italian) : ''}
+            ${n.spec ? (n.italian ? ' · ' : '') + escapeHtml(n.spec) : ''}
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <div style="font-size:11px;color:#888;white-space:nowrap;">
+              ${escapeHtml(n.supplier)} · €${n.my_price.toFixed(2)}
+            </div>
+            <button style="padding:6px 12px;font-size:12px;flex-shrink:0;white-space:nowrap;background:#f3f4f6;border:1px solid #ddd;border-radius:6px;cursor:pointer;color:#374151;min-width:auto;width:auto;"
+                    onclick="openFindMatch(${n.id})">🔍 找对应</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  list.innerHTML = html;
+}
+
+function toggleSpItem(id) {
+  if (_spSelected.has(id)) _spSelected.delete(id);
+  else _spSelected.add(id);
+  updateSpApplyBtn();
+  const sa = document.getElementById('sp-select-all');
+  if (sa) sa.checked = _spChanged.every(c => _spSelected.has(c.id));
+}
+
+function toggleAllSp(checked) {
+  if (checked) {
+    for (const c of _spChanged) _spSelected.add(c.id);
+  } else {
+    for (const c of _spChanged) _spSelected.delete(c.id);
+  }
+  renderSpList();
+  updateSpApplyBtn();
+}
+
+function updateSpApplyBtn() {
+  const btn = document.getElementById('sp-apply-btn');
+  if (!btn) return;
+  const n = _spSelected.size;
+  btn.disabled = n === 0;
+  btn.textContent = `更新选中 (${n})`;
+}
+
+// 手动找对应 — 弹个子 modal
+async function openFindMatch(itemId) {
+  const item = _spNotInCatalog.find(n => n.id === itemId);
+  if (!item) return;
+  _fmCurrentItem = item;
+  document.getElementById('fm-item-title').textContent = item.name || item.italian || '?';
+  document.getElementById('fm-item-sub').textContent =
+    `${item.italian || ''} · ${item.spec || ''} · 当前 €${item.my_price.toFixed(2)}`;
+  document.getElementById('fm-search').value = '';
+  document.getElementById('fm-list').innerHTML = '<div style="text-align:center;color:#aaa;padding:30px;">⏳ 加载候选...</div>';
+  openModal('modal-find-match');
+  await loadFindMatchCandidates();
+}
+
+let _fmCurrentItem = null;
+let _fmSearchTimer = null;
+
+function onFmSearchInput() {
+  clearTimeout(_fmSearchTimer);
+  _fmSearchTimer = setTimeout(loadFindMatchCandidates, 300);
+}
+
+async function loadFindMatchCandidates() {
+  if (!_fmCurrentItem) return;
+  const q = document.getElementById('fm-search').value.trim();
+  document.getElementById('fm-list').innerHTML = '<div style="text-align:center;color:#aaa;padding:30px;">⏳ 搜索中...</div>';
+  try {
+    const params = new URLSearchParams({
+      supplier_id: _fmCurrentItem.supplier_id,
+      name: _fmCurrentItem.name || '',
+      italian: _fmCurrentItem.italian || '',
+    });
+    if (q) params.set('q', q);
+    const r = await fetch(SB_URL + '/supplier-catalog/find-match?' + params, {
+      headers: { 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || '搜索失败');
+    renderFmCandidates(d.candidates || []);
+  } catch (e) {
+    document.getElementById('fm-list').innerHTML = `<div style="text-align:center;color:#d05050;padding:30px;">搜索失败:${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderFmCandidates(list) {
+  if (!list.length) {
+    document.getElementById('fm-list').innerHTML = '<div style="text-align:center;color:#aaa;padding:30px;">没有候选,试试在上面输入关键词搜索</div>';
+    return;
+  }
+  document.getElementById('fm-list').innerHTML = list.map(c => `
+    <div style="padding:10px 12px;border-bottom:1px solid #eee;background:#fff;">
+      <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;">
+        ${escapeHtml(c.name || c.italian || '?')}
+        <span style="font-size:10px;color:#888;font-weight:normal;">(${c._score})</span>
+      </div>
+      <div style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:6px;">
+        ${c.italian ? escapeHtml(c.italian) : ''}${c.spec ? (c.italian ? ' · ' : '') + escapeHtml(c.spec) : ''}${c.item_code ? ' · #' + escapeHtml(c.item_code) : ''}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="font-size:14px;font-weight:700;color:#c9a961;white-space:nowrap;">
+          €${(parseFloat(c.price) || 0).toFixed(2)}
+        </div>
+        <button style="padding:6px 14px;font-size:12px;flex-shrink:0;white-space:nowrap;background:#c9a961;color:#fff;border:none;border-radius:6px;cursor:pointer;min-width:auto;width:auto;"
+                onclick="confirmFmMatch(${c.id}, ${parseFloat(c.price) || 0}, '${escapeHtml((c.name || c.italian || '').replace(/'/g, "\\'"))}')">
+          选这个
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function confirmFmMatch(catalogId, price, name) {
+  if (!_fmCurrentItem) return;
+  _spManualMatches.set(_fmCurrentItem.id, {
+    catalog_id: catalogId,
+    new_price: price,
+    name: name,
+  });
+  _spSelected.add(_fmCurrentItem.id);
+  closeModal('modal-find-match');
+  renderSpList();
+  updateSpApplyBtn();
+}
+
+async function applySyncPrices() {
+  // 合并两个来源:已识别的变化 + 手动匹配的
+  const updates = [];
+  for (const c of _spChanged) {
+    if (_spSelected.has(c.id)) {
+      updates.push({ id: c.id, price: c.new_price, catalog_id: c.catalog_id });
+    }
+  }
+  for (const [itemId, m] of _spManualMatches.entries()) {
+    if (_spSelected.has(itemId)) {
+      updates.push({ id: itemId, price: m.new_price, catalog_id: m.catalog_id });
+    }
+  }
+  if (!updates.length) return;
+
+  if (!confirm(`确定要更新 ${updates.length} 件食材的价格吗?\n\n手动匹配的会同时建立绑定,以后同步更准确。`)) return;
+
+  const btn = document.getElementById('sp-apply-btn');
+  btn.disabled = true;
+  btn.textContent = '更新中...';
+  try {
+    const r = await fetch(SB_URL + '/supplier-catalog/sync-prices/apply', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || '更新失败');
+    let msg = `✓ 更新 ${d.updated} 件`;
+    if (d.failed) msg += `,失败 ${d.failed} 件`;
+    toast(msg);
+    closeModal('modal-sync-prices');
+    await loadAllData();
+    if (currentTab === 'inventory') renderInventory();
+  } catch (e) {
+    toast('更新失败:' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    updateSpApplyBtn();
   }
 }
 
@@ -9608,10 +10446,10 @@ async function handleImport(input) {
       // 解析订货周期：1,2,3 → ['星期一','星期二','星期三']
       const dayNames=['','星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
       const cycleRaw=r[12]!==undefined?String(r[12]).trim():'';
-      let cycle=['星期一'];
+      let cycle=['星期日'];
       if(cycleRaw){
         cycle=cycleRaw.split(/[,，\s]+/).map(n=>parseInt(n.trim())).filter(n=>n>=1&&n<=7).map(n=>dayNames[n]);
-        if(!cycle.length) cycle=['星期一'];
+        if(!cycle.length) cycle=['星期日'];
       }
       const maxOrder = r[9]!==undefined&&r[9]!==''?parseFloat(r[9])||null:null;
       pendingImport.push({
@@ -9818,6 +10656,13 @@ function showSideMenu() {
   const roleEl = document.getElementById('side-user-role');
   if (nameEl) nameEl.textContent = currentUser || '';
   if (roleEl) roleEl.textContent = isAdmin ? '管理员' : '员工';
+  // 管理员视图:把"修改管理员密码"放到底部"系统"组(代替"修改密码");员工视图反之
+  const topAdminPass = document.getElementById('menu-change-admin-pass-top');
+  const bottomAdminPass = document.getElementById('menu-change-admin-pass-bottom');
+  const myPass = document.getElementById('menu-change-pass');
+  if (topAdminPass) topAdminPass.style.display = isAdmin ? 'none' : '';
+  if (bottomAdminPass) bottomAdminPass.style.display = isAdmin ? '' : 'none';
+  if (myPass) myPass.style.display = isAdmin ? 'none' : '';
   // 订货页面显示排序
   if (sortSection) sortSection.style.display = currentTab === 'order' ? 'block' : 'none';
   // 同步排序选择
