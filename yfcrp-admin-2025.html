@@ -247,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.11.2</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.12.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -307,7 +307,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.11.2</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.12.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -660,7 +660,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.12.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -689,7 +689,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.12.0</span>';
   }
   loadAll();
 }
@@ -896,8 +896,6 @@ async function reloadDishes() {
     }
     I = dishes.map(function(d) {
       var menus = {};
-      var soldOut = false;
-      var dishTags = null;
       dishMenus.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
           menus[dm.menu_id] = {
@@ -907,10 +905,7 @@ async function reloadDishes() {
             sconto: parseInt(dm.sconto) || 0,
             sconto_consegna: parseInt(dm.sconto_consegna) || 0
           };
-          if (dm.sold_out === true) soldOut = true;
-          if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
-      if (dishTags === null) dishTags = d.tags || [];
       return {
         id: d.id,
         dish_no: d.dish_no,
@@ -918,8 +913,8 @@ async function reloadDishes() {
         name: d.name,
         desc: d.description || '',
         image: d.image || '',
-        tags: dishTags,
-        sold_out: soldOut,
+        tags: d.tags || [],
+        sold_out: !!d.sold_out,
         menus: menus
       };
     });
@@ -999,11 +994,9 @@ async function loadAll() {
     }
 
     // 合并菜品和菜单价格，格式和原admin一致
-    // 合并菜品和菜单价格，格式和原admin一致
+    // v5.12.0: tags 和 sold_out 从 dishes_v2 读（权威源），不再从 dish_menus_v2 读
     I = dishes.map(function(d) {
       var menus = {};
-      var soldOut = false;  // 默认 false，从 dish_menus 读
-      var dishTags = null;  // 从 dish_menus 读（按店独立）
       dishMenus.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
           menus[dm.menu_id] = {
@@ -1013,13 +1006,7 @@ async function loadAll() {
             sconto: parseInt(dm.sconto) || 0,
             sconto_consegna: parseInt(dm.sconto_consegna) || 0
           };
-          // dish_menus 里任一行 sold_out=true → 这道菜在本店售罄
-          if (dm.sold_out === true) soldOut = true;
-          // tags 取任意一行（同店所有 menu 同步），第一次拿到就用
-          if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
-      // 若 dish_menus 没有 tags（旧数据兼容），fallback 用 dishes.tags
-      if (dishTags === null) dishTags = d.tags || [];
       return {
         id: d.id,
         dish_no: d.dish_no,
@@ -1027,8 +1014,8 @@ async function loadAll() {
         name: d.name,
         desc: d.description || '',
         image: d.image || '',
-        tags: dishTags,
-        sold_out: soldOut,
+        tags: d.tags || [],
+        sold_out: !!d.sold_out,
         menus: menus
       };
     });
@@ -1452,7 +1439,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.2</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.12.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1549,31 +1536,30 @@ async function saveRestaurantToDB(data) {
 
 async function saveDishToDB(dish) {
   // v2 表结构：id 是数据库自增，dish_no 是菜品号（用户输入）
+  // v5.12.0: tags 和 sold_out 写 dishes_v2（不再写 dish_menus_v2）
   var dbDish = {
     restaurant_id: RESTAURANT_ID,
-    dish_no: dish.dish_no || dish.id,  // 菜品号（兼容旧字段名）
+    dish_no: dish.dish_no || dish.id,
     category_id: dish.category,
     name: dish.name,
     description: dish.desc || '',
-    image: dish.image || ''
-    // tags 和 sold_out 在 dish_menus_v2，每家独立
+    image: dish.image || '',
+    tags: dish.tags || [],
+    sold_out: !!dish.sold_out
   };
   if (dish._isNew) {
-    // 新增：不指定 id（让 db 自增）。如果用户没输入菜品号，让 db 也自增 dish_no... 但 dish_no NOT NULL，必须有值
     if (!dbDish.dish_no) { throw new Error('请填写菜品号'); }
     var res = await sbFetch('dishes_v2', {
       method: 'POST', body: JSON.stringify(dbDish), prefer: 'return=representation'
     });
     if (!res.ok) { var er=await res.text(); throw new Error('添加菜品失败: '+er); }
     var newDish = await res.json();
-    dish.id = newDish[0].id;       // 新自增 id
+    dish.id = newDish[0].id;
     dish.dish_no = newDish[0].dish_no;
   } else {
-    // 编辑：用 dishes_v2.id（自增）找记录
-    // 重要：编辑时不修改 dish_no 字段（保留原菜品号，避免覆盖）
     var patchDish = Object.assign({}, dbDish);
     delete patchDish.dish_no;
-    delete patchDish.restaurant_id;  // 也不该改
+    delete patchDish.restaurant_id;
     var res = await sbFetch('dishes_v2?id=eq.' + dish.id, {
       method: 'PATCH', body: JSON.stringify(patchDish)
     });
@@ -1583,50 +1569,44 @@ async function saveDishToDB(dish) {
   await sbFetch('dish_menus_v2?dish_id=eq.' + dish.id + '&restaurant_id=eq.' + RESTAURANT_ID, {
     method: 'DELETE'
   });
-  // 当前店铺插入用户设置的值
+  // 当前店铺插入新菜单价格（v5.12.0: 不再写 tags 和 sold_out）
   var menuRows = MENUS.map(function(m) {
     var ms = dish.menus[m.id] || {};
     return {
-      dish_id: dish.id,             // v2 自增 id
+      dish_id: dish.id,
       restaurant_id: RESTAURANT_ID,
       menu_id: m.id,
       enabled: !!ms.on,
       price: parseFloat(ms.price) || 0,
       max_qty: parseInt(ms.max_qty) || 0,
       sconto: parseInt(ms.sconto) || 0,
-      sconto_consegna: parseInt(ms.sconto_consegna) || 0,
-      sold_out: !!dish.sold_out,
-      tags: dish.tags || []
+      sconto_consegna: parseInt(ms.sconto_consegna) || 0
     };
   });
   var res2 = await sbFetch('dish_menus_v2', {
     method: 'POST', body: JSON.stringify(menuRows)
   });
   if (!res2.ok) throw new Error('保存菜单价格失败');
-  // 方案X-限定：新菜如果是 carpi 或 legnago，给另一家也建骨架（互通）
-  // imola 新菜不建骨架（imola 菜单完全独立）
+  // 方案X-限定：carpi/legnago 新菜给另一家也建骨架（互通）
   if (dish._isNew && (RESTAURANT_ID === 'carpi' || RESTAURANT_ID === 'legnago')) {
     var twinStore = (RESTAURANT_ID === 'carpi') ? 'legnago' : 'carpi';
-    // 检查 twin 店是否已有同 dish_no 的菜（避免重复）
     var chkUrl = 'dishes_v2?restaurant_id=eq.' + twinStore + '&dish_no=eq.' + dbDish.dish_no + '&select=id';
     var chkRes = await sbFetch(chkUrl);
     var chk = chkRes.ok ? await chkRes.json() : [];
     if (!chk || chk.length === 0) {
-      // 在 twin 店建一条 dishes_v2 骨架
       var twinDish = Object.assign({}, dbDish);
       twinDish.restaurant_id = twinStore;
+      // twin 店默认不售罄、tags 复制（共享）
       var tdRes = await sbFetch('dishes_v2', {
         method: 'POST', body: JSON.stringify(twinDish), prefer: 'return=representation'
       });
       if (tdRes.ok) {
         var tdData = await tdRes.json();
         var twinId = tdData[0].id;
-        // 给 twin 店建默认 dish_menus_v2（全部 enabled=false）
         var twinMenus = MENUS.map(function(m) {
           return {
             dish_id: twinId, restaurant_id: twinStore, menu_id: m.id,
-            enabled: false, price: 0, max_qty: 0, sconto: 0, sconto_consegna: 0,
-            sold_out: false, tags: []
+            enabled: false, price: 0, max_qty: 0, sconto: 0, sconto_consegna: 0
           };
         });
         await sbFetch('dish_menus_v2', {
@@ -2564,7 +2544,9 @@ async function importInsertDish(dish, store) {
     category_id: dish.category,
     name: dish.name,
     description: dish.desc || '',
-    image: dish.image || ''
+    image: dish.image || '',
+    tags: dish.tags || [],
+    sold_out: !!dish.sold_out
   };
   var res = await sbFetch('dishes_v2', {
     method: 'POST', prefer: 'return=representation', body: JSON.stringify(dbDish)
@@ -2588,7 +2570,9 @@ async function importUpdateDish(dish, store) {
     category_id: dish.category,
     name: dish.name,
     description: dish.desc || '',
-    image: dish.image || ''
+    image: dish.image || '',
+    tags: dish.tags || [],
+    sold_out: !!dish.sold_out
     // 注意：不改 restaurant_id 和 dish_no
   };
   var ur = await sbFetch('dishes_v2?id=eq.' + dishId, {
@@ -2609,7 +2593,7 @@ async function importDeactivateDish(dishId, store) {
   if (!ur.ok) throw new Error('下架失败');
 }
 
-// 写 dish_menus_v2 的 6 条记录
+// 写 dish_menus_v2 的 N 条记录（v5.12.0: 不再写 sold_out 和 tags）
 async function importWriteMenus(dishId, dish, store) {
   var menuRows = MENUS.map(function(m) {
     var ms = dish.menus[m.id] || {};
@@ -2621,9 +2605,7 @@ async function importWriteMenus(dishId, dish, store) {
       price: parseFloat(ms.price) || 0,
       max_qty: parseInt(ms.max_qty) || 0,
       sconto: parseInt(ms.sconto) || 0,
-      sconto_consegna: parseInt(ms.sconto_consegna) || 0,
-      sold_out: false,
-      tags: dish.tags || []
+      sconto_consegna: parseInt(ms.sconto_consegna) || 0
     };
   });
   var mr = await sbFetch('dish_menus_v2', {

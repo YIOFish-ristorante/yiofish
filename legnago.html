@@ -541,7 +541,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.6.1 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.6.2 · 2026-05-28</span></div>
 </div>
 </div>
 
@@ -857,7 +857,7 @@ var cart_dine_sent = {}; // 已发送的堂食菜品（灰色显示）
 var cart_asporto_sent = {}; // 已发送的打包菜品（灰色显示）
 var guestCount = 1;  // 人数（服务员控制）
 
-// ── ASPORTO/CONSEGNA 模式（v1.6.1）──
+// ── ASPORTO/CONSEGNA 模式（v1.6.2）──
 // 'asporto'  = ritiro in negozio (sconto come da DB, default 20%)
 // 'consegna' = consegna a domicilio (sconto fisso 10% + spese consegna)
 var order_mode = 'asporto';
@@ -1015,16 +1015,11 @@ async function loadAll() {
     // 合并菜品和菜单价格（tags + sold_out 从 dish_menus 读，按店独立）
     ALL_ITEMS = dishes.map(function(d) {
       var menus = {};
-      var soldOut = false;
-      var dishTags = null;
       DISH_MENUS.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
           menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0, sconto_consegna: (dm.sconto_consegna != null ? parseInt(dm.sconto_consegna) : null) };
-          if (dm.sold_out === true) soldOut = true;
-          if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
-      if (dishTags === null) dishTags = d.tags || [];
-      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description, image: d.image, tags: dishTags, sold_out: soldOut, menus: menus };
+      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description, image: d.image, tags: d.tags || [], sold_out: !!d.sold_out, menus: menus };
     });
 
     document.getElementById('loading-overlay').style.display = 'none';
@@ -1114,16 +1109,11 @@ async function reloadMenuData() {
     }
     ALL_ITEMS = dishes.map(function(d) {
       var menus = {};
-      var soldOut = false;
-      var dishTags = null;
       DISH_MENUS.filter(function(dm){ return Number(dm.dish_id) === Number(d.id); })
         .forEach(function(dm) {
           menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0, sconto_consegna: (dm.sconto_consegna != null ? parseInt(dm.sconto_consegna) : null) };
-          if (dm.sold_out === true) soldOut = true;
-          if (dishTags === null && Array.isArray(dm.tags)) dishTags = dm.tags;
         });
-      if (dishTags === null) dishTags = d.tags || [];
-      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description||'', image: d.image||'', tags: dishTags, sold_out: soldOut, menus: menus };
+      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description||'', image: d.image||'', tags: d.tags || [], sold_out: !!d.sold_out, menus: menus };
     });
     if (currentMenuId) openMenuView(currentMenuId);
   } catch(e) { console.log('reload failed:', e); }
@@ -2380,7 +2370,7 @@ function sendNotify() {
 }
 
 // ════════════════════════════════════
-// ASPORTO / CONSEGNA 模式（v1.6.1）
+// ASPORTO / CONSEGNA 模式（v1.6.2）
 // ════════════════════════════════════
 function openTakeawayChoice() {
   // 根据后台设置控制「外送 CONSEGNA」是否可选
