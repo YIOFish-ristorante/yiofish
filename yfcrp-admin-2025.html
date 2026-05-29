@@ -244,7 +244,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.10.0-rc5</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.11.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -304,7 +304,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.10.0-rc5</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.11.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -316,6 +316,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       #store-switcher option:checked { background:#d4a843; color:#1a1a1a; font-weight:600; }
     </style>
     <button class="btn btn-ghost btn-sm" id="create-store-btn" onclick="openCreateStore()" style="display:none;color:#27ae60;border-color:rgba(39,174,96,.4);" title="创建新餐厅">➕ Ristorante</button>
+    <button class="btn btn-ghost btn-sm" id="store-admin-btn" onclick="openStoreAdminMgmt()" style="display:none;color:#3498db;border-color:rgba(52,152,219,.4);" title="店铺管理员">🔐 Admin</button>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="color:#c0392b;">⬅ 退出</button>
     <button class="btn btn-green btn-sm" id="publish-btn" onclick="publishMenu()">🚀 发布菜单</button>
     <button class="btn btn-gold btn-sm" onclick="showPage('export')">⬇ 导出菜单</button>
@@ -475,9 +476,68 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     </div>
     <div class="fg" style="margin-bottom:10px"><label>简介（菜单头部显示）</label><input id="cs-subtitle" placeholder="opzionale"></div>
     <div class="hint" style="margin:4px 0 12px;color:var(--muted)">⚠️ 创建后请切到新店补充菜单。顾客端 HTML 文件需另行部署。</div>
+
+    <!-- 可选：同时创建管理员账号 -->
+    <div style="border-top:1px solid rgba(212,171,72,.2);margin:14px 0 10px;padding-top:14px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:#d4af37">
+        <input type="checkbox" id="cs-create-admin" checked style="width:18px;height:18px;cursor:pointer">
+        <span>同时创建店铺管理员账号（推荐）</span>
+      </label>
+      <div id="cs-admin-section" style="margin-top:10px">
+        <div class="form-row">
+          <div class="fg"><label>管理员用户名</label><input id="cs-admin-user" placeholder="默认同餐厅 ID"></div>
+          <div class="fg"><label>管理员密码 *</label><input id="cs-admin-pwd" type="password" placeholder="至少 6 位"></div>
+        </div>
+        <div class="hint" style="font-size:12px;color:var(--muted)">用户名留空则默认用餐厅 ID。可后续在「店铺管理员」页面重置密码或新增账号。</div>
+      </div>
+    </div>
+
     <div class="modal-foot">
       <button class="btn" style="color:var(--muted);border:1px solid var(--border)" onclick="closeModal()">取消</button>
       <button class="btn btn-green" id="cs-save-btn" onclick="saveNewStore()">创建餐厅</button>
+    </div>
+  </div>
+</div>
+
+<!-- STORE ADMIN MANAGEMENT MODAL（仅 super_admin） -->
+<div class="modal-bg" id="store-admin-modal">
+  <div class="modal-box" style="max-width:680px">
+    <div class="modal-title">🔐 店铺管理员</div>
+    <div class="hint" style="margin-bottom:12px;color:var(--muted)">管理每家店的登录账号。所有操作仅 super_admin 可见。</div>
+
+    <!-- 列表区 -->
+    <div id="sa-list-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <b style="color:#d4af37">当前账号</b>
+        <button class="btn btn-green btn-sm" onclick="saOpenCreate()">➕ 新增管理员</button>
+      </div>
+      <div id="sa-list" style="max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:8px"></div>
+    </div>
+
+    <!-- 新增/重置子表单 -->
+    <div id="sa-form-wrap" style="display:none;margin-top:14px;padding:14px;background:rgba(212,171,72,.05);border-radius:8px;border:1px solid rgba(212,171,72,.2)">
+      <b id="sa-form-title" style="color:#d4af37;display:block;margin-bottom:10px">新增管理员</b>
+      <div id="sa-form-create">
+        <div class="form-row">
+          <div class="fg"><label>店</label>
+            <select id="sa-store"></select>
+          </div>
+          <div class="fg"><label>用户名 *</label><input id="sa-user" placeholder="3-30 位字母数字"></div>
+        </div>
+        <div class="fg" style="margin-bottom:10px"><label>密码 *</label><input id="sa-pwd" type="password" placeholder="至少 6 位"></div>
+      </div>
+      <div id="sa-form-reset" style="display:none">
+        <div class="fg" style="margin-bottom:10px"><label>新密码 *</label><input id="sa-pwd-new" type="password" placeholder="至少 6 位"></div>
+        <div class="hint" style="font-size:12px;color:var(--muted);margin-bottom:10px">重置 <b id="sa-reset-user">user</b> 的密码。请自行记住新密码。</div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-sm" style="color:var(--muted);border:1px solid var(--border)" onclick="saCloseForm()">取消</button>
+        <button class="btn btn-green btn-sm" id="sa-submit-btn" onclick="saSubmit()">保存</button>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn" style="color:var(--muted);border:1px solid var(--border)" onclick="closeModal()">关闭</button>
     </div>
   </div>
 </div>
@@ -597,7 +657,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc5</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -626,7 +686,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc5</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.0</span>';
   }
   loadAll();
 }
@@ -1003,9 +1063,11 @@ async function loadAll() {
           return '<option value="'+s.id+'"'+(s.id===RESTAURANT_ID?' selected':'')+'>'+storeLabel(s)+'</option>';
         }).join('');
       }
-      // 创建餐厅按钮（仅 super 可见）
+      // 创建餐厅按钮 + 店铺管理员按钮（仅 super 可见）
       var createBtn = document.getElementById('create-store-btn');
       if (createBtn) createBtn.style.display = '';
+      var saBtn = document.getElementById('store-admin-btn');
+      if (saBtn) saBtn.style.display = '';
       _permActiveStore = STORES[0].id;
       loadPermissions();
     } else if (CURRENT_ROLE === 'store_admin') {
@@ -1387,7 +1449,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.10.0-rc5</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.11.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2475,7 +2537,6 @@ async function importExecute() {
 
 // 新增菜：INSERT dishes_v2 + INSERT 6 条 dish_menus_v2
 async function importInsertDish(dish, store) {
-  console.log('[importInsertDish] dish:', JSON.stringify(dish), 'store:', store);
   var dbDish = {
     restaurant_id: store,
     dish_no: dish.dish_no,
@@ -2484,13 +2545,11 @@ async function importInsertDish(dish, store) {
     description: dish.desc || '',
     image: dish.image || ''
   };
-  console.log('[importInsertDish] dbDish 要 POST:', JSON.stringify(dbDish));
   var res = await sbFetch('dishes_v2', {
     method: 'POST', prefer: 'return=representation', body: JSON.stringify(dbDish)
   });
   if (!res.ok) { var er = await res.text(); throw new Error(er); }
   var inserted = await res.json();
-  console.log('[importInsertDish] 返回:', JSON.stringify(inserted));
   var newId = inserted[0].id;
   await importWriteMenus(newId, dish, store);
 }
@@ -2558,10 +2617,18 @@ async function importWriteMenus(dishId, dish, store) {
 // ════════════════════════════════════
 function openCreateStore() {
   if (CURRENT_ROLE !== 'super') { toast('❌ 仅超级管理员可创建餐厅'); return; }
-  ['cs-id','cs-name','cs-address','cs-phone','cs-subtitle'].forEach(function(id){
+  ['cs-id','cs-name','cs-address','cs-phone','cs-subtitle','cs-admin-user','cs-admin-pwd'].forEach(function(id){
     if ($(id)) $(id).value = '';
   });
   if ($('cs-currency')) $('cs-currency').value = '€';
+  if ($('cs-create-admin')) {
+    $('cs-create-admin').checked = true;
+    // 勾选联动
+    $('cs-create-admin').onchange = function() {
+      $('cs-admin-section').style.display = this.checked ? '' : 'none';
+    };
+    $('cs-admin-section').style.display = '';
+  }
   openModal('create-store-modal');
   setTimeout(function(){ if ($('cs-id')) $('cs-id').focus(); }, 100);
 }
@@ -2574,12 +2641,24 @@ async function saveNewStore() {
   var phone = ($('cs-phone').value || '').trim();
   var subtitle = ($('cs-subtitle').value || '').trim();
   var currency = ($('cs-currency').value || '€').trim();
+  // 可选管理员
+  var createAdmin = $('cs-create-admin') && $('cs-create-admin').checked;
+  var adminUser = ($('cs-admin-user').value || '').trim() || id;
+  var adminPwd = $('cs-admin-pwd').value || '';
 
   if (!id) { toast('⚠️ 请填写餐厅 ID'); $('cs-id').focus(); return; }
   if (!/^[a-z0-9-]+$/.test(id)) { toast('⚠️ ID 只能用小写字母、数字、短横线'); $('cs-id').focus(); return; }
   if (!name) { toast('⚠️ 请填写餐厅名称'); $('cs-name').focus(); return; }
   if (STORES.some(function(s){ return s.id === id; })) {
     toast('⚠️ 该 ID 已存在：' + id); $('cs-id').focus(); return;
+  }
+  if (createAdmin) {
+    if (!adminPwd || adminPwd.length < 6) {
+      toast('⚠️ 管理员密码至少 6 位'); $('cs-admin-pwd').focus(); return;
+    }
+    if (!/^[a-z0-9_-]{3,30}$/i.test(adminUser)) {
+      toast('⚠️ 管理员用户名 3-30 位，只能字母数字下划线短横线'); $('cs-admin-user').focus(); return;
+    }
   }
 
   var btn = $('cs-save-btn');
@@ -2614,7 +2693,25 @@ async function saveNewStore() {
       if (!r2.ok) settingsOk = false;
     } catch(se) { settingsOk = false; }
 
-    // 3. 加入内存 STORES + 刷新切换器
+    // 3. 可选：创建管理员账号
+    var adminOk = true, adminErr = '';
+    if (createAdmin) {
+      try {
+        var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+        var ra = await fetch(WORKER_URL + '/store-admin/create', {
+          method: 'POST',
+          headers: {'Authorization':'Bearer '+token, 'Content-Type':'application/json'},
+          body: JSON.stringify({ username: adminUser, password: adminPwd, restaurant_id: id })
+        });
+        if (!ra.ok) {
+          var ed = await ra.json().catch(function(){ return {}; });
+          adminOk = false;
+          adminErr = ed.error || ('HTTP ' + ra.status);
+        }
+      } catch(ae) { adminOk = false; adminErr = ae.message || ae; }
+    }
+
+    // 4. 加入内存 STORES + 刷新切换器
     STORES.push({ id: id, name: name, address: address });
     var switcher = document.getElementById('store-switcher');
     if (switcher) {
@@ -2624,14 +2721,187 @@ async function saveNewStore() {
     }
 
     closeModal();
-    if (settingsOk) toast('✅ 餐厅「' + name + '」已创建');
-    else toast('⚠️ 餐厅已建，但设置初始化失败，请进设置页检查');
+    var msg = '✅ 餐厅「' + name + '」已创建';
+    if (createAdmin && adminOk) msg += '，管理员账号「' + adminUser + '」已创建';
+    if (createAdmin && !adminOk) msg = '⚠️ 餐厅已建，但管理员创建失败：' + adminErr + '。请去「店铺管理员」页面手动添加';
+    if (!settingsOk) msg += '（⚠️ 设置初始化失败，请进设置页检查）';
+    toast(msg);
   } catch(e) {
     toast('❌ 创建失败: ' + (e.message || e));
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '创建餐厅'; }
   }
 }
+
+// ════════════════════════════════════
+//  店铺管理员管理（仅 super_admin）
+// ════════════════════════════════════
+var _saList = [];
+var _saMode = 'create';  // 'create' 或 'reset'
+var _saResetId = null;
+var _saResetUser = '';
+
+async function openStoreAdminMgmt() {
+  if (CURRENT_ROLE !== 'super') { toast('❌ 仅超级管理员可访问'); return; }
+  $('sa-form-wrap').style.display = 'none';
+  openModal('store-admin-modal');
+  await saReload();
+}
+
+async function saReload() {
+  var listEl = $('sa-list');
+  listEl.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:13px">⏳ 加载中...</div>';
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/store-admin/list', {
+      headers: {'Authorization':'Bearer '+token}
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    _saList = await res.json();
+    saRenderList();
+  } catch(e) {
+    listEl.innerHTML = '<div style="padding:14px;color:#c0392b;font-size:13px">❌ 加载失败：' + (e.message || e) + '</div>';
+  }
+}
+
+function saRenderList() {
+  var listEl = $('sa-list');
+  if (!_saList.length) {
+    listEl.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:13px">暂无管理员账号</div>';
+    return;
+  }
+  // 按店分组
+  var byStore = {};
+  _saList.forEach(function(a){
+    if (!byStore[a.restaurant_id]) byStore[a.restaurant_id] = [];
+    byStore[a.restaurant_id].push(a);
+  });
+  var html = '';
+  Object.keys(byStore).sort().forEach(function(rid){
+    var storeName = '';
+    var st = STORES.filter(function(s){ return s.id === rid; })[0];
+    if (st) storeName = st.name;
+    html += '<div style="padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(212,171,72,.05)">';
+    html += '<b style="color:#d4af37;font-size:13px">' + rid + '</b>';
+    if (storeName) html += ' <span style="color:var(--muted);font-size:12px">' + storeName + '</span>';
+    html += '</div>';
+    byStore[rid].forEach(function(a){
+      html += '<div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.04)">';
+      html += '<div><b>' + a.username + '</b>';
+      html += ' <span style="color:var(--muted);font-size:11px;margin-left:6px">' + a.role + '</span></div>';
+      html += '<div style="display:flex;gap:6px">';
+      html += '<button class="btn btn-sm btn-gold-s" onclick="saOpenReset(' + a.id + ',\'' + a.username.replace(/'/g,"\\'") + '\')">🔑 重置密码</button>';
+      html += '<button class="btn btn-sm" style="color:#c0392b;border:1px solid rgba(192,57,43,.4)" onclick="saDelete(' + a.id + ',\'' + a.username.replace(/'/g,"\\'") + '\')">🗑️</button>';
+      html += '</div></div>';
+    });
+  });
+  listEl.innerHTML = html;
+}
+
+function saOpenCreate() {
+  _saMode = 'create';
+  $('sa-form-title').textContent = '➕ 新增管理员';
+  $('sa-form-create').style.display = '';
+  $('sa-form-reset').style.display = 'none';
+  // 店下拉
+  $('sa-store').innerHTML = STORES.map(function(s){
+    return '<option value="'+s.id+'">'+s.id+' — '+s.name+'</option>';
+  }).join('');
+  $('sa-user').value = '';
+  $('sa-pwd').value = '';
+  $('sa-form-wrap').style.display = '';
+  setTimeout(function(){ $('sa-user').focus(); }, 50);
+}
+
+function saOpenReset(id, username) {
+  _saMode = 'reset';
+  _saResetId = id;
+  _saResetUser = username;
+  $('sa-form-title').textContent = '🔑 重置密码：' + username;
+  $('sa-reset-user').textContent = username;
+  $('sa-form-create').style.display = 'none';
+  $('sa-form-reset').style.display = '';
+  $('sa-pwd-new').value = '';
+  $('sa-form-wrap').style.display = '';
+  setTimeout(function(){ $('sa-pwd-new').focus(); }, 50);
+}
+
+function saCloseForm() {
+  $('sa-form-wrap').style.display = 'none';
+}
+
+async function saSubmit() {
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+  var btn = $('sa-submit-btn');
+  btn.disabled = true; btn.textContent = '保存中...';
+  try {
+    if (_saMode === 'create') {
+      var storeId = $('sa-store').value;
+      var user = ($('sa-user').value || '').trim();
+      var pwd = $('sa-pwd').value || '';
+      if (!user || !pwd) { toast('⚠️ 用户名和密码必填'); return; }
+      if (pwd.length < 6) { toast('⚠️ 密码至少 6 位'); return; }
+      if (!/^[a-z0-9_-]{3,30}$/i.test(user)) { toast('⚠️ 用户名 3-30 位，只能字母数字下划线短横线'); return; }
+
+      var res = await fetch(WORKER_URL + '/store-admin/create', {
+        method: 'POST',
+        headers: {'Authorization':'Bearer '+token, 'Content-Type':'application/json'},
+        body: JSON.stringify({ username: user, password: pwd, restaurant_id: storeId })
+      });
+      if (!res.ok) {
+        var ed = await res.json().catch(function(){ return {}; });
+        throw new Error(ed.error || ('HTTP ' + res.status));
+      }
+      toast('✅ 管理员「' + user + '」已创建（店：' + storeId + '）');
+      saCloseForm();
+      await saReload();
+    } else {
+      // reset
+      var pwd2 = $('sa-pwd-new').value || '';
+      if (!pwd2 || pwd2.length < 6) { toast('⚠️ 密码至少 6 位'); return; }
+      var res2 = await fetch(WORKER_URL + '/store-admin/update-password', {
+        method: 'POST',
+        headers: {'Authorization':'Bearer '+token, 'Content-Type':'application/json'},
+        body: JSON.stringify({ id: _saResetId, password: pwd2 })
+      });
+      if (!res2.ok) {
+        var ed2 = await res2.json().catch(function(){ return {}; });
+        throw new Error(ed2.error || ('HTTP ' + res2.status));
+      }
+      toast('✅ 「' + _saResetUser + '」密码已重置。请告知用户。');
+      saCloseForm();
+    }
+  } catch(e) {
+    toast('❌ ' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.textContent = '保存';
+  }
+}
+
+async function saDelete(id, username) {
+  if (!confirm('确定删除管理员「' + username + '」？\n\n删除后该账号无法登录。请确保不是这家店的最后一个管理员。')) return;
+  // 防呆：不能删自己（如果 super_admin 误删了某账号导致那家店没人管）
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+  try {
+    var res = await fetch(WORKER_URL + '/store-admin/delete?id=' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: {'Authorization':'Bearer '+token}
+    });
+    if (!res.ok) {
+      var ed = await res.json().catch(function(){ return {}; });
+      throw new Error(ed.error || ('HTTP ' + res.status));
+    }
+    toast('✅ 已删除「' + username + '」');
+    await saReload();
+  } catch(e) {
+    toast('❌ 删除失败：' + (e.message || e));
+  }
+}
+
+// ════════════════════════════════════
+//  创建新餐厅（super_admin only）
+// ════════════════════════════════════
+function _csInit() { /* placeholder for upcoming hook */ }
 
 // ════════════════════════════════════
 //  导出页面
