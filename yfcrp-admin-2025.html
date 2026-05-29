@@ -247,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.12.1</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -307,7 +307,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.12.1</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -322,7 +322,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     <button class="btn btn-ghost btn-sm" id="store-admin-btn" onclick="openStoreAdminMgmt()" style="display:none;color:#3498db;border-color:rgba(52,152,219,.4);" title="店铺管理员">🔐 Admin</button>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="color:#c0392b;">⬅ 退出</button>
     <button class="btn btn-green btn-sm" id="publish-btn" onclick="publishMenu()">🚀 发布菜单</button>
-    <button class="btn btn-gold btn-sm" onclick="showPage('export')">⬇ 导出菜单</button>
+    <button class="btn btn-gold btn-sm" onclick="showPage('export')">📊 菜单 Excel</button>
   </div>
 </div>
 
@@ -342,9 +342,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       <span class="s-ico">🏪</span>餐厅信息
     </button>
     <div class="s-div"></div>
-    <div class="s-label">导出</div>
+    <div class="s-label">Excel</div>
     <button class="s-btn" id="nav-export" onclick="showPage('export')">
-      <span class="s-ico">💾</span>导出菜单
+      <span class="s-ico">📊</span>菜单 Excel
     </button>
     <button class="s-btn" id="nav-tables" onclick="showPage('tables')">
       <span class="s-ico">🪑</span>桌号管理<span class="s-cnt" id="cnt-tb">0</span>
@@ -367,7 +367,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     <div class="page-head"><div><h1>🔐 权限管理</h1><p>设置各店铺管理员可使用的功能</p></div></div>
     <div id="perm-store-tabs" style="display:flex;gap:8px;margin-bottom:20px;"></div>
     <div id="perm-list"></div>
-  </div><div class="page-head"><div><h1>💾 导出菜单</h1><p>点按钮下载菜单文件，然后上传到 GitHub</p></div></div><div class="info-box">💡 <div>每次改完菜品后：① 先点「💾 保存到文件」保存 admin.html ② 再点下面按钮下载菜单</div></div><div class="ex-grid"><div class="ex-card"><h3>☀️ 午餐</h3><p style="color:#e67e22">Pranzo · 146 piatti</p><div style="font-size:10px;color:var(--muted);margin-bottom:4px">菜单包含的分类（勾选=包含）:</div><div style="margin-bottom:8px"><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" onchange="toggleExcludeCat('pranzo','speciali')">⭐ Piatti Speciali</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','antipasti')">🥗 Antipasti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','gyoza')">🥟 Gyoza &amp; Bao</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','insalate')">🥬 Insalata / Poke / Tartare</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','gunkan')">🍡 Gunkan</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','sashimi')">🐠 Sashimi &amp; Sushi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','nigiri')">🍱 Nigiri</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','chirashi')">🍚 Chirashi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','futo')">🌯 Futo &amp; Hosomaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','uramaki')">🍣 Uramaki (8 pz)</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','temaki')">🌮 Temaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','zuppe')">🍜 Zuppe &amp; Pasta</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','risi')">🍚 Risi &amp; Primi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','fritti')">🍤 Frittura &amp; Tempura</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','teppanyaki')">🔥 Teppanyaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','secondi')">🍽️ Secondi Piatti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" onchange="toggleExcludeCat('pranzo','dessert')">🍡 Dessert</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','bibite')">🥤 Bibite &amp; Acqua</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','birre')">🍻 Birre</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','vini-bollicine')">🥂 Vini Bollicine</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','bevande-spina')">🍺 Bevande alla Spina</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','vini-fermo')">🍾 Vini Fermo</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','vini-calice')">🫗 Vini in Calice</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','caffe-bar')">☕ Caffè</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','amaro-distillati')">🥃 Amaro e Distillati</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','sake')">🍶 Sake</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','spritz')">🍹 Spritz &amp; Cocktail</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('pranzo','vini-rossi')">🍷 Vini Rossi</label></div><label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px">全菜单限选道数（0=不限）:<input type="number" min="0" step="1" value="0" style="width:52px;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--text);font-size:12px;" onchange="setMenuLimit('pranzo',this.value)"></label><button class="btn btn-gold" style="width:100%" onclick="dlMenu('pranzo')">⬇ 下载 menu-pranzo.html</button></div><div class="ex-card"><h3>🌙 晚餐</h3><p style="color:#8e44ad">Cena · 209 piatti</p><div style="font-size:10px;color:var(--muted);margin-bottom:4px">菜单包含的分类（勾选=包含）:</div><div style="margin-bottom:8px"><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" onchange="toggleExcludeCat('cena','speciali')">⭐ Piatti Speciali</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','antipasti')">🥗 Antipasti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','gyoza')">🥟 Gyoza &amp; Bao</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','insalate')">🥬 Insalata / Poke / Tartare</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','gunkan')">🍡 Gunkan</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','sashimi')">🐠 Sashimi &amp; Sushi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','nigiri')">🍱 Nigiri</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','chirashi')">🍚 Chirashi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','futo')">🌯 Futo &amp; Hosomaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','uramaki')">🍣 Uramaki (8 pz)</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','temaki')">🌮 Temaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','zuppe')">🍜 Zuppe &amp; Pasta</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','risi')">🍚 Risi &amp; Primi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','fritti')">🍤 Frittura &amp; Tempura</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','teppanyaki')">🔥 Teppanyaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','secondi')">🍽️ Secondi Piatti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" onchange="toggleExcludeCat('cena','dessert')">🍡 Dessert</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','bibite')">🥤 Bibite &amp; Acqua</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','birre')">🍻 Birre</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','vini-bollicine')">🥂 Vini Bollicine</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','bevande-spina')">🍺 Bevande alla Spina</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','vini-fermo')">🍾 Vini Fermo</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','vini-calice')">🫗 Vini in Calice</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','caffe-bar')">☕ Caffè</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','amaro-distillati')">🥃 Amaro e Distillati</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','sake')">🍶 Sake</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','spritz')">🍹 Spritz &amp; Cocktail</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('cena','vini-rossi')">🍷 Vini Rossi</label></div><label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px">全菜单限选道数（0=不限）:<input type="number" min="0" step="1" value="0" style="width:52px;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--text);font-size:12px;" onchange="setMenuLimit('cena',this.value)"></label><button class="btn btn-gold" style="width:100%" onclick="dlMenu('cena')">⬇ 下载 menu-cena.html</button></div><div class="ex-card"><h3>⭐ 特别菜单</h3><p style="color:#16a085">Speciale · 31 piatti</p><div style="font-size:10px;color:var(--muted);margin-bottom:4px">菜单包含的分类（勾选=包含）:</div><div style="margin-bottom:8px"><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','speciali')">⭐ Piatti Speciali</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','antipasti')">🥗 Antipasti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','gyoza')">🥟 Gyoza &amp; Bao</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','insalate')">🥬 Insalata / Poke / Tartare</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','gunkan')">🍡 Gunkan</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','sashimi')">🐠 Sashimi &amp; Sushi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','nigiri')">🍱 Nigiri</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','chirashi')">🍚 Chirashi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','futo')">🌯 Futo &amp; Hosomaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','uramaki')">🍣 Uramaki (8 pz)</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','temaki')">🌮 Temaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','zuppe')">🍜 Zuppe &amp; Pasta</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','risi')">🍚 Risi &amp; Primi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','fritti')">🍤 Frittura &amp; Tempura</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','teppanyaki')">🔥 Teppanyaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','secondi')">🍽️ Secondi Piatti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" onchange="toggleExcludeCat('speciale','dessert')">🍡 Dessert</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','bibite')">🥤 Bibite &amp; Acqua</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','birre')">🍻 Birre</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','vini-bollicine')">🥂 Vini Bollicine</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','bevande-spina')">🍺 Bevande alla Spina</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','vini-fermo')">🍾 Vini Fermo</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','vini-calice')">🫗 Vini in Calice</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','caffe-bar')">☕ Caffè</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','amaro-distillati')">🥃 Amaro e Distillati</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','sake')">🍶 Sake</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','spritz')">🍹 Spritz &amp; Cocktail</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('speciale','vini-rossi')">🍷 Vini Rossi</label></div><label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px">全菜单限选道数（0=不限）:<input type="number" min="0" step="1" value="2" style="width:52px;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--text);font-size:12px;" onchange="setMenuLimit('speciale',this.value)"></label><button class="btn btn-gold" style="width:100%" onclick="dlMenu('speciale')">⬇ 下载 menu-speciale.html</button></div><div class="ex-card"><h3>🍷 饮料</h3><p style="color:#c0392b">Bevande · 92 piatti</p><div style="font-size:10px;color:var(--muted);margin-bottom:4px">菜单包含的分类（勾选=包含）:</div><div style="margin-bottom:8px"><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" onchange="toggleExcludeCat('bevande','speciali')">⭐ Piatti Speciali</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','antipasti')">🥗 Antipasti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','gyoza')">🥟 Gyoza &amp; Bao</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','insalate')">🥬 Insalata / Poke / Tartare</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','gunkan')">🍡 Gunkan</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','sashimi')">🐠 Sashimi &amp; Sushi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','nigiri')">🍱 Nigiri</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','chirashi')">🍚 Chirashi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','futo')">🌯 Futo &amp; Hosomaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','uramaki')">🍣 Uramaki (8 pz)</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','temaki')">🌮 Temaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','zuppe')">🍜 Zuppe &amp; Pasta</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','risi')">🍚 Risi &amp; Primi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','fritti')">🍤 Frittura &amp; Tempura</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','teppanyaki')">🔥 Teppanyaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','secondi')">🍽️ Secondi Piatti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" onchange="toggleExcludeCat('bevande','dessert')">🍡 Dessert</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','bibite')">🥤 Bibite &amp; Acqua</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','birre')">🍻 Birre</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','vini-bollicine')">🥂 Vini Bollicine</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','bevande-spina')">🍺 Bevande alla Spina</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','vini-fermo')">🍾 Vini Fermo</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','vini-calice')">🫗 Vini in Calice</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','caffe-bar')">☕ Caffè</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','amaro-distillati')">🥃 Amaro e Distillati</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','sake')">🍶 Sake</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','spritz')">🍹 Spritz &amp; Cocktail</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('bevande','vini-rossi')">🍷 Vini Rossi</label></div><label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px">全菜单限选道数（0=不限）:<input type="number" min="0" step="1" value="0" style="width:52px;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--text);font-size:12px;" onchange="setMenuLimit('bevande',this.value)"></label><button class="btn btn-gold" style="width:100%" onclick="dlMenu('bevande')">⬇ 下载 menu-bevande.html</button></div><div class="ex-card"><h3>🍮 甜点</h3><p style="color:#d35400">Dessert · 34 piatti</p><div style="font-size:10px;color:var(--muted);margin-bottom:4px">菜单包含的分类（勾选=包含）:</div><div style="margin-bottom:8px"><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" onchange="toggleExcludeCat('dessert','speciali')">⭐ Piatti Speciali</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','antipasti')">🥗 Antipasti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','gyoza')">🥟 Gyoza &amp; Bao</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','insalate')">🥬 Insalata / Poke / Tartare</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','gunkan')">🍡 Gunkan</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','sashimi')">🐠 Sashimi &amp; Sushi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','nigiri')">🍱 Nigiri</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','chirashi')">🍚 Chirashi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','futo')">🌯 Futo &amp; Hosomaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','uramaki')">🍣 Uramaki (8 pz)</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','temaki')">🌮 Temaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','zuppe')">🍜 Zuppe &amp; Pasta</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','risi')">🍚 Risi &amp; Primi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','fritti')">🍤 Frittura &amp; Tempura</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','teppanyaki')">🔥 Teppanyaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','secondi')">🍽️ Secondi Piatti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','dessert')">🍡 Dessert</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','bibite')">🥤 Bibite &amp; Acqua</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','birre')">🍻 Birre</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','vini-bollicine')">🥂 Vini Bollicine</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','bevande-spina')">🍺 Bevande alla Spina</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','vini-fermo')">🍾 Vini Fermo</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','vini-calice')">🫗 Vini in Calice</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','caffe-bar')">☕ Caffè</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','amaro-distillati')">🥃 Amaro e Distillati</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','sake')">🍶 Sake</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','spritz')">🍹 Spritz &amp; Cocktail</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('dessert','vini-rossi')">🍷 Vini Rossi</label></div><label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px">全菜单限选道数（0=不限）:<input type="number" min="0" step="1" value="0" style="width:52px;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--text);font-size:12px;" onchange="setMenuLimit('dessert',this.value)"></label><button class="btn btn-gold" style="width:100%" onclick="dlMenu('dessert')">⬇ 下载 menu-dessert.html</button></div><div class="ex-card"><h3>📦 打包</h3><p style="color:#2980b9">Asporto · 272 piatti</p><div style="font-size:10px;color:var(--muted);margin-bottom:4px">菜单包含的分类（勾选=包含）:</div><div style="margin-bottom:8px"><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','speciali')">⭐ Piatti Speciali</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','antipasti')">🥗 Antipasti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','gyoza')">🥟 Gyoza &amp; Bao</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','insalate')">🥬 Insalata / Poke / Tartare</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','gunkan')">🍡 Gunkan</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','sashimi')">🐠 Sashimi &amp; Sushi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','nigiri')">🍱 Nigiri</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','chirashi')">🍚 Chirashi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','futo')">🌯 Futo &amp; Hosomaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','uramaki')">🍣 Uramaki (8 pz)</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','temaki')">🌮 Temaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','zuppe')">🍜 Zuppe &amp; Pasta</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','risi')">🍚 Risi &amp; Primi</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','fritti')">🍤 Frittura &amp; Tempura</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','teppanyaki')">🔥 Teppanyaki</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','secondi')">🍽️ Secondi Piatti</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','dessert')">🍡 Dessert</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','bibite')">🥤 Bibite &amp; Acqua</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','birre')">🍻 Birre</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','vini-bollicine')">🥂 Vini Bollicine</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','bevande-spina')">🍺 Bevande alla Spina</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','vini-fermo')">🍾 Vini Fermo</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','vini-calice')">🫗 Vini in Calice</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','caffe-bar')">☕ Caffè</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','amaro-distillati')">🥃 Amaro e Distillati</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','sake')">🍶 Sake</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','spritz')">🍹 Spritz &amp; Cocktail</label><label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;"><input type="checkbox" checked="" onchange="toggleExcludeCat('asporto','vini-rossi')">🍷 Vini Rossi</label></div><label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px">全菜单限选道数（0=不限）:<input type="number" min="0" step="1" value="0" style="width:52px;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--text);font-size:12px;" onchange="setMenuLimit('asporto',this.value)"></label><button class="btn btn-gold" style="width:100%" onclick="dlMenu('asporto')">⬇ 下载 menu-asporto.html</button></div></div><button class="btn btn-gold" style="width:100%;padding:14px;font-size:14px" onclick="dlAll()">⬇ 下载全部三个菜单</button></main>
+  </div></main>
 </div>
 
 <!-- DISH MODAL -->
@@ -660,7 +660,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.12.1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -689,7 +689,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.12.1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.0</span>';
   }
   loadAll();
 }
@@ -1074,7 +1074,7 @@ async function loadAll() {
 // ── 权限管理函数 ──
 var PERM_DEFS = [
   ['nav_dishes','菜品数据库'],['nav_cats','分类管理'],['nav_tags','标签管理'],
-  ['nav_restaurant','餐厅信息'],['nav_export','导出菜单'],['nav_tables','桌号管理'],
+  ['nav_restaurant','餐厅信息'],['nav_export','菜单 Excel'],['nav_tables','桌号管理'],
   ['nav_settings','设置'],
   ['is_open','营业状态开关'],['announcement','公告管理'],['takeaway','外卖设置'],
   ['waiter_password','服务员密码'],['dish_price','菜品价格修改'],['publish_menu','发布菜单'],
@@ -1439,7 +1439,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.12.1</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2321,9 +2321,17 @@ function importProcessRows(rows) {
     if (!hasPrice) warnings.push('#' + dishNo + ' ' + name + '（无价格）');
 
     // v2: 图片名按方案 A 补零
-    // 图片路径按店：imola 用独立子目录 images/imola/，carpi/legnago 用共享 images/
-    var imgPrefix = (RESTAURANT_ID === 'imola') ? 'images/imola/' : 'images/';
-    var imgName = (dishNo < 10) ? (imgPrefix + '0' + dishNo + '.webp') : (imgPrefix + dishNo + '.webp');
+    // 图片路径优先级：Excel 的 Image 列 > 按店自动生成
+    //   - Image 列存在且非空 → 用 Excel 值（允许 super_admin 手动指定特殊图片名）
+    //   - Image 列空或不存在 → 按店自动生成（imola 用 images/imola/，其他 images/）
+    var imgFromExcel = (col['Image']!==undefined) ? row[col['Image']] : null;
+    var imgName;
+    if (imgFromExcel !== null && imgFromExcel !== undefined && String(imgFromExcel).trim() !== '') {
+      imgName = String(imgFromExcel).trim();
+    } else {
+      var imgPrefix = (RESTAURANT_ID === 'imola') ? 'images/imola/' : 'images/';
+      imgName = (dishNo < 10) ? (imgPrefix + '0' + dishNo + '.webp') : (imgPrefix + dishNo + '.webp');
+    }
 
     dishes.push({
       dish_no: dishNo,      // v2: 菜品号
@@ -2909,488 +2917,220 @@ async function saDelete(id, username) {
 function _csInit() { /* placeholder for upcoming hook */ }
 
 // ════════════════════════════════════
-//  导出页面
+//  菜单 Excel 页面（导出 + 导入入口）
 // ════════════════════════════════════
 function renderExport(){
-  var cards = MENUS.map(function(m){
-    var cnt = I.filter(function(it){ return it.menus&&it.menus[m.id]&&it.menus[m.id].on&&(m.excludeCats||[]).indexOf(it.category)<0; }).length;
-    var excHTML = C.map(function(cat){
-      var inc=(m.excludeCats||[]).indexOf(cat.id)<0;
-      return '<label style="display:inline-flex;align-items:center;gap:3px;margin:2px 3px 2px 0;font-size:11px;cursor:pointer;">'
-        +'<input type="checkbox"'+(inc?' checked':'')+' onchange="toggleExcludeCat(\''+m.id+'\',\''+cat.id+'\')">'
-        +cat.icon+' '+cat.name+'</label>';
-    }).join('');
-    return '<div class="ex-card">'
-      +'<h3>'+m.icon+' '+m.name+'</h3>'
-      +'<p style="color:'+m.color+'">'+m.nameIT+' · '+cnt+' piatti'+(m.showPrice?'':' · senza prezzi')+'</p>'
-      +'<div style="font-size:10px;color:var(--muted);margin-bottom:4px">菜单包含的分类（勾选=包含）:</div>'
-      +'<div style="margin-bottom:8px">'+excHTML+'</div>'
-      +'<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px">全菜单限选道数（0=不限）:'
-      +'<input type="number" min="0" step="1" value="'+m.menuLimit+'"'
-      +' style="width:52px;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--text);font-size:12px;"'
-      +' onchange="setMenuLimit(\''+m.id+'\',this.value)"></label>'
-      +'<button class="btn btn-gold" style="width:100%" onclick="dlMenu(\''+m.id+'\')">⬇ 下载 '+m.file+'</button>'
+  // 统计当前店菜品/启用情况
+  var totalDishes = (I||[]).length;
+  var menuStats = MENUS.map(function(m){
+    var cnt = (I||[]).filter(function(it){
+      return it.menus && it.menus[m.id] && it.menus[m.id].on;
+    }).length;
+    return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px;">'
+      +'<span>'+m.icon+' '+m.name+' <span style="color:var(--muted);font-size:11px">('+m.nameIT+')</span></span>'
+      +'<span style="color:'+m.color+';font-weight:600">'+cnt+' 道</span>'
     +'</div>';
   }).join('');
+
+  // 文件名预览
+  var today = new Date();
+  var dateStr = today.getFullYear() + '-'
+    + String(today.getMonth()+1).padStart(2,'0') + '-'
+    + String(today.getDate()).padStart(2,'0');
+  var fileName = RESTAURANT_ID + '-menu-' + dateStr + '.xlsx';
+
+  var isSuper = (CURRENT_ROLE === 'super');
+
   $('content').innerHTML =
-    '<div class="page-head"><div><h1>💾 导出菜单</h1><p>点按钮下载菜单文件，然后上传到 GitHub</p></div></div>'
-    +'<div class="info-box">💡 <div>每次改完菜品后：① 先点「💾 保存到文件」保存 admin.html ② 再点下面按钮下载菜单</div></div>'
-    +'<div class="ex-grid">'+cards+'</div>'
-    +'<button class="btn btn-gold" style="width:100%;padding:14px;font-size:14px" onclick="dlAll()">⬇ 下载全部三个菜单</button>';
-}
+    '<div class="page-head"><div><h1>📊 菜单 Excel</h1><p>导出 / 导入当前店菜单数据（Excel 格式）</p></div></div>'
 
-// ════════════════════════════════════
-//  生成菜单 HTML
-// ════════════════════════════════════
-function makeMenuHTML(menuDef){
-  var showPrice = menuDef.showPrice;
-  var _excl = menuDef.excludeCats||[];
-  var items = [];
-  for(var i=0;i<I.length;i++){
-    var it = I[i];
-    if(it.menus && it.menus[menuDef.id] && it.menus[menuDef.id].on &&
-       _excl.indexOf(it.category)<0){
-      items.push({
-        id: it.id, category: it.category, name: it.name,
-        desc: it.desc||'', image: it.image||'', tags: it.tags||[],
-        price: it.menus[menuDef.id].price||0,
-        max_qty: (it.menus[menuDef.id].max_qty)||0,
-        sconto: (it.menus[menuDef.id].sconto)||0,
-        sconto_consegna: (it.menus[menuDef.id].sconto_consegna)||0,
-        sold_out: it.sold_out ? true : false
-      });
-    }
-  }
-
-  var RJ = JSON.stringify(R);
-  var CJ = JSON.stringify(C);
-  var TJ = JSON.stringify(ALL_TAGS);
-  var IJ = JSON.stringify(items);
-  // 所有菜单菜品（用于跨菜单购物车显示）
-  var allItems = [];
-  // 建立 ITEMS 快速查找 map（当前菜单菜品，价格已正确）
-  var itemsMap = {};
-  for(var im=0;im<items.length;im++) itemsMap[items[im].id] = items[im];
-  // ALL_ITEMS 只收录「不在当前菜单里」的菜品，精简体积
-  // fi() 会先在 ITEMS 找，找不到才来 ALL_ITEMS
-  for(var ai=0;ai<I.length;ai++){
-    var ait = I[ai];
-    if(itemsMap[ait.id]) continue; // 当前菜单已有，跳过
-    var bestPrice = 0, bestSconto = 0;
-    var mids = Object.keys(ait.menus||{});
-    for(var mi=0;mi<mids.length;mi++){
-      var ms = ait.menus[mids[mi]];
-      if(ms && ms.on && ms.price > 0){ bestPrice = ms.price; bestSconto = ms.sconto||0; break; }
-    }
-    allItems.push({id:ait.id, category:ait.category, name:ait.name,
-      image:ait.image||'', tags:ait.tags||[],
-      price:bestPrice, sconto:bestSconto});
-  }
-  var AIJ = JSON.stringify(allItems);
-  var SYM = R.currency||'€';
-  var SP = showPrice ? 1 : 0;
-
-  // Build script content as a string (no template literal issues)
-  var IA = (menuDef.id === 'asporto') ? 1 : 0;
-  var scriptContent = [
-    '(function(){',
-    'var R='+RJ+';',
-    'var CATS='+CJ+';',
-    'var TAGS='+TJ+';',
-    'var ITEMS='+IJ+';',
-    'var ALL_ITEMS='+AIJ+';',
-    'var SYM="'+SYM+'";',
-    'var SHOW='+SP+';',
-    'var IS_ASPORTO='+IA+';',
-    'var MENU_ID="'+menuDef.id+'";',
-    'var MENU_LIMIT='+(menuDef.menuLimit||0)+';',
-    menuRuntime(),
-    '})();'
-  ].join('\n');
-
-  // Build HTML using string concatenation (no template literals)
-  var ST = '<sc'+'ript>';
-  var ET = '</sc'+'ript>';
-  var html = '<!DOCTYPE html>\n'
-    +'<html lang="it">\n<head>\n'
-    +'<meta charset="UTF-8">\n'
-    +'<meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
-    +'<title>'+R.name+' - '+menuDef.nameIT+'</title>\n'
-    +'<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet">\n'
-    +'<style>'+menuCSS(menuDef.color)+'</style>\n'
-    +'</head>\n<body>\n'
-    +menuBodyHTML(menuDef, R, showPrice)
-    +ST+scriptContent+ET+'\n'
-    +'</body>\n</html>';
-  return html;
-}
-
-function menuCSS(accentColor){
-  return '*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}'
-  +'html{-webkit-tap-highlight-color:transparent;overflow:hidden;width:100%;height:100%;}'
-  +'body{font-family:"DM Sans",sans-serif;font-weight:300;background:#0c0b09;color:#ede5d4;'+'width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;position:relative;}'
-  +'main{max-width:960px;margin:0 auto;}'
-  +':root{--bg:#0c0b09;--surface:#131108;--card:#1a1710;--card2:#201d14;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);--gold:#c8a84c;--gold-lt:#e2c87a;--gold-dk:#8a6e2a;--accent:'+accentColor+';--red:#c0392b;--text:#ede5d4;--muted:#7a7060;--muted2:#504840;--nav-h:52px;--r:3px;}'
-  +'.hdr{position:relative;background:var(--surface);padding:32px 24px 26px;text-align:center;overflow:hidden;border-bottom:1px solid var(--border);}'
-  +'.hdr-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 55% at 50% -5%,rgba(200,168,76,.14) 0%,transparent 70%);}'
-  +'.hdr-logo{position:relative;width:220px;height:80px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;overflow:hidden;}'
-  +'.hdr-logo img{width:100%;height:100%;object-fit:contain;}'
-  +'.hdr-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);border-radius:14px;padding:4px 14px;font-size:11px;letter-spacing:2px;color:#fff;margin-bottom:12px;text-transform:uppercase;}'
-  +'.hdr-div{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:10px;}'
-  +'.hdr-line{width:44px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}'
-  +'.hdr-dot{width:5px;height:5px;background:var(--gold);transform:rotate(45deg);}'
-  +'.hdr-info{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:11px;color:var(--muted);}'
-  +'.toolbar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--border);padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 -4px 20px rgba(0,0,0,.4);box-sizing:border-box;overflow:hidden;}'
-  +'.srch{flex:1;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:var(--r);padding:0 10px;height:36px;}'
-  +'.srch svg{color:var(--muted);flex-shrink:0;}'
-  +'.srch input{background:none;border:none;outline:none;color:var(--text);font-family:inherit;font-size:14px;width:100%;}'
-  +'.srch input::placeholder{color:var(--muted);}'
-  +'.srch-x{background:none;border:none;color:var(--muted);font-size:18px;padding:0 2px;display:none;cursor:pointer;}'
-  +'.srch-x.on{display:block;}'
-  +'.cart-fab{position:fixed;right:36px;bottom:36px;z-index:300;background:var(--gold);border:none;border-radius:50%;width:52px;height:52px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;box-shadow:0 4px 20px rgba(0,0,0,.5);}'
-  +'.cart-fab:hover{background:var(--gold-lt);}'
-  +'.cart-fab svg{color:#0c0b09;}'
-  +'.cbadge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:10px;font-weight:500;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;opacity:0;transform:scale(0);transition:all .2s cubic-bezier(.34,1.56,.64,1);}'
-  +'.cbadge.on{opacity:1;transform:scale(1);}'
-  +'.catnav{background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;scrollbar-width:none;padding:0 8px;position:sticky;top:0;z-index:190;box-shadow:0 2px 8px rgba(0,0,0,.3);}'
-  +'.catnav::-webkit-scrollbar{display:none;}'
-  +'.catnav-inner{display:inline-flex;}'
-  +'.cbtn{display:inline-flex;align-items:center;gap:6px;padding:0 16px;height:var(--nav-h);font-size:13px;font-weight:300;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color .18s,border-color .18s;}'
-  +'.cbtn:hover{color:var(--text);}'
-  +'.cbtn.active{color:var(--gold);border-bottom-color:var(--gold);}'
-  +'main{max-width:960px;margin:0 auto;padding:28px 16px 120px;}'
-  +'.shead{display:flex;align-items:center;gap:14px;margin-bottom:20px;margin-top:36px;}'
-  +'.shead:first-child{margin-top:0;}'
-  +'.shead h2{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:400;letter-spacing:2px;white-space:nowrap;}'
-  +'.sline{flex:1;height:1px;background:var(--border);}'
-  +'.scnt{font-size:11px;color:var(--muted);white-space:nowrap;}'
-  +'.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(270px,100%),1fr));gap:16px;}'
-  +'.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;animation:fu .35s ease both;transition:transform .2s,box-shadow .2s,border-color .2s;}'
-  +'.card:hover{transform:translateY(-3px);box-shadow:0 14px 48px rgba(0,0,0,.5);border-color:rgba(200,168,76,.22);}'
-  +'.card.so{opacity:.35;pointer-events:none;}'
-  +'@keyframes fu{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}'
-  +'.cimg{position:relative;aspect-ratio:16/10;overflow:hidden;background:#100f09;flex-shrink:0;min-height:80px;}'
-  +'.cimg img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;}'
-  +'.card:hover .cimg img{transform:scale(1.06);}'
-  +'.cph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:44px;background:linear-gradient(135deg,var(--card2),var(--card));}'
-  +'.scbadge{position:absolute;bottom:8px;left:8px;background:#27ae60;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.3px;}'
-  +'.mqbadge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.72);color:var(--gold);font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;border:1px solid var(--gold);letter-spacing:.3px;}'
-  +'.picbadge{position:absolute;top:6px;left:8px;background:#c0392b;color:#fff;font-size:11px;font-weight:900;padding:2px 6px;border-radius:10px;letter-spacing:.5px;}'
-  +'.newbadge{position:absolute;top:8px;right:8px;background:#e74c3c;color:#fff;font-size:10px;font-weight:900;padding:2px 7px;border-radius:10px;letter-spacing:1px;}'
-  +'.sbadge{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:3px;color:#fff;text-transform:uppercase;}'
-  +'.cbody{padding:12px 12px 12px;display:flex;flex-direction:column;flex:1;gap:6px;}'
-  +'.ctags{display:flex;flex-wrap:wrap;gap:5px;}'
-  +'.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:1px;font-size:12px;border:1px solid currentColor;opacity:.8;}'
-  +'.cname{font-family:"Cormorant Garamond",serif;font-size:17px;font-weight:400;color:var(--text);line-height:1.25;}'
-  +'.cdesc{font-size:14px;color:var(--muted);line-height:1.65;flex:1;}'
-  +'.cfoot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:10px;border-top:1px solid var(--border);overflow:hidden;min-width:0;}'
-  +'.cprice{font-family:"Cormorant Garamond",serif;font-size:20px;font-weight:300;color:var(--gold);flex:1;min-width:0;overflow:hidden;}'
-  +'.cprice .sym{font-size:14px;}'
-  +'.add-btn{width:34px;height:34px;background:var(--gold);border:none;border-radius:var(--r);color:#0c0b09;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,transform .1s;}'
-  +'.add-btn:hover{background:var(--gold-lt);}'
-  +'.add-btn:active{transform:scale(.92);}'
-  +'.qctrl{display:flex;align-items:center;border:1px solid var(--gold-dk);border-radius:var(--r);overflow:hidden;flex-shrink:0;}'
-  +'.qbtn{width:32px;height:34px;background:none;border:none;color:var(--gold);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;}'
-  +'.qbtn:hover{background:rgba(200,168,76,.12);}'
-  +'.qnum{min-width:28px;text-align:center;font-size:14px;color:var(--text);user-select:none;}'
-  +'.nores{text-align:center;padding:80px 20px;color:var(--muted);}'
-  +'.nores h3{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:300;color:var(--text);margin-bottom:6px;}'
-  +'.cov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s;}'
-  +'.cov.on{opacity:1;pointer-events:all;}'
-  +'.cdr{position:fixed;left:50%;bottom:0;top:auto;width:100%;max-width:480px;max-height:90vh;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.6);z-index:910;display:flex;flex-direction:column;transform:translate(-50%,100%);transition:transform .3s cubic-bezier(.4,0,.2,1);overflow:hidden;box-sizing:border-box;}'
-  +'.cdr.on{transform:translate(-50%,0);}'
-  +'.chd{padding:16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;box-sizing:border-box;width:100%;}'
-  +'.chd h2{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:300;letter-spacing:2px;}'
-  +'.ccls{background:none;border:none;color:var(--muted);font-size:24px;padding:4px;cursor:pointer;}'
-  +'.ccls:hover{color:var(--text);}'
-  +'.cbdy{flex:1;overflow-y:auto;padding:8px 0;}'
-  +'.cempty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:12px;}'
-  +'.ci{display:flex;gap:6px;align-items:center;padding:10px 10px;border-bottom:1px solid var(--border);box-sizing:border-box;width:100%;overflow:hidden;}'
-  +'.ci-th{width:44px;height:44px;flex-shrink:0;border-radius:2px;overflow:hidden;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:20px;}'
-  +'.ci-th img{width:100%;height:100%;object-fit:cover;}'
-  +'.ci-info{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;}'
-  +'.ci-name{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}'
-  +'.ci-price{font-size:11px;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'
-  +'.ci-qty{display:flex;align-items:center;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;flex-shrink:0;}'
-  +'.ci-qty .qbtn{width:26px;height:28px;font-size:15px;}'
-  +'.ci-qty .qnum{min-width:22px;font-size:12px;}'
-  +'.cft{border-top:1px solid var(--border);padding:16px 14px 28px;box-sizing:border-box;width:100%;}'
-  +'.csub{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}'
-  +'.csub span:first-child{font-size:12px;color:var(--muted);}'
-  +'.ctotal{font-family:"Cormorant Garamond",serif;font-size:28px;font-weight:300;color:var(--gold);}'
-  +'.cinfo{font-size:11px;color:var(--muted);line-height:1.6;margin:10px 0 16px;}'
-  +'.cinfo strong{color:var(--text);font-weight:400;}'
-  +'.obtn{width:100%;background:var(--gold);border:none;border-radius:var(--r);padding:14px;font-family:"Cormorant Garamond",serif;font-size:16px;letter-spacing:3px;color:#0c0b09;cursor:pointer;transition:background .15s;}'
-  +'.obtn:hover{background:var(--gold-lt);}'
-  +'.obtn:disabled{background:var(--muted2);color:var(--muted);cursor:default;}'
-  +'.clr{width:100%;background:none;border:1px solid var(--border2);border-radius:var(--r);color:var(--muted);padding:10px;font-size:13px;margin-top:8px;cursor:pointer;}'
-  +'.clr:hover{border-color:var(--muted);color:var(--text);}'
-  +'.mwrap{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}'
-  +'.mwrap.on{opacity:1;pointer-events:all;}'
-  +'.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:32px 24px;max-width:380px;width:100%;text-align:center;transform:scale(.95);transition:transform .22s;}'
-  +'.mwrap.on .modal{transform:scale(1);}'
-  +'.micon{font-size:48px;margin-bottom:14px;}'
-  +'.modal h3{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:300;margin-bottom:10px;}'
-  +'.modal p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:6px;}'
-  +'.mphone{font-size:18px;color:var(--gold);margin:12px 0 6px;}'
-  +'.maddr{font-size:12px;color:var(--muted);margin-bottom:20px;}'
-  +'.mok{background:var(--gold);border:none;border-radius:var(--r);color:#0c0b09;padding:11px 36px;font-size:14px;letter-spacing:1px;cursor:pointer;}'
-  +'.mok:hover{background:var(--gold-lt);}'
-  +'@media(max-width:520px){.hdr-logo{width:170px;height:62px;}.grid{grid-template-columns:1fr;gap:12px;}.cbody{padding:10px 10px 10px;}.cname{font-size:14px;}.cprice{font-size:16px;}.add-btn{width:30px;height:30px;font-size:18px;}.qbtn{width:26px;height:28px;font-size:15px;}.qnum{min-width:20px;font-size:12px;}main{padding:20px 8px 120px;}}'
-  +'@media(max-width:360px){.grid{grid-template-columns:1fr;}}'+'.af-group{margin:0 0 10px;}'+'.af-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:.3px;}'+'.af-input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-family:inherit;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;}'+'.af-input:focus{border-color:var(--gold);}'+'.af-input option{background:var(--surface);color:var(--text);}';
-}
-
-function menuBodyHTML(menuDef, R, showPrice){
-  var ph = R.phone||''; var addr = R.address||''; var hr = R.hours||'';
-  var isAsporto = (menuDef.id === 'asporto');
-  var cartHTML = '';
-  if(showPrice){
-    cartHTML = '<div class="cov" id="cov"></div>'
-      +'<div class="cdr" id="cdr">'
-        +'<div class="chd"><h2>&#x1F6D2; Carrello</h2><button class="ccls" id="ccls">&#x2715;</button></div>'
-        +'<div class="cbdy" id="cbdy"></div>'
-        +'<div class="cft">'
-          +'<div class="csub"><span>Totale</span><span class="ctotal" id="ctot">'+R.currency+' 0,00</span></div>'
-          +'<div class="cinfo"><strong>'+R.name+'</strong><br>'+(ph?'&#x1F4DE; '+ph+'<br>':'')+addr+'</div>'
-          +(isAsporto
-            ? '<div class="af-group"><label class="af-label">&#x1F464; Nome e Cognome *</label><input type="text" id="af-name" class="af-input" placeholder="Mario Rossi"></div>'
-              +'<div class="af-group"><label class="af-label">&#x23F0; Orario di Ritiro *</label><select id="af-time" class="af-input"><option value="">-- Seleziona orario --</option></select></div>'
-              +'<button class="obtn" id="obtn" disabled>&#x1F4AC; Invia su WhatsApp</button>'
-            : '')
-          +'<button class="clr" id="clr">Svuota carrello</button>'
+    // ── 当前店信息 ──
+    +'<div class="card" style="padding:18px 22px;margin-bottom:16px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+        +'<div><div class="s-label" style="padding:0 0 4px">当前店</div>'
+        +'<div style="font-size:18px;font-weight:600;color:#d4af37">'+RESTAURANT_ID+'</div></div>'
+        +'<div style="text-align:right">'
+          +'<div style="font-size:11px;color:var(--muted)">菜品总数</div>'
+          +'<div style="font-size:22px;font-weight:600">'+totalDishes+'</div>'
         +'</div>'
       +'</div>'
-      +(isAsporto
-        ? '<div class="mwrap" id="mwrap"><div class="modal">'
-            +'<div class="micon">&#x2705;</div>'
-            +'<h3>Ordine Inviato!</h3>'
-            +'<p>Il tuo ordine \u00e8 stato inviato su WhatsApp!</p>'
-            +'<button class="mok" id="mok">Perfetto, grazie!</button>'
-          +'</div></div>'
-        : '');
+      +'<div style="margin-top:8px">'+menuStats+'</div>'
+    +'</div>'
+
+    // ── 导出区块 ──
+    +'<div class="card" style="padding:20px 22px;margin-bottom:16px;border-left:3px solid #27ae60">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+        +'<span style="font-size:18px">📤</span>'
+        +'<div style="font-size:15px;font-weight:600;color:#27ae60">导出 Excel</div>'
+      +'</div>'
+      +'<div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px">'
+        +'把当前店的所有菜品（菜名、价格、折扣、菜单上下架、过敏标签、图片路径）'
+        +'导出成一个 Excel 文件，可以离线编辑后再导入回来。'
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'
+        +'文件名：<code style="background:rgba(212,171,72,.1);padding:2px 6px;border-radius:3px;color:#d4af37">'+fileName+'</code>'
+      +'</div>'
+      +'<button class="btn btn-green" style="width:100%;padding:12px;font-size:14px" onclick="exportMenuToExcel()">'
+        +'⬇ 下载 Excel 文件'
+      +'</button>'
+    +'</div>'
+
+    // ── 导入区块（仅 super_admin） ──
+    +(isSuper ? (
+      '<div class="card" style="padding:20px 22px;border-left:3px solid #e67e22">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+          +'<span style="font-size:18px">📥</span>'
+          +'<div style="font-size:15px;font-weight:600;color:#e67e22">导入 Excel（仅超级管理员）</div>'
+        +'</div>'
+        +'<div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px">'
+          +'从 Excel 文件批量更新当前店菜单。导入前会显示预览（新增/更新/下架），确认后才执行。'
+          +'<br>⚠️ 导入只影响当前店（<b>'+RESTAURANT_ID+'</b>），不会动其他店。'
+        +'</div>'
+        +'<button class="btn" style="width:100%;padding:12px;font-size:14px;color:#e67e22;border:1px solid rgba(230,126,34,.4)" onclick="openImportMenu()">'
+          +'📥 选择 Excel 文件导入'
+        +'</button>'
+      +'</div>'
+    ) : (
+      '<div class="card" style="padding:14px 18px;background:rgba(125,125,125,.05);border-left:3px solid var(--muted)">'
+        +'<div style="font-size:12px;color:var(--muted)">📥 导入功能仅超级管理员可用</div>'
+      +'</div>'
+    ))
+
+    // ── 帮助 ──
+    +'<div class="info-box" style="margin-top:16px">💡 <div style="font-size:12px;line-height:1.7">'
+      +'<b>Excel 表头格式</b>（共 15 列）：<br>'
+      +'<code style="font-size:11px;color:#d4af37">ID, Categoria, Nome, Descrizione, Image, Prezzo, Sconto_Asporto, Sconto_Consegna, '
+      +'Menu_Pranzo, Menu_Cena, Menu_Speciale, Menu_Bevande, Menu_Dessert, Menu_Asporto, Tags</code>'
+      +'<br><br>'
+      +'<b>说明</b>：<br>'
+      +'• <b>ID</b>：菜品号（整数，主键，重复=更新）<br>'
+      +'• <b>Prezzo</b>：单一价格，写入所有启用的菜单<br>'
+      +'• <b>Menu_xxx</b>：1=上架，0=下架<br>'
+      +'• <b>Tags</b>：逗号分隔（如 <code>1,4,piccante</code>）<br>'
+      +'• <b>Image</b>：可改图片路径，留空则自动生成（'+(RESTAURANT_ID==='imola'?'images/imola/':'images/')+'XX.webp）'
+    +'</div></div>';
+}
+
+// ════════════════════════════════════
+//  导出菜单到 Excel
+// ════════════════════════════════════
+function exportMenuToExcel() {
+  if (typeof XLSX === 'undefined') {
+    toast('❌ Excel 库未加载，请刷新页面');
+    return;
   }
-  return '<header class="hdr">'
-    +'<div class="hdr-glow"></div>'
-    +'<div class="hdr-logo" id="logo-wrap"></div>'
-    +'<div class="hdr-badge">'+menuDef.icon+' '+menuDef.nameIT+'</div>'
-    +'<div class="hdr-div"><div class="hdr-line"></div><div class="hdr-dot"></div><div class="hdr-line"></div></div>'
-    +'<div class="hdr-info">'
-      +(ph?'<span>&#x1F4DE; '+ph+'</span>':'')
-      +(R.subtitle?'<span>'+R.subtitle+'</span>':'')
-      +(hr?'<span>&#x1F550; '+hr+'</span>':'')
-    +'</div>'
-  +'</header>'
-  +'<div class="toolbar">'
-    +'<div class="srch">'
-      +'<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>'
-      +'<input type="text" id="si" placeholder="Cerca nel menu..." autocomplete="off">'
-      +'<button class="srch-x" id="sx">&#x2715;</button>'
-    +'</div>'
-  +'</div>'
-  +(showPrice?'<button class="cart-fab" id="cfab"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cbadge" id="cbdg">0</span></button>':'')
-  +'<nav class="catnav"><div class="catnav-inner" id="nav"></div></nav>'
-  +'<main id="main"></main>'
-  +cartHTML;
-}
+  if (!I || !I.length) {
+    toast('❌ 当前店没有菜品数据');
+    return;
+  }
 
-function menuRuntime(){
-  return 'function navScroll(btn){var nav=document.querySelector(".catnav");if(!nav)return;nav.scrollLeft=btn.offsetLeft-nav.offsetWidth/2+btn.offsetWidth/2;}'
-  +'function fmt(n){return SYM+"\\u00a0"+Number(n).toFixed(2).replace(".",",");}'
-  +'function fi(id){for(var i=0;i<ITEMS.length;i++)if(ITEMS[i].id==id)return ITEMS[i];'+'for(var i=0;i<ALL_ITEMS.length;i++)if(ALL_ITEMS[i].id==id)return ALL_ITEMS[i];return null;}'
-  +'function fc(id){for(var i=0;i<CATS.length;i++)if(CATS[i].id===id)return CATS[i];return null;}'
-  +'(function(){'
-    +'var lw=document.getElementById("logo-wrap");'
-    +'if(lw&&R.logo){var img=new Image();img.src=R.logo;img.alt=R.name;img.style.cssText="width:100%;height:100%;object-fit:contain;";lw.appendChild(img);}'
-    +'if(R.favicon){var lk=document.createElement("link");lk.rel="icon";lk.href=R.favicon;document.head.appendChild(lk);}'
-    +'document.title=R.name;'
-  +'if(MENU_LIMIT>0){var lb=document.createElement("div");'+'lb.style.cssText="background:var(--gold);color:#0c0b09;text-align:center;padding:8px 16px;font-size:13px;font-weight:700;letter-spacing:.3px;";'+'lb.textContent="⭐ Menu Speciale · Puoi scegliere max "+MENU_LIMIT+" piatti";'+'document.body.insertBefore(lb,document.body.firstChild);}'
-  +'})();'
-  +'var _CK="yf_cart";'
-  +'var cart=(function(){try{var s=localStorage.getItem(_CK);return s?JSON.parse(s):{};}catch(e){return{};}})();'
-  +'function saveCart(){try{localStorage.setItem(_CK,JSON.stringify(cart));}catch(e){}}'
-  +'function cn(){var n=0;for(var k in cart)n+=cart[k];return n;}'
-  +'function ct(){var t=0;for(var id in cart){var it=fi(id);if(it){var p=it.sconto>0?it.price*(1-it.sconto/100):it.price;t+=p*cart[id];}}return t;}'
-  +'function totalInCart(){var t=0;for(var k in cart)t+=cart[k];return t;}'
-  +'function addIt(it){var mq=it.max_qty||0;var cur=cart[it.id]||0;if(mq>0&&cur>=mq)return;if(MENU_LIMIT>0&&totalInCart()>=MENU_LIMIT){alert("Puoi selezionare al massimo "+MENU_LIMIT+" piatti in questo menu.");return;}cart[it.id]=cur+1;ref(it.id);}'
-  +'function chQ(it,d){var mq=it.max_qty||0;var nv=Math.max(0,(cart[it.id]||0)+d);if(d>0&&mq>0&&nv>mq)nv=mq;if(d>0&&MENU_LIMIT>0){var tot=totalInCart()-(cart[it.id]||0)+nv;if(tot>MENU_LIMIT)nv=Math.max(0,MENU_LIMIT-(totalInCart()-(cart[it.id]||0)));}cart[it.id]=nv;if(cart[it.id]===0)delete cart[it.id];ref(it.id);}'
-  +'function ref(id){if(SHOW){bdg();acn(id);cbd();}saveCart();}'
-  +'function bdg(){'
-    +'if(!SHOW)return;'
-    +'var n=cn(),b=document.getElementById("cbdg");'
-    +'if(b){b.textContent=n;b.className="cbadge"+(n>0?" on":"");}'
-    +'var t=document.getElementById("ctot");if(t)t.textContent=fmt(ct());'
-    +'var ob=document.getElementById("obtn");if(ob)ob.disabled=n===0;'
-  +'}'
-  +'function acn(itemId){'
-    +'if(!SHOW)return;'
-    +'var el=document.getElementById("ac"+itemId);if(!el)return;'
-    +'var it=fi(itemId);if(!it)return;'
-    +'var q=cart[itemId]||0;el.innerHTML="";'
-    +'if(q===0){var btn=document.createElement("button");btn.className="add-btn";btn.textContent="+";(function(i){btn.onclick=function(){addIt(i);};})(it);el.appendChild(btn);}'
-    +'else{var div=document.createElement("div");div.className="qctrl";'
-      +'var bm=document.createElement("button");bm.className="qbtn";bm.textContent="\\u2212";'
-      +'var sp=document.createElement("span");sp.className="qnum";sp.textContent=q;'
-      +'var bp=document.createElement("button");bp.className="qbtn";bp.textContent="+";'
-      +'(function(i){bm.onclick=function(){chQ(i,-1);};bp.onclick=function(){chQ(i,+1);};})(it);'
-      +'div.appendChild(bm);div.appendChild(sp);div.appendChild(bp);el.appendChild(div);}'
-  +'}'
-  +'(function(){'
-    +'var nav=document.getElementById("nav");if(!nav)return;'
-    +'var usedCats={};for(var ii=0;ii<ITEMS.length;ii++)usedCats[ITEMS[ii].category]=true;'
-    +'var firstBtn=true;'
-    +'for(var ci=0;ci<CATS.length;ci++){(function(cat){'
-      +'if(!usedCats[cat.id])return;'
-      +'var btn=document.createElement("button");'
-      +'btn.className="cbtn"+(firstBtn?" active":"");firstBtn=false;'
-      +'btn.setAttribute("data-id",cat.id);'
-      +'btn.innerHTML="<span>"+cat.icon+"</span><span>"+cat.name+"</span>";'
-      +'btn.onclick=function(){scrollLock=true;clearTimeout(scrollLockTimer);var ab=document.querySelectorAll(".cbtn");for(var bi=0;bi<ab.length;bi++){ab[bi].className="cbtn"+(ab[bi].getAttribute("data-id")===cat.id?" active":"");}var s=document.getElementById("sec-"+cat.id);if(s){setTimeout(function(){s.scrollIntoView({behavior:"smooth",block:"start"});},50);}scrollLockTimer=setTimeout(function(){scrollLock=false;},1200);};'
-      +'nav.appendChild(btn);'
-    +'})(CATS[ci]);}'
-  +'})();'
-  +'function mkCard(it,delay){'
-    +'var cat=fc(it.category);var icon=cat?cat.icon:"\\ud83c\\udf7d\\ufe0f";'
-    +'var card=document.createElement("div");card.className="card"+(it.sold_out?" so":"");card.style.animationDelay=(delay*0.04)+"s";'
-    +'var iw=null;'
-    +'if(it.image){'
-      +'iw=document.createElement("div");iw.className="cimg";'
-      +'var im=document.createElement("img");im.loading="lazy";im.alt=it.name;im.setAttribute("data-fb",icon);'
-      +'im.onerror=function(){var p=this.parentNode;if(p&&p.parentNode)p.parentNode.removeChild(p);};'
-      +'im.src=it.image;iw.appendChild(im);'
-    +'}'
-    +'if(iw&&it.sold_out){var sb=document.createElement("div");sb.className="sbadge";sb.textContent="Esaurito";iw.appendChild(sb);}'
-    +'if(iw&&it.sconto>0){var scb=document.createElement("div");scb.className="scbadge";scb.textContent="-"+it.sconto+"%";iw.appendChild(scb);}'
-    +'if(iw&&it.tags&&it.tags.indexOf("piccante")>=0){var pb=document.createElement("div");pb.className="picbadge";pb.textContent="🌶️ Piccante";iw.appendChild(pb);}'
-    +'if(iw&&it.tags&&it.tags.indexOf("new")>=0){var nb=document.createElement("div");nb.className="newbadge";nb.textContent="NEW";iw.appendChild(nb);}'
-    +'if(iw&&it.max_qty>0){var mb=document.createElement("div");mb.className="mqbadge";mb.textContent="max "+it.max_qty;iw.appendChild(mb);}'
-    +'var body=document.createElement("div");body.className="cbody";'
-    +'var te=document.createElement("div");te.className="ctags";'
-    +'for(var ti=0;ti<it.tags.length;ti++){var td=TAGS[it.tags[ti]];if(!td)continue;var sp=document.createElement("span");sp.className="tag";sp.style.color=td.color;sp.style.borderColor=td.color;sp.textContent=td.icon+" "+td.label;te.appendChild(sp);}'
-    +'var nm=document.createElement("div");nm.className="cname";nm.textContent=it.name;body.appendChild(nm);'
-    +'if(it.desc){var dc=document.createElement("div");dc.className="cdesc";dc.textContent=it.desc;body.appendChild(dc);}'
-    +'if(te.children.length>0)body.appendChild(te);'
-    +'var ft=document.createElement("div");ft.className="cfoot";'
-    +'if(SHOW){var prdiv=document.createElement("div");prdiv.className="cprice";var sym=document.createElement("span");sym.className="sym";sym.textContent=SYM;prdiv.appendChild(sym);var dispPrice=it.sconto>0?it.price*(1-it.sconto/100):it.price;prdiv.appendChild(document.createTextNode(" "+Number(dispPrice).toFixed(2).replace(".",",")));if(it.sconto>0){var orig=document.createElement("span");orig.style.cssText="font-size:10px;color:var(--muted);text-decoration:line-through;margin-left:4px;";orig.textContent=Number(it.price).toFixed(2).replace(".",",");prdiv.appendChild(orig);}ft.appendChild(prdiv);var ac=document.createElement("div");ac.id="ac"+it.id;ft.appendChild(ac);}else{ft.appendChild(document.createElement("div"));}'
-    +'body.appendChild(ft);if(iw)card.appendChild(iw);card.appendChild(body);return card;'
-  +'}'
-  +'function render(items){'
-    +'var main=document.getElementById("main");main.innerHTML="";'
-    +'var groups={};for(var i=0;i<items.length;i++){var c=items[i].category;if(!groups[c])groups[c]=[];groups[c].push(items[i]);}'
-    +'var any=false;'
-    +'for(var ci=0;ci<CATS.length;ci++){var cat=CATS[ci];if(!groups[cat.id]||!groups[cat.id].length)continue;any=true;'
-      +'var sec=document.createElement("section");sec.id="sec-"+cat.id;'
-      +'var hd=document.createElement("div");hd.className="shead";hd.innerHTML="<h2>"+cat.icon+" "+cat.name+"</h2><div class=\\"sline\\"></div><span class=\\"scnt\\">"+groups[cat.id].length+" "+(groups[cat.id].length===1?"piatto":"piatti")+"</span>";sec.appendChild(hd);'
-      +'var grid=document.createElement("div");grid.className="grid";'
-      +'for(var gi=0;gi<groups[cat.id].length;gi++)grid.appendChild(mkCard(groups[cat.id][gi],gi));'
-      +'sec.appendChild(grid);main.appendChild(sec);}'
-    +'if(!any){main.innerHTML="<div class=\\"nores\\"><div style=\\"font-size:40px;margin-bottom:12px\\">\\ud83d\\udd0d</div><h3>Nessun risultato</h3></div>";return;}'
-    +'if(SHOW)for(var i=0;i<items.length;i++)acn(items[i].id);'
-    +'setTimeout(function(){var ss=document.querySelectorAll("section[id^=\\"sec-\\"]");for(var i=0;i<ss.length;i++)obs.observe(ss[i]);},100);'
-  +'}'
-  +'function cbd(){'
-    +'if(!SHOW)return;var el=document.getElementById("cbdy");if(!el)return;'
-    +'var n=cn();'
-    +'if(!n){el.innerHTML="<div class=\\"cempty\\"><div style=\\"font-size:48px;margin-bottom:12px\\">\\ud83c\\udf71</div><p>Il carrello \\u00e8 vuoto</p></div>";return;}'
-    +'el.innerHTML="";'
-    +'for(var id in cart){(function(id,qty){'
-      +'var it=fi(id);if(!it)return;var cat=fc(it.category);var icon=cat?cat.icon:"\\ud83c\\udf7d\\ufe0f";'
-      +'var row=document.createElement("div");row.className="ci";'
-      +'var th=document.createElement("div");th.className="ci-th";'
-      +'if(it.image){var im=document.createElement("img");im.src=it.image;im.alt="";im.setAttribute("data-fb",icon);im.onerror=function(){this.parentNode.textContent=this.getAttribute("data-fb");};th.appendChild(im);}else th.textContent=icon;'
-      +'var info=document.createElement("div");info.className="ci-info";info.innerHTML="<div class=\\"ci-name\\">"+it.name+"</div>"+"<div class=\\\"ci-price\\\">"+(it.sconto>0?fmt(it.price*(1-it.sconto/100)):fmt(it.price))+" \\u00d7 "+qty+" = "+(it.sconto>0?fmt(it.price*(1-it.sconto/100)*qty):fmt(it.price*qty))+(it.sconto>0?" <span style=\\\"color:#27ae60;font-size:10px\\\">-"+it.sconto+"%</span>":"")+"</div>";'
-      +'var qc=document.createElement("div");qc.className="ci-qty";var bm=document.createElement("button");bm.className="qbtn";bm.textContent="\\u2212";var sp=document.createElement("span");sp.className="qnum";sp.textContent=qty;var bp=document.createElement("button");bp.className="qbtn";bp.textContent="+";'
-      +'(function(i){bm.onclick=function(){chQ(i,-1);};bp.onclick=function(){chQ(i,+1);};})(it);'
-      +'qc.appendChild(bm);qc.appendChild(sp);qc.appendChild(bp);'
-      +'row.appendChild(th);row.appendChild(info);row.appendChild(qc);el.appendChild(row);'
-    +'})(id,cart[id]);}'
-    +'var t=document.getElementById("ctot");if(t)t.textContent=fmt(ct());'
-  +'}'
-  +'var si=document.getElementById("si"),sx=document.getElementById("sx");'
-  +'if(si){si.addEventListener("input",function(){var q=si.value.trim().toLowerCase();if(sx)sx.className="srch-x"+(q?" on":"");render(q?ITEMS.filter(function(it){return it.name.toLowerCase().indexOf(q)>=0||(it.desc||"").toLowerCase().indexOf(q)>=0;}):ITEMS);});}'
-  +'if(sx){sx.onclick=function(){si.value="";sx.className="srch-x";render(ITEMS);};}'
-  +'if(SHOW){'
-    +'var cov=document.getElementById("cov"),cdr=document.getElementById("cdr"),cfab=document.getElementById("cfab"),ccls=document.getElementById("ccls"),clr=document.getElementById("clr"),obtn=document.getElementById("obtn"),mwrap=document.getElementById("mwrap"),mok=document.getElementById("mok");'
-    +'function oc(){if(cdr)cdr.className="cdr on";if(cov)cov.className="cov on";cbd();}'
-    +'function cc(){if(cdr)cdr.className="cdr";if(cov)cov.className="cov";}'
-    +'function clrCart(){for(var k in cart)delete cart[k];saveCart();bdg();for(var i=0;i<ITEMS.length;i++)acn(ITEMS[i].id);cbd();}'
-    +'if(cfab)cfab.onclick=oc;if(ccls)ccls.onclick=cc;if(cov)cov.onclick=cc;'
-    +'if(clr)clr.onclick=clrCart;'
-    +'if(IS_ASPORTO&&obtn){'
-      +'var aft=document.getElementById("af-time");'
-      +'if(aft){for(var _h=12;_h<=22;_h++){for(var _m=0;_m<60;_m+=15){var _op=document.createElement("option");var _hh=(_h<10?"0":"")+_h;var _mm=(_m<10?"0":"")+_m;_op.value=_hh+":"+_mm;_op.textContent=_hh+":"+_mm;aft.appendChild(_op);}}}'
-      +'function _ckbtn(){var _n=document.getElementById("af-name");var _t=document.getElementById("af-time");obtn.disabled=(cn()===0||!_t||!_t.value||!_n||!_n.value.trim());}'
-      +'var _afn=document.getElementById("af-name");if(_afn)_afn.addEventListener("input",_ckbtn);'
-      +'if(aft)aft.addEventListener("change",_ckbtn);'
-      +'var _origBdg=bdg;bdg=function(){_origBdg();_ckbtn();};'
-      +'obtn.onclick=function(){'
-        +'var _afnEl=document.getElementById("af-name");var _aftEl=document.getElementById("af-time");'
-        +'var _nm=_afnEl?_afnEl.value.trim():"";var _tm=_aftEl?_aftEl.value:"";'
-        +'if(!_nm){alert("Inserisci il tuo nome.");return;}'
-        +'if(!_tm){alert("Seleziona l\'orario di ritiro.");return;}'
-        +'var lines=["\\uD83D\\uDCE6 *ORDINE ASPORTO - Yio Fish*","","\\uD83D\\uDC64 Nome: "+_nm,"\\u23F0 Ritiro: "+_tm,""];'
-        +'for(var id in cart){var it=fi(id);if(!it)continue;lines.push("\\u2022 "+it.name+" x"+cart[id]+(it.price>0?" ("+fmt(it.price*cart[id])+")":""));}'
-        +'if(ct()>0){lines.push("");lines.push("\\uD83D\\uDCB5 Totale: "+fmt(ct()));}'
-        +'var _ph=R.phone.replace(/[^0-9]/g,"");if(_ph.length<=10)_ph="39"+_ph;window.open("https://wa.me/"+_ph+"?text="+encodeURIComponent(lines.join("\\n")),"_blank");'
-        +'cc();if(mwrap)mwrap.className="mwrap on";'
-      +'};'
-      +'if(mok)mok.onclick=function(){if(mwrap)mwrap.className="mwrap";clrCart();};'
-    +'}'
-  +'}'
-  +'var scrollLock=false,scrollLockTimer=null;var obs=new IntersectionObserver(function(entries){if(scrollLock)return;for(var i=0;i<entries.length;i++){if(entries[i].isIntersecting){var cid=entries[i].target.id.replace("sec-","");var btns=document.querySelectorAll(".cbtn");for(var j=0;j<btns.length;j++){var active=btns[j].getAttribute("data-id")===cid;btns[j].className="cbtn"+(active?" active":"");if(active)navScroll(btns[j]);}}}},{rootMargin:"-25% 0px -65% 0px"});'
-  +'render(ITEMS);if(SHOW)bdg();';
-}
-
-// ════════════════════════════════════
-//  下载函数
-// ════════════════════════════════════
-function toggleExcludeCat(menuId, catId){
-  var m=MENUS.filter(function(x){return x.id===menuId;})[0];
-  if(!m)return;
-  if(!m.excludeCats)m.excludeCats=[];
-  var idx=m.excludeCats.indexOf(catId);
-  if(idx>=0) m.excludeCats.splice(idx,1);
-  else m.excludeCats.push(catId);
-  markDirty(); renderExport();
-}
-function setMenuLimit(menuId, val){
-  var m=MENUS.filter(function(x){return x.id===menuId;})[0];
-  if(!m)return;
-  m.menuLimit=parseInt(val)||0;
-  markDirty();
-}
-function dlMenu(menuId){
-  var m = null;
-  for(var i=0;i<MENUS.length;i++) if(MENUS[i].id===menuId){ m=MENUS[i]; break; }
-  if(!m){ toast('❌ 找不到菜单'); return; }
   try {
-    var html = makeMenuHTML(m);
-    var blob = new Blob([html], {type:'text/html;charset=utf-8'});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = m.file;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
-    toast('✅ 已下载 ' + m.file);
+    // 表头（和导入逻辑严格对齐）
+    var header = [
+      'ID', 'Categoria', 'Nome', 'Descrizione', 'Image',
+      'Prezzo', 'Sconto_Asporto', 'Sconto_Consegna',
+      'Menu_Pranzo', 'Menu_Cena', 'Menu_Speciale',
+      'Menu_Bevande', 'Menu_Dessert', 'Menu_Asporto',
+      'Tags'
+    ];
+
+    // 按菜品号排序
+    var sorted = I.slice().sort(function(a,b){
+      var an = a.dish_no || 9999, bn = b.dish_no || 9999;
+      return an - bn;
+    });
+
+    var rows = [header];
+
+    sorted.forEach(function(it){
+      var menus = it.menus || {};
+      // Prezzo：取第一个启用菜单的价格；如果都没启用，取任一非零价格
+      var prezzo = 0;
+      var menuOrder = ['pranzo','cena','speciale','bevande','dessert','asporto'];
+      for (var i=0; i<menuOrder.length; i++) {
+        var m = menus[menuOrder[i]];
+        if (m && m.on && m.price > 0) { prezzo = parseFloat(m.price); break; }
+      }
+      if (prezzo === 0) {
+        // 没启用菜单 → 找任一价格 > 0
+        for (var i=0; i<menuOrder.length; i++) {
+          var m = menus[menuOrder[i]];
+          if (m && m.price > 0) { prezzo = parseFloat(m.price); break; }
+        }
+      }
+
+      // Sconto_Asporto / Sconto_Consegna：从 asporto 菜单取
+      var aspMenu = menus.asporto || {};
+      var scontoAsp = parseInt(aspMenu.sconto) || 0;
+      var scontoCons = parseInt(aspMenu.sconto_consegna) || 0;
+
+      // 菜单 on/off
+      var on = function(mid){ return (menus[mid] && menus[mid].on) ? 1 : 0; };
+
+      // tags：数组→逗号分隔
+      var tagStr = (it.tags && it.tags.length) ? it.tags.join(',') : '';
+
+      rows.push([
+        it.dish_no || '',
+        it.category || '',
+        it.name || '',
+        it.desc || '',
+        it.image || '',
+        prezzo || '',
+        scontoAsp || '',
+        scontoCons || '',
+        on('pranzo'),
+        on('cena'),
+        on('speciale'),
+        on('bevande'),
+        on('dessert'),
+        on('asporto'),
+        tagStr
+      ]);
+    });
+
+    // 创建工作簿
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+
+    // 列宽（让 Excel 打开时美观）
+    ws['!cols'] = [
+      {wch:6},  // ID
+      {wch:14}, // Categoria
+      {wch:28}, // Nome
+      {wch:36}, // Descrizione
+      {wch:22}, // Image
+      {wch:8},  // Prezzo
+      {wch:10}, // Sconto_A
+      {wch:10}, // Sconto_C
+      {wch:6},  // M_Pranzo
+      {wch:6},  // M_Cena
+      {wch:8},  // M_Spec
+      {wch:8},  // M_Bev
+      {wch:8},  // M_Des
+      {wch:8},  // M_Asp
+      {wch:18}  // Tags
+    ];
+
+    // 冻结首行
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Menu');
+
+    // 文件名：store-menu-yyyy-mm-dd.xlsx
+    var today = new Date();
+    var dateStr = today.getFullYear() + '-'
+      + String(today.getMonth()+1).padStart(2,'0') + '-'
+      + String(today.getDate()).padStart(2,'0');
+    var fileName = RESTAURANT_ID + '-menu-' + dateStr + '.xlsx';
+
+    XLSX.writeFile(wb, fileName);
+    toast('✅ 已下载 ' + fileName + '（' + (rows.length-1) + ' 道菜）');
   } catch(e) {
-    toast('❌ 下载失败: ' + e.message);
-    console.error(e);
+    toast('❌ 导出失败：' + (e.message || e));
+    console.error('exportMenuToExcel error:', e);
   }
 }
-
-function dlAll(){
-  toast('⏳ 正在生成菜单…');
-  var delay = 0;
-  for(var i=0;i<MENUS.length;i++){
-    (function(m){ setTimeout(function(){ dlMenu(m.id); }, delay); })(MENUS[i]);
-    delay += 1000;
-  }
-}
-
-
 
 // ════════════════════════════════════
 //  发布菜单
