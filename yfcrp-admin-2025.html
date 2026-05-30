@@ -189,17 +189,20 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 .cat-id-t{font-size:11px;color:var(--muted2);}
 
 @media(max-width:640px){
-  /* 手机端：侧边栏改为顶部横向滚动标签栏（所有功能都点得到）*/
+  /* 手机端：侧栏改为抽屉式（默认隐藏，点 ☰ 展开） */
   .layout{flex-direction:column;min-height:auto;}
-  .sidebar{width:100%;height:auto;position:sticky;top:54px;z-index:200;
-    display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;
-    padding:6px 8px;gap:4px;border-right:none;border-bottom:1px solid var(--border);
-    -webkit-overflow-scrolling:touch;}
-  .sidebar .s-label,.sidebar .s-div{display:none;}  /* 横排时隐藏分组标题和分隔线 */
-  .s-btn{width:auto;flex:0 0 auto;white-space:nowrap;padding:8px 12px;
-    border-left:none;border-bottom:2px solid transparent;border-radius:6px;font-size:12px;}
-  .s-btn.active{border-left:none;border-bottom-color:var(--gold);}
-  .s-cnt{margin-left:6px;}
+  #hamburger-btn{display:inline-block !important;}
+  .sidebar{
+    width:260px;height:100vh;position:fixed;top:0;left:0;
+    transform:translateX(-100%);transition:transform .25s ease;
+    z-index:200;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:16px 12px 30px;gap:4px;
+    border-right:1px solid var(--border);border-bottom:none;
+    box-shadow:2px 0 12px rgba(0,0,0,.2);
+  }
+  .sidebar.open{transform:translateX(0);}
+  /* 分组标题和分隔线在抽屉里保留显示 */
+  .s-btn{width:100%;padding:11px 14px;font-size:13px;}
   .content{padding:18px 14px 60px;}
 }
 
@@ -247,7 +250,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.9</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.14.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -299,9 +302,11 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 <div id="loading-overlay"><div class="loading-spinner"></div><div class="loading-text">连接数据库中…</div></div>
 <div class="topbar">
   <div class="t-left">
+    <button id="hamburger-btn" onclick="toggleSidebar()" title="菜单"
+      style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.9</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.14.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -317,6 +322,8 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     <button class="btn btn-green btn-sm" id="publish-btn" onclick="publishMenu()">🚀 发布菜单</button>
   </div>
 </div>
+
+<div id="sidebar-backdrop" onclick="toggleSidebar(false)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;"></div>
 
 <div class="layout">
   <aside class="sidebar">
@@ -607,7 +614,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.9</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1351,7 +1358,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.9</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1596,6 +1603,36 @@ function closeModal(){
 // ════════════════════════════════════
 //  导航
 // ════════════════════════════════════
+// ════════════════════════════════════
+//  手机端侧栏抽屉控制
+// ════════════════════════════════════
+function toggleSidebar(force) {
+  var sb = document.querySelector('.sidebar');
+  var bd = document.getElementById('sidebar-backdrop');
+  if (!sb || !bd) return;
+  // force: true=开，false=关，undefined=切换
+  var willOpen = (typeof force === 'boolean') ? force : !sb.classList.contains('open');
+  if (willOpen) {
+    sb.classList.add('open');
+    bd.style.display = 'block';
+  } else {
+    sb.classList.remove('open');
+    bd.style.display = 'none';
+  }
+}
+function closeSidebarOnMobile() {
+  if (window.innerWidth <= 640) toggleSidebar(false);
+}
+
+// sidebar 内任何 button 被点 → 手机端自动关抽屉（适配所有 onclick 不需要单独改每个函数）
+document.addEventListener('DOMContentLoaded', function() {
+  var sb = document.querySelector('.sidebar');
+  if (!sb) return;
+  sb.addEventListener('click', function(e) {
+    if (e.target.closest('button')) closeSidebarOnMobile();
+  });
+});
+
 function showPage(p){
   if (p==='permissions') {
     // 先用原有方式切换页面（清空内容区）
