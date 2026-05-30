@@ -247,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.7</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.8</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -301,7 +301,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.7</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.8</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -347,7 +347,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     <button class="s-btn" id="nav-permissions" onclick="showPage('permissions')" style="display:none;">
       <span class="s-ico">🔐</span>权限管理
     </button>
-    <button class="s-btn" id="nav-store-admin" onclick="openStoreAdminMgmt()" style="display:none;">
+    <button class="s-btn" id="nav-store-admin" onclick="showPage('store-admin')" style="display:none;">
       <span class="s-ico">👥</span>店铺管理员
     </button>
     <button class="s-btn" id="nav-backup" onclick="downloadBackup()" style="display:none;">
@@ -492,52 +492,6 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   </div>
 </div>
 
-<!-- STORE ADMIN MANAGEMENT MODAL（仅 super_admin） -->
-<div class="modal-bg" id="store-admin-modal">
-  <div class="modal-box" style="max-width:680px">
-    <div class="modal-title">🔐 店铺管理员</div>
-    <div class="hint" style="margin-bottom:14px;color:var(--muted);font-size:12px;line-height:1.6">每家店至少需要 1 个 store_admin 账号才能登录。<br>密码不会以明文存储，重置后需重新告知管理员。</div>
-
-    <!-- 列表区 -->
-    <div id="sa-list-wrap">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <b style="color:#d4af37;font-size:13px">当前账号</b>
-          <span id="sa-count-badge" style="font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:10px">—</span>
-        </div>
-        <button class="btn btn-green btn-sm" onclick="saOpenCreate()">➕ 新增管理员</button>
-      </div>
-      <div id="sa-list" style="max-height:380px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px"></div>
-    </div>
-
-    <!-- 新增/重置子表单 -->
-    <div id="sa-form-wrap" style="display:none;margin-top:14px;padding:14px;background:rgba(212,171,72,.05);border-radius:8px;border:1px solid rgba(212,171,72,.2)">
-      <b id="sa-form-title" style="color:#d4af37;display:block;margin-bottom:10px">新增管理员</b>
-      <div id="sa-form-create">
-        <div class="form-row">
-          <div class="fg"><label>店</label>
-            <select id="sa-store"></select>
-          </div>
-          <div class="fg"><label>用户名 *</label><input id="sa-user" placeholder="3-30 位字母数字"></div>
-        </div>
-        <div class="fg" style="margin-bottom:10px"><label>密码 *</label><input id="sa-pwd" type="password" placeholder="至少 6 位"></div>
-      </div>
-      <div id="sa-form-reset" style="display:none">
-        <div class="fg" style="margin-bottom:10px"><label>新密码 *</label><input id="sa-pwd-new" type="password" placeholder="至少 6 位"></div>
-        <div class="hint" style="font-size:12px;color:var(--muted);margin-bottom:10px">重置 <b id="sa-reset-user">user</b> 的密码。请自行记住新密码。</div>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn btn-sm" style="color:var(--muted);border:1px solid var(--border)" onclick="saCloseForm()">取消</button>
-        <button class="btn btn-green btn-sm" id="sa-submit-btn" onclick="saSubmit()">保存</button>
-      </div>
-    </div>
-
-    <div class="modal-foot">
-      <button class="btn" style="color:var(--muted);border:1px solid var(--border)" onclick="closeModal()">关闭</button>
-    </div>
-  </div>
-</div>
-
 <!-- CAT MODAL -->
 <div class="modal-bg" id="cat-modal">
   <div class="modal-box">
@@ -653,7 +607,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.7</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.8</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1397,7 +1351,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.7</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.8</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1672,6 +1626,14 @@ function showPage(p){
     var nb = document.getElementById('nav-errorlog');
     if (nb) nb.classList.add('active');
     renderErrorLogPage();
+    return;
+  }
+  if (p === 'store-admin') {
+    _page = 'store-admin';
+    document.querySelectorAll('.s-btn').forEach(function(b){ b.classList.remove('active'); });
+    var nbsa = document.getElementById('nav-store-admin');
+    if (nbsa) nbsa.classList.add('active');
+    renderStoreAdminPage();
     return;
   }
   _page = p;
@@ -2711,10 +2673,44 @@ var _saMode = 'create';  // 'create' 或 'reset'
 var _saResetId = null;
 var _saResetUser = '';
 
-async function openStoreAdminMgmt() {
+async function renderStoreAdminPage() {
   if (CURRENT_ROLE !== 'super') { toast('❌ 仅超级管理员可访问'); return; }
-  $('sa-form-wrap').style.display = 'none';
-  openModal('store-admin-modal');
+  var content = document.getElementById('content');
+  if (!content) return;
+  content.innerHTML =
+    '<div style="padding:0;">'
+    + '<div class="page-head"><div><h1>👥 店铺管理员</h1><p>管理各店铺的 store_admin 登录账号</p></div></div>'
+    + '<div class="card" style="padding:18px 22px;margin-bottom:16px;">'
+    + '  <div class="hint" style="color:var(--muted);font-size:12px;line-height:1.6;margin-bottom:12px;">每家店至少需要 1 个 store_admin 账号才能登录。<br>密码不会以明文存储，重置后需重新告知管理员。</div>'
+    + '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    + '    <div style="display:flex;align-items:center;gap:8px">'
+    + '      <b style="color:#d4af37;font-size:14px">当前账号</b>'
+    + '      <span id="sa-count-badge" style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:10px">—</span>'
+    + '    </div>'
+    + '    <button class="btn btn-green btn-sm" onclick="saOpenCreate()">➕ 新增管理员</button>'
+    + '  </div>'
+    + '  <div id="sa-list" style="background:var(--bg);border:1px solid var(--border);border-radius:8px"></div>'
+    + '</div>'
+    // 新增/重置子表单（默认隐藏）
+    + '<div id="sa-form-wrap" class="card" style="display:none;padding:18px 22px;margin-bottom:16px;background:rgba(212,171,72,.05);border:1px solid rgba(212,171,72,.2);">'
+    + '  <b id="sa-form-title" style="color:#d4af37;display:block;margin-bottom:12px;font-size:14px">新增管理员</b>'
+    + '  <div id="sa-form-create">'
+    + '    <div class="form-row">'
+    + '      <div class="fg"><label>店</label><select id="sa-store"></select></div>'
+    + '      <div class="fg"><label>用户名 *</label><input id="sa-user" placeholder="3-30 位字母数字"></div>'
+    + '    </div>'
+    + '    <div class="fg" style="margin-bottom:10px"><label>密码 *</label><input id="sa-pwd" type="password" placeholder="至少 6 位"></div>'
+    + '  </div>'
+    + '  <div id="sa-form-reset" style="display:none">'
+    + '    <div class="fg" style="margin-bottom:10px"><label>新密码 *</label><input id="sa-pwd-new" type="password" placeholder="至少 6 位"></div>'
+    + '    <div class="hint" style="font-size:12px;color:var(--muted);margin-bottom:10px">重置 <b id="sa-reset-user">user</b> 的密码。请自行记住新密码。</div>'
+    + '  </div>'
+    + '  <div style="display:flex;gap:8px;justify-content:flex-end">'
+    + '    <button class="btn btn-sm" style="color:var(--muted);border:1px solid var(--border)" onclick="saCloseForm()">取消</button>'
+    + '    <button class="btn btn-green btn-sm" id="sa-submit-btn" onclick="saSubmit()">保存</button>'
+    + '  </div>'
+    + '</div>'
+    + '</div>';
   await saReload();
 }
 
