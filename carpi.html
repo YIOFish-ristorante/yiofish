@@ -336,12 +336,12 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .scnt { font-size: 11px; color: var(--muted2); white-space: nowrap; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
 .card {
-  background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--card); border: 1px solid rgba(212,171,72,.18); border-radius: var(--r);
   overflow: hidden; display: flex; flex-direction: column;
   animation: fu .35s ease both;
   transition: transform .2s, box-shadow .2s, border-color .2s;
 }
-.card:hover { transform: translateY(-3px); box-shadow: 0 14px 48px rgba(0,0,0,.5); border-color: rgba(200,168,76,.22); }
+.card:hover { transform: translateY(-3px); box-shadow: 0 14px 48px rgba(0,0,0,.5); border-color: rgba(212,171,72,.38); }
 .card.so { opacity: .35; pointer-events: none; }
 @keyframes fu { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 .cimg { position: relative; aspect-ratio: 16/10; overflow: hidden; background: #100f09; flex-shrink: 0; min-height: 80px; }
@@ -541,7 +541,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.13.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.13.1 · 2026-05-30</span></div>
 </div>
 </div>
 
