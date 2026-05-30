@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.15.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.15.1</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.15.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.15.1</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -350,6 +350,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     </button>
     <button class="s-btn" id="nav-tables" onclick="showPage('tables')">
       <span class="s-ico">🪑</span>桌号管理
+    </button>
+    <button class="s-btn" id="nav-consegna" onclick="showPage('consegna-schedule')">
+      <span class="s-ico">🛵</span>Consegna 排班
     </button>
     <button class="s-btn" id="nav-settings" onclick="showPage('settings')">
       <span class="s-ico">⚙️</span>设置
@@ -617,7 +620,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.1</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1328,10 +1331,14 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.1</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
+  // 切店后重渲依赖 _SETTINGS 的整页（其他页 loadAll 已重渲）
+  if (_page === 'consegna-schedule' && typeof renderConsegnaSchedulePage === 'function') {
+    renderConsegnaSchedulePage();
+  }
   toast('✅ 已切换到 ' + (store ? store.name : storeId));
 }
 
@@ -1641,6 +1648,14 @@ function showPage(p){
     var nbsa = document.getElementById('nav-store-admin');
     if (nbsa) nbsa.classList.add('active');
     renderStoreAdminPage();
+    return;
+  }
+  if (p === 'consegna-schedule') {
+    _page = 'consegna-schedule';
+    document.querySelectorAll('.s-btn').forEach(function(b){ b.classList.remove('active'); });
+    var nbcs = document.getElementById('nav-consegna');
+    if (nbcs) nbcs.classList.add('active');
+    renderConsegnaSchedulePage();
     return;
   }
   _page = p;
@@ -3254,17 +3269,6 @@ function renderSettings(){
         +'<button onclick="saveAsportoMin()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 16px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存</button>'
       +'</div>'
     +'</div>'
-    +'<div class="card" id="section-consegna-schedule" style="padding:20px 22px;margin-bottom:16px">'
-      +'<div class="s-label" style="padding:0 0 12px">🛵 Consegna 排班</div>'
-      +'<div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6;">'
-        +'设置每天每个时段是否提供外送。点击右侧按钮可以关闭某个餐段（即"那天那一餐不送"）。'
-        +'<br>⚠️ 时间格式 HH:MM（如 12:00、19:30）。结束时间必须晚于开始时间。'
-      +'</div>'
-      +renderConsegnaScheduleUI(s.consegna_schedule)
-      +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">'
-        +'<button onclick="saveConsegnaSchedule()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 22px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存排班</button>'
-      +'</div>'
-    +'</div>'
     +'<div class="card" id="section-round-settings" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">🍽️ 点餐轮次控制</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">控制每桌客人的点餐节奏</div>'
@@ -3573,6 +3577,32 @@ var CONSEGNA_DEFAULT_SCHEDULE = {
 };
 var GIORNI_IT_ADMIN = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
 var GIORNI_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+function renderConsegnaSchedulePage() {
+  var content = document.getElementById('content');
+  if (!content) return;
+  var s = _SETTINGS || {};
+  // 顶部展示当前店名（super 可切换）
+  var storeName = '';
+  if (CURRENT_ROLE === 'super' && typeof STORES !== 'undefined') {
+    var st = STORES.find(function(x){ return x.id === RESTAURANT_ID; });
+    if (st) storeName = st.name;
+  }
+  content.innerHTML =
+    '<div style="padding:0;">'
+    + '<div class="page-head"><div><h1>🛵 Consegna 排班</h1><p>设置外送服务的每周时段（' + (storeName || RESTAURANT_ID) + '）</p></div></div>'
+    + '<div class="card" style="padding:20px 22px;margin-bottom:16px;">'
+    + '  <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">'
+    +   '设置每天每个时段是否提供外送。点击右侧按钮可以关闭某个餐段（即"那天那一餐不送"）。<br>'
+    +   '⚠️ 时间格式 HH:MM（如 12:00、19:30）。结束时间必须晚于开始时间。'
+    + '  </div>'
+    +    renderConsegnaScheduleUI(s.consegna_schedule)
+    + '  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;">'
+    + '    <button onclick="saveConsegnaSchedule()" style="background:var(--gold);border:none;border-radius:var(--r);padding:10px 26px;font-size:13px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-weight:500;">💾 保存排班</button>'
+    + '  </div>'
+    + '</div>'
+    + '</div>';
+}
 
 function renderConsegnaScheduleUI(schedule) {
   // schedule 可能是 null / 对象 / 字符串（PostgreSQL JSONB）
