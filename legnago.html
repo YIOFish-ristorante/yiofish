@@ -541,7 +541,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.13.1 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.14.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -761,6 +761,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <div style="flex:1;">
         <div style="font-size:15px;font-weight:500;letter-spacing:1.5px;">CONSEGNA</div>
         <div style="font-size:11px;opacity:.65;margin-top:3px;">A domicilio · Sconto 10% · Min €35/€50</div>
+        <div id="takeaway-consegna-hint" style="display:none;font-size:10px;color:rgba(255,200,100,.85);margin-top:6px;line-height:1.4;font-style:italic;"></div>
       </div>
     </button>
     <!-- Consegna 不可用提示（占原 Consegna 位置） -->
@@ -2560,9 +2561,46 @@ function openTakeawayChoice() {
     }
   }
 
-  // Consegna：同理
-  if (cBtn)    cBtn.style.display    = consegnaOn ? 'flex' : 'none';
-  if (cNotice) cNotice.style.display = consegnaOn ? 'none' : 'flex';
+  // Consegna：总开关
+  var cBtn = document.getElementById('takeaway-consegna-btn');
+  var cNotice = document.getElementById('takeaway-consegna-notice');
+  var cHint = document.getElementById('takeaway-consegna-hint');
+
+  // 判断 Consegna 是否有未来可送时段（用于"全周关闭"极端情况）
+  function consegnaHasAnyFuture() {
+    for (var d = 0; d <= 6; d++) {
+      var w = getConsegnaWindowsForDay(d);
+      if (w.lunch || w.dinner) return true;
+    }
+    return false;
+  }
+
+  if (!consegnaOn) {
+    // 管理员显式关闭：完全屏蔽
+    if (cBtn)    cBtn.style.display    = 'none';
+    if (cNotice) cNotice.style.display = 'flex';
+    if (cHint)   cHint.style.display   = 'none';
+  } else if (!consegnaHasAnyFuture()) {
+    // 排班表全周关闭：也完全屏蔽
+    if (cBtn)    cBtn.style.display    = 'none';
+    if (cNotice) cNotice.style.display = 'flex';
+    if (cHint)   cHint.style.display   = 'none';
+  } else {
+    // 正常：按钮可点。如果当前不在任何可送时段，加 hint 显示下次时间
+    if (cBtn)    cBtn.style.display    = 'flex';
+    if (cNotice) cNotice.style.display = 'none';
+    if (cHint) {
+      try {
+        var cw = consegnaWindowNow();
+        if (!cw.open && cw.nextMsg) {
+          cHint.textContent = 'ⓘ ' + cw.nextMsg;
+          cHint.style.display = 'block';
+        } else {
+          cHint.style.display = 'none';
+        }
+      } catch(e) { cHint.style.display = 'none'; }
+    }
+  }
 
   // 两者都关：显示底部大提示，并改副标题
   var bothClosed = (!asportoOn && !consegnaOn);
@@ -2805,17 +2843,48 @@ function renderPriceSummary() {
 
 // 外卖发送
 // ── CONSEGNA 外送时段规则（按星期）──
-// 0=周日 1=周一 ... 6=周六。lunch=午餆12-15可送, dinner=晚餆19-23可送
-var CONSEGNA_SCHEDULE = {
-  0: { lunch: false, dinner: true  },  // 周日：只晚餐
-  1: { lunch: true,  dinner: true  },  // 周一
-  2: { lunch: true,  dinner: true  },  // 周二
-  3: { lunch: true,  dinner: true  },  // 周三
-  4: { lunch: true,  dinner: true  },  // 周四
-  5: { lunch: true,  dinner: true  },  // 周五
-  6: { lunch: true,  dinner: false }   // 周六：只午餐（晚上忙不送）
-};
-var GIORNI_IT = ['Domenica','Luned\u00ec','Marted\u00ec','Mercoled\u00ec','Gioved\u00ec','Venerd\u00ec','Sabato'];
+// 数据驱动：从 SETTINGS.consegna_schedule 读取，每家店独立配置
+// 兼容老格式：缺失时回退到全开 12:00-15:00 / 19:00-23:00
+var GIORNI_IT = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+
+// 把 "HH:MM" 转成当天分钟数
+function _hmToMin(s) {
+  if (!s || typeof s !== 'string') return null;
+  var p = s.split(':');
+  if (p.length !== 2) return null;
+  var h = parseInt(p[0], 10), m = parseInt(p[1], 10);
+  if (isNaN(h) || isNaN(m)) return null;
+  return h*60 + m;
+}
+
+// 解析 SETTINGS.consegna_schedule（可能是字符串 / 对象 / null）→ 标准对象
+function _parseSchedule() {
+  var s = (typeof SETTINGS !== 'undefined') ? SETTINGS.consegna_schedule : null;
+  if (typeof s === 'string') { try { s = JSON.parse(s); } catch(e) { s = null; } }
+  return (s && typeof s === 'object') ? s : null;
+}
+
+// 返回指定星期的 {lunch:{startMin,endMin}|null, dinner:{startMin,endMin}|null}
+// startMin/endMin 是当天分钟数；null = 该餐段关闭
+function getConsegnaWindowsForDay(dayOfWeek) {
+  var sched = _parseSchedule();
+  var out = {lunch: null, dinner: null};
+  if (sched) {
+    var d = sched[String(dayOfWeek)] || {};
+    ['lunch', 'dinner'].forEach(function(meal) {
+      var m = d[meal];
+      if (m && m.start && m.end) {
+        var s = _hmToMin(m.start), e = _hmToMin(m.end);
+        if (s !== null && e !== null && e > s) out[meal] = {startMin: s, endMin: e, start: m.start, end: m.end};
+      }
+    });
+  } else {
+    // 完全无配置：默认 12-15 / 19-23 全开（兼容旧数据）
+    out.lunch  = {startMin: 12*60, endMin: 15*60, start: '12:00', end: '15:00'};
+    out.dinner = {startMin: 19*60, endMin: 23*60, start: '19:00', end: '23:00'};
+  }
+  return out;
+}
 
 // 取当前罗马时间：{day:星期(0-6), minutes:当天分钟数}
 function getRomeNow() {
@@ -2844,25 +2913,33 @@ function buildAsportoTimes() {
   var today = rome.day;
   var isConsegna = (order_mode === 'consegna');
 
-  var lunchStart = 12*60, lunchEnd = 15*60;
-  var dinnerStart = 19*60, dinnerEnd = 23*60;
-  var minTime = romeMinutes + 30;
+  var minTime = romeMinutes + 30;  // 当前时间 +30 分钟备餐缓冲
 
+  // 生成某一天的时段时间点；dayLabel 非空时加前缀（如 "Domani · "）
   function slotsForDay(dayOfWeek, applyMinTime, dayLabel) {
     var out = [];
-    var rule = isConsegna ? (CONSEGNA_SCHEDULE[dayOfWeek] || {lunch:true,dinner:true})
-                          : {lunch:true, dinner:true};
-    function pushRange(start, end) {
-      for (var t = start; t <= end; t += 30) {
+    // ASPORTO 不受星期限制（沿用默认 12-15 / 19-23）
+    var windows;
+    if (isConsegna) {
+      windows = getConsegnaWindowsForDay(dayOfWeek);
+    } else {
+      windows = {
+        lunch:  {startMin:12*60, endMin:15*60},
+        dinner: {startMin:19*60, endMin:23*60}
+      };
+    }
+    function pushRange(startMin, endMin) {
+      for (var t = startMin; t <= endMin; t += 30) {
         if (applyMinTime && t < minTime) continue;
         var hh = (Math.floor(t/60)<10?'0':'')+Math.floor(t/60);
         var mm = (t%60<10?'0':'')+(t%60);
         out.push((dayLabel||'') + hh + ':' + mm);
       }
     }
-    if (rule.lunch)  pushRange(lunchStart, lunchEnd);
-    if (rule.lunch && rule.dinner && out.length > 0) out.push('---SEP---');
-    if (rule.dinner) pushRange(dinnerStart, dinnerEnd);
+    if (windows.lunch)  pushRange(windows.lunch.startMin, windows.lunch.endMin);
+    // 午餐和晚餐都有时，中间插一条分割线标记
+    if (windows.lunch && windows.dinner && out.length > 0) out.push('---SEP---');
+    if (windows.dinner) pushRange(windows.dinner.startMin, windows.dinner.endMin);
     return out;
   }
 
@@ -2891,26 +2968,28 @@ function buildAsportoTimes() {
 }
 
 // 判断当前罗马时间是否在 CONSEGNA 可外送时段内
+// 返回 {open:bool, nextMsg:下次外送时间的意大利语提示}
 function consegnaWindowNow() {
   var rome = getRomeNow();
   var m = rome.minutes, today = rome.day;
-  var lunchStart=12*60, lunchEnd=15*60, dinnerStart=19*60, dinnerEnd=23*60;
-  var rule = CONSEGNA_SCHEDULE[today] || {lunch:true, dinner:true};
-  var openNow = (rule.lunch && m>=lunchStart && m<=lunchEnd) ||
-                (rule.dinner && m>=dinnerStart && m<=dinnerEnd);
+  var w = getConsegnaWindowsForDay(today);
+  var openNow = (w.lunch  && m >= w.lunch.startMin  && m <= w.lunch.endMin) ||
+                (w.dinner && m >= w.dinner.startMin && m <= w.dinner.endMin);
   if (openNow) return { open: true, nextMsg: '' };
 
+  // 找下一个可外送时段
   for (var i = 0; i <= 7; i++) {
     var d = (today + i) % 7;
-    var r = CONSEGNA_SCHEDULE[d] || {lunch:true, dinner:true};
+    var dw = getConsegnaWindowsForDay(d);
     if (i === 0) {
-      if (r.lunch && m < lunchStart) return { open:false, nextMsg:'Prossima consegna: oggi 12:00\u201315:00' };
-      if (r.dinner && m < dinnerStart) return { open:false, nextMsg:'Prossima consegna: oggi 19:00\u201323:00' };
+      // 今天：只看还没过的时段
+      if (dw.lunch  && m < dw.lunch.startMin)  return { open:false, nextMsg:'Prossima consegna: oggi ' + dw.lunch.start + '–' + dw.lunch.end };
+      if (dw.dinner && m < dw.dinner.startMin) return { open:false, nextMsg:'Prossima consegna: oggi ' + dw.dinner.start + '–' + dw.dinner.end };
       continue;
     }
     var giorno = (i === 1) ? 'domani' : GIORNI_IT[d];
-    if (r.lunch)  return { open:false, nextMsg:'Prossima consegna: ' + giorno + ' 12:00\u201315:00' };
-    if (r.dinner) return { open:false, nextMsg:'Prossima consegna: ' + giorno + ' 19:00\u201323:00' };
+    if (dw.lunch)  return { open:false, nextMsg:'Prossima consegna: ' + giorno + ' ' + dw.lunch.start + '–' + dw.lunch.end };
+    if (dw.dinner) return { open:false, nextMsg:'Prossima consegna: ' + giorno + ' ' + dw.dinner.start + '–' + dw.dinner.end };
   }
   return { open:false, nextMsg:'' };
 }

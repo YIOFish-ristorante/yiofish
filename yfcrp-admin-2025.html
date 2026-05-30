@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.14.3</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.15.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.14.3</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.15.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -617,7 +617,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.3</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1328,7 +1328,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.3</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3254,6 +3254,17 @@ function renderSettings(){
         +'<button onclick="saveAsportoMin()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 16px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存</button>'
       +'</div>'
     +'</div>'
+    +'<div class="card" id="section-consegna-schedule" style="padding:20px 22px;margin-bottom:16px">'
+      +'<div class="s-label" style="padding:0 0 12px">🛵 Consegna 排班</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6;">'
+        +'设置每天每个时段是否提供外送。点击右侧按钮可以关闭某个餐段（即"那天那一餐不送"）。'
+        +'<br>⚠️ 时间格式 HH:MM（如 12:00、19:30）。结束时间必须晚于开始时间。'
+      +'</div>'
+      +renderConsegnaScheduleUI(s.consegna_schedule)
+      +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">'
+        +'<button onclick="saveConsegnaSchedule()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 22px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存排班</button>'
+      +'</div>'
+    +'</div>'
     +'<div class="card" id="section-round-settings" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">🍽️ 点餐轮次控制</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">控制每桌客人的点餐节奏</div>'
@@ -3546,6 +3557,137 @@ async function saveAsportoMin() {
       toast('✅ Asporto 折扣门槛已设为 €' + val.toFixed(2));
     }
   } catch(e) { toast('❌ 保存失败: ' + e.message); }
+}
+
+// ════════════════════════════════════
+//  🛵 Consegna 排班
+// ════════════════════════════════════
+var CONSEGNA_DEFAULT_SCHEDULE = {
+  '0':{lunch:{start:'12:00',end:'15:00'}, dinner:{start:'19:00',end:'23:00'}},
+  '1':{lunch:{start:'12:00',end:'15:00'}, dinner:{start:'19:00',end:'23:00'}},
+  '2':{lunch:{start:'12:00',end:'15:00'}, dinner:{start:'19:00',end:'23:00'}},
+  '3':{lunch:{start:'12:00',end:'15:00'}, dinner:{start:'19:00',end:'23:00'}},
+  '4':{lunch:{start:'12:00',end:'15:00'}, dinner:{start:'19:00',end:'23:00'}},
+  '5':{lunch:{start:'12:00',end:'15:00'}, dinner:{start:'19:00',end:'23:00'}},
+  '6':{lunch:{start:'12:00',end:'15:00'}, dinner:{start:'19:00',end:'23:00'}}
+};
+var GIORNI_IT_ADMIN = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+var GIORNI_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+function renderConsegnaScheduleUI(schedule) {
+  // schedule 可能是 null / 对象 / 字符串（PostgreSQL JSONB）
+  var sched = schedule;
+  if (typeof sched === 'string') { try { sched = JSON.parse(sched); } catch(e) { sched = null; } }
+  if (!sched || typeof sched !== 'object') sched = JSON.parse(JSON.stringify(CONSEGNA_DEFAULT_SCHEDULE));
+
+  var html = '<div id="cs-table" style="display:flex;flex-direction:column;gap:10px;">';
+  for (var d = 1; d <= 7; d++) {  // 周一开始（1=lun, ..., 6=sab, 7=>0=dom）
+    var dayIdx = (d === 7) ? 0 : d;
+    var dayKey = String(dayIdx);
+    var dayData = sched[dayKey] || {};
+    html += '<div data-day="' + dayKey + '" style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;">'
+      + '<div style="font-size:13px;font-weight:500;color:var(--gold);margin-bottom:10px;">' + GIORNI_IT_ADMIN[dayIdx] + ' (' + GIORNI_SHORT[dayIdx] + ')</div>';
+    ['lunch', 'dinner'].forEach(function(meal) {
+      var label = meal === 'lunch' ? '🌞 午餐' : '🌙 晚餐';
+      var m = dayData[meal];
+      var isOpen = m && m.start && m.end;
+      var startVal = isOpen ? m.start : (meal === 'lunch' ? '12:00' : '19:00');
+      var endVal   = isOpen ? m.end   : (meal === 'lunch' ? '15:00' : '23:00');
+      html += '<div data-meal="' + meal + '" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'
+        + '<div style="min-width:60px;font-size:12px;color:var(--text2);">' + label + '</div>'
+        + '<input type="time" class="cs-start" value="' + startVal + '"'
+        + ' style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text2);outline:none;' + (isOpen ? '' : 'opacity:.3;pointer-events:none;') + '">'
+        + '<span style="color:var(--muted);">–</span>'
+        + '<input type="time" class="cs-end" value="' + endVal + '"'
+        + ' style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text2);outline:none;' + (isOpen ? '' : 'opacity:.3;pointer-events:none;') + '">'
+        + '<button onclick="csToggle(this)" data-open="' + (isOpen ? '1' : '0') + '"'
+        + ' style="background:' + (isOpen ? 'rgba(192,57,43,.15)' : 'rgba(39,174,96,.15)') + ';border:1px solid ' + (isOpen ? 'rgba(192,57,43,.4)' : 'rgba(39,174,96,.4)') + ';color:' + (isOpen ? '#e57373' : '#52c47e') + ';border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;letter-spacing:1px;">' + (isOpen ? '✕ 关闭' : '✓ 开启') + '</button>'
+        + '</div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function csToggle(btn) {
+  var row = btn.parentElement;
+  var currentlyOpen = btn.getAttribute('data-open') === '1';
+  var willOpen = !currentlyOpen;
+  btn.setAttribute('data-open', willOpen ? '1' : '0');
+  btn.textContent = willOpen ? '✕ 关闭' : '✓ 开启';
+  btn.style.background = willOpen ? 'rgba(192,57,43,.15)' : 'rgba(39,174,96,.15)';
+  btn.style.borderColor = willOpen ? 'rgba(192,57,43,.4)' : 'rgba(39,174,96,.4)';
+  btn.style.color = willOpen ? '#e57373' : '#52c47e';
+  // 时间输入框启用/禁用 + 透明度
+  row.querySelectorAll('input.cs-start, input.cs-end').forEach(function(inp) {
+    inp.style.opacity = willOpen ? '' : '.3';
+    inp.style.pointerEvents = willOpen ? '' : 'none';
+  });
+}
+
+function csCollect() {
+  // 从 DOM 收集当前排班表数据 → 返回 schedule 对象
+  var sched = {};
+  document.querySelectorAll('#cs-table > div[data-day]').forEach(function(dayDiv) {
+    var dayKey = dayDiv.getAttribute('data-day');
+    var dayData = {};
+    dayDiv.querySelectorAll('div[data-meal]').forEach(function(mealDiv) {
+      var meal = mealDiv.getAttribute('data-meal');
+      var btn = mealDiv.querySelector('button');
+      var isOpen = btn.getAttribute('data-open') === '1';
+      if (!isOpen) {
+        dayData[meal] = null;
+      } else {
+        var s = mealDiv.querySelector('input.cs-start').value;
+        var e = mealDiv.querySelector('input.cs-end').value;
+        dayData[meal] = {start: s, end: e};
+      }
+    });
+    sched[dayKey] = dayData;
+  });
+  return sched;
+}
+
+function csValidate(sched) {
+  // 返回 {ok:bool, errors:[...]}
+  var errors = [];
+  for (var d = 0; d <= 6; d++) {
+    var dayKey = String(d);
+    var dayName = GIORNI_IT_ADMIN[d];
+    ['lunch', 'dinner'].forEach(function(meal) {
+      var m = sched[dayKey] && sched[dayKey][meal];
+      if (m) {
+        if (!m.start || !m.end) {
+          errors.push(dayName + ' ' + (meal === 'lunch' ? '午餐' : '晚餐') + '：时间不能为空');
+          return;
+        }
+        if (m.end <= m.start) {
+          errors.push(dayName + ' ' + (meal === 'lunch' ? '午餐' : '晚餐') + '：结束时间(' + m.end + ')必须晚于开始时间(' + m.start + ')');
+        }
+      }
+    });
+  }
+  return {ok: errors.length === 0, errors: errors};
+}
+
+async function saveConsegnaSchedule() {
+  var sched = csCollect();
+  var v = csValidate(sched);
+  if (!v.ok) {
+    toast('⚠️ ' + v.errors[0]);  // 只显示第一个错误（避免 toast 过长）
+    console.error('Consegna 排班校验失败：', v.errors);
+    return;
+  }
+  try {
+    markDirty();
+    await saveSettingsToDB({consegna_schedule: sched});
+    _SETTINGS.consegna_schedule = sched;
+    markSaved();
+    toast('✅ Consegna 排班已保存');
+  } catch(e) {
+    toast('❌ 保存失败: ' + e.message);
+  }
 }
 
 async function toggleSetting(key, val){
