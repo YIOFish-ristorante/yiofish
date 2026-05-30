@@ -541,7 +541,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.10.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.11.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -734,8 +734,10 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
   <div class="sheet">
     <div class="drag-bar"></div>
     <h3>TAKEAWAY</h3>
-    <p class="notice" style="text-align:center;margin-bottom:18px;">Come preferisci ricevere il tuo ordine?</p>
-    <button onclick="chooseTakeaway('asporto')"
+    <p class="notice" id="takeaway-subtitle" style="text-align:center;margin-bottom:18px;">Come preferisci ricevere il tuo ordine?</p>
+
+    <!-- Asporto 按钮（启用时显示） -->
+    <button id="takeaway-asporto-btn" onclick="chooseTakeaway('asporto')"
       style="width:100%;background:rgba(230,126,34,.15);border:1px solid rgba(230,126,34,.45);border-radius:var(--r);padding:18px 14px;margin-bottom:10px;color:#ede5d4;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;">
       <div style="font-size:32px;flex-shrink:0;">📦</div>
       <div style="flex:1;">
@@ -743,6 +745,16 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <div style="font-size:11px;opacity:.65;margin-top:3px;">Ritiro in negozio · Sconto 20%</div>
       </div>
     </button>
+    <!-- Asporto 不可用提示（占原 Asporto 位置） -->
+    <div id="takeaway-asporto-notice" style="display:none;width:100%;background:rgba(212,171,72,.08);border:1px solid rgba(212,171,72,.25);border-radius:var(--r);padding:14px;margin-bottom:10px;display:none;align-items:flex-start;gap:12px;">
+      <div style="font-size:24px;opacity:.7;flex-shrink:0;line-height:1;">⚠️</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;color:#d4ab48;letter-spacing:1px;margin-bottom:4px;">ASPORTO NON DISPONIBILE</div>
+        <div style="font-size:11px;opacity:.7;line-height:1.55;">Servizio temporaneamente sospeso durante l'orario di punta.</div>
+      </div>
+    </div>
+
+    <!-- Consegna 按钮（启用时显示） -->
     <button id="takeaway-consegna-btn" onclick="chooseTakeaway('consegna')"
       style="width:100%;background:rgba(33,150,243,.12);border:1px solid rgba(33,150,243,.4);border-radius:var(--r);padding:18px 14px;margin-bottom:10px;color:#ede5d4;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;">
       <div style="font-size:32px;flex-shrink:0;">🛵</div>
@@ -751,7 +763,23 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <div style="font-size:11px;opacity:.65;margin-top:3px;">A domicilio · Sconto 10% · Min €35/€50</div>
       </div>
     </button>
-    <button class="btn-close" onclick="closeModal('takeawayChoiceModal')">Annulla</button>
+    <!-- Consegna 不可用提示（占原 Consegna 位置） -->
+    <div id="takeaway-consegna-notice" style="display:none;width:100%;background:rgba(212,171,72,.08);border:1px solid rgba(212,171,72,.25);border-radius:var(--r);padding:14px;margin-bottom:10px;align-items:flex-start;gap:12px;">
+      <div style="font-size:24px;opacity:.7;flex-shrink:0;line-height:1;">⚠️</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;color:#d4ab48;letter-spacing:1px;margin-bottom:4px;">CONSEGNA NON DISPONIBILE</div>
+        <div style="font-size:11px;opacity:.7;line-height:1.55;">Servizio temporaneamente sospeso durante l'orario di punta.</div>
+      </div>
+    </div>
+
+    <!-- 两者都关时的额外底部提示 -->
+    <div id="takeaway-bothoff-notice" style="display:none;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.25);border-radius:var(--r);padding:14px 12px;margin-bottom:10px;text-align:center;">
+      <div style="font-size:28px;margin-bottom:6px;opacity:.85;">🍽️</div>
+      <div style="font-size:12px;font-weight:500;color:#e57373;letter-spacing:1px;margin-bottom:4px;">SERVIZIO ASPORTO SOSPESO</div>
+      <div style="font-size:11px;opacity:.75;line-height:1.55;">Vi aspettiamo in ristorante!</div>
+    </div>
+
+    <button class="btn-close" onclick="closeModal('takeawayChoiceModal')">Chiudi</button>
   </div>
 </div>
 
@@ -2462,19 +2490,50 @@ function sendNotify() {
 // ASPORTO / CONSEGNA 模式（v1.5.0）
 // ════════════════════════════════════
 function openTakeawayChoice() {
-  // 根据后台设置控制「外送 CONSEGNA」是否可选
-  var consegnaBtn = document.getElementById('takeaway-consegna-btn');
-  if (consegnaBtn) {
-    // consegna_enabled 默认开启；明确为 false 才关闭
-    var consegnaOn = (SETTINGS.consegna_enabled !== false);
-    consegnaBtn.style.display = consegnaOn ? '' : 'none';
+  // 三种 setting 读取（默认开启；明确为 false 才关闭）
+  var asportoOn  = (SETTINGS.takeaway_enabled !== false);
+  var consegnaOn = (SETTINGS.consegna_enabled !== false);
+
+  // 获取 DOM
+  var aBtn = document.getElementById('takeaway-asporto-btn');
+  var aNotice = document.getElementById('takeaway-asporto-notice');
+  var cBtn = document.getElementById('takeaway-consegna-btn');
+  var cNotice = document.getElementById('takeaway-consegna-notice');
+  var bothOff = document.getElementById('takeaway-bothoff-notice');
+  var subtitle = document.getElementById('takeaway-subtitle');
+
+  // Asporto：开 → 按钮显示，提示隐藏；关 → 反之
+  if (aBtn)    aBtn.style.display    = asportoOn ? 'flex' : 'none';
+  if (aNotice) aNotice.style.display = asportoOn ? 'none' : 'flex';
+
+  // Consegna：同理
+  if (cBtn)    cBtn.style.display    = consegnaOn ? 'flex' : 'none';
+  if (cNotice) cNotice.style.display = consegnaOn ? 'none' : 'flex';
+
+  // 两者都关：显示底部大提示，并改副标题
+  var bothClosed = (!asportoOn && !consegnaOn);
+  if (bothOff) bothOff.style.display = bothClosed ? 'block' : 'none';
+  if (subtitle) {
+    subtitle.textContent = bothClosed
+      ? 'Servizio temporaneamente sospeso'
+      : 'Come preferisci ricevere il tuo ordine?';
   }
+
   openModal('takeawayChoiceModal');
 }
 
 function chooseTakeaway(mode) {
-  // 防御：外送已关闭时不允许选 consegna（强制回退到 asporto）
+  // 防御 1：选 asporto 但已关闭
+  if (mode === 'asporto' && SETTINGS.takeaway_enabled === false) {
+    toast('Asporto non disponibile al momento');
+    return;
+  }
+  // 防御 2：选 consegna 但已关闭 → 尝试回退到 asporto，若 asporto 也关则拒绝
   if (mode === 'consegna' && SETTINGS.consegna_enabled === false) {
+    if (SETTINGS.takeaway_enabled === false) {
+      toast('Servizio asporto temporaneamente sospeso');
+      return;
+    }
     toast('Consegna a domicilio non disponibile al momento');
     mode = 'asporto';
   }
@@ -2485,6 +2544,14 @@ function chooseTakeaway(mode) {
 
 function setOrderMode(mode) {
   if (mode !== 'asporto' && mode !== 'consegna') return;
+  // 防御：根据 settings 自动纠正
+  if (mode === 'consegna' && SETTINGS.consegna_enabled === false) {
+    mode = 'asporto'; // 外送被关 → 回退到打包
+  }
+  if (mode === 'asporto' && SETTINGS.takeaway_enabled === false && SETTINGS.consegna_enabled !== false) {
+    mode = 'consegna'; // 打包被关但外送还开 → 切到外送
+  }
+  // 两者都关：保持原值（用户进不去菜单视图，由 openTakeawayChoice 拦截）
   order_mode = mode;
   saveOrderModeToLS();
   applyOrderModeUI();
