@@ -250,7 +250,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.14.1</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.14.2</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -306,7 +306,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.14.1</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.14.2</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -614,7 +614,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.2</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1049,7 +1049,8 @@ function renderPermList() {
   var storePerm = _permData[_permActiveStore] || {};
   el.innerHTML = PERM_DEFS.map(function(p) {
     var key = p[0], label = p[1];
-    var enabled = storePerm[key] !== undefined ? storePerm[key] : false;
+    // 默认值改为 true（与 store_admin 侧逻辑一致：没记录 = 默认允许）
+    var enabled = storePerm[key] !== undefined ? storePerm[key] : true;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--border);">'
       + '<span style="font-size:15px;font-weight:500;color:var(--text);">'+label+'</span>'
       + '<label style="position:relative;display:inline-block;width:54px;height:30px;cursor:pointer;">'
@@ -1106,23 +1107,35 @@ function applyPermissions(myPerms) {
     'nav_restaurant':'nav-restaurant','nav_export':'nav-export',
     'nav_tables':'nav-tables','nav_settings':'nav-settings'
   };
-  // 先全部隐藏
+  // 默认允许（缺失记录 = 允许），只有显式 false 才隐藏
+  // 这样新加的权限不会因为老店铺没记录而被锁死
   Object.keys(btnMap).forEach(function(key) {
     var el = document.getElementById(btnMap[key]);
-    if (el) el.style.display = 'none';
-  });
-  // 只显示有权限的
-  Object.keys(btnMap).forEach(function(key) {
-    if (myPerms[key] === true) {
-      var el = document.getElementById(btnMap[key]);
-      if (el) el.style.display = '';
-    }
+    if (!el) return;
+    el.style.display = (myPerms[key] === false) ? 'none' : '';
   });
   // 保存权限供settings渲染后使用
   window._myPerms = myPerms;
+
+  // 分组标题/分隔线智能隐藏：当整个"Excel"分组下 3 个按钮都隐藏时，连标题和分隔线也隐藏
+  var excelKeys = ['nav_export','nav_tables','nav_settings'];
+  var hasAnyExcel = excelKeys.some(function(k){ return myPerms[k] !== false; });
+  document.querySelectorAll('.sidebar .s-div, .sidebar .s-label').forEach(function(el){
+    // 找到 Excel 标题（紧跟在 s-div 后面的 s-label）和它前面的 s-div
+    var txt = (el.textContent || '').trim();
+    if (txt === 'Excel') {
+      el.style.display = hasAnyExcel ? '' : 'none';
+      // 它前面的 s-div 也跟着隐藏
+      var prev = el.previousElementSibling;
+      if (prev && prev.classList.contains('s-div')) {
+        prev.style.display = hasAnyExcel ? '' : 'none';
+      }
+    }
+  });
+
   // 自动跳到第一个有权限的页面
   var firstPerm = ['nav_dishes','nav_cats','nav_tags','nav_restaurant','nav_export','nav_tables','nav_settings']
-    .find(function(k){ return myPerms[k] === true; });
+    .find(function(k){ return myPerms[k] !== false; });
   if (firstPerm) {
     var pageMap = {'nav_dishes':'dishes','nav_cats':'cats','nav_tags':'tags',
       'nav_restaurant':'restaurant','nav_export':'export','nav_tables':'tables','nav_settings':'settings'};
@@ -1138,9 +1151,10 @@ function applySettingsSections() {
     'announcement': 'section-announcement',
     'is_open': 'section-is-open'
   };
+  // 同样：缺失 = 允许，只有显式 false 才隐藏
   Object.keys(sectionMap).forEach(function(key) {
     var el = document.getElementById(sectionMap[key]);
-    if (el) el.style.display = (myPerms[key] === true ? '' : 'none');
+    if (el) el.style.display = (myPerms[key] === false) ? 'none' : '';
   });
 }
 
@@ -1311,7 +1325,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.1</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.2</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
