@@ -541,7 +541,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.6.2 · 2026-05-28</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.7.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -639,8 +639,6 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 
       <!-- 配送须知（仅 CONSEGNA 显示） -->
       <div id="consegna-info" style="display:none;background:rgba(212,171,72,.1);border:1px solid rgba(212,171,72,.3);border-radius:var(--r);padding:8px 10px;margin-bottom:10px;font-size:11px;color:#d4ab48;line-height:1.5;">
-      <!-- ASPORTO 折扣说明（仅 ASPORTO 显示） -->
-      <div id="asporto-discount-info" style="display:none;background:rgba(230,126,34,.1);border:1px solid rgba(230,126,34,.3);border-radius:var(--r);padding:9px 11px;margin-bottom:10px;font-size:11px;color:#e89752;line-height:1.6;"><div style="font-weight:500;margin-bottom:4px;">📦 SCONTO ASPORTO</div><div id="asporto-discount-hint" style="font-size:11px;color:#d9a574;margin-top:3px;">Ritiro + 20% sconto</div></div>
         Entro 5km: min €35 · consegna €3<br>
         Da 5 a 8km: min €50 · consegna €5<br>
         Oltre 8km non disponibile · 📍 GPS obbligatorio
@@ -1435,6 +1433,7 @@ function mkCard(it, delay) {
   var icon = cat ? cat.icon : '🍽️';
   var card = document.createElement('div');
   card.className = 'card' + (it.sold_out ? ' so' : '');
+  card.setAttribute('data-dish-id', it.id);  // v1.3.0: 便于价格联动刷新
   card.style.animationDelay = (delay * 0.04) + 's';
 
   var iw = null;
@@ -1523,6 +1522,7 @@ function mkCard(it, delay) {
   var prdiv = document.createElement('div');
   prdiv.className = 'cprice';
   var dispPrice = effectivePrice(it);
+  var actuallyDiscounted = (it.price > 0 && dispPrice < it.price - 0.001);
   var effSconto = displaySconto;
   if (dispPrice > 0) {
     var sym = document.createElement('span');
@@ -1530,7 +1530,7 @@ function mkCard(it, delay) {
     sym.textContent = '€';
     prdiv.appendChild(sym);
     prdiv.appendChild(document.createTextNode(' ' + Number(dispPrice).toFixed(2).replace('.', ',')));
-    if (effSconto > 0) {
+    if (effSconto > 0 && actuallyDiscounted) {
       var orig = document.createElement('span');
       orig.style.cssText = 'font-size:13px;color:rgba(237,229,212,.55);text-decoration:line-through;margin-left:6px;font-weight:400;';
       orig.textContent = '€ ' + Number(it.price).toFixed(2).replace('.', ',');
@@ -1576,13 +1576,46 @@ function cartCount() {
 }
 
 // 取单品在当前购物车模式下的实际单价（已应用折扣）
+// ── Asporto 满额折扣门槛 ──
+// 数据驱动：从 restaurant_settings.asporto_min_discount_amount 读取
+// = 0  → 无门槛（所有 Asporto 订单都打折，沿用现状）
+// > 0  → Asporto 折前原价总和 ≥ 此值时才打折，否则按原价
+// 注意：仅适用于 Asporto + 非 Consegna 模式（Consegna 用自己的固定 10% 折扣，不受门槛影响）
+function asportoOriginalSubtotal() {
+  // 用「折前原价 × 数量」算总和，避免和 effectivePrice 形成递归
+  var t = 0;
+  for (var id in cart_asporto) {
+    var it = getItemForMenu(id);
+    if (it) t += (parseFloat(it.price) || 0) * cart_asporto[id];
+  }
+  return t;
+}
+function asportoMinThreshold() {
+  var v = parseFloat(SETTINGS && SETTINGS.asporto_min_discount_amount);
+  return isFinite(v) && v > 0 ? v : 0;
+}
+// 当前 Asporto 折扣是否生效（达到门槛 或 无门槛）
+function isAsportoDiscountActive() {
+  if (!isAsporto) return false;            // 堂食：不打折
+  if (order_mode === 'consegna') return true; // Consegna：不受门槛影响
+  var threshold = asportoMinThreshold();
+  if (threshold <= 0) return true;          // 无门槛：始终生效
+  return asportoOriginalSubtotal() >= threshold;
+}
+
 // 数据驱动：CONSEGNA 模式用 sconto_consegna（每菜独立），不存在则用 sconto
 function effectivePrice(it) {
   if (!it) return 0;
   var sconto;
   if (isAsporto && order_mode === 'consegna') {
+    // CONSEGNA 模式：优先用 sconto_consegna，缺省回退到 sconto
     sconto = (it.sconto_consegna != null) ? (it.sconto_consegna || 0) : (it.sconto || 0);
+  } else if (isAsporto) {
+    // ASPORTO 模式：受门槛控制
+    if (!isAsportoDiscountActive()) return it.price; // 未达门槛 → 按原价
+    sconto = it.sconto || 0;
   } else {
+    // 堂食：sconto 字段在堂食视图理论上不应使用，但保留原逻辑兼容
     sconto = it.sconto || 0;
   }
   return sconto > 0 ? it.price * (1 - sconto/100) : it.price;
@@ -1827,6 +1860,9 @@ function updateItemUI(itemId) {
   }
 }
 
+// 跟踪上一次"Asporto 折扣是否激活"状态，用于检测跨过门槛
+var _lastAsportoDiscountActive = null;
+
 function updateCartUI() {
   var n = cartCount();
   var badge = document.getElementById('cart-badge');
@@ -1835,6 +1871,54 @@ function updateCartUI() {
   if (tot) tot.textContent = fmt(cartTotal());
   updateCartButtons();
   renderCartBody();
+
+  // ── Asporto 门槛状态变化检测 ──
+  // 只有在 Asporto+非Consegna+有门槛 的情形下需要监控
+  if (isAsporto && order_mode !== 'consegna' && asportoMinThreshold() > 0) {
+    var nowActive = isAsportoDiscountActive();
+    if (_lastAsportoDiscountActive !== null && _lastAsportoDiscountActive !== nowActive) {
+      // 跨过门槛 → 所有菜品卡价格都要重新渲染（折后价 ↔ 原价 切换）
+      refreshAllVisiblePrices();
+    }
+    _lastAsportoDiscountActive = nowActive;
+  } else {
+    _lastAsportoDiscountActive = null; // 离开 Asporto 模式时重置
+  }
+}
+
+// 重渲染所有菜品卡的价格（只改 .cprice 部分，不动加减按钮）
+function refreshAllVisiblePrices() {
+  var main = document.getElementById('menu-main');
+  if (!main) return;
+  // 找所有菜品卡
+  var cards = main.querySelectorAll('[data-dish-id]');
+  cards.forEach(function(card){
+    var itemId = card.getAttribute('data-dish-id');
+    var it = getItemForMenu(itemId);
+    if (!it) return;
+    var prdiv = card.querySelector('.cprice');
+    if (!prdiv) return;
+    var dispPrice = effectivePrice(it);
+    var actuallyDiscounted = (it.price > 0 && dispPrice < it.price - 0.001);
+    var effSconto = it.sconto || 0;
+    if (isAsporto && order_mode === 'consegna') {
+      effSconto = (it.sconto_consegna != null) ? (it.sconto_consegna || 0) : (it.sconto || 0);
+    }
+    prdiv.innerHTML = '';
+    if (dispPrice > 0) {
+      var sym = document.createElement('span');
+      sym.className = 'sym';
+      sym.textContent = '€';
+      prdiv.appendChild(sym);
+      prdiv.appendChild(document.createTextNode(' ' + Number(dispPrice).toFixed(2).replace('.', ',')));
+      if (effSconto > 0 && actuallyDiscounted) {
+        var orig = document.createElement('span');
+        orig.style.cssText = 'font-size:13px;color:rgba(237,229,212,.55);text-decoration:line-through;margin-left:6px;font-weight:400;';
+        orig.textContent = '€ ' + Number(it.price).toFixed(2).replace('.', ',');
+        prdiv.appendChild(orig);
+      }
+    }
+  });
 }
 
 function updateCartButtons() {
@@ -2525,32 +2609,60 @@ function focusField(id) {
   setTimeout(function(){ try { el.focus(); } catch(e){} }, 350);
 }
 
-// 计算并渲染价格明细（仅在 consegna 或有配送费时显示）
+// 计算并渲染价格明细（consegna / asporto-门槛 模式下显示）
 function renderPriceSummary() {
   var box = document.getElementById('price-summary');
   if (!box) return;
-  if (order_mode !== 'consegna') { box.style.display = 'none'; return; }
+  // 只在外卖类菜单（Asporto/Consegna）显示
+  if (!isAsporto) { box.style.display = 'none'; return; }
   var sub = cartSubtotal();
-  var fee = consegnaFee();
   if (sub <= 0) { box.style.display = 'none'; return; }
-  // 算未折扣的"原价"，用于显示节省了多少
-  var c = cart_asporto;
-  var orig = 0;
-  for (var id in c) {
-    var it = getItemForMenu(id);
-    if (it) orig += (it.price || 0) * c[id];
+
+  if (order_mode === 'consegna') {
+    // ── CONSEGNA 模式（原逻辑保留） ──
+    var fee = consegnaFee();
+    var c = cart_asporto;
+    var orig = 0;
+    for (var id in c) {
+      var it = getItemForMenu(id);
+      if (it) orig += (it.price || 0) * c[id];
+    }
+    var saved = orig - sub;
+    var html = '';
+    html += '<div style="display:flex;justify-content:space-between;"><span style="opacity:.7;">Subtotale</span><span>' + fmt(sub) + '</span></div>';
+    if (saved > 0.01) {
+      html += '<div style="display:flex;justify-content:space-between;color:#5DCAA5;"><span>Sconto consegna ' + CONFIG.CONSEGNA_SCONTO + '%</span><span>−' + fmt(saved) + '</span></div>';
+    }
+    if (fee > 0) {
+      html += '<div style="display:flex;justify-content:space-between;"><span style="opacity:.7;">Spese consegna</span><span>+' + fmt(fee) + '</span></div>';
+    }
+    html += '<div style="display:flex;justify-content:space-between;padding-top:5px;margin-top:4px;border-top:1px solid rgba(255,255,255,.1);font-weight:500;"><span>Totale</span><span style="color:#d4ab48;">' + fmt(sub + fee) + '</span></div>';
+    box.innerHTML = html;
+    box.style.display = 'block';
+    return;
   }
-  var saved = orig - sub;
-  var html = '';
-  html += '<div style="display:flex;justify-content:space-between;"><span style="opacity:.7;">Subtotale</span><span>' + fmt(sub) + '</span></div>';
-  if (saved > 0.01) {
-    html += '<div style="display:flex;justify-content:space-between;color:#5DCAA5;"><span>Sconto consegna ' + CONFIG.CONSEGNA_SCONTO + '%</span><span>−' + fmt(saved) + '</span></div>';
+
+  // ── ASPORTO 模式：仅当配置了门槛时显示门槛提示 + 折扣行 ──
+  var threshold = asportoMinThreshold();
+  if (threshold <= 0) { box.style.display = 'none'; return; } // 无门槛 → 不显示（保持原 UX）
+
+  var orig2 = asportoOriginalSubtotal();
+  var active = isAsportoDiscountActive();  // 是否已达门槛
+  var saved2 = orig2 - sub;                 // 实际省了多少（未达门槛时为 0）
+  var remaining = threshold - orig2;        // 还差多少
+  var html2 = '';
+  html2 += '<div style="display:flex;justify-content:space-between;"><span style="opacity:.7;">Subtotale</span><span>' + fmt(orig2) + '</span></div>';
+  if (active && saved2 > 0.01) {
+    html2 += '<div style="display:flex;justify-content:space-between;color:#5DCAA5;"><span>Sconto Asporto</span><span>−' + fmt(saved2) + '</span></div>';
+  } else if (!active) {
+    // 未达门槛：提示还差多少
+    html2 += '<div style="display:flex;justify-content:space-between;color:#d4ab48;align-items:center;font-size:11px;line-height:1.4;padding:6px 0;">'
+      + '<span>⚠️ Aggiungi <b>' + fmt(remaining) + '</b><br><span style="opacity:.7;font-size:10px;">per ottenere lo sconto Asporto</span></span>'
+      + '<span style="opacity:.5;">Soglia ' + fmt(threshold) + '</span>'
+      + '</div>';
   }
-  if (fee > 0) {
-    html += '<div style="display:flex;justify-content:space-between;"><span style="opacity:.7;">Spese consegna</span><span>+' + fmt(fee) + '</span></div>';
-  }
-  html += '<div style="display:flex;justify-content:space-between;padding-top:5px;margin-top:4px;border-top:1px solid rgba(255,255,255,.1);font-weight:500;"><span>Totale</span><span style="color:#d4ab48;">' + fmt(sub + fee) + '</span></div>';
-  box.innerHTML = html;
+  html2 += '<div style="display:flex;justify-content:space-between;padding-top:5px;margin-top:4px;border-top:1px solid rgba(255,255,255,.1);font-weight:500;"><span>Totale</span><span style="color:#d4ab48;">' + fmt(sub) + '</span></div>';
+  box.innerHTML = html2;
   box.style.display = 'block';
 }
 

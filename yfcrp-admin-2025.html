@@ -247,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.1</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -307,7 +307,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.1</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -660,7 +660,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.1</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -689,7 +689,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.1</span>';
   }
   loadAll();
 }
@@ -1439,7 +1439,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.1</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3224,6 +3224,24 @@ function renderSettings(){
         +makeSwitch('is_open', s.is_open, '🟢 营业状态', '关闭后菜单顶部显示"已打烊"提示')
       +'</div>'
     +'</div>'
+    +'<div class="card" id="section-asporto-min" style="padding:20px 22px;margin-bottom:16px">'
+      +'<div class="s-label" style="padding:0 0 12px">📦 Asporto 折扣门槛</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6;">'
+        +'设置后，顾客在 Asporto（打包自取）模式下，<b>折前原价总额 ≥ 此值时</b>才享受每道菜的 sconto 折扣。'
+        +'<br>• 设为 <b>0</b> = 无门槛，所有 Asporto 订单都按原折扣（沿用现状）'
+        +'<br>• 设为 <b>15</b> = 满 €15 才打折，未达则按原价'
+        +'<br>⚠️ 此门槛不影响 Consegna（外送）模式，Consegna 用固定 10% 折扣'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;align-items:center">'
+        +'<span style="font-size:13px;color:var(--text);min-width:auto;">门槛金额：</span>'
+        +'<div style="display:flex;align-items:center;flex:1;">'
+          +'<span style="background:var(--s2);border:1px solid var(--border2);border-right:none;border-radius:var(--r) 0 0 var(--r);padding:9px 10px;font-size:14px;color:var(--muted);">€</span>'
+          +'<input id="asporto-min-input" type="number" min="0" step="0.5" value="'+(parseFloat(s.asporto_min_discount_amount)||0)+'"'
+          +' style="flex:1;background:var(--s2);border:1px solid var(--border2);border-radius:0 var(--r) var(--r) 0;padding:9px 12px;font-size:14px;color:var(--text2);outline:none;">'
+        +'</div>'
+        +'<button onclick="saveAsportoMin()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 16px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存</button>'
+      +'</div>'
+    +'</div>'
     +'<div class="card" id="section-round-settings" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">🍽️ 点餐轮次控制</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">控制每桌客人的点餐节奏</div>'
@@ -3500,6 +3518,24 @@ async function saveAnnouncement() {
     _SETTINGS.announcement = val;
     markSaved();
     toast('✅ 公告已保存');
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
+}
+
+async function saveAsportoMin() {
+  var inp = document.getElementById('asporto-min-input');
+  if (!inp) return;
+  var val = parseFloat(inp.value);
+  if (!isFinite(val) || val < 0) { toast('⚠️ 请输入 ≥ 0 的数字'); return; }
+  try {
+    markDirty();
+    await saveSettingsToDB({asporto_min_discount_amount: val});
+    _SETTINGS.asporto_min_discount_amount = val;
+    markSaved();
+    if (val === 0) {
+      toast('✅ 已关闭 Asporto 门槛（所有订单都打折）');
+    } else {
+      toast('✅ Asporto 门槛已设为 €' + val.toFixed(2));
+    }
   } catch(e) { toast('❌ 保存失败: ' + e.message); }
 }
 
