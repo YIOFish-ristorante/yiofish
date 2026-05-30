@@ -541,7 +541,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.11.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.12.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1607,13 +1607,14 @@ function cartCount() {
 }
 
 // 取单品在当前购物车模式下的实际单价（已应用折扣）
-// ── Asporto 满额折扣门槛 ──
+// ── Asporto 起送价 / 折后保底 ──
 // 数据驱动：从 restaurant_settings.asporto_min_discount_amount 读取
-// = 0  → 无门槛（所有 Asporto 订单都打折，沿用现状）
-// > 0  → Asporto 折前原价总和 ≥ 此值时才打折，否则按原价
-// 注意：仅适用于 Asporto + 非 Consegna 模式（Consegna 用自己的固定 10% 折扣，不受门槛影响）
+// = 0  → 无起送价规则（沿用现状：所有 Asporto 订单都按 sconto 打折）
+// > 0  → 折后总额必须 ≥ 此值；不足则按此值结算（保底/补足）
+//        且原价 < 此值时不打折（菜还可以下单，按原价收）
+// 注意：仅适用于 Asporto + 非 Consegna 模式（Consegna 用自己的固定 10% 折扣 + 配送费）
 function asportoOriginalSubtotal() {
-  // 用「折前原价 × 数量」算总和，避免和 effectivePrice 形成递归
+  // 用「折前原价 × 数量」算总和
   var t = 0;
   for (var id in cart_asporto) {
     var it = getItemForMenu(id);
@@ -1625,16 +1626,74 @@ function asportoMinThreshold() {
   var v = parseFloat(SETTINGS && SETTINGS.asporto_min_discount_amount);
   return isFinite(v) && v > 0 ? v : 0;
 }
-// 当前 Asporto 折扣是否生效（达到门槛 或 无门槛）
+
+// 当前 Asporto 折扣是否生效（原价是否达到门槛）
+// 用于：菜品卡上是否显示折扣徽章 / 折后价
 function isAsportoDiscountActive() {
-  if (!isAsporto) return false;            // 堂食：不打折
+  if (!isAsporto) return false;
   if (order_mode === 'consegna') return true; // Consegna：不受门槛影响
   var threshold = asportoMinThreshold();
-  if (threshold <= 0) return true;          // 无门槛：始终生效
+  if (threshold <= 0) return true;
   return asportoOriginalSubtotal() >= threshold;
 }
 
+// 统一的购物车价格明细（Asporto + 非 Consegna 模式专用）
+// 调用方都从这里读取，避免分散计算导致不一致
+function asportoCartBreakdown() {
+  var orig = asportoOriginalSubtotal();
+  var threshold = asportoMinThreshold();
+  var b = {
+    origTotal: orig,           // 原价总额
+    sconto: 0,                 // 当前折扣%（菜品 sconto 字段）
+    discounted: orig,          // 打折后理论值
+    finalTotal: orig,          // 顾客最终付的金额
+    saved: 0,                  // 实际省了多少（含补足后的净值）
+    surcharge: 0,              // 补足金额（>0 = 折后被补足到门槛）
+    isDiscounted: false,       // 是否打了折扣
+    threshold: threshold       // 当前配置的起送价
+  };
+  if (orig <= 0) return b;
+
+  // 取第一道菜的 sconto 作为代表（在 v2 架构里所有菜的 sconto 是统一的，但保险起见）
+  // 更稳妥：用 origTotal 和"如果全部按各自 sconto 打完折"的差值算实际折扣
+  var totalAfterIndividualDiscount = 0;
+  for (var id in cart_asporto) {
+    var it = getItemForMenu(id);
+    if (!it) continue;
+    var dishSconto = parseInt(it.sconto) || 0;
+    var p = (parseFloat(it.price) || 0);
+    var afterDiscount = (dishSconto > 0) ? p * (1 - dishSconto/100) : p;
+    totalAfterIndividualDiscount += afterDiscount * cart_asporto[id];
+  }
+  b.discounted = totalAfterIndividualDiscount;
+
+  // 起送价规则
+  if (threshold <= 0) {
+    // 无门槛：直接按各菜折扣
+    b.finalTotal = totalAfterIndividualDiscount;
+    b.saved = orig - totalAfterIndividualDiscount;
+    b.isDiscounted = b.saved > 0.001;
+  } else if (orig < threshold) {
+    // 原价不够门槛：不打折，按原价
+    b.finalTotal = orig;
+    b.saved = 0;
+    b.isDiscounted = false;
+  } else {
+    // 原价 ≥ 门槛：打折，但折后不能低于门槛
+    if (totalAfterIndividualDiscount < threshold) {
+      b.finalTotal = threshold;
+      b.surcharge = threshold - totalAfterIndividualDiscount;
+    } else {
+      b.finalTotal = totalAfterIndividualDiscount;
+    }
+    b.saved = orig - b.finalTotal;
+    b.isDiscounted = b.saved > 0.001;
+  }
+  return b;
+}
+
 // 数据驱动：CONSEGNA 模式用 sconto_consegna（每菜独立），不存在则用 sconto
+// Asporto 模式：原价 < 门槛时不打折，否则按 sconto 打折（补足在 cartSubtotal 处理）
 function effectivePrice(it) {
   if (!it) return 0;
   var sconto;
@@ -1654,6 +1713,11 @@ function effectivePrice(it) {
 
 // 仅菜品小计（不含配送费）
 function cartSubtotal() {
+  // Asporto 非 Consegna 模式：使用统一的 breakdown 算法（含折后补足到起送价）
+  if (isAsporto && order_mode !== 'consegna') {
+    return asportoCartBreakdown().finalTotal;
+  }
+  // Consegna 或堂食：按单道菜的 effectivePrice 累加
   var c = isAsporto ? cart_asporto : cart_dine;
   var t = 0;
   for (var id in c) {
@@ -2713,26 +2777,42 @@ function renderPriceSummary() {
     return;
   }
 
-  // ── ASPORTO 模式：仅当配置了门槛时显示门槛提示 + 折扣行 ──
-  var threshold = asportoMinThreshold();
-  if (threshold <= 0) { box.style.display = 'none'; return; } // 无门槛 → 不显示（保持原 UX）
+  // ── ASPORTO 模式 ──
+  var b = asportoCartBreakdown();
+  // 无起送价配置 → 隐藏明细（保持原 UX 简洁）
+  if (b.threshold <= 0) { box.style.display = 'none'; return; }
 
-  var orig2 = asportoOriginalSubtotal();
-  var active = isAsportoDiscountActive();  // 是否已达门槛
-  var saved2 = orig2 - sub;                 // 实际省了多少（未达门槛时为 0）
-  var remaining = threshold - orig2;        // 还差多少
   var html2 = '';
-  html2 += '<div style="display:flex;justify-content:space-between;"><span style="opacity:.7;">Subtotale</span><span>' + fmt(orig2) + '</span></div>';
-  if (active && saved2 > 0.01) {
-    html2 += '<div style="display:flex;justify-content:space-between;color:#5DCAA5;"><span>Sconto Asporto</span><span>−' + fmt(saved2) + '</span></div>';
-  } else if (!active) {
-    // 未达门槛：提示还差多少
+  // 原价
+  html2 += '<div style="display:flex;justify-content:space-between;"><span style="opacity:.7;">Subtotale</span><span>' + fmt(b.origTotal) + '</span></div>';
+
+  if (b.isDiscounted) {
+    // 已打折：显示折扣行
+    var dishSconto = '';
+    // 取菜品 sconto（一般是 20%）作为展示
+    for (var sid in cart_asporto) {
+      var sit = getItemForMenu(sid);
+      if (sit && sit.sconto > 0) { dishSconto = ' ' + sit.sconto + '%'; break; }
+    }
+    // 实际折扣金额 = 原价 - 折后理论值
+    var rawDiscount = b.origTotal - b.discounted;
+    if (rawDiscount > 0.01) {
+      html2 += '<div style="display:flex;justify-content:space-between;color:#5DCAA5;"><span>Sconto Asporto' + dishSconto + '</span><span>−' + fmt(rawDiscount) + '</span></div>';
+    }
+    // 补足行：如果折后被补足到起送价
+    if (b.surcharge > 0.01) {
+      html2 += '<div style="display:flex;justify-content:space-between;color:#d4ab48;font-size:11px;line-height:1.4;"><span>Ordine minimo</span><span>+' + fmt(b.surcharge) + '</span></div>';
+    }
+  } else if (b.origTotal < b.threshold) {
+    // 未达起送价：提示还差多少
+    var remaining = b.threshold - b.origTotal;
     html2 += '<div style="display:flex;justify-content:space-between;color:#d4ab48;align-items:center;font-size:11px;line-height:1.4;padding:6px 0;">'
-      + '<span>⚠️ Aggiungi <b>' + fmt(remaining) + '</b><br><span style="opacity:.7;font-size:10px;">per ottenere lo sconto Asporto</span></span>'
-      + '<span style="opacity:.5;">Soglia ' + fmt(threshold) + '</span>'
+      + '<span>⚠️ Aggiungi <b>' + fmt(remaining) + '</b><br><span style="opacity:.7;font-size:10px;">per attivare lo sconto Asporto</span></span>'
+      + '<span style="opacity:.5;">Min. ' + fmt(b.threshold) + '</span>'
       + '</div>';
   }
-  html2 += '<div style="display:flex;justify-content:space-between;padding-top:5px;margin-top:4px;border-top:1px solid rgba(255,255,255,.1);font-weight:500;"><span>Totale</span><span style="color:#d4ab48;">' + fmt(sub) + '</span></div>';
+  // 总价
+  html2 += '<div style="display:flex;justify-content:space-between;padding-top:5px;margin-top:4px;border-top:1px solid rgba(255,255,255,.1);font-weight:500;"><span>Totale</span><span style="color:#d4ab48;">' + fmt(b.finalTotal) + '</span></div>';
   box.innerHTML = html2;
   box.style.display = 'block';
 }
@@ -2956,7 +3036,24 @@ function sendOrder() {
         lines.push('• ' + it2.name + ' x' + cart_asporto[id2] + (p2 > 0 ? ' (' + fmt(p2 * cart_asporto[id2]) + ')' : ''));
       }
     }
-    if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
+    // 价格明细（有起送价配置时显示更详细，便于 WhatsApp 沟通）
+    var bw = asportoCartBreakdown();
+    if (bw.threshold > 0 && bw.origTotal > 0) {
+      lines.push('');
+      lines.push('💵 Subtotale: ' + fmt(bw.origTotal));
+      if (bw.isDiscounted) {
+        var rawDisc = bw.origTotal - bw.discounted;
+        if (rawDisc > 0.01) lines.push('💚 Sconto: −' + fmt(rawDisc));
+        if (bw.surcharge > 0.01) lines.push('📦 Ordine minimo: +' + fmt(bw.surcharge));
+      } else if (bw.origTotal < bw.threshold) {
+        lines.push('ℹ️ Sotto soglia ' + fmt(bw.threshold) + ' (sconto non applicato)');
+      }
+      lines.push('💰 *Totale: ' + fmt(bw.finalTotal) + '*');
+    } else if (cartTotal() > 0) {
+      // 无门槛配置：简洁输出
+      lines.push('');
+      lines.push('💵 Totale: ' + fmt(cartTotal()));
+    }
     if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
   }
 
