@@ -247,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.4</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.5</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -307,7 +307,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.4</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.5</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -347,7 +347,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       <span class="s-ico">📊</span>菜单 Excel
     </button>
     <button class="s-btn" id="nav-tables" onclick="showPage('tables')">
-      <span class="s-ico">🪑</span>桌号管理<span class="s-cnt" id="cnt-tb">0</span>
+      <span class="s-ico">🪑</span>桌号管理
     </button>
     <button class="s-btn" id="nav-settings" onclick="showPage('settings')">
       <span class="s-ico">⚙️</span>设置
@@ -362,12 +362,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       <span class="s-ico">📋</span>错误日志
     </button>
   </aside>
-  <main class="content" id="content">
-  <div id="page-permissions" style="display:none;">
-    <div class="page-head"><div><h1>🔐 权限管理</h1><p>设置各店铺管理员可使用的功能</p></div></div>
-    <div id="perm-store-tabs" style="display:flex;gap:8px;margin-bottom:20px;"></div>
-    <div id="perm-list"></div>
-  </div></main>
+  <main class="content" id="content"></main>
 </div>
 
 <!-- DISH MODAL -->
@@ -663,25 +658,10 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.4</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.5</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
-}
-
-function showStoreSelect() {
-  var screen = document.getElementById('store-select-screen');
-  var list = document.getElementById('store-list');
-  if (!screen || !list) { loadAll(); return; }
-  list.innerHTML = STORES.map(function(s) {
-    return '<button onclick="selectStore(\'' + s.id + '\')" style="'
-      + 'width:100%;padding:16px 20px;background:rgba(212,171,72,.1);border:1px solid rgba(212,171,72,.3);'
-      + 'border-radius:8px;color:#f5e6c8;font-family:inherit;font-size:14px;cursor:pointer;text-align:left;">'
-      + '<div style="font-weight:600;letter-spacing:1px;">' + s.name + '</div>'
-      + '<div style="font-size:11px;opacity:.5;margin-top:4px;">' + s.address + '</div>'
-      + '</button>';
-  }).join('');
-  screen.style.display = 'flex';
 }
 
 function selectStore(storeId) {
@@ -692,7 +672,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.4</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.5</span>';
   }
   loadAll();
 }
@@ -749,7 +729,6 @@ async function verifyLock() {
   var usernameEl = document.getElementById('lock-username');
   var input = document.getElementById('lock-input');
   var username = usernameEl ? usernameEl.value.trim() : '';
-  console.log('login attempt - username:', username);
   var val = input ? input.value : '';
   var errEl = document.getElementById('lock-error');
 
@@ -1222,12 +1201,6 @@ function applySettingsSections() {
   });
 }
 
-function showSupplierModal() {
-  if (typeof renderSupplierList === 'function') renderSupplierList();
-  var modal = document.getElementById('modal-suppliers');
-  if (modal) modal.style.display = 'flex';
-}
-
 // ════════════════════════════════════════════════════════════
 // 完整数据备份（super_admin 用）
 // ════════════════════════════════════════════════════════════
@@ -1442,7 +1415,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.4</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.5</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1676,7 +1649,6 @@ function toast(msg, dur){
   clearTimeout(el._t);
   el._t = setTimeout(function(){ el.className = 'toast'; }, dur || 2500);
 }
-function nextId(){ var m = 0; for(var i=0;i<I.length;i++) if(I[i].id>m) m=I[i].id; return m+1; }
 function catIcon(id){ for(var i=0;i<C.length;i++) if(C[i].id===id) return C[i].icon; return '🍽️'; }
 function catName(id){ for(var i=0;i<C.length;i++) if(C[i].id===id) return C[i].name; return id; }
 function fmtP(n){ return '€\u00a0' + Number(n).toFixed(2); }
@@ -2968,7 +2940,6 @@ async function saDelete(id, username) {
 // ════════════════════════════════════
 //  创建新餐厅（super_admin only）
 // ════════════════════════════════════
-function _csInit() { /* placeholder for upcoming hook */ }
 
 // ════════════════════════════════════
 //  菜单 Excel 页面（导出 + 导入入口）
