@@ -644,6 +644,13 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         Oltre 8km non disponibile · 📍 GPS obbligatorio
       </div>
 
+      <!-- ASPORTO 折扣说明（仅 ASPORTO 显示） -->
+      <div id="asporto-discount-info" style="display:none;background:rgba(230,126,34,.1);border:1px solid rgba(230,126,34,.3);border-radius:var(--r);padding:9px 11px;margin-bottom:10px;font-size:11px;color:#e89752;line-height:1.6;">
+        <div style="font-weight:500;margin-bottom:4px;">📦 SCONTO ASPORTO</div>
+        <div>Minimo €15 per lo sconto 20%</div>
+        <div id="asporto-discount-hint" style="color:#d9a574;font-size:10px;margin-top:3px;"></div>
+      </div>
+
       <!-- Nome (sempre) -->
       <div class="table-input-wrap" id="asporto-name-wrap">
         <label>Il tuo nome</label>
@@ -740,7 +747,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <div style="font-size:32px;flex-shrink:0;">📦</div>
       <div style="flex:1;">
         <div style="font-size:15px;font-weight:500;letter-spacing:1.5px;">ASPORTO</div>
-        <div style="font-size:11px;opacity:.65;margin-top:3px;">Ritiro in negozio · Sconto 20%</div>
+        <div style="font-size:11px;opacity:.65;margin-top:3px;">Ritiro in negozio · Sconto 20% (min. €15)</div>
       </div>
     </button>
     <button id="takeaway-consegna-btn" onclick="chooseTakeaway('consegna')"
@@ -2527,9 +2534,46 @@ function focusField(id) {
 }
 
 // 计算并渲染价格明细（仅在 consegna 或有配送费时显示）
+function updateAsportoDiscountHint() {
+  // 更新 ASPORTO 折扣说明框
+  var hintBox = document.getElementById('asporto-discount-info');
+  var hintText = document.getElementById('asporto-discount-hint');
+  if (!hintBox || !hintText) return;
+  
+  var sub = cartSubtotal();
+  var threshold = 15;  // IMOLA 折扣阈值
+  
+  if (order_mode !== 'asporto') {
+    hintBox.style.display = 'none';
+    return;
+  }
+  
+  hintBox.style.display = 'block';
+  
+  if (sub <= 0) {
+    hintText.textContent = '';
+    return;
+  }
+  
+  if (sub >= threshold) {
+    hintText.textContent = '✅ Totale €' + fmt(sub) + ' - Sconto 20% applicato!';
+    hintBox.style.color = '#5DCAA5';
+    hintText.style.color = '#5DCAA5';
+  } else {
+    var remaining = threshold - sub;
+    hintText.textContent = '⏳ Aggiungi altri €' + fmt(remaining) + ' per lo sconto';
+    hintBox.style.color = '#e89752';
+    hintText.style.color = '#d9a574';
+  }
+}
+
 function renderPriceSummary() {
   var box = document.getElementById('price-summary');
   if (!box) return;
+  
+  // 更新 ASPORTO 折扣说明
+  updateAsportoDiscountHint();
+  
   if (order_mode !== 'consegna') { box.style.display = 'none'; return; }
   var sub = cartSubtotal();
   var fee = consegnaFee();
