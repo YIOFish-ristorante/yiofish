@@ -250,7 +250,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.14.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.14.1</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -306,7 +306,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.14.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.14.1</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -614,7 +614,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.1</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1306,59 +1306,12 @@ async function clearOldErrorLogs() {
   } catch(e) { toast('❌ 失败: ' + e.message); }
 }
 
-async function loadAdminAccounts() {
-  try {
-    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
-    var res = await fetch(WORKER_URL + '/store-admin/list', {
-      headers: {'Authorization': 'Bearer ' + token}
-    });
-    var accounts = await res.json();
-    if (!Array.isArray(accounts)) {
-      console.error('loadAdminAccounts: not super admin?', accounts);
-      return;
-    }
-    var el = document.getElementById('admin-accounts-list');
-    if (!el) return;
-    el.innerHTML = accounts.map(function(a) {
-      var store = STORES.find(function(s){ return s.id === a.restaurant_id; });
-      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">'
-        + '<div style="flex:1;"><div style="font-size:13px;color:var(--text);">' + a.username + '</div>'
-        + '<div style="font-size:11px;color:var(--muted);">' + (store ? store.name : a.restaurant_id) + '</div></div>'
-        + '<input type="password" placeholder="新密码" id="new-pwd-' + a.id + '"'
-        + ' style="width:120px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;font-size:12px;color:var(--text);outline:none;">'
-        + '<button onclick="updateAdminPwd(' + a.id + ')" style="background:var(--gold);border:none;border-radius:var(--r);padding:6px 12px;font-size:11px;color:#1a1510;cursor:pointer;">修改</button>'
-        + '</div>';
-    }).join('');
-  } catch(e) { console.error('loadAdminAccounts:', e); }
-}
-
-async function updateAdminPwd(id) {
-  var input = document.getElementById('new-pwd-' + id);
-  var val = input ? input.value : '';
-  if (!val || val.length < 6) { toast('⚠️ 密码至少6位'); return; }
-  try {
-    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
-    var res = await fetch(WORKER_URL + '/store-admin/update-password', {
-      method: 'POST',
-      headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'},
-      body: JSON.stringify({id: id, password: val})
-    });
-    var data = await res.json();
-    if (res.ok) {
-      if (input) input.value = '';
-      toast('✅ 密码已更新');
-    } else {
-      toast('❌ ' + (data.error || '更新失败'));
-    }
-  } catch(e) { toast('❌ 更新失败'); }
-}
-
 async function switchStore(storeId) {
   if (!storeId) return;
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.1</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3249,7 +3202,7 @@ function renderSettings(){
           +' style="width:50px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:3px 6px;color:var(--text);font-size:12px;text-align:center;">'
         +'</label>'
       +'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'+catsHTML+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">'+catsHTML+'</div>'
     +'</div>';
   });
 
@@ -3325,10 +3278,7 @@ function renderSettings(){
     +'<div class="card" style="padding:20px 22px">'
       +'<div class="s-label" style="padding:0 0 12px">菜单分类控制（勾选=显示）</div>'
       +menuConfigHTML
-    +'</div>'
-    +(CURRENT_ROLE==='super' ? '<div id="admin-accounts-section" style="margin-top:32px;"><div class="s-label" style="margin-bottom:12px;">👥 店铺管理员账号</div><div id="admin-accounts-list"></div></div>' : '');
-  // 如果超级管理员，加载账号列表
-  if (CURRENT_ROLE === 'super') { setTimeout(loadAdminAccounts, 100); }
+    +'</div>';
   // 店铺管理员：根据权限隐藏不该显示的section
   if (CURRENT_ROLE === 'store_admin') {
     setTimeout(applySettingsSections, 50);
