@@ -247,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.8</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.9</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -301,7 +301,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.8</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.9</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -607,7 +607,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.8</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.9</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1351,7 +1351,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.8</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.9</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3228,17 +3228,17 @@ function renderSettings(){
       +'</div>'
     +'</div>'
     +'<div class="card" id="section-asporto-min" style="padding:20px 22px;margin-bottom:16px">'
-      +'<div class="s-label" style="padding:0 0 12px">📦 Asporto 起送价（折后保底）</div>'
+      +'<div class="s-label" style="padding:0 0 12px">📦 Asporto 折扣门槛</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6;">'
-        +'设置后，顾客在 Asporto（打包自取）模式下的<b>实际付款金额至少为此值</b>。'
-        +'<br>• 设为 <b>0</b> = 无起送价（所有 Asporto 订单都按 sconto 折扣，沿用现状）'
-        +'<br>• 设为 <b>15</b> = 起送价 €15：'
-        +'<br>&nbsp;&nbsp;– 原价 < €15 → 不打折，按原价收（顾客可下小单）'
-        +'<br>&nbsp;&nbsp;– 原价 ≥ €15 → 打折，但折后不足 €15 时<b>补足到 €15</b>'
+        +'设置 Asporto（打包自取）的<b>折扣门槛</b>：原价达到此值才打折。'
+        +'<br>• 设为 <b>0</b> = 无门槛，所有 Asporto 订单都按 sconto 折扣'
+        +'<br>• 设为 <b>15</b> = 门槛 €15：'
+        +'<br>&nbsp;&nbsp;– 原价 < €15 → 不打折，按原价收'
+        +'<br>&nbsp;&nbsp;– 原价 ≥ €15 → 按各菜 sconto% 打折'
         +'<br>⚠️ 此规则不影响 Consegna（外送），Consegna 用固定 10% 折扣 + 起送价 €35/€50'
       +'</div>'
       +'<div style="display:flex;gap:8px;align-items:center">'
-        +'<span style="font-size:13px;color:var(--text);min-width:auto;">起送价：</span>'
+        +'<span style="font-size:13px;color:var(--text);min-width:auto;">门槛金额：</span>'
         +'<div style="display:flex;align-items:center;flex:1;">'
           +'<span style="background:var(--s2);border:1px solid var(--border2);border-right:none;border-radius:var(--r) 0 0 var(--r);padding:9px 10px;font-size:14px;color:var(--muted);">€</span>'
           +'<input id="asporto-min-input" type="number" min="0" step="0.5" value="'+(parseFloat(s.asporto_min_discount_amount)||0)+'"'
@@ -3537,9 +3537,9 @@ async function saveAsportoMin() {
     _SETTINGS.asporto_min_discount_amount = val;
     markSaved();
     if (val === 0) {
-      toast('✅ 已关闭 Asporto 起送价（所有订单按 sconto 打折）');
+      toast('✅ 已关闭 Asporto 门槛（所有订单都打折）');
     } else {
-      toast('✅ Asporto 起送价已设为 €' + val.toFixed(2));
+      toast('✅ Asporto 折扣门槛已设为 €' + val.toFixed(2));
     }
   } catch(e) { toast('❌ 保存失败: ' + e.message); }
 }

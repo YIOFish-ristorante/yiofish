@@ -541,7 +541,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.12.4 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.13.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1644,18 +1644,15 @@ function asportoCartBreakdown() {
   var threshold = asportoMinThreshold();
   var b = {
     origTotal: orig,           // 原价总额
-    sconto: 0,                 // 当前折扣%（菜品 sconto 字段）
-    discounted: orig,          // 打折后理论值
+    discounted: orig,          // 打折后金额（也是最终付的金额）
     finalTotal: orig,          // 顾客最终付的金额
-    saved: 0,                  // 实际省了多少（含补足后的净值）
-    surcharge: 0,              // 补足金额（>0 = 折后被补足到门槛）
+    saved: 0,                  // 省了多少
     isDiscounted: false,       // 是否打了折扣
-    threshold: threshold       // 当前配置的起送价
+    threshold: threshold       // 当前配置的折扣门槛
   };
   if (orig <= 0) return b;
 
-  // 取第一道菜的 sconto 作为代表（在 v2 架构里所有菜的 sconto 是统一的，但保险起见）
-  // 更稳妥：用 origTotal 和"如果全部按各自 sconto 打完折"的差值算实际折扣
+  // 算"按各菜 sconto% 打折"后的总额
   var totalAfterIndividualDiscount = 0;
   for (var id in cart_asporto) {
     var it = getItemForMenu(id);
@@ -1667,26 +1664,16 @@ function asportoCartBreakdown() {
   }
   b.discounted = totalAfterIndividualDiscount;
 
-  // 起送价规则
-  if (threshold <= 0) {
-    // 无门槛：直接按各菜折扣
-    b.finalTotal = totalAfterIndividualDiscount;
-    b.saved = orig - totalAfterIndividualDiscount;
-    b.isDiscounted = b.saved > 0.001;
-  } else if (orig < threshold) {
-    // 原价不够门槛：不打折，按原价
+  // 简单规则：原价 ≥ 门槛才打折，否则按原价（无保底）
+  if (threshold > 0 && orig < threshold) {
+    // 原价不够门槛 → 不打折
     b.finalTotal = orig;
     b.saved = 0;
     b.isDiscounted = false;
   } else {
-    // 原价 ≥ 门槛：打折，但折后不能低于门槛
-    if (totalAfterIndividualDiscount < threshold) {
-      b.finalTotal = threshold;
-      b.surcharge = threshold - totalAfterIndividualDiscount;
-    } else {
-      b.finalTotal = totalAfterIndividualDiscount;
-    }
-    b.saved = orig - b.finalTotal;
+    // 原价达到门槛（或无门槛）→ 按 sconto 打折
+    b.finalTotal = totalAfterIndividualDiscount;
+    b.saved = orig - totalAfterIndividualDiscount;
     b.isDiscounted = b.saved > 0.001;
   }
   return b;
@@ -2569,7 +2556,7 @@ function openTakeawayChoice() {
   if (aHint) {
     var threshold = asportoMinThreshold();
     if (asportoOn && threshold > 0) {
-      aHint.textContent = 'ⓘ Sconto attivo solo se il totale scontato è ≥ ' + fmt(threshold);
+      aHint.textContent = 'ⓘ Sconto 20% per ordini ≥ ' + fmt(threshold);
       aHint.style.display = 'block';
     } else {
       aHint.style.display = 'none';
@@ -2804,10 +2791,6 @@ function renderPriceSummary() {
     var rawDiscount = b.origTotal - b.discounted;
     if (rawDiscount > 0.01) {
       html2 += '<div style="display:flex;justify-content:space-between;color:#5DCAA5;"><span>Sconto Asporto' + dishSconto + '</span><span>−' + fmt(rawDiscount) + '</span></div>';
-    }
-    // 补足行：如果折后被补足到起送价
-    if (b.surcharge > 0.01) {
-      html2 += '<div style="display:flex;justify-content:space-between;color:#d4ab48;font-size:11px;line-height:1.4;"><span>Ordine minimo</span><span>+' + fmt(b.surcharge) + '</span></div>';
     }
   } else if (b.origTotal < b.threshold) {
     // 未达起送价：提示还差多少
@@ -3050,7 +3033,6 @@ function sendOrder() {
       if (bw.isDiscounted) {
         var rawDisc = bw.origTotal - bw.discounted;
         if (rawDisc > 0.01) lines.push('💚 Sconto: −' + fmt(rawDisc));
-        if (bw.surcharge > 0.01) lines.push('📦 Ordine minimo: +' + fmt(bw.surcharge));
       } else if (bw.origTotal < bw.threshold) {
         lines.push('ℹ️ Sotto soglia ' + fmt(bw.threshold) + ' (sconto non applicato)');
       }
