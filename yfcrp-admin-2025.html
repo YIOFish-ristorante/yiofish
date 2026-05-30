@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.16.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.17.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.16.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.17.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -481,6 +481,16 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       <div class="fg"><label>货币</label><input id="cs-currency" value="€" style="max-width:70px"></div>
     </div>
     <div class="fg" style="margin-bottom:10px"><label>简介（菜单头部显示）</label><input id="cs-subtitle" placeholder="opzionale"></div>
+
+    <!-- 克隆来源 -->
+    <div class="fg" style="margin-bottom:10px">
+      <label>🧬 克隆来源（一键复制现有店的菜单/分类/标签/设置）</label>
+      <select id="cs-clone-from" style="width:100%;padding:8px 10px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;">
+        <option value="">空店（不克隆，需自己用 Excel 导入）</option>
+      </select>
+      <div class="hint" style="font-size:12px;color:var(--muted)">克隆完成后两家店数据完全独立，互不影响。</div>
+    </div>
+
     <div class="hint" style="margin:4px 0 12px;color:var(--muted)">⚠️ 创建后请切到新店补充菜单。顾客端 HTML 文件需另行部署。</div>
 
     <!-- 可选：同时创建管理员账号 -->
@@ -620,7 +630,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.16.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.17.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1331,7 +1341,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.16.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.17.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2597,6 +2607,13 @@ function openCreateStore() {
     if ($(id)) $(id).value = '';
   });
   if ($('cs-currency')) $('cs-currency').value = '€';
+  // 填充克隆来源下拉
+  var cloneSel = $('cs-clone-from');
+  if (cloneSel) {
+    cloneSel.innerHTML = '<option value="">空店（不克隆，需自己用 Excel 导入）</option>'
+      + STORES.map(function(s){ return '<option value="' + s.id + '">📋 从 ' + s.name + '（' + s.id + '）克隆</option>'; }).join('');
+    cloneSel.value = '';  // 默认不选
+  }
   if ($('cs-create-admin')) {
     $('cs-create-admin').checked = true;
     // 勾选联动
@@ -2621,6 +2638,8 @@ async function saveNewStore() {
   var createAdmin = $('cs-create-admin') && $('cs-create-admin').checked;
   var adminUser = ($('cs-admin-user').value || '').trim() || id;
   var adminPwd = $('cs-admin-pwd').value || '';
+  // 克隆来源
+  var cloneFrom = ($('cs-clone-from') && $('cs-clone-from').value || '').trim();
 
   if (!id) { toast('⚠️ 请填写餐厅 ID'); $('cs-id').focus(); return; }
   if (!/^[a-z0-9-]+$/.test(id)) { toast('⚠️ ID 只能用小写字母、数字、短横线'); $('cs-id').focus(); return; }
@@ -2655,19 +2674,41 @@ async function saveNewStore() {
       throw new Error('restaurants: ' + (errTxt || r1.status));
     }
 
-    // 2. 创建 restaurant_settings 记录（默认全部开启）；失败不阻断
-    var setRow = {
-      restaurant_id: id, is_open: true,
-      takeaway_enabled: true, consegna_enabled: true, notify_enabled: false
-    };
+    // 2. 创建 restaurant_settings 记录
+    // 如果选了克隆：跳过这步，由 clone_restaurant 函数完整复制 settings
+    // 否则：插入默认全开的空 settings
     var settingsOk = true;
-    try {
-      var r2 = await sbFetch('restaurant_settings', {
-        method: 'POST', prefer: 'return=minimal',
-        body: JSON.stringify(setRow)
-      });
-      if (!r2.ok) settingsOk = false;
-    } catch(se) { settingsOk = false; }
+    if (!cloneFrom) {
+      var setRow = {
+        restaurant_id: id, is_open: true,
+        takeaway_enabled: true, consegna_enabled: true, notify_enabled: false
+      };
+      try {
+        var r2 = await sbFetch('restaurant_settings', {
+          method: 'POST', prefer: 'return=minimal',
+          body: JSON.stringify(setRow)
+        });
+        if (!r2.ok) settingsOk = false;
+      } catch(se) { settingsOk = false; }
+    }
+
+    // 2.5 如果选了克隆来源：调存储过程批量复制 categories/tags/dishes/dish_menus/settings/menu_configs
+    var cloneStats = null, cloneOk = true, cloneErr = '';
+    if (cloneFrom) {
+      try {
+        var rc = await sbFetch('rpc/clone_restaurant', {
+          method: 'POST',
+          body: JSON.stringify({ p_source: cloneFrom, p_target: id, p_target_name: name })
+        });
+        if (!rc.ok) {
+          var ce = await rc.text();
+          cloneOk = false;
+          cloneErr = ce || ('HTTP ' + rc.status);
+        } else {
+          cloneStats = await rc.json().catch(function(){ return null; });
+        }
+      } catch(ce) { cloneOk = false; cloneErr = ce.message || ce; }
+    }
 
     // 3. 可选：创建管理员账号
     var adminOk = true, adminErr = '';
@@ -2698,9 +2739,17 @@ async function saveNewStore() {
 
     closeModal();
     var msg = '✅ 餐厅「' + name + '」已创建';
+    if (cloneFrom && cloneOk && cloneStats) {
+      msg += '，已从 ' + cloneFrom + ' 克隆：'
+        + (cloneStats.dishes || 0) + ' 菜品 / '
+        + (cloneStats.categories || 0) + ' 分类 / '
+        + (cloneStats.tags || 0) + ' 标签';
+    } else if (cloneFrom && !cloneOk) {
+      msg = '⚠️ 餐厅已建，但克隆失败：' + cloneErr;
+    }
     if (createAdmin && adminOk) msg += '，管理员账号「' + adminUser + '」已创建';
-    if (createAdmin && !adminOk) msg = '⚠️ 餐厅已建，但管理员创建失败：' + adminErr + '。请去「店铺管理员」页面手动添加';
-    if (!settingsOk) msg += '（⚠️ 设置初始化失败，请进设置页检查）';
+    if (createAdmin && !adminOk) msg += '。⚠️ 管理员创建失败：' + adminErr + '。请去「店铺管理员」页面手动添加';
+    if (!settingsOk && !cloneFrom) msg += '（⚠️ 设置初始化失败，请进设置页检查）';
     toast(msg);
   } catch(e) {
     toast('❌ 创建失败: ' + (e.message || e));
