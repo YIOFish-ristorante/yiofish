@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v4.6</title>
+<title>Yio Fish Admin v4.7</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -421,6 +421,17 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
         <div class="mp-sconto"><span class="mp-sconto-lbl" title="Sconto Asporto / 打包折扣%">%A</span><input type="number" id="sc-asporto" placeholder="0" min="0" max="100" step="1" disabled="" title="Sconto Asporto %（打包折扣，0=nessuno）"></div>
         <div class="mp-sconto"><span class="mp-sconto-lbl" style="color:#2980b9" title="Sconto Consegna / 外送折扣%">%C</span><input type="number" id="scc-asporto" placeholder="0" min="0" max="100" step="1" disabled="" title="Sconto Consegna %（外送折扣，0=nessuno）"></div>
       </div>
+      <div style="margin-top:8px;padding:10px;background:rgba(41,128,185,.05);border-radius:4px;border-left:2px solid #2980b9">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Asporto 折扣阈值（条件折扣）</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="display:flex;align-items:center;gap:4px;flex:1">
+            <span style="font-size:12px">订单 &gt;</span>
+            <input type="number" id="asporto-threshold" placeholder="0" min="0" step="0.5" style="width:60px;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--text);font-size:12px" title="最小金额（€）- 0=无限制" onchange="setAsportoThreshold(this.value)">
+            <span style="font-size:12px">€ 才享折扣</span>
+          </label>
+          <span style="font-size:11px;color:var(--muted);text-align:right;flex:1">0 = 无条件</span>
+        </div>
+      </div>
     </div>
     <div class="fg" style="margin-bottom:10px"><label>过敏原标签</label><div class="tag-grid" id="f-tags"></div></div>
     <label class="chk-row"><input type="checkbox" id="f-soldout"> 标记为售罄</label>
@@ -608,7 +619,7 @@ var MENUS = [
   {id:'speciale', name:'特别菜单', nameIT:'Speciale', icon:'⭐', color:'#16a085', file:'menu-speciale.html', showPrice:true,  excludeCats:['bevande','vini-bollicine','vini-fermo','vini-rossi','vini-calice','spritz','bevande-spina','birre','bibite','sake','caffe-bar','amaro-distillati','dessert'], menuLimit:2},
   {id:'bevande',  name:'饮料',   nameIT:'Bevande',  icon:'🍷', color:'#c0392b', file:'menu-bevande.html',  showPrice:true,  excludeCats:['speciali','dessert'], menuLimit:0},
   {id:'dessert',  name:'甜点',   nameIT:'Dessert',  icon:'🍮', color:'#d35400', file:'menu-dessert.html',  showPrice:true,  excludeCats:['speciali','bevande','vini-bollicine','vini-fermo','vini-rossi','vini-calice','spritz','bevande-spina','birre','bibite','sake','caffe-bar','amaro-distillati'], menuLimit:0},
-  {id:'asporto',  name:'打包',   nameIT:'Asporto',  icon:'📦', color:'#2980b9', file:'menu-asporto.html',  showPrice:true,  excludeCats:[], menuLimit:0}
+  {id:'asporto',  name:'打包',   nameIT:'Asporto',  icon:'📦', color:'#2980b9', file:'menu-asporto.html',  showPrice:true,  excludeCats:[], menuLimit:0, discountThreshold:0}
 ];
 /*__MENUS_END__*/
 
@@ -1815,6 +1826,11 @@ function openAddDish(){
     $('scc-asporto').value=''; $('scc-asporto').disabled=true;
     $('scc-asporto').dataset.saved='';
   }
+  // 初始化 ASPORTO 折扣阈值
+  if($('asporto-threshold')){
+    var asporto = MENUS.filter(function(m){return m.id==='asporto';})[0];
+    $('asporto-threshold').value = asporto ? (asporto.discountThreshold||0) : 0;
+  }
   openModal('dish-modal');
 }
 
@@ -1847,6 +1863,11 @@ function openEditDish(id){
       $('scc-asporto').disabled = !isOn;
     }
   });
+  // 初始化 ASPORTO 折扣阈值
+  if($('asporto-threshold')){
+    var asporto = MENUS.filter(function(m){return m.id==='asporto';})[0];
+    $('asporto-threshold').value = asporto ? (asporto.discountThreshold||0) : 0;
+  }
   openModal('dish-modal');
 }
 
@@ -3344,6 +3365,12 @@ function setMenuLimit(menuId, val){
   m.menuLimit=parseInt(val)||0;
   markDirty();
 }
+function setAsportoThreshold(val){
+  var m=MENUS.filter(function(x){return x.id==='asporto';})[0];
+  if(!m)return;
+  m.discountThreshold=parseFloat(val)||0;
+  markDirty();
+}
 function dlMenu(menuId){
   var m = null;
   for(var i=0;i<MENUS.length;i++) if(MENUS[i].id===menuId){ m=MENUS[i]; break; }
@@ -3763,7 +3790,7 @@ async function toggleSetting(key, val){
 // ════════════════════════════════════
 //  版本号
 // ════════════════════════════════════
-// v4.6.0 · 2025-05-30 · 优化管理员账号卡片布局
+// v4.7.0 · 2025-05-30 · IMOLA ASPORTO 条件折扣阈值配置
 
 // ════════════════════════════════════
 //  启动
