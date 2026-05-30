@@ -247,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.1</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.2</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -307,7 +307,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.1</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.2</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -506,15 +506,18 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 <div class="modal-bg" id="store-admin-modal">
   <div class="modal-box" style="max-width:680px">
     <div class="modal-title">🔐 店铺管理员</div>
-    <div class="hint" style="margin-bottom:12px;color:var(--muted)">管理每家店的登录账号。所有操作仅 super_admin 可见。</div>
+    <div class="hint" style="margin-bottom:14px;color:var(--muted);font-size:12px;line-height:1.6">每家店至少需要 1 个 store_admin 账号才能登录。<br>密码不会以明文存储，重置后需重新告知管理员。</div>
 
     <!-- 列表区 -->
     <div id="sa-list-wrap">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <b style="color:#d4af37">当前账号</b>
+        <div style="display:flex;align-items:center;gap:8px">
+          <b style="color:#d4af37;font-size:13px">当前账号</b>
+          <span id="sa-count-badge" style="font-size:10px;color:var(--muted);background:rgba(255,255,255,.04);padding:2px 8px;border-radius:10px">—</span>
+        </div>
         <button class="btn btn-green btn-sm" onclick="saOpenCreate()">➕ 新增管理员</button>
       </div>
-      <div id="sa-list" style="max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:8px"></div>
+      <div id="sa-list" style="max-height:380px;overflow-y:auto;background:rgba(0,0,0,.15);border:1px solid var(--border);border-radius:10px"></div>
     </div>
 
     <!-- 新增/重置子表单 -->
@@ -660,7 +663,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.2</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -689,7 +692,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.2</span>';
   }
   loadAll();
 }
@@ -1439,7 +1442,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.1</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.2</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2779,36 +2782,84 @@ async function saReload() {
 
 function saRenderList() {
   var listEl = $('sa-list');
+  // 更新数量徽章
+  var badge = $('sa-count-badge');
+  if (badge) badge.textContent = _saList.length + ' 个';
   if (!_saList.length) {
-    listEl.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:13px">暂无管理员账号</div>';
+    listEl.innerHTML = '<div style="padding:32px 14px;color:var(--muted);font-size:13px;text-align:center">'
+      + '<div style="font-size:36px;margin-bottom:8px;opacity:.4">👤</div>'
+      + '暂无管理员账号<br><span style="font-size:11px;opacity:.7">点上方「➕ 新增管理员」开始</span>'
+      + '</div>';
     return;
   }
-  // 按店分组
+  // 按店分组（顺序：按 STORES 数组顺序，未在 STORES 的店放最后）
   var byStore = {};
   _saList.forEach(function(a){
     if (!byStore[a.restaurant_id]) byStore[a.restaurant_id] = [];
     byStore[a.restaurant_id].push(a);
   });
-  var html = '';
-  Object.keys(byStore).sort().forEach(function(rid){
-    var storeName = '';
-    var st = STORES.filter(function(s){ return s.id === rid; })[0];
-    if (st) storeName = st.name;
-    html += '<div style="padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(212,171,72,.05)">';
-    html += '<b style="color:#d4af37;font-size:13px">' + rid + '</b>';
-    if (storeName) html += ' <span style="color:var(--muted);font-size:12px">' + storeName + '</span>';
-    html += '</div>';
-    byStore[rid].forEach(function(a){
-      html += '<div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.04)">';
-      html += '<div><b>' + a.username + '</b>';
-      html += ' <span style="color:var(--muted);font-size:11px;margin-left:6px">' + a.role + '</span></div>';
-      html += '<div style="display:flex;gap:6px">';
-      html += '<button class="btn btn-sm btn-gold-s" onclick="saOpenReset(' + a.id + ',\'' + a.username.replace(/'/g,"\\'") + '\')">🔑 重置密码</button>';
-      html += '<button class="btn btn-sm" style="color:#c0392b;border:1px solid rgba(192,57,43,.4)" onclick="saDelete(' + a.id + ',\'' + a.username.replace(/'/g,"\\'") + '\')">🗑️</button>';
-      html += '</div></div>';
-    });
+  // 排序：先按 STORES 顺序，未列出的店按字母
+  var orderedStoreIds = STORES.map(function(s){ return s.id; }).filter(function(id){ return byStore[id]; });
+  Object.keys(byStore).sort().forEach(function(id){
+    if (orderedStoreIds.indexOf(id) < 0) orderedStoreIds.push(id);
   });
+
+  var html = '<div style="padding:12px;display:flex;flex-direction:column;gap:10px">';
+  orderedStoreIds.forEach(function(rid){
+    var st = STORES.filter(function(s){ return s.id === rid; })[0];
+    var storeName = st ? st.name : rid;
+    var storeAddress = st ? (st.address || '') : '';
+    var accounts = byStore[rid];
+
+    // 店卡片
+    html += '<div style="background:rgba(212,171,72,.04);border:1px solid rgba(212,171,72,.18);border-radius:10px;overflow:hidden">';
+
+    // ── 店头部 ──
+    html += '<div style="padding:10px 14px;background:rgba(212,171,72,.07);border-bottom:1px solid rgba(212,171,72,.15);display:flex;align-items:center;gap:10px">';
+    html += '<div style="font-size:18px">🏪</div>';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-size:13px;font-weight:600;color:#d4af37;line-height:1.3">' + saEsc(storeName) + '</div>';
+    html += '<div style="font-size:10px;color:var(--muted);letter-spacing:.5px;margin-top:2px;font-family:ui-monospace,monospace">' + saEsc(rid) + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:10px;color:var(--muted);background:rgba(255,255,255,.03);padding:3px 8px;border-radius:10px">' + accounts.length + ' 账号</div>';
+    html += '</div>';
+
+    // ── 账号列表 ──
+    accounts.forEach(function(a, idx){
+      var roleColor = (a.role === 'super_admin') ? '#c0392b' : '#3498db';
+      var roleLabel = (a.role === 'super_admin') ? '超级管理员' : '店铺管理员';
+      var roleIcon = (a.role === 'super_admin') ? '👑' : '🔐';
+      var borderTop = idx > 0 ? 'border-top:1px solid rgba(255,255,255,.04);' : '';
+      html += '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;' + borderTop + '">';
+      // 用户名 + 角色徽章
+      html += '<div style="flex:1;min-width:120px;display:flex;align-items:center;gap:8px">';
+      html += '<div style="font-size:14px;color:var(--text);font-weight:500">';
+      html += '<span style="opacity:.5;font-weight:400;margin-right:4px">👤</span>' + saEsc(a.username);
+      html += '</div>';
+      html += '<span style="font-size:10px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:' + roleColor + '22;color:' + roleColor + ';border:1px solid ' + roleColor + '44">' + roleIcon + ' ' + roleLabel + '</span>';
+      html += '</div>';
+      // 按钮组
+      html += '<div style="display:flex;gap:6px">';
+      html += '<button class="btn btn-sm btn-gold-s" onclick="saOpenReset(' + a.id + ',\'' + saJs(a.username) + '\')" title="重置密码">🔑 重置密码</button>';
+      html += '<button class="btn btn-sm" style="color:#c0392b;border:1px solid rgba(192,57,43,.4);padding:5px 10px" onclick="saDelete(' + a.id + ',\'' + saJs(a.username) + '\')" title="删除账号">🗑️</button>';
+      html += '</div>';
+      html += '</div>';
+    });
+
+    html += '</div>'; // 店卡片闭合
+  });
+  html += '</div>';
   listEl.innerHTML = html;
+}
+
+// 小工具：HTML 转义和 JS 字符串转义（防止用户名里有特殊字符）
+function saEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function saJs(s) {
+  return String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 }
 
 function saOpenCreate() {
