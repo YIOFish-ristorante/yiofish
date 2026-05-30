@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.15.1</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.15.2</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.15.1</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.15.2</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -620,7 +620,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.1</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.2</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1331,7 +1331,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.1</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.2</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1963,15 +1963,32 @@ function initCatDrag(){
       list.querySelectorAll('.cat-row').forEach(function(r){r.classList.remove('drag-over');});
       this.classList.add('drag-over');
     });
-    row.addEventListener('drop',function(e){
+    row.addEventListener('drop', async function(e){
       e.preventDefault();
       var targetIdx=parseInt(this.getAttribute('data-ci'));
       if(_dragSrcIdx===null||_dragSrcIdx===targetIdx) return;
-      var moved=C.splice(_dragSrcIdx,1)[0];
-      C.splice(targetIdx,0,moved);
+      var srcIdx = _dragSrcIdx;
       _dragSrcIdx=null;
+      // 内存里先重排
+      var moved=C.splice(srcIdx,1)[0];
+      C.splice(targetIdx,0,moved);
+      // 按新顺序写回 sort_order 到数据库
       markDirty();
-      renderCats();
+      renderCats();  // 立即视觉反馈
+      try {
+        var tasks = C.map(function(c, i){
+          var newSort = i + 1;
+          if (c.sort_order === newSort) return null;  // 没变就跳过
+          c.sort_order = newSort;
+          return saveCatToDB({id: c.id, sort_order: newSort}, false);
+        }).filter(Boolean);
+        await Promise.all(tasks);
+        markSaved();
+        toast('✅ 分类顺序已保存');
+      } catch(err) {
+        toast('❌ 保存失败: ' + err.message);
+        console.error('分类排序保存失败:', err);
+      }
     });
   });
 }
