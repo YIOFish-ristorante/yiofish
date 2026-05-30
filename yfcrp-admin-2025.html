@@ -247,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.6</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.7</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -301,7 +301,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.6</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.7</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -313,10 +313,8 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       #store-switcher option:checked { background:#d4a843; color:#1a1a1a; font-weight:600; }
     </style>
     <button class="btn btn-ghost btn-sm" id="create-store-btn" onclick="openCreateStore()" style="display:none;color:#27ae60;border-color:rgba(39,174,96,.4);" title="创建新餐厅">➕ Ristorante</button>
-    <button class="btn btn-ghost btn-sm" id="store-admin-btn" onclick="openStoreAdminMgmt()" style="display:none;color:#3498db;border-color:rgba(52,152,219,.4);" title="店铺管理员">🔐 Admin</button>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="color:#c0392b;">⬅ 退出</button>
     <button class="btn btn-green btn-sm" id="publish-btn" onclick="publishMenu()">🚀 发布菜单</button>
-    <button class="btn btn-gold btn-sm" onclick="showPage('export')">📊 菜单 Excel</button>
   </div>
 </div>
 
@@ -348,6 +346,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     </button>
     <button class="s-btn" id="nav-permissions" onclick="showPage('permissions')" style="display:none;">
       <span class="s-ico">🔐</span>权限管理
+    </button>
+    <button class="s-btn" id="nav-store-admin" onclick="openStoreAdminMgmt()" style="display:none;">
+      <span class="s-ico">👥</span>店铺管理员
     </button>
     <button class="s-btn" id="nav-backup" onclick="downloadBackup()" style="display:none;">
       <span class="s-ico">📦</span>数据备份
@@ -652,7 +653,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.6</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.7</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1016,10 +1017,10 @@ async function loadAll() {
           return '<option value="'+s.id+'"'+(s.id===RESTAURANT_ID?' selected':'')+'>'+storeLabel(s)+'</option>';
         }).join('');
       }
-      // 创建餐厅按钮 + 店铺管理员按钮（仅 super 可见）
+      // 创建餐厅按钮（顶部） + 店铺管理员按钮（侧栏，仅 super 可见）
       var createBtn = document.getElementById('create-store-btn');
       if (createBtn) createBtn.style.display = '';
-      var saBtn = document.getElementById('store-admin-btn');
+      var saBtn = document.getElementById('nav-store-admin');
       if (saBtn) saBtn.style.display = '';
       _permActiveStore = STORES[0].id;
       loadPermissions();
@@ -1396,7 +1397,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.6</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.7</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
