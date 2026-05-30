@@ -247,7 +247,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.2</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.13.3</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -307,7 +307,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="t-left">
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.2</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.13.3</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -513,11 +513,11 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px">
           <b style="color:#d4af37;font-size:13px">当前账号</b>
-          <span id="sa-count-badge" style="font-size:10px;color:var(--muted);background:rgba(255,255,255,.04);padding:2px 8px;border-radius:10px">—</span>
+          <span id="sa-count-badge" style="font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:10px">—</span>
         </div>
         <button class="btn btn-green btn-sm" onclick="saOpenCreate()">➕ 新增管理员</button>
       </div>
-      <div id="sa-list" style="max-height:380px;overflow-y:auto;background:rgba(0,0,0,.15);border:1px solid var(--border);border-radius:10px"></div>
+      <div id="sa-list" style="max-height:380px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px"></div>
     </div>
 
     <!-- 新增/重置子表单 -->
@@ -663,7 +663,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.3</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -692,7 +692,7 @@ function selectStore(storeId) {
   var store = STORES.find(function(s){ return s.id === storeId; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.3</span>';
   }
   loadAll();
 }
@@ -1442,7 +1442,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.2</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.13.3</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2808,40 +2808,43 @@ function saRenderList() {
   orderedStoreIds.forEach(function(rid){
     var st = STORES.filter(function(s){ return s.id === rid; })[0];
     var storeName = st ? st.name : rid;
-    var storeAddress = st ? (st.address || '') : '';
     var accounts = byStore[rid];
 
-    // 店卡片
-    html += '<div style="background:rgba(212,171,72,.04);border:1px solid rgba(212,171,72,.18);border-radius:10px;overflow:hidden">';
+    // 店卡片（白底卡 + 浅金边）
+    html += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">';
 
-    // ── 店头部 ──
-    html += '<div style="padding:10px 14px;background:rgba(212,171,72,.07);border-bottom:1px solid rgba(212,171,72,.15);display:flex;align-items:center;gap:10px">';
-    html += '<div style="font-size:18px">🏪</div>';
+    // ── 店头部（浅金背景） ──
+    html += '<div style="padding:9px 14px;background:var(--gold-bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">';
+    html += '<div style="font-size:16px;flex-shrink:0">🏪</div>';
     html += '<div style="flex:1;min-width:0">';
-    html += '<div style="font-size:13px;font-weight:600;color:#d4af37;line-height:1.3">' + saEsc(storeName) + '</div>';
+    html += '<div style="font-size:13px;font-weight:500;color:var(--gold);line-height:1.3">' + saEsc(storeName) + '</div>';
     html += '<div style="font-size:10px;color:var(--muted);letter-spacing:.5px;margin-top:2px;font-family:ui-monospace,monospace">' + saEsc(rid) + '</div>';
     html += '</div>';
-    html += '<div style="font-size:10px;color:var(--muted);background:rgba(255,255,255,.03);padding:3px 8px;border-radius:10px">' + accounts.length + ' 账号</div>';
+    html += '<div style="font-size:10px;color:var(--muted);background:var(--surface);padding:3px 8px;border-radius:10px;border:1px solid var(--border)">' + accounts.length + ' 账号</div>';
     html += '</div>';
 
-    // ── 账号列表 ──
+    // ── 账号列表（白底） ──
     accounts.forEach(function(a, idx){
-      var roleColor = (a.role === 'super_admin') ? '#c0392b' : '#3498db';
-      var roleLabel = (a.role === 'super_admin') ? '超级管理员' : '店铺管理员';
-      var roleIcon = (a.role === 'super_admin') ? '👑' : '🔐';
-      var borderTop = idx > 0 ? 'border-top:1px solid rgba(255,255,255,.04);' : '';
-      html += '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;' + borderTop + '">';
+      var isSuper = (a.role === 'super_admin');
+      // 角色徽章颜色：super=红，store=蓝
+      var roleColor = isSuper ? '#c0392b' : '#3498db';
+      var roleBg = isSuper ? 'var(--red-bg)' : '#edf5fc';
+      var roleBorder = isSuper ? '#f3c5c0' : '#c9dff5';
+      var roleLabel = isSuper ? '超级管理员' : '店铺管理员';
+      var roleIcon = isSuper ? '👑' : '🔐';
+      var borderTop = idx > 0 ? 'border-top:1px solid var(--border);' : '';
+      html += '<div style="padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;' + borderTop + '">';
       // 用户名 + 角色徽章
-      html += '<div style="flex:1;min-width:120px;display:flex;align-items:center;gap:8px">';
+      html += '<div style="flex:1;min-width:120px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
       html += '<div style="font-size:14px;color:var(--text);font-weight:500">';
-      html += '<span style="opacity:.5;font-weight:400;margin-right:4px">👤</span>' + saEsc(a.username);
+      html += '<span style="opacity:.45;font-weight:400;margin-right:4px">👤</span>' + saEsc(a.username);
       html += '</div>';
-      html += '<span style="font-size:10px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:' + roleColor + '22;color:' + roleColor + ';border:1px solid ' + roleColor + '44">' + roleIcon + ' ' + roleLabel + '</span>';
+      html += '<span style="font-size:10px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:' + roleBg + ';color:' + roleColor + ';border:1px solid ' + roleBorder + ';font-weight:500">' + roleIcon + ' ' + roleLabel + '</span>';
       html += '</div>';
       // 按钮组
-      html += '<div style="display:flex;gap:6px">';
+      html += '<div style="display:flex;gap:6px;flex-shrink:0">';
       html += '<button class="btn btn-sm btn-gold-s" onclick="saOpenReset(' + a.id + ',\'' + saJs(a.username) + '\')" title="重置密码">🔑 重置密码</button>';
-      html += '<button class="btn btn-sm" style="color:#c0392b;border:1px solid rgba(192,57,43,.4);padding:5px 10px" onclick="saDelete(' + a.id + ',\'' + saJs(a.username) + '\')" title="删除账号">🗑️</button>';
+      html += '<button class="btn btn-sm" style="color:var(--red);border:1px solid #f3c5c0;background:var(--red-bg);padding:5px 10px" onclick="saDelete(' + a.id + ',\'' + saJs(a.username) + '\')" title="删除账号">🗑️</button>';
       html += '</div>';
       html += '</div>';
     });
