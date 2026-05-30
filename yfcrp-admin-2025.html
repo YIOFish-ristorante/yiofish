@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.15.2</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.16.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.15.2</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.16.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -620,7 +620,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.16.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -863,7 +863,7 @@ async function loadAll() {
     var [rRes, sRes, cRes, dRes] = await Promise.all([
       sbFetch('restaurants?id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
-      sbFetch('categories?select=*&order=sort_order'),
+      sbFetch('categories?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order'),
       sbFetch('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000')
     ]);
     var rData = await rRes.json();
@@ -1331,7 +1331,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.15.2</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.16.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1521,16 +1521,21 @@ async function deleteDishFromDB(id) {
 
 async function saveCatToDB(cat, isNew) {
   if (isNew) {
-    var res = await sbFetch('categories', { method: 'POST', body: JSON.stringify(cat) });
+    // 新建：自动注入 restaurant_id
+    var payload = Object.assign({}, cat, {restaurant_id: RESTAURANT_ID});
+    var res = await sbFetch('categories', { method: 'POST', body: JSON.stringify(payload) });
     if (!res.ok) throw new Error('添加分类失败');
   } else {
-    var res = await sbFetch('categories?id=eq.' + cat.id, { method: 'PATCH', body: JSON.stringify(cat) });
+    // 编辑：按 (restaurant_id, id) 复合主键定位，不传 restaurant_id 字段（防误改）
+    var payload = Object.assign({}, cat);
+    delete payload.restaurant_id;
+    var res = await sbFetch('categories?restaurant_id=eq.' + RESTAURANT_ID + '&id=eq.' + encodeURIComponent(cat.id), { method: 'PATCH', body: JSON.stringify(payload) });
     if (!res.ok) throw new Error('更新分类失败');
   }
 }
 
 async function deleteCatFromDB(id) {
-  var res = await sbFetch('categories?id=eq.' + id, { method: 'DELETE' });
+  var res = await sbFetch('categories?restaurant_id=eq.' + RESTAURANT_ID + '&id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
   if (!res.ok) throw new Error('删除分类失败');
 }
 
@@ -2009,7 +2014,7 @@ async function saveCatLimit(catId, val) {
     if (C[i].id === catId) { C[i].cat_limit = limit; break; }
   }
   try {
-    await sbFetch('categories?id=eq.' + catId, {
+    await sbFetch('categories?restaurant_id=eq.' + RESTAURANT_ID + '&id=eq.' + encodeURIComponent(catId), {
       method: 'PATCH',
       body: JSON.stringify({cat_limit: limit})
     });
@@ -2433,7 +2438,7 @@ async function importExecute() {
       for (var ci = 0; ci < _importNewCats.length; ci++) {
         var cid = _importNewCats[ci];
         var meta = IM_NEWCAT_META[cid] || {name:cid, icon:'🍽️'};
-        var catRow = { id: cid, name: meta.name, icon: meta.icon, sort_order: maxSort + 1 + ci };
+        var catRow = { restaurant_id: lockedStore, id: cid, name: meta.name, icon: meta.icon, sort_order: maxSort + 1 + ci };
         try {
           var cres = await sbFetch('categories', { method:'POST', prefer:'return=minimal', body: JSON.stringify(catRow) });
           if (cres.ok && C) C.push(catRow);
