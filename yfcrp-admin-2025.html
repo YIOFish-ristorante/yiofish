@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v4.5</title>
+<title>Yio Fish Admin v4.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -506,15 +506,15 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 <div class="modal-bg" id="store-admin-modal">
   <div class="modal-box" style="max-width:680px">
     <div class="modal-title">🔐 店铺管理员</div>
-    <div class="hint" style="margin-bottom:12px;color:var(--muted)">管理每家店的登录账号。所有操作仅 super_admin 可见。</div>
+    <div class="hint" style="margin-bottom:14px;color:var(--muted)">管理每家店的登录账号（仅 super_admin 可操作）</div>
 
     <!-- 列表区 -->
     <div id="sa-list-wrap">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <b style="color:#d4af37">当前账号</b>
         <button class="btn btn-green btn-sm" onclick="saOpenCreate()">➕ 新增管理员</button>
       </div>
-      <div id="sa-list" style="max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:8px"></div>
+      <div id="sa-list" style="max-height:420px;overflow:auto"></div>
     </div>
 
     <!-- 新增/重置子表单 -->
@@ -2752,7 +2752,7 @@ async function saReload() {
 function saRenderList() {
   var listEl = $('sa-list');
   if (!_saList.length) {
-    listEl.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:13px">暂无管理员账号</div>';
+    listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">暂无管理员账号</div>';
     return;
   }
   // 按店分组
@@ -2763,22 +2763,28 @@ function saRenderList() {
   });
   var html = '';
   Object.keys(byStore).sort().forEach(function(rid){
-    var storeName = '';
     var st = STORES.filter(function(s){ return s.id === rid; })[0];
-    if (st) storeName = st.name;
-    html += '<div style="padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(212,171,72,.05)">';
-    html += '<b style="color:#d4af37;font-size:13px">' + rid + '</b>';
-    if (storeName) html += ' <span style="color:var(--muted);font-size:12px">' + storeName + '</span>';
+    var storeName = st ? st.name : rid;
+    // 每家店一个卡片
+    html += '<div style="padding:14px;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.06)">';
+    html += '<div style="margin-bottom:12px">';
+    html += '<div style="font-size:13px;color:var(--muted);margin-bottom:2px">' + rid + '</div>';
+    html += '<b style="font-size:14px;color:var(--text)">' + storeName + '</b>';
     html += '</div>';
+    // 账号列表
     byStore[rid].forEach(function(a){
-      html += '<div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.04)">';
-      html += '<div><b>' + a.username + '</b>';
-      html += ' <span style="color:var(--muted);font-size:11px;margin-left:6px">' + a.role + '</span></div>';
-      html += '<div style="display:flex;gap:6px">';
-      html += '<button class="btn btn-sm btn-gold-s" onclick="saOpenReset(' + a.id + ',\'' + a.username.replace(/'/g,"\\'") + '\')">🔑 重置密码</button>';
-      html += '<button class="btn btn-sm" style="color:#c0392b;border:1px solid rgba(192,57,43,.4)" onclick="saDelete(' + a.id + ',\'' + a.username.replace(/'/g,"\\'") + '\')">🗑️</button>';
-      html += '</div></div>';
+      html += '<div style="padding:10px;margin-bottom:8px;background:rgba(212,171,72,.03);border-radius:4px;display:flex;justify-content:space-between;align-items:center;gap:10px">';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<b style="font-size:13px;display:block;margin-bottom:2px">' + a.username + '</b>';
+      html += '<span style="color:var(--muted);font-size:11px">' + a.role + '</span>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:6px;flex-shrink:0">';
+      html += '<button class="btn btn-sm btn-gold-s" onclick="saOpenReset(' + a.id + ',\'' + a.username.replace(/'/g,"\\'") + '\')">🔑</button>';
+      html += '<button class="btn btn-sm" style="color:#c0392b;border:1px solid rgba(192,57,43,.3)" onclick="saDelete(' + a.id + ',\'' + a.username.replace(/'/g,"\\'") + '\')">🗑️</button>';
+      html += '</div>';
+      html += '</div>';
     });
+    html += '</div>';
   });
   listEl.innerHTML = html;
 }
@@ -3757,7 +3763,7 @@ async function toggleSetting(key, val){
 // ════════════════════════════════════
 //  版本号
 // ════════════════════════════════════
-// v4.5.0 · 2025-05-30 · 删除未使用函数和过时注释
+// v4.6.0 · 2025-05-30 · 优化管理员账号卡片布局
 
 // ════════════════════════════════════
 //  启动
