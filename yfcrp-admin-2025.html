@@ -193,14 +193,17 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   .layout{flex-direction:column;min-height:auto;}
   #hamburger-btn{display:inline-block !important;}
   .sidebar{
-    width:260px;height:100vh;position:fixed;top:0;left:0;
+    width:260px;max-height:calc(100vh - 10px);position:fixed;top:0;left:0;
     transform:translateX(-100%);transition:transform .25s ease;
-    z-index:200;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    z-index:400;  /* 比 topbar (300) 高，确保不被遮挡 */
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
     padding:16px 12px 30px;gap:4px;
     border-right:1px solid var(--border);border-bottom:none;
-    box-shadow:2px 0 12px rgba(0,0,0,.2);
+    box-shadow:2px 0 12px rgba(0,0,0,.3);
+    background:var(--surface);  /* 显式背景色，防穿透 */
   }
   .sidebar.open{transform:translateX(0);}
+  #sidebar-backdrop{z-index:399 !important;}  /* 遮罩在抽屉之下，topbar 之上 */
   /* 分组标题和分隔线在抽屉里保留显示 */
   .s-btn{width:100%;padding:11px 14px;font-size:13px;}
   .content{padding:18px 14px 60px;}
@@ -250,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.14.2</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.14.3</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -306,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.14.2</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.14.3</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -614,7 +617,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.2</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.3</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1325,7 +1328,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.2</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.14.3</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
