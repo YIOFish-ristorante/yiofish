@@ -463,9 +463,11 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .sheet h3 { color: var(--gold); font-weight: 300; letter-spacing: 3px; font-size: 14px; margin-bottom: 22px; }
 .drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 22px; }
 .form-field { width: 100%; padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 16px; -webkit-appearance: none; color-scheme: dark; transition: border-color var(--transition); }
-.form-field:focus { outline: none; border-color: var(--gold); color: var(--text) !important; }
-select.form-field { color: var(--text) !important; }
-select.form-field:focus { color: var(--text) !important; }
+.form-field:focus { outline: none; border-color: var(--gold); }
+/* select 未选择时显示暗灰（和其他 placeholder 一致），选择后变亮 */
+select.form-field:invalid { color: #444; }
+select.form-field { color: var(--text); }
+select.form-field option { color: var(--text); }
 .form-field::placeholder { color: #444; }
 .date-wrap { position: relative; width: 100%; margin-bottom: 10px; }
 .date-wrap input { width: 100%; margin-bottom: 0; padding-top: 22px; padding-bottom: 8px; }
@@ -543,7 +545,7 @@ select.form-field:focus { color: var(--text) !important; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.16.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.16.1 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -721,7 +723,7 @@ select.form-field:focus { color: var(--text) !important; }
       <input class="form-field" type="date" id="res-date" onchange="updateTimeOptions()" required>
       <label for="res-date">Data</label>
     </div>
-    <select class="form-field" id="res-time"><option value="">Seleziona orario</option></select>
+    <select class="form-field" id="res-time" required><option value="">Seleziona orario</option></select>
     <input class="form-field" type="number" id="res-people" placeholder="Numero di persone" min="1">
     <textarea class="form-field" id="res-note" placeholder="Note (opzionale): allergie, richieste speciali..." style="resize:none;height:80px;margin-top:4px"></textarea>
     <button class="btn btn-gold" style="margin-top:6px" onclick="sendReservation()">INVIA SU WHATSAPP</button>
