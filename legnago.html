@@ -544,7 +544,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.16.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.16.1 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -3250,11 +3250,18 @@ function updateTimeOptions() {
   dinnerTimes.forEach(function(t){ timeSelect.add(new Option('Cena · '+t, t)); });
 }
 function sendReservation() {
-  var name = document.getElementById('res-name').value.trim();
-  var date = document.getElementById('res-date').value;
-  var time = document.getElementById('res-time').value;
-  var people = document.getElementById('res-people').value;
-  if (!name||!date||!time||!people){ alert('Compila tutti i campi.'); return; }
+  var nameEl = document.getElementById('res-name');
+  var dateEl = document.getElementById('res-date');
+  var timeEl = document.getElementById('res-time');
+  var peopleEl = document.getElementById('res-people');
+  var name = nameEl.value.trim();
+  var date = dateEl.value;
+  var time = timeEl.value;
+  var people = peopleEl.value;
+  if (!name) { toast('⚠️ Inserisci nome e cognome'); nameEl.focus(); return; }
+  if (!date) { toast('⚠️ Seleziona una data'); dateEl.focus(); return; }
+  if (!time) { toast('⚠️ Seleziona un orario'); timeEl.focus(); return; }
+  if (!people) { toast('⚠️ Inserisci il numero di persone'); peopleEl.focus(); return; }
   var p = date.split('-');
   var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
   var msg = 'Prenotazione YIO Fish\n\nNome: '+name+'\nData: '+p[2]+'/'+p[1]+'/'+p[0]+'\nOrario: '+time+'\nPersone: '+people+(note ? '\nNote: '+note : '');
