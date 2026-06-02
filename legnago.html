@@ -464,15 +464,14 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 22px; }
 .form-field { width: 100%; padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 16px; -webkit-appearance: none; color-scheme: dark; transition: border-color var(--transition); }
 .form-field:focus { outline: none; border-color: var(--gold); }
-/* select 未选择时显示暗灰（和其他 placeholder 一致），选择后变亮 */
-select.form-field:invalid { color: #444; }
-select.form-field { color: var(--text); }
-select.form-field option { color: var(--text); }
 .form-field::placeholder { color: #444; }
+/* select 未选择时与其他输入框提示文字一致（暗灰），选择后变亮 */
+#res-time:invalid { color: #444; }
+#res-time { color: var(--text); }
 .date-wrap { position: relative; width: 100%; margin-bottom: 10px; }
-.date-wrap input { width: 100%; margin-bottom: 0; padding-top: 22px; padding-bottom: 8px; }
+.date-wrap input[type="date"] { width: 100%; margin-bottom: 0; padding-top: 22px; padding-bottom: 8px; }
 .date-wrap label { position: absolute; top: 50%; left: 15px; transform: translateY(-50%); font-size: 16px; color: #444; pointer-events: none; transition: top .18s, font-size .18s, color .18s; }
-.date-wrap input:focus + label, .date-wrap input:valid + label { top: 10px; font-size: 10px; color: var(--gold); letter-spacing: 1px; }
+.date-wrap input[type="date"]:focus + label, .date-wrap input[type="date"]:valid + label { top: 10px; font-size: 10px; color: var(--gold); letter-spacing: 1px; }
 .notice { font-size: 12px; color: var(--gold); margin-bottom: 10px; font-weight: 600; letter-spacing: 1px; min-height: 18px; }
 .btn-close { margin-top: 16px; background: transparent; color: var(--muted); border: none; font-size: 13px; letter-spacing: 1px; cursor: pointer; padding: 10px; width: 100%; }
 
@@ -545,7 +544,7 @@ select.form-field option { color: var(--text); }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.16.1 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.16.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -3258,75 +3257,6 @@ function sendReservation() {
   if (!name||!date||!time||!people){ alert('Compila tutti i campi.'); return; }
   var p = date.split('-');
   var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
-  var msg = 'Prenotazione YIO Fish
-
-Nome: '+name+'
-Data: '+p[2]+'/'+p[1]+'/'+p[0]+'
-Orario: '+time+'
-Persone: '+people+(note ? '
-Note: '+note : '');
-  window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
-  closeModal('reservationModal');
-}
-  var day = parseInt(parts[0], 10);
-  var month = parseInt(parts[1], 10);
-  var year = parseInt(parts[2], 10);
-  
-  // 基础验证
-  if (isNaN(day) || isNaN(month) || isNaN(year) || day < 1 || day > 31 || month < 1 || month > 12 || year < 2000 || year > 2100) {
-    notice.textContent = '❌ Data non valida';
-    return;
-  }
-  
-  // 检查是否早于今天
-  var today = new Date();
-  var inputDate = new Date(year, month - 1, day);
-  inputDate.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  if (inputDate < today) {
-    notice.textContent = '❌ Data non può essere nel passato';
-    return;
-  }
-  
-  // 计算星期几（0=Sunday, 6=Saturday）
-  var dow = new Date(year, month - 1, day).getDay();
-  var lunchTimes = ['12:00','12:30','13:00','13:30','14:00','14:30'];
-  var dinnerTimes = dow === 6 ? ['19:00','19:15','21:00','21:30','22:00'] : ['19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30'];
-  if (dow === 6) notice.textContent = 'Sabato sera: orari a turni (19:00 · 19:15 · 21:00...)';
-  lunchTimes.forEach(function(t){ timeSelect.add(new Option('Pranzo · '+t, t)); });
-  dinnerTimes.forEach(function(t){ timeSelect.add(new Option('Cena · '+t, t)); });
-}
-
-function sendReservation() {
-  var name = document.getElementById('res-name').value.trim();
-  var dateInput = document.getElementById('res-date').value.trim();
-  var time = document.getElementById('res-time').value;
-  var people = document.getElementById('res-people').value;
-  if (!name||!dateInput||!time||!people){ alert('Compila tutti i campi.'); return; }
-  
-  // 解析日期
-  var parts = dateInput.split('/');
-  if (parts.length !== 3) { alert('Formato data: GG/MM/YYYY'); return; }
-  var day = parseInt(parts[0], 10);
-  var month = parseInt(parts[1], 10);
-  var year = parseInt(parts[2], 10);
-  if (isNaN(day) || isNaN(month) || isNaN(year) || day < 1 || day > 31 || month < 1 || month > 12) {
-    alert('Data non valida.'); return;
-  }
-  
-  var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
-  var msg = 'Prenotazione YIO Fish
-
-Nome: '+name+'
-Data: '+String(day).padStart(2,'0')+'/'+String(month).padStart(2,'0')+'/'+year+'
-Orario: '+time+'
-Persone: '+people+(note ? '
-Note: '+note : '');
-  window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
-  closeModal('reservationModal');
-}
-  var p = date.split('-');
-  var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
   var msg = 'Prenotazione YIO Fish\n\nNome: '+name+'\nData: '+p[2]+'/'+p[1]+'/'+p[0]+'\nOrario: '+time+'\nPersone: '+people+(note ? '\nNote: '+note : '');
   window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
   closeModal('reservationModal');
@@ -3336,7 +3266,7 @@ Note: '+note : '');
 // 启动
 // ════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('res-date').min = new Date().toISOString().split('T')[0];
+  document.getElementById('res-date').min = new Date().toISOString().split('T')[0];
   loadAll();
 });
 </script>
