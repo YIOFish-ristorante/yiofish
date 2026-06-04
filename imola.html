@@ -544,7 +544,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.16.2 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.17.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -718,6 +718,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <h3>PRENOTAZIONE</h3>
     <p id="sabatoNotice" class="notice"></p>
     <input class="form-field" type="text" id="res-name" placeholder="Nome e Cognome">
+    <input class="form-field" type="tel" id="res-phone" placeholder="Telefono (opzionale, per punti fedeltà)" style="margin-top:4px">
+    <div style="font-size:10px;color:#757575;margin:-2px 0 6px;padding-left:2px">📱 Inserisci il numero per accumulare punti fedeltà</div>
     <div class="date-wrap">
       <input class="form-field" type="date" id="res-date" onchange="updateTimeOptions()" required>
       <label for="res-date">Data</label>
@@ -3257,19 +3259,29 @@ function sendReservation() {
   var dateEl = document.getElementById('res-date');
   var timeEl = document.getElementById('res-time');
   var peopleEl = document.getElementById('res-people');
+  var phoneEl = document.getElementById('res-phone');
   var name = nameEl.value.trim();
   var date = dateEl.value;
   var time = timeEl.value;
   var people = peopleEl.value;
+  var phone = phoneEl ? phoneEl.value.trim().replace(/\s+/g, '') : '';
   if (!name) { toast('⚠️ Inserisci nome e cognome'); nameEl.focus(); return; }
   if (!date) { toast('⚠️ Seleziona una data'); dateEl.focus(); return; }
   if (!time) { toast('⚠️ Seleziona un orario'); timeEl.focus(); return; }
   if (!people) { toast('⚠️ Inserisci il numero di persone'); peopleEl.focus(); return; }
   var p = date.split('-');
   var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
-  var msg = 'Prenotazione YIO Fish\n\nNome: '+name+'\nData: '+p[2]+'/'+p[1]+'/'+p[0]+'\nOrario: '+time+'\nPersone: '+people+(note ? '\nNote: '+note : '');
+  var msg = 'Prenotazione YIO Fish\n\nNome: '+name+'\nData: '+p[2]+'/'+p[1]+'/'+p[0]+'\nOrario: '+time+'\nPersone: '+people+(note ? '\nNote: '+note : '')+(phone ? '\nTelefono: '+phone : '');
   window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
   closeModal('reservationModal');
+  // 手机号可选：填了就静默注册/识别会员（积分系统）
+  if (phone) {
+    fetch(WORKER_URL + '/loyalty/identify', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone: phone, name: name})
+    }).catch(function(){}); // 静默失败，不影响预约流程
+  }
 }
 
 // ════════════════════════════════════
