@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.22.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.23.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.22.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.23.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -633,7 +633,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.22.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.23.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -768,27 +768,26 @@ function toggleLockPwd() {
 
 async function handleGoogleLogin(response) {
   try {
-    // 解析JWT token获取用户信息
-    var payload = JSON.parse(atob(response.credential.split('.')[1]));
-    var email = payload.email;
     var errEl = document.getElementById('lock-error');
 
-    // 走 Worker 验证邮箱白名单 + 拿 super_admin token
+    // 把完整 credential JWT 发给 Worker，由 Worker 调 Google tokeninfo 验证真伪
+    // 不在前端解析 email（前端解析不可信，任何人都能伪造）
     var res = await fetch(WORKER_URL + '/google-admin/login', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({email: email})
+      body: JSON.stringify({credential: response.credential})
     });
     var data = await res.json();
     if (res.ok && data.token) {
       ADMIN_TOKEN = data.token;
       CURRENT_ROLE = 'super';
-      try { sessionStorage.setItem(_lockSession, email); } catch(e) {}
+      var verifiedEmail = data.email || '';
+      try { sessionStorage.setItem(_lockSession, verifiedEmail); } catch(e) {}
       try { sessionStorage.setItem('yf_admin_token', data.token); } catch(e) {}
       document.getElementById('lock-screen').style.display = 'none';
       loadAll();
     } else {
-      if (errEl) errEl.textContent = 'ACCESSO NON AUTORIZZATO: ' + (data.error || email);
+      if (errEl) errEl.textContent = 'ACCESSO NON AUTORIZZATO: ' + (data.error || 'email non autorizzata');
     }
   } catch(e) {
     var errEl = document.getElementById('lock-error');
@@ -1349,7 +1348,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.22.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.23.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
