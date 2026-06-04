@@ -544,7 +544,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.17.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.18.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -718,8 +718,10 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <h3>PRENOTAZIONE</h3>
     <p id="sabatoNotice" class="notice"></p>
     <input class="form-field" type="text" id="res-name" placeholder="Nome e Cognome">
-    <input class="form-field" type="tel" id="res-phone" placeholder="Telefono (opzionale, per punti fedeltà)" style="margin-top:4px">
-    <div style="font-size:10px;color:#757575;margin:-2px 0 6px;padding-left:2px">📱 Inserisci il numero per accumulare punti fedeltà</div>
+    <div id="res-phone-wrap" style="display:none">
+      <input class="form-field" type="tel" id="res-phone" placeholder="Telefono (opzionale, per punti fedeltà)" style="margin-top:4px">
+      <div style="font-size:10px;color:#757575;margin:-2px 0 6px;padding-left:2px">📱 Inserisci il numero per accumulare punti fedeltà</div>
+    </div>
     <div class="date-wrap">
       <input class="form-field" type="date" id="res-date" onchange="updateTimeOptions()" required>
       <label for="res-date">Data</label>
@@ -865,7 +867,7 @@ var R = {name:"Yio Fish", subtitle:"Ristorante Giapponese · Carpi", phone:"339 
 var CATS = [];
 var ALL_ITEMS = [];
 var DISH_MENUS = [];
-var SETTINGS = {notify_enabled: false, takeaway_enabled: true, consegna_enabled: true, is_open: true};
+var SETTINGS = {notify_enabled: false, takeaway_enabled: true, consegna_enabled: true, is_open: true, loyalty_enabled: false};
 // 过敏源标签 - 运行时从 restaurant_tags 表加载（按 RESTAURANT_ID 独立）
 var TAGS = {};
 // 默认 fallback（数据库无数据时使用）
@@ -1089,7 +1091,7 @@ var _lastPublishedAt = null;
 
 async function checkNewPublish() {
   try {
-    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=published_at,notify_enabled,takeaway_enabled,is_open,round_max,round_total,round_interval');
+    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=published_at,notify_enabled,takeaway_enabled,is_open,round_max,round_total,round_interval,loyalty_enabled');
     var data = await res.json();
     if (!data || !data[0]) return;
     var s = data[0];
@@ -1101,6 +1103,10 @@ async function checkNewPublish() {
     SETTINGS.round_max = s.round_max || 0;
     SETTINGS.round_total = s.round_total || 0;
     SETTINGS.round_interval = s.round_interval || 0;
+    SETTINGS.loyalty_enabled = !!s.loyalty_enabled;
+    // 控制积分手机号输入框显示
+    var phoneWrapLoyalty = document.getElementById('res-phone-wrap');
+    if (phoneWrapLoyalty) phoneWrapLoyalty.style.display = SETTINGS.loyalty_enabled ? '' : 'none';
     // 检查是否有新发布
     if (s.published_at && s.published_at !== _lastPublishedAt) {
       _lastPublishedAt = s.published_at;
@@ -3277,7 +3283,7 @@ function sendReservation() {
   window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
   closeModal('reservationModal');
   // 手机号可选：填了就静默注册/识别会员（积分系统）
-  if (phone) {
+  if (phone && SETTINGS.loyalty_enabled) {
     fetch(WORKER_URL + '/loyalty/identify', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},

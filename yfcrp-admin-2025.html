@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.24.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.25.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.24.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.25.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -636,7 +636,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.24.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.25.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1353,7 +1353,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.24.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.25.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3865,7 +3865,17 @@ async function renderLoyaltyPage() {
 
     // ── 积分设置区块（仅 super_admin）──
     + (CURRENT_ROLE === 'super' ? '<div class="card" style="padding:18px 22px;margin-bottom:20px;border-left:3px solid #d4af37">'
-      + '<div style="font-size:14px;font-weight:600;color:#d4af37;margin-bottom:12px">⚙️ Impostazioni punti</div>'
+      + '<div style="font-size:14px;font-weight:600;color:#d4af37;margin-bottom:14px">⚙️ Impostazioni punti fedeltà</div>'
+      + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px 14px;background:var(--bg);border-radius:var(--r)">'
+        + '<label class="toggle-switch" style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0">'
+          + '<input type="checkbox" id="ly-toggle" style="opacity:0;width:0;height:0" onchange="updateLoyaltyToggleUI(this.checked)">'
+          + '<span style="position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.3s" id="ly-toggle-track"></span>'
+          + '<span style="position:absolute;content:\'\';height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;pointer-events:none" id="ly-toggle-thumb"></span>'
+        + '</label>'
+        + '<div><div id="ly-toggle-label" style="font-size:14px;font-weight:600">Sistema fedeltà: OFF</div>'
+          + '<div style="font-size:11px;color:var(--muted)">Quando OFF: nessun campo telefono nei form clienti</div>'
+        + '</div>'
+      + '</div>'
       + '<div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">'
         + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">€1 = N punti</div>'
           + '<input type="number" id="ly-pts-per-euro" min="1" max="1000" style="width:90px;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)" value="10">'
@@ -3909,16 +3919,31 @@ async function renderLoyaltyPage() {
   loadLoyaltyList();
 }
 
+function updateLoyaltyToggleUI(enabled) {
+  var track = document.getElementById('ly-toggle-track');
+  var thumb = document.getElementById('ly-toggle-thumb');
+  var label = document.getElementById('ly-toggle-label');
+  if (track) track.style.background = enabled ? '#27ae60' : '#ccc';
+  if (thumb) thumb.style.transform = enabled ? 'translateX(20px)' : 'translateX(0)';
+  if (label) label.textContent = 'Sistema fedeltà: ' + (enabled ? 'ON' : 'OFF');
+  if (label) label.style.color = enabled ? '#27ae60' : 'var(--text)';
+}
+
 async function loadLoyaltySettings() {
   try {
-    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=points_per_euro,points_trigger&limit=1');
+    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=points_per_euro,points_trigger,loyalty_enabled&limit=1');
     if (!res.ok) return;
     var data = await res.json();
     if (data && data[0]) {
       var el = document.getElementById('ly-pts-per-euro');
       var trig = document.getElementById('ly-trigger');
+      var tog = document.getElementById('ly-toggle');
       if (el && data[0].points_per_euro) el.value = data[0].points_per_euro;
       if (trig && data[0].points_trigger) trig.value = data[0].points_trigger;
+      if (tog) {
+        tog.checked = !!data[0].loyalty_enabled;
+        updateLoyaltyToggleUI(!!data[0].loyalty_enabled);
+      }
     }
   } catch(e) {}
 }
@@ -3930,12 +3955,16 @@ async function saveLoyaltySettings() {
   var ppe = parseInt(ppeEl.value);
   if (!ppe || ppe < 1) { toast('⚠️ Inserisci un valore valido'); return; }
   try {
+    var togEl = document.getElementById('ly-toggle');
+    var loyaltyEnabled = togEl ? togEl.checked : false;
     var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID, {
       method: 'PATCH',
-      body: JSON.stringify({ points_per_euro: ppe, points_trigger: trigEl.value })
+      body: JSON.stringify({ points_per_euro: ppe, points_trigger: trigEl.value, loyalty_enabled: loyaltyEnabled })
     });
-    if (res.ok) toast('✅ Impostazioni salvate');
-    else toast('❌ Errore salvataggio');
+    if (res.ok) {
+      toast('✅ Impostazioni salvate');
+      updateLoyaltyToggleUI(loyaltyEnabled);
+    } else toast('❌ Errore salvataggio');
   } catch(e) { toast('❌ ' + e.message); }
 }
 
