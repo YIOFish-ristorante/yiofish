@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.25.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.26.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.25.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.26.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -636,7 +636,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.25.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.26.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1353,7 +1353,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.25.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.26.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3903,6 +3903,15 @@ async function renderLoyaltyPage() {
     // ── 会员详情区（默认空）──
     + '<div id="ly-customer-detail"></div>'
 
+    // ── 奖品档位管理（仅 super_admin）──
+    + (CURRENT_ROLE === 'super' ? '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+        + '<div style="font-size:14px;font-weight:600">🎁 Premi disponibili</div>'
+        + '<button class="btn btn-gold btn-sm" onclick="openRewardForm()">+ Aggiungi</button>'
+      + '</div>'
+      + '<div id="ly-rewards-list">Caricamento...</div>'
+    + '</div>' : '')
+
     // ── 会员列表 ──
     + '<div class="card" style="padding:18px 22px">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
@@ -3915,6 +3924,8 @@ async function renderLoyaltyPage() {
 
   // 加载积分设置
   if (CURRENT_ROLE === 'super') loadLoyaltySettings();
+  // 加载奖品档位
+  if (CURRENT_ROLE === 'super') loadLoyaltyRewards();
   // 加载会员列表
   loadLoyaltyList();
 }
@@ -4077,6 +4088,104 @@ async function applyLoyaltyAdjust() {
     } else {
       toast('❌ ' + (data.error || 'Errore'));
     }
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+async function loadLoyaltyRewards() {
+  var listEl = document.getElementById('ly-rewards-list');
+  if (!listEl) return;
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/rewards?restaurant_id=' + encodeURIComponent(RESTAURANT_ID), {
+      cache: 'no-store'
+    });
+    var rewards = await res.json();
+    if (!rewards.length) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:12px">Nessun premio configurato</div>';
+      return;
+    }
+    listEl.innerHTML = rewards.map(function(r) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">'
+        + '<div>'
+          + '<div style="font-size:13px;font-weight:500">' + r.name + '</div>'
+          + (r.description ? '<div style="font-size:11px;color:var(--muted)">' + r.description + '</div>' : '')
+          + '<div style="font-size:11px;color:var(--gold);margin-top:2px">' + r.points_cost + ' pt · ' + (r.type === 'voucher' ? '🎟 Voucher' : '🎁 Regalo') + '</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;flex-shrink:0">'
+          + '<button class="btn btn-sm" style="border:1px solid var(--border2);font-size:11px" onclick="openRewardForm(' + JSON.stringify(r).replace(/"/g,"'") + ')">✏️</button>'
+          + '<button class="btn btn-sm" style="border:1px solid var(--border2);font-size:11px;color:' + (r.is_active ? '#27ae60' : 'var(--muted)') + '" onclick="toggleReward(' + r.id + ',' + !r.is_active + ')">' + (r.is_active ? '✅ ON' : '⏸ OFF') + '</button>'
+        + '</div>'
+      + '</div>';
+    }).join('');
+  } catch(e) { listEl.innerHTML = '❌ ' + e.message; }
+}
+
+function closeRewardModal() { var m = document.getElementById('reward-modal'); if(m) m.remove(); }
+
+function openRewardForm(r) {
+  r = r || {};
+  var html = '<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;display:flex;align-items:center;justify-content:center;padding:16px">'
+    + '<div style="background:var(--surface);border-radius:var(--r);padding:24px;width:100%;max-width:400px">'
+      + '<div style="font-size:15px;font-weight:600;margin-bottom:16px">' + (r.id ? '✏️ Modifica premio' : '➕ Nuovo premio') + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">Nome</div>'
+      + '<input id="rf-name" type="text" value="' + (r.name||'') + '" placeholder="Es. Voucher €5" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:10px">'
+      + '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">Descrizione (opzionale)</div>'
+      + '<input id="rf-desc" type="text" value="' + (r.description||'') + '" placeholder="Es. Sconto di €5 sul conto" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:10px">'
+      + '<div style="display:flex;gap:10px;margin-bottom:10px">'
+        + '<div style="flex:1"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Punti richiesti</div>'
+          + '<input id="rf-pts" type="number" min="1" value="' + (r.points_cost||'') + '" placeholder="Es. 80" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px"></div>'
+        + '<div style="flex:1"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Tipo</div>'
+          + '<select id="rf-type" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px">'
+            + '<option value="voucher"' + (r.type==='voucher'?' selected':'') + '>🎟 Voucher</option>'
+            + '<option value="gift"' + (r.type==='gift'||!r.type?' selected':'') + '>🎁 Regalo</option>'
+          + '</select></div>'
+      + '</div>'
+      + '<div style="display:flex;gap:8px;margin-top:4px">'
+        + '<button class="btn btn-gold" style="flex:1;padding:10px" onclick="saveReward(' + (r.id||0) + ')">Salva</button>'
+        + '<button class="btn" style="flex:1;padding:10px;border:1px solid var(--border2)" onclick="closeRewardModal()">Annulla</button>'
+      + '</div>'
+    + '</div>'
+  + '</div>';
+  var modal = document.createElement('div');
+  modal.id = 'reward-modal';
+  modal.innerHTML = html;
+  document.body.appendChild(modal);
+}
+
+async function saveReward(id) {
+  var name = (document.getElementById('rf-name').value||'').trim();
+  var desc = (document.getElementById('rf-desc').value||'').trim();
+  var pts = parseInt(document.getElementById('rf-pts').value||'0');
+  var type = document.getElementById('rf-type').value;
+  if (!name || !pts) { toast('⚠️ Nome e punti sono obbligatori'); return; }
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/rewards', {
+      method: 'POST',
+      headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body: JSON.stringify({id: id||undefined, restaurant_id: RESTAURANT_ID, name, description: desc||null, points_cost: pts, type}),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (res.ok) {
+      toast('✅ Premio salvato');
+      var modal = document.getElementById('reward-modal');
+      if (modal) modal.remove();
+      loadLoyaltyRewards();
+    } else toast('❌ ' + (data.error||'Errore'));
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+async function toggleReward(id, isActive) {
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/rewards/toggle', {
+      method: 'POST',
+      headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body: JSON.stringify({id, is_active: isActive}),
+      cache: 'no-store'
+    });
+    if (res.ok) { toast(isActive ? '✅ Premio attivato' : '⏸ Premio disattivato'); loadLoyaltyRewards(); }
+    else toast('❌ Errore');
   } catch(e) { toast('❌ ' + e.message); }
 }
 

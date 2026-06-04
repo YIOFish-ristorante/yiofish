@@ -523,6 +523,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
   <div class="action-row">
     <button class="btn btn-ghost" onclick="openModal('reservationModal')">PRENOTA</button>
     <button class="btn btn-ghost" onclick="openTakeawayChoice()">TAKEAWAY</button>
+    <button class="btn btn-ghost" id="btn-loyalty" onclick="openModal('loyaltyModal')" style="display:none">⭐ PUNTI</button>
   </div>
   <div class="status" id="status">CARICAMENTO...</div>
   <button class="btn btn-gold menu-btn" id="btnBevande"  onclick="openMenuView('bevande')">MENU BEVANDE</button>
@@ -544,7 +545,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.18.1 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.19.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -731,6 +732,51 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <textarea class="form-field" id="res-note" placeholder="Note (opzionale): allergie, richieste speciali..." style="resize:none;height:80px;margin-top:4px"></textarea>
     <button class="btn btn-gold" style="margin-top:6px" onclick="sendReservation()">INVIA SU WHATSAPP</button>
     <button class="btn-close" onclick="closeModal('reservationModal')">Annulla</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ LOYALTY 积分弹窗 ══════════════════════════════════════ -->
+<div class="overlay" id="loyaltyModal">
+  <div class="sheet">
+    <div class="drag-bar"></div>
+    <h3>⭐ PUNTI FEDELTÀ</h3>
+
+    <!-- 步骤1：输入手机号 -->
+    <div id="ly-step-phone">
+      <p style="font-size:13px;color:#757575;margin-bottom:14px">Inserisci il tuo numero per vedere i tuoi punti e riscattare premi.</p>
+      <input class="form-field" type="tel" id="ly-phone" placeholder="Numero di telefono">
+      <button class="btn btn-gold" style="width:100%;margin-top:6px" onclick="lyLookup()">CERCA PUNTI</button>
+      <div id="ly-phone-err" style="color:#c0392b;font-size:12px;margin-top:6px"></div>
+    </div>
+
+    <!-- 步骤2：显示积分+奖品 -->
+    <div id="ly-step-rewards" style="display:none">
+      <div id="ly-balance-box" style="background:#fdf8ee;border-radius:6px;padding:14px;text-align:center;margin-bottom:16px">
+        <div style="font-size:11px;color:#7a6020;letter-spacing:1px;margin-bottom:4px">I TUOI PUNTI</div>
+        <div id="ly-pts-display" style="font-size:36px;font-weight:700;color:#b8902e">0</div>
+        <div id="ly-name-display" style="font-size:12px;color:#7a7060;margin-top:2px"></div>
+      </div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">🎁 Premi disponibili</div>
+      <div id="ly-rewards-list" style="margin-bottom:14px"></div>
+      <button class="btn-close" onclick="lyReset()">Cambia numero</button>
+    </div>
+
+    <!-- 步骤3：兑换码显示 -->
+    <div id="ly-step-code" style="display:none">
+      <div style="text-align:center;padding:8px 0 16px">
+        <div style="font-size:13px;color:#757575;margin-bottom:8px">Mostra questo codice al cameriere</div>
+        <div id="ly-code-display" style="font-size:36px;font-weight:700;letter-spacing:6px;color:#1a1510;background:#f4f1ec;border-radius:8px;padding:16px;margin-bottom:8px"></div>
+        <div id="ly-code-reward" style="font-size:13px;font-weight:500;margin-bottom:4px"></div>
+        <div id="ly-code-pts" style="font-size:12px;color:#b8902e"></div>
+        <div id="ly-code-expires" style="font-size:11px;color:#7a7060;margin-top:6px"></div>
+      </div>
+      <div style="background:#edfaf3;border-radius:6px;padding:10px 12px;font-size:12px;color:#27ae60;margin-bottom:14px">
+        ✅ Il codice è valido per 24 ore. Lo staff lo verificherà prima di consegnare il premio.
+      </div>
+      <button class="btn btn-gold" style="width:100%" onclick="lyBackToRewards()">← Torna ai premi</button>
+    </div>
+
+    <button class="btn-close" onclick="closeModal('loyaltyModal')" style="margin-top:8px">Chiudi</button>
   </div>
 </div>
 
@@ -1007,9 +1053,11 @@ async function loadAll() {
       SETTINGS = sData[0];
       // 读取服务员密码
       if (SETTINGS.waiter_password) WAITER_PASSWORD = SETTINGS.waiter_password;
-      // 积分系统开关：控制手机号输入框显示
+      // 积分系统开关：控制手机号输入框 + 积分按钮显示
       var phoneWrapLoyalty = document.getElementById('res-phone-wrap');
       if (phoneWrapLoyalty) phoneWrapLoyalty.style.display = SETTINGS.loyalty_enabled ? '' : 'none';
+      var btnLoyalty = document.getElementById('btn-loyalty');
+      if (btnLoyalty) btnLoyalty.style.display = SETTINGS.loyalty_enabled ? '' : 'none';
     }
 
     CATS = await cRes.json();
@@ -3260,6 +3308,110 @@ function updateTimeOptions() {
   lunchTimes.forEach(function(t){ timeSelect.add(new Option('Pranzo · '+t, t)); });
   dinnerTimes.forEach(function(t){ timeSelect.add(new Option('Cena · '+t, t)); });
 }
+// ════════════════════════════════════════════════════════
+//  顾客端积分系统
+// ════════════════════════════════════════════════════════
+var _lyPhone = '';
+var _lyCustomer = null;
+var _lyRewards = [];
+
+function lyShowStep(step) {
+  ['phone','rewards','code'].forEach(function(s){
+    var el = document.getElementById('ly-step-'+s);
+    if (el) el.style.display = s === step ? '' : 'none';
+  });
+}
+
+async function lyLookup() {
+  var phone = (document.getElementById('ly-phone').value||'').trim().replace(/\s+/g,'');
+  var errEl = document.getElementById('ly-phone-err');
+  if (!phone) { errEl.textContent = 'Inserisci il numero di telefono'; return; }
+  errEl.textContent = '';
+
+  try {
+    // 先 identify（查或创建会员）
+    var res = await fetch(WORKER_URL + '/loyalty/identify', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone: phone})
+    });
+    var data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Errore'; return; }
+
+    _lyPhone = phone;
+    _lyCustomer = data.customer;
+
+    document.getElementById('ly-pts-display').textContent = _lyCustomer.total_points;
+    document.getElementById('ly-name-display').textContent = _lyCustomer.name ? '👤 ' + _lyCustomer.name : '';
+
+    // 加载奖品
+    var rRes = await fetch(WORKER_URL + '/loyalty/rewards?restaurant_id=' + encodeURIComponent(RESTAURANT_ID), {cache:'no-store'});
+    _lyRewards = rRes.ok ? await rRes.json() : [];
+
+    var listEl = document.getElementById('ly-rewards-list');
+    if (!_lyRewards.length) {
+      listEl.innerHTML = '<div style="color:#7a7060;font-size:13px;text-align:center;padding:12px">Nessun premio disponibile al momento</div>';
+    } else {
+      listEl.innerHTML = _lyRewards.map(function(r) {
+        var canRedeem = _lyCustomer.total_points >= r.points_cost;
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e2ddd4">'
+          + '<div><div style="font-size:13px;font-weight:500">' + r.name + '</div>'
+            + (r.description ? '<div style="font-size:11px;color:#7a7060">' + r.description + '</div>' : '')
+            + '<div style="font-size:12px;color:#b8902e;margin-top:2px">' + r.points_cost + ' pt</div>'
+          + '</div>'
+          + '<button onclick="lyRedeem(' + r.id + ')" '
+            + 'style="padding:7px 14px;border-radius:6px;border:none;font-size:12px;cursor:pointer;font-family:inherit;'
+            + (canRedeem ? 'background:#b8902e;color:#fff' : 'background:#e2ddd4;color:#7a7060;cursor:not-allowed') + '"'
+            + (canRedeem ? '' : ' disabled') + '>'
+            + (canRedeem ? 'Riscatta' : 'Punti insuff.')
+          + '</button>'
+        + '</div>';
+      }).join('');
+    }
+
+    lyShowStep('rewards');
+  } catch(e) {
+    errEl.textContent = 'Errore di connessione';
+  }
+}
+
+async function lyRedeem(rewardId) {
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/redeem/create', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone: _lyPhone, restaurant_id: RESTAURANT_ID, reward_id: rewardId}),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { toast('❌ ' + (data.error||'Errore')); return; }
+
+    // 显示兑换码
+    document.getElementById('ly-code-display').textContent = data.code;
+    document.getElementById('ly-code-reward').textContent = '🎁 ' + data.reward_name;
+    document.getElementById('ly-code-pts').textContent = '− ' + data.points_cost + ' punti';
+
+    var expires = new Date(Date.now() + 24*3600*1000);
+    document.getElementById('ly-code-expires').textContent = 'Valido fino alle ' + expires.getHours()+':'+(expires.getMinutes()<10?'0':'')+expires.getMinutes() + ' di domani';
+
+    // 更新余额显示
+    _lyCustomer.total_points = data.remaining_points !== undefined ? data.remaining_points : (_lyCustomer.total_points - data.points_cost);
+    lyShowStep('code');
+  } catch(e) {
+    toast('❌ Errore di connessione');
+  }
+}
+
+function lyBackToRewards() {
+  document.getElementById('ly-pts-display').textContent = _lyCustomer.total_points;
+  lyShowStep('rewards');
+}
+
+function lyReset() {
+  _lyPhone = ''; _lyCustomer = null;
+  document.getElementById('ly-phone').value = '';
+  document.getElementById('ly-phone-err').textContent = '';
+  lyShowStep('phone');
+}
+
 function sendReservation() {
   var nameEl = document.getElementById('res-name');
   var dateEl = document.getElementById('res-date');

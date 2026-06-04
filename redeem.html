@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>YIO Fish · Riscatto Punti</title>
+<link rel="icon" type="image/png" href="icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f1ec;--surface:#fff;
+  --gold:#b8902e;--gold-lt:#d4ab48;
+  --green:#27ae60;--red:#c0392b;
+  --text:#1a1510;--muted:#7a7060;--muted2:#b0a898;
+  --border:#e2ddd4;--r:6px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 0 40px}
+.topbar{width:100%;background:#1a1510;color:#f4f1ec;padding:0 20px;height:54px;display:flex;align-items:center;gap:10px;margin-bottom:32px}
+.t-logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;letter-spacing:4px}
+.t-sub{font-size:11px;color:rgba(244,241,236,.4);letter-spacing:1px}
+.card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:24px;width:100%;max-width:420px;margin:0 16px}
+.logo-area{text-align:center;margin-bottom:28px}
+.logo-area .brand{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;letter-spacing:6px;color:#1a1510}
+.logo-area .sub{font-size:12px;color:var(--muted);letter-spacing:2px;margin-top:4px}
+h2{font-size:16px;font-weight:600;margin-bottom:16px;color:var(--text)}
+.field-label{font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:.5px}
+input[type=text],input[type=password],input[type=tel]{
+  width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r);
+  font-size:15px;font-family:inherit;background:var(--bg);color:var(--text);
+  outline:none;transition:border-color .2s;margin-bottom:12px
+}
+input:focus{border-color:var(--gold)}
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:var(--r);
+  font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-gold:hover{background:var(--gold-lt)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);margin-top:8px}
+.btn-ghost:hover{background:var(--bg)}
+.btn-green{background:var(--green);color:#fff;margin-top:8px}
+.btn-green:hover{opacity:.9}
+.msg{padding:12px 14px;border-radius:var(--r);font-size:13px;margin-bottom:12px;line-height:1.5}
+.msg-err{background:#fdf0ee;color:var(--red);border:1px solid rgba(192,57,43,.2)}
+.msg-ok{background:#edfaf3;color:var(--green);border:1px solid rgba(39,174,96,.2)}
+.msg-info{background:#fdf8ee;color:#7a6020;border:1px solid rgba(184,144,46,.2)}
+.reward-box{background:var(--bg);border-radius:var(--r);padding:16px;margin-bottom:16px;border:1px solid var(--border)}
+.reward-name{font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px}
+.reward-desc{font-size:13px;color:var(--muted);margin-bottom:8px}
+.reward-pts{font-size:13px;color:var(--gold);font-weight:500}
+.customer-info{font-size:12px;color:var(--muted);margin-top:6px}
+.success-box{text-align:center;padding:24px 0}
+.success-icon{font-size:56px;margin-bottom:12px}
+.success-title{font-size:20px;font-weight:600;color:var(--green);margin-bottom:6px}
+.success-sub{font-size:13px;color:var(--muted)}
+.store-select{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r);
+  font-size:14px;font-family:inherit;background:var(--bg);color:var(--text);
+  outline:none;margin-bottom:12px;cursor:pointer}
+.divider{height:1px;background:var(--border);margin:16px 0}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="t-logo">YIO</span>
+  <span class="t-sub">RISCATTO PUNTI</span>
+</div>
+
+<div style="width:100%;max-width:420px;padding:0 16px">
+
+  <!-- STEP 1: 选店 + 输服务员密码 -->
+  <div id="step-login">
+    <div class="logo-area">
+      <div class="brand">YIO FISH</div>
+      <div class="sub">AREA STAFF · RISCATTO</div>
+    </div>
+    <div class="card">
+      <h2>🔐 Accesso Staff</h2>
+      <div id="login-err"></div>
+      <div class="field-label">Ristorante</div>
+      <select id="sel-store" class="store-select">
+        <option value="">Seleziona ristorante...</option>
+        <option value="carpi">YIO Fish Carpi</option>
+        <option value="imola">YIO Fish Imola</option>
+        <option value="legnago">YIO Fish Legnago</option>
+      </select>
+      <div class="field-label">Codice cameriere</div>
+      <input type="password" id="inp-pwd" placeholder="••••••" onkeydown="if(event.keyCode===13)doLogin()">
+      <button class="btn btn-gold" onclick="doLogin()">Accedi</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: 输入兑换码 -->
+  <div id="step-code" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">🎁 Inserisci codice</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="doLogout()">Esci</button>
+      </div>
+      <div id="code-err"></div>
+      <div class="field-label">Codice riscatto (6 caratteri)</div>
+      <input type="text" id="inp-code" placeholder="Es. 4F8K2X" maxlength="6"
+        style="text-transform:uppercase;letter-spacing:4px;font-size:20px;text-align:center;font-weight:600"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.keyCode===13)doVerify()">
+      <button class="btn btn-gold" onclick="doVerify()">Verifica codice</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: 确认核销 -->
+  <div id="step-confirm" style="display:none">
+    <div class="card">
+      <h2>✅ Conferma riscatto</h2>
+      <div id="confirm-detail"></div>
+      <button class="btn btn-green" onclick="doConfirm()">✅ Conferma e riscatta</button>
+      <button class="btn btn-ghost" onclick="backToCode()">← Indietro</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: 成功 -->
+  <div id="step-success" style="display:none">
+    <div class="card">
+      <div class="success-box">
+        <div class="success-icon">🎉</div>
+        <div class="success-title">Riscattato!</div>
+        <div class="success-sub" id="success-msg"></div>
+      </div>
+      <button class="btn btn-gold" onclick="backToCode()">Nuovo codice</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
+var _store = '';
+var _pwd = '';
+var _redemptionId = null;
+
+function showStep(step) {
+  ['login','code','confirm','success'].forEach(function(s){
+    document.getElementById('step-'+s).style.display = s === step ? '' : 'none';
+  });
+}
+
+function showErr(elId, msg) {
+  var el = document.getElementById(elId);
+  if (el) el.innerHTML = msg ? '<div class="msg msg-err">'+msg+'</div>' : '';
+}
+
+async function doLogin() {
+  var store = document.getElementById('sel-store').value;
+  var pwd = document.getElementById('inp-pwd').value.trim();
+  if (!store) { showErr('login-err', 'Seleziona il ristorante'); return; }
+  if (!pwd) { showErr('login-err', 'Inserisci il codice cameriere'); return; }
+
+  // 用 verify 接口试一下密码（传一个不存在的码，只要不是401就说明密码对）
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/redeem/verify', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({code: 'TEST00', waiter_password: pwd, restaurant_id: store}),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (res.status === 401) {
+      showErr('login-err', data.error || 'Codice cameriere non valido');
+      return;
+    }
+    // 404 = codice non trovato ma password ok
+    _store = store;
+    _pwd = pwd;
+    showErr('login-err', '');
+    showStep('code');
+  } catch(e) {
+    showErr('login-err', 'Errore di connessione: ' + e.message);
+  }
+}
+
+function doLogout() {
+  _store = ''; _pwd = ''; _redemptionId = null;
+  document.getElementById('sel-store').value = '';
+  document.getElementById('inp-pwd').value = '';
+  document.getElementById('inp-code').value = '';
+  showStep('login');
+}
+
+async function doVerify() {
+  var code = (document.getElementById('inp-code').value || '').trim().toUpperCase();
+  if (code.length !== 6) { showErr('code-err', 'Il codice deve essere di 6 caratteri'); return; }
+
+  showErr('code-err', '');
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/redeem/verify', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({code: code, waiter_password: _pwd, restaurant_id: _store}),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { showErr('code-err', data.error || 'Codice non valido'); return; }
+
+    _redemptionId = data.redemption_id;
+
+    // 显示兑换详情
+    var expires = new Date(data.expires_at);
+    var expStr = expires.getHours()+':'+(expires.getMinutes()<10?'0':'')+expires.getMinutes();
+    document.getElementById('confirm-detail').innerHTML =
+      '<div class="reward-box">'
+        + '<div class="reward-name">🎁 ' + data.reward_name + '</div>'
+        + (data.reward_description ? '<div class="reward-desc">' + data.reward_description + '</div>' : '')
+        + '<div class="reward-pts">− ' + data.points_cost + ' punti</div>'
+        + '<div class="customer-info">👤 ' + (data.customer_name || '—') + ' · 📱 ' + data.customer_phone + '</div>'
+      + '</div>'
+      + '<div class="msg msg-info">⏱ Codice valido fino alle ' + expStr + '</div>';
+
+    showStep('confirm');
+  } catch(e) {
+    showErr('code-err', 'Errore: ' + e.message);
+  }
+}
+
+async function doConfirm() {
+  if (!_redemptionId) return;
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/redeem/confirm', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({redemption_id: _redemptionId, waiter_password: _pwd, restaurant_id: _store}),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      showStep('code');
+      showErr('code-err', data.error || 'Errore nella conferma');
+      return;
+    }
+    document.getElementById('success-msg').textContent = 'Premio riscattato con successo. Consegna il premio al cliente.';
+    document.getElementById('inp-code').value = '';
+    _redemptionId = null;
+    showStep('success');
+  } catch(e) {
+    showStep('code');
+    showErr('code-err', 'Errore: ' + e.message);
+  }
+}
+
+function backToCode() {
+  document.getElementById('inp-code').value = '';
+  showErr('code-err', '');
+  _redemptionId = null;
+  showStep('code');
+}
+</script>
+</body>
+</html>
