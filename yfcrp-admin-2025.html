@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.23.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.24.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.23.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.24.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -368,6 +368,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     </button>
     <button class="s-btn" id="nav-errorlog" onclick="showPage('errorlog')" style="display:none;">
       <span class="s-ico">📋</span>错误日志
+    </button>
+    <button class="s-btn" id="nav-loyalty" onclick="showPage('loyalty')" style="display:none;">
+      <span class="s-ico">⭐</span>Fedeltà
     </button>
   </aside>
   <main class="content" id="content"></main>
@@ -633,7 +636,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.23.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.24.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -993,6 +996,8 @@ async function loadAll() {
       if (backupBtn) backupBtn.style.display = '';
       var errBtn = document.getElementById('nav-errorlog');
       if (errBtn) errBtn.style.display = '';
+      var loyaltyBtn = document.getElementById('nav-loyalty');
+      if (loyaltyBtn) loyaltyBtn.style.display = '';
       // 显示店铺切换器
       var switcher = document.getElementById('store-switcher');
       if (switcher) {
@@ -1348,7 +1353,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.23.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.24.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1678,6 +1683,14 @@ function showPage(p){
     var nbcs = document.getElementById('nav-consegna');
     if (nbcs) nbcs.classList.add('active');
     renderConsegnaSchedulePage();
+    return;
+  }
+  if (p === 'loyalty') {
+    _page = 'loyalty';
+    document.querySelectorAll('.s-btn').forEach(function(b){ b.classList.remove('active'); });
+    var nbl = document.getElementById('nav-loyalty');
+    if (nbl) nbl.classList.add('active');
+    renderLoyaltyPage();
     return;
   }
   _page = p;
@@ -3837,4 +3850,253 @@ async function toggleSetting(key, val){
 //  启动
 // ════════════════════════════════════
 // loadAll() 由密码锁控制调用
+
+// ════════════════════════════════════════════════════════════
+//  积分系统 — 会员管理页面
+// ════════════════════════════════════════════════════════════
+var _loyaltySearch = '';
+var _loyaltyCustomer = null;
+
+async function renderLoyaltyPage() {
+  var content = document.getElementById('content');
+  if (!content) return;
+  content.innerHTML = '<div style="padding:0">'
+    + '<div class="page-head"><div><h1>⭐ Fedeltà</h1><p>Gestione punti fedeltà clienti</p></div></div>'
+
+    // ── 积分设置区块（仅 super_admin）──
+    + (CURRENT_ROLE === 'super' ? '<div class="card" style="padding:18px 22px;margin-bottom:20px;border-left:3px solid #d4af37">'
+      + '<div style="font-size:14px;font-weight:600;color:#d4af37;margin-bottom:12px">⚙️ Impostazioni punti</div>'
+      + '<div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">'
+        + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">€1 = N punti</div>'
+          + '<input type="number" id="ly-pts-per-euro" min="1" max="1000" style="width:90px;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)" value="10">'
+        + '</div>'
+        + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Quando assegnare punti</div>'
+          + '<select id="ly-trigger" style="padding:6px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--surface)">'
+            + '<option value="both">Automatico + Manuale</option>'
+            + '<option value="auto">Solo automatico (ordine inviato)</option>'
+            + '<option value="manual">Solo manuale (conferma staff)</option>'
+          + '</select>'
+        + '</div>'
+        + '<button class="btn btn-gold btn-sm" onclick="saveLoyaltySettings()">Salva impostazioni</button>'
+      + '</div>'
+    + '</div>' : '')
+
+    // ── 搜索会员 ──
+    + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
+      + '<div style="font-size:14px;font-weight:600;margin-bottom:12px">🔍 Cerca cliente</div>'
+      + '<div style="display:flex;gap:8px">'
+        + '<input type="tel" id="ly-search" placeholder="Numero di telefono..." style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)" onkeydown="if(event.key==String.fromCharCode(13))searchLoyaltyCustomer()">'
+        + '<button class="btn btn-gold" onclick="searchLoyaltyCustomer()">Cerca</button>'
+      + '</div>'
+    + '</div>'
+
+    // ── 会员详情区（默认空）──
+    + '<div id="ly-customer-detail"></div>'
+
+    // ── 会员列表 ──
+    + '<div class="card" style="padding:18px 22px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+        + '<div style="font-size:14px;font-weight:600">👥 Lista clienti</div>'
+        + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="loadLoyaltyList()">🔄 Aggiorna</button>'
+      + '</div>'
+      + '<div id="ly-list">Caricamento...</div>'
+    + '</div>'
+  + '</div>';
+
+  // 加载积分设置
+  if (CURRENT_ROLE === 'super') loadLoyaltySettings();
+  // 加载会员列表
+  loadLoyaltyList();
+}
+
+async function loadLoyaltySettings() {
+  try {
+    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=points_per_euro,points_trigger&limit=1');
+    if (!res.ok) return;
+    var data = await res.json();
+    if (data && data[0]) {
+      var el = document.getElementById('ly-pts-per-euro');
+      var trig = document.getElementById('ly-trigger');
+      if (el && data[0].points_per_euro) el.value = data[0].points_per_euro;
+      if (trig && data[0].points_trigger) trig.value = data[0].points_trigger;
+    }
+  } catch(e) {}
+}
+
+async function saveLoyaltySettings() {
+  var ppeEl = document.getElementById('ly-pts-per-euro');
+  var trigEl = document.getElementById('ly-trigger');
+  if (!ppeEl || !trigEl) return;
+  var ppe = parseInt(ppeEl.value);
+  if (!ppe || ppe < 1) { toast('⚠️ Inserisci un valore valido'); return; }
+  try {
+    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID, {
+      method: 'PATCH',
+      body: JSON.stringify({ points_per_euro: ppe, points_trigger: trigEl.value })
+    });
+    if (res.ok) toast('✅ Impostazioni salvate');
+    else toast('❌ Errore salvataggio');
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+async function searchLoyaltyCustomer() {
+  var phone = (document.getElementById('ly-search').value || '').trim().replace(/\s+/g, '');
+  if (!phone) { toast('⚠️ Inserisci un numero di telefono'); return; }
+  var detail = document.getElementById('ly-customer-detail');
+  if (detail) detail.innerHTML = '<div style="padding:12px;color:var(--muted)">⏳ Ricerca...</div>';
+
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/loyalty/customer?phone=' + encodeURIComponent(phone), {
+      headers: { 'Authorization': 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { toast('❌ ' + (data.error || 'Errore')); return; }
+    if (!data.customer) {
+      if (detail) detail.innerHTML = '<div class="card" style="padding:16px;margin-bottom:20px;color:var(--muted);text-align:center">Nessun cliente trovato con questo numero</div>';
+      return;
+    }
+    _loyaltyCustomer = data.customer;
+    renderCustomerDetail(data.customer, data.transactions || []);
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+function renderCustomerDetail(customer, transactions) {
+  var detail = document.getElementById('ly-customer-detail');
+  if (!detail) return;
+
+  var txHtml = transactions.length === 0
+    ? '<div style="color:var(--muted);font-size:13px;padding:8px 0">Nessuna transazione</div>'
+    : transactions.map(function(tx) {
+        var isPos = tx.points > 0;
+        var typeLabel = {
+          'order_auto': '🛒 Ordine auto',
+          'order_manual': '🛒 Ordine manuale',
+          'manual_adjust': '✏️ Rettifica',
+          'redeem': '🎁 Riscatto'
+        }[tx.type] || tx.type;
+        var d = new Date(tx.created_at);
+        var dateStr = d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">'
+          + '<div><div style="font-size:13px">' + typeLabel + (tx.description ? ' · ' + tx.description : '') + '</div>'
+            + '<div style="font-size:11px;color:var(--muted)">' + dateStr + (tx.operator ? ' · ' + tx.operator : '') + (tx.restaurant_id ? ' · ' + tx.restaurant_id : '') + '</div></div>'
+          + '<div style="font-weight:600;color:' + (isPos ? '#27ae60' : '#c0392b') + '">' + (isPos ? '+' : '') + tx.points + ' pt</div>'
+        + '</div>';
+      }).join('');
+
+  detail.innerHTML = '<div class="card" style="padding:18px 22px;margin-bottom:20px;border-left:3px solid #27ae60">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">'
+      + '<div>'
+        + '<div style="font-size:16px;font-weight:600">' + (customer.name || '—') + '</div>'
+        + '<div style="font-size:13px;color:var(--muted)">📱 ' + customer.phone + '</div>'
+        + '<div style="font-size:11px;color:var(--muted2);margin-top:2px">Cliente dal ' + new Date(customer.created_at).toLocaleDateString('it-IT') + '</div>'
+      + '</div>'
+      + '<div style="text-align:right">'
+        + '<div style="font-size:28px;font-weight:700;color:#d4af37">' + customer.total_points + '</div>'
+        + '<div style="font-size:11px;color:var(--muted)">punti</div>'
+      + '</div>'
+    + '</div>'
+
+    // 手动加减积分
+    + '<div style="background:var(--bg);border-radius:var(--r);padding:14px;margin-bottom:14px">'
+      + '<div style="font-size:12px;font-weight:600;margin-bottom:10px">✏️ Rettifica manuale punti</div>'
+      + '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">'
+        + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Punti (+ aggiunta / - detrazione)</div>'
+          + '<input type="number" id="ly-adj-pts" placeholder="es. +50 o -20" style="width:120px;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)">'
+        + '</div>'
+        + '<div style="flex:1;min-width:140px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Nota (opzionale)</div>'
+          + '<input type="text" id="ly-adj-note" placeholder="es. Promozione evento" style="width:100%;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--surface)">'
+        + '</div>'
+        + '<button class="btn btn-gold btn-sm" onclick="applyLoyaltyAdjust()">Applica</button>'
+      + '</div>'
+    + '</div>'
+
+    // 流水记录
+    + '<div style="font-size:12px;font-weight:600;margin-bottom:8px">📋 Storico transazioni</div>'
+    + txHtml
+  + '</div>';
+}
+
+async function applyLoyaltyAdjust() {
+  if (!_loyaltyCustomer) return;
+  var ptsEl = document.getElementById('ly-adj-pts');
+  var noteEl = document.getElementById('ly-adj-note');
+  var pts = parseInt(ptsEl ? ptsEl.value : '');
+  if (!pts || isNaN(pts) || pts === 0) { toast('⚠️ Inserisci un valore non zero'); return; }
+
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/loyalty/adjust', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: _loyaltyCustomer.phone,
+        restaurant_id: RESTAURANT_ID,
+        points: pts,
+        description: noteEl ? noteEl.value.trim() : ''
+      }),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (res.ok) {
+      toast('✅ ' + (pts > 0 ? '+' : '') + pts + ' punti applicati. Totale: ' + data.total_points);
+      if (ptsEl) ptsEl.value = '';
+      if (noteEl) noteEl.value = '';
+      // 刷新会员详情
+      searchLoyaltyCustomer();
+    } else {
+      toast('❌ ' + (data.error || 'Errore'));
+    }
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+async function loadLoyaltyList() {
+  var listEl = document.getElementById('ly-list');
+  if (!listEl) return;
+  listEl.innerHTML = '⏳ Caricamento...';
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/loyalty/list?limit=50&offset=0', {
+      headers: { 'Authorization': 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { listEl.innerHTML = '❌ ' + (data.error || 'Errore'); return; }
+    var customers = data.customers || [];
+    if (!customers.length) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Nessun cliente registrato</div>';
+      return;
+    }
+    listEl.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+      + '<thead><tr style="border-bottom:2px solid var(--border)">'
+        + '<th style="text-align:left;padding:8px 4px;color:var(--muted);font-weight:500">Nome</th>'
+        + '<th style="text-align:left;padding:8px 4px;color:var(--muted);font-weight:500">Telefono</th>'
+        + '<th style="text-align:right;padding:8px 4px;color:var(--muted);font-weight:500">Punti</th>'
+        + '<th style="text-align:right;padding:8px 4px;color:var(--muted);font-weight:500">Dal</th>'
+      + '</tr></thead><tbody>'
+      + customers.map(function(c) {
+          return '<tr style="border-bottom:1px solid var(--border);cursor:pointer" data-phone="'+c.phone+'" class="ly-row">'
+            + '<td style="padding:8px 4px">' + (c.name || '<span style="color:var(--muted)">—</span>') + '</td>'
+            + '<td style="padding:8px 4px;color:var(--muted)">' + c.phone + '</td>'
+            + '<td style="padding:8px 4px;text-align:right;font-weight:600;color:#d4af37">' + c.total_points + '</td>'
+            + '<td style="padding:8px 4px;text-align:right;color:var(--muted);font-size:11px">' + new Date(c.created_at).toLocaleDateString('it-IT') + '</td>'
+          + '</tr>';
+        }).join('')
+      + '</tbody></table></div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-top:8px">Totale: ' + (data.total || customers.length) + ' clienti · Clicca su una riga per vedere i dettagli</div>';
+    // 事件委托：点击行搜索该会员
+    setTimeout(function() {
+      var listEl2 = document.getElementById('ly-list');
+      if (listEl2) listEl2.addEventListener('click', function(e) {
+        var tr = e.target.closest('tr.ly-row');
+        if (tr) {
+          var ph = tr.getAttribute('data-phone');
+          if (ph) { document.getElementById('ly-search').value = ph; searchLoyaltyCustomer(); }
+        }
+      }, {once: true});
+    }, 100);
+  } catch(e) { listEl.innerHTML = '❌ ' + e.message; }
+}
+
 </script>
