@@ -545,7 +545,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.19.1 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.20.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -741,11 +741,27 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <div class="drag-bar"></div>
     <h3>⭐ PUNTI FEDELTÀ</h3>
 
+    <!-- 步骤0：选择意图 -->
+    <div id="ly-step-intro">
+      <p style="font-size:13px;color:#757575;text-align:center;margin-bottom:20px;line-height:1.6">
+        Accumula punti ad ogni visita<br>e riscatta premi esclusivi!
+      </p>
+      <button class="btn btn-gold" style="width:100%;margin-bottom:10px;padding:14px;letter-spacing:1px"
+        onclick="lyStartFlow('login')">
+        🔍 Vedi i miei punti
+      </button>
+      <button class="btn" style="width:100%;padding:14px;letter-spacing:1px;border:1px solid var(--gold);background:transparent;color:var(--gold);border-radius:var(--r);font-family:inherit;font-size:14px;cursor:pointer"
+        onclick="lyStartFlow('register')">
+        👋 Registrati
+      </button>
+    </div>
+
     <!-- 步骤1：输入手机号 -->
-    <div id="ly-step-phone">
-      <p style="font-size:13px;color:#757575;margin-bottom:14px">Inserisci il tuo numero per vedere i tuoi punti e riscattare premi.</p>
+    <div id="ly-step-phone" style="display:none">
+      <button onclick="lyShowStep('intro')" style="background:none;border:none;color:#7a7060;font-size:12px;cursor:pointer;padding:0;margin-bottom:12px;font-family:inherit">← Indietro</button>
+      <p id="ly-phone-hint" style="font-size:13px;color:#757575;margin-bottom:14px"></p>
       <input class="form-field" type="tel" id="ly-phone" placeholder="Numero di telefono">
-      <button class="btn btn-gold" style="width:100%;margin-top:6px" onclick="lyLookup()">CERCA PUNTI</button>
+      <button class="btn btn-gold" style="width:100%;margin-top:6px" onclick="lyLookup()">CONTINUA</button>
       <div id="ly-phone-err" style="color:#c0392b;font-size:12px;margin-top:6px"></div>
     </div>
 
@@ -776,7 +792,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <button class="btn btn-gold" style="width:100%" onclick="lyBackToRewards()">← Torna ai premi</button>
     </div>
 
-    <button class="btn-close" onclick="closeModal('loyaltyModal')" style="margin-top:8px">Chiudi</button>
+    <button class="btn-close" onclick="closeModal('loyaltyModal');lyShowStep('intro');" style="margin-top:8px">Chiudi</button>
   </div>
 </div>
 
@@ -3324,11 +3340,23 @@ var _lyPhone = '';
 var _lyCustomer = null;
 var _lyRewards = [];
 
+var _lyFlow = 'login'; // 'login' or 'register'
+
 function lyShowStep(step) {
-  ['phone','rewards','code'].forEach(function(s){
+  ['intro','phone','rewards','code'].forEach(function(s){
     var el = document.getElementById('ly-step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
   });
+}
+
+function lyStartFlow(flow) {
+  _lyFlow = flow;
+  var hint = document.getElementById('ly-phone-hint');
+  if (hint) hint.textContent = flow === 'register'
+    ? 'Inserisci il tuo numero per creare il tuo account fedeltà.'
+    : 'Inserisci il tuo numero per vedere i tuoi punti e riscattare premi.';
+  lyShowStep('phone');
+  setTimeout(function(){ var el = document.getElementById('ly-phone'); if(el) el.focus(); }, 100);
 }
 
 async function lyLookup() {
@@ -3350,7 +3378,12 @@ async function lyLookup() {
     _lyCustomer = data.customer;
 
     document.getElementById('ly-pts-display').textContent = _lyCustomer.total_points;
-    document.getElementById('ly-name-display').textContent = _lyCustomer.name ? '👤 ' + _lyCustomer.name : '';
+    var nameEl = document.getElementById('ly-name-display');
+    if (data.isNew) {
+      if (nameEl) nameEl.innerHTML = '<span style="color:#27ae60;font-size:12px">👋 Benvenuto! Account creato con successo.</span>';
+    } else {
+      if (nameEl) nameEl.textContent = _lyCustomer.name ? '👤 ' + _lyCustomer.name : '';
+    }
 
     // 加载奖品
     var rRes = await fetch(WORKER_URL + '/loyalty/rewards?restaurant_id=' + encodeURIComponent(RESTAURANT_ID), {cache:'no-store'});
@@ -3418,7 +3451,7 @@ function lyReset() {
   _lyPhone = ''; _lyCustomer = null;
   document.getElementById('ly-phone').value = '';
   document.getElementById('ly-phone-err').textContent = '';
-  lyShowStep('phone');
+  lyShowStep('intro');
 }
 
 function sendReservation() {
