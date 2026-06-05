@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>YIO Fish · Riscatto Punti</title>
+<title>YIO Fish · Staff Fedeltà</title>
 <link rel="icon" type="image/png" href="icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -16,16 +16,19 @@
   --border:#e2ddd4;--r:6px;
 }
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 0 40px}
-.topbar{width:100%;background:#1a1510;color:#f4f1ec;padding:0 20px;height:54px;display:flex;align-items:center;gap:10px;margin-bottom:32px}
+.topbar{width:100%;background:#1a1510;color:#f4f1ec;padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:28px}
+.t-left{display:flex;align-items:center;gap:10px}
 .t-logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;letter-spacing:4px}
 .t-sub{font-size:11px;color:rgba(244,241,236,.4);letter-spacing:1px}
-.card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:24px;width:100%;max-width:420px;margin:0 16px}
+.t-staff{font-size:11px;color:rgba(212,171,72,.8);letter-spacing:.5px}
+.wrap{width:100%;max-width:420px;padding:0 16px}
+.card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:24px;width:100%;margin-bottom:16px}
 .logo-area{text-align:center;margin-bottom:28px}
 .logo-area .brand{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;letter-spacing:6px;color:#1a1510}
 .logo-area .sub{font-size:12px;color:var(--muted);letter-spacing:2px;margin-top:4px}
 h2{font-size:16px;font-weight:600;margin-bottom:16px;color:var(--text)}
 .field-label{font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:.5px}
-input[type=text],input[type=password],input[type=tel]{
+input[type=text],input[type=password],input[type=tel],input[type=number]{
   width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r);
   font-size:15px;font-family:inherit;background:var(--bg);color:var(--text);
   outline:none;transition:border-color .2s;margin-bottom:12px
@@ -51,50 +54,78 @@ input:focus{border-color:var(--gold)}
 .success-box{text-align:center;padding:24px 0}
 .success-icon{font-size:56px;margin-bottom:12px}
 .success-title{font-size:20px;font-weight:600;color:var(--green);margin-bottom:6px}
-.success-sub{font-size:13px;color:var(--muted)}
-.store-select{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r);
-  font-size:14px;font-family:inherit;background:var(--bg);color:var(--text);
-  outline:none;margin-bottom:12px;cursor:pointer}
-.divider{height:1px;background:var(--border);margin:16px 0}
+.success-sub{font-size:13px;color:var(--muted);white-space:pre-line}
+.menu-grid{display:flex;flex-direction:column;gap:10px}
+.menu-item{display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .15s}
+.menu-item:hover{border-color:var(--gold);background:#fdf8ee}
+.menu-icon{font-size:26px;flex-shrink:0}
+.menu-label{font-size:14px;font-weight:500;letter-spacing:.5px}
+.menu-desc{font-size:11px;color:var(--muted);margin-top:2px}
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <span class="t-logo">YIO</span>
-  <span class="t-sub">RISCATTO PUNTI</span>
+  <div class="t-left">
+    <span class="t-logo">YIO</span>
+    <span class="t-sub">AREA STAFF</span>
+  </div>
+  <span class="t-staff" id="topbar-staff" style="display:none"></span>
 </div>
 
-<div style="width:100%;max-width:420px;padding:0 16px">
+<div class="wrap">
 
-  <!-- STEP 1: 选店 + 输服务员密码 -->
+  <!-- STEP: login -->
   <div id="step-login">
     <div class="logo-area">
       <div class="brand">YIO FISH</div>
-      <div class="sub">AREA STAFF · RISCATTO</div>
+      <div class="sub">AREA STAFF · FEDELTÀ</div>
     </div>
     <div class="card">
       <h2>🔐 Accesso Staff</h2>
       <div id="login-err"></div>
-      <div class="field-label">Ristorante</div>
-      <select id="sel-store" class="store-select">
-        <option value="">Seleziona ristorante...</option>
-        <option value="carpi">YIO Fish Carpi</option>
-        <option value="imola">YIO Fish Imola</option>
-        <option value="legnago">YIO Fish Legnago</option>
-      </select>
-      <div class="field-label">Codice cameriere</div>
-      <input type="password" id="inp-pwd" placeholder="••••••" onkeydown="if(event.keyCode===13)doLogin()">
+      <div class="field-label">Username</div>
+      <input type="text" id="inp-user" placeholder="Es. marco" autocomplete="username"
+        onkeydown="if(event.keyCode===13)document.getElementById('inp-pwd').focus()">
+      <div class="field-label">Password</div>
+      <input type="password" id="inp-pwd" placeholder="••••••" autocomplete="current-password"
+        onkeydown="if(event.keyCode===13)doLogin()">
       <button class="btn btn-gold" onclick="doLogin()">Accedi</button>
     </div>
   </div>
 
-  <!-- STEP 2: 输入兑换码 -->
+  <!-- STEP: menu -->
+  <div id="step-menu" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+        <h2 style="margin:0">Cosa vuoi fare?</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="doLogout()">Esci</button>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-item" onclick="showStep('code')">
+          <span class="menu-icon">🎁</span>
+          <div>
+            <div class="menu-label">RISCATTA PREMIO</div>
+            <div class="menu-desc">Verifica e conferma un codice riscatto</div>
+          </div>
+        </div>
+        <div class="menu-item" onclick="showStep('addpts')">
+          <span class="menu-icon">⭐</span>
+          <div>
+            <div class="menu-label">AGGIUNGI PUNTI</div>
+            <div class="menu-desc">Assegna punti fedeltà a un cliente</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP: code -->
   <div id="step-code" style="display:none">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="margin:0">🎁 Inserisci codice</h2>
-        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="doLogout()">Esci</button>
+        <h2 style="margin:0">🎁 Riscatta premio</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
       </div>
       <div id="code-err"></div>
       <div class="field-label">Codice riscatto (6 caratteri)</div>
@@ -106,7 +137,7 @@ input:focus{border-color:var(--gold)}
     </div>
   </div>
 
-  <!-- STEP 3: 确认核销 -->
+  <!-- STEP: confirm -->
   <div id="step-confirm" style="display:none">
     <div class="card">
       <h2>✅ Conferma riscatto</h2>
@@ -116,7 +147,7 @@ input:focus{border-color:var(--gold)}
     </div>
   </div>
 
-  <!-- STEP 4: 成功 -->
+  <!-- STEP: success -->
   <div id="step-success" style="display:none">
     <div class="card">
       <div class="success-box">
@@ -125,6 +156,41 @@ input:focus{border-color:var(--gold)}
         <div class="success-sub" id="success-msg"></div>
       </div>
       <button class="btn btn-gold" onclick="backToCode()">Nuovo codice</button>
+      <button class="btn btn-ghost" onclick="showStep('menu')">← Menu</button>
+    </div>
+  </div>
+
+  <!-- STEP: addpts -->
+  <div id="step-addpts" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">⭐ Aggiungi punti</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
+      </div>
+      <div id="addpts-err"></div>
+      <div class="field-label">Numero di telefono cliente</div>
+      <input type="tel" id="addpts-phone" placeholder="Es. 3771234567"
+        onkeydown="if(event.keyCode===13)document.getElementById('addpts-pts').focus()">
+      <div class="field-label">Punti da aggiungere</div>
+      <input type="number" id="addpts-pts" placeholder="Es. 50" min="1"
+        onkeydown="if(event.keyCode===13)document.getElementById('addpts-note').focus()">
+      <div class="field-label">Nota (opzionale)</div>
+      <input type="text" id="addpts-note" placeholder="Es. Pranzo €35"
+        onkeydown="if(event.keyCode===13)doAddPoints()">
+      <button class="btn btn-gold" onclick="doAddPoints()">Aggiungi punti</button>
+    </div>
+  </div>
+
+  <!-- STEP: addpts-success -->
+  <div id="step-addpts-success" style="display:none">
+    <div class="card">
+      <div class="success-box">
+        <div class="success-icon">⭐</div>
+        <div class="success-title" id="addpts-success-title">Punti aggiunti!</div>
+        <div class="success-sub" id="addpts-success-msg"></div>
+      </div>
+      <button class="btn btn-gold" onclick="resetAddPoints()">Aggiungi altri punti</button>
+      <button class="btn btn-ghost" onclick="showStep('menu')">← Menu</button>
     </div>
   </div>
 
@@ -132,13 +198,17 @@ input:focus{border-color:var(--gold)}
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
+var _token = '';
 var _store = '';
-var _pwd = '';
+var _username = '';
 var _redemptionId = null;
 
+var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success'];
+
 function showStep(step) {
-  ['login','code','confirm','success'].forEach(function(s){
-    document.getElementById('step-'+s).style.display = s === step ? '' : 'none';
+  ALL_STEPS.forEach(function(s){
+    var el = document.getElementById('step-'+s);
+    if (el) el.style.display = s === step ? '' : 'none';
   });
 }
 
@@ -148,60 +218,67 @@ function showErr(elId, msg) {
 }
 
 async function doLogin() {
-  var store = document.getElementById('sel-store').value;
-  var pwd = document.getElementById('inp-pwd').value.trim();
-  if (!store) { showErr('login-err', 'Seleziona il ristorante'); return; }
-  if (!pwd) { showErr('login-err', 'Inserisci il codice cameriere'); return; }
+  var username = document.getElementById('inp-user').value.trim();
+  var pwd = document.getElementById('inp-pwd').value;
+  if (!username) { showErr('login-err', 'Inserisci il tuo username'); return; }
+  if (!pwd) { showErr('login-err', 'Inserisci la password'); return; }
 
-  // 用 verify 接口试一下密码（传一个不存在的码，只要不是401就说明密码对）
   try {
-    var res = await fetch(WORKER_URL + '/loyalty/redeem/verify', {
+    var res = await fetch(WORKER_URL + '/store-admin/login', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({code: 'TEST00', waiter_password: pwd, restaurant_id: store}),
+      body: JSON.stringify({username: username, password: pwd}),
       cache: 'no-store'
     });
     var data = await res.json();
-    if (res.status === 401) {
-      showErr('login-err', data.error || 'Codice cameriere non valido');
+    if (!res.ok) {
+      showErr('login-err', data.error || 'Username o password errati');
       return;
     }
-    // 404 = codice non trovato ma password ok
-    _store = store;
-    _pwd = pwd;
+    _token = data.token;
+    _store = data.restaurantId;
+    _username = data.username;
+
+    // topbar 显示店员名 + 店铺
+    var storeNames = {carpi:'Carpi', imola:'Imola', legnago:'Legnago'};
+    var staffEl = document.getElementById('topbar-staff');
+    if (staffEl) {
+      staffEl.textContent = '👤 ' + _username + ' · ' + (storeNames[_store] || _store);
+      staffEl.style.display = '';
+    }
+
     showErr('login-err', '');
-    showStep('code');
+    showStep('menu');
   } catch(e) {
     showErr('login-err', 'Errore di connessione: ' + e.message);
   }
 }
 
 function doLogout() {
-  _store = ''; _pwd = ''; _redemptionId = null;
-  document.getElementById('sel-store').value = '';
+  _token = ''; _store = ''; _username = ''; _redemptionId = null;
+  document.getElementById('inp-user').value = '';
   document.getElementById('inp-pwd').value = '';
   document.getElementById('inp-code').value = '';
+  var staffEl = document.getElementById('topbar-staff');
+  if (staffEl) staffEl.style.display = 'none';
   showStep('login');
 }
 
 async function doVerify() {
   var code = (document.getElementById('inp-code').value || '').trim().toUpperCase();
   if (code.length !== 6) { showErr('code-err', 'Il codice deve essere di 6 caratteri'); return; }
-
   showErr('code-err', '');
   try {
-    var res = await fetch(WORKER_URL + '/loyalty/redeem/verify', {
+    var res = await fetch(WORKER_URL + '/loyalty/redeem/verify-staff', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({code: code, waiter_password: _pwd, restaurant_id: _store}),
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+_token},
+      body: JSON.stringify({code: code, restaurant_id: _store}),
       cache: 'no-store'
     });
     var data = await res.json();
     if (!res.ok) { showErr('code-err', data.error || 'Codice non valido'); return; }
 
     _redemptionId = data.redemption_id;
-
-    // 显示兑换详情
     var expires = new Date(data.expires_at);
     var expStr = expires.getHours()+':'+(expires.getMinutes()<10?'0':'')+expires.getMinutes();
     document.getElementById('confirm-detail').innerHTML =
@@ -212,7 +289,6 @@ async function doVerify() {
         + '<div class="customer-info">👤 ' + (data.customer_name || '—') + ' · 📱 ' + data.customer_phone + '</div>'
       + '</div>'
       + '<div class="msg msg-info">⏱ Codice valido fino alle ' + expStr + '</div>';
-
     showStep('confirm');
   } catch(e) {
     showErr('code-err', 'Errore: ' + e.message);
@@ -222,19 +298,15 @@ async function doVerify() {
 async function doConfirm() {
   if (!_redemptionId) return;
   try {
-    var res = await fetch(WORKER_URL + '/loyalty/redeem/confirm', {
+    var res = await fetch(WORKER_URL + '/loyalty/redeem/confirm-staff', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({redemption_id: _redemptionId, waiter_password: _pwd, restaurant_id: _store}),
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+_token},
+      body: JSON.stringify({redemption_id: _redemptionId, restaurant_id: _store}),
       cache: 'no-store'
     });
     var data = await res.json();
-    if (!res.ok) {
-      showStep('code');
-      showErr('code-err', data.error || 'Errore nella conferma');
-      return;
-    }
-    document.getElementById('success-msg').textContent = 'Premio riscattato con successo. Consegna il premio al cliente.';
+    if (!res.ok) { showStep('code'); showErr('code-err', data.error || 'Errore nella conferma'); return; }
+    document.getElementById('success-msg').textContent = 'Premio riscattato da ' + _username + '.\nConsegna il premio al cliente.';
     document.getElementById('inp-code').value = '';
     _redemptionId = null;
     showStep('success');
@@ -249,6 +321,46 @@ function backToCode() {
   showErr('code-err', '');
   _redemptionId = null;
   showStep('code');
+}
+
+async function doAddPoints() {
+  var phone = (document.getElementById('addpts-phone').value || '').trim().replace(/\s+/g,'');
+  var pts = parseInt(document.getElementById('addpts-pts').value || '0');
+  var note = (document.getElementById('addpts-note').value || '').trim();
+  if (!phone) { showErr('addpts-err', 'Inserisci il numero di telefono'); return; }
+  if (!pts || pts < 1) { showErr('addpts-err', 'Inserisci un numero di punti valido (minimo 1)'); return; }
+  showErr('addpts-err', '');
+
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/adjust', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+_token},
+      body: JSON.stringify({
+        phone: phone,
+        restaurant_id: _store,
+        points: pts,
+        description: note || 'Aggiunta punti da staff'
+      }),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { showErr('addpts-err', data.error || 'Errore'); return; }
+
+    document.getElementById('addpts-success-title').textContent = '+' + pts + ' punti aggiunti!';
+    document.getElementById('addpts-success-msg').textContent =
+      'Cliente: ' + phone + '\nTotale punti: ' + data.total_points + '\nOperatore: ' + _username;
+    showStep('addpts-success');
+  } catch(e) {
+    showErr('addpts-err', 'Errore: ' + e.message);
+  }
+}
+
+function resetAddPoints() {
+  document.getElementById('addpts-phone').value = '';
+  document.getElementById('addpts-pts').value = '';
+  document.getElementById('addpts-note').value = '';
+  showErr('addpts-err', '');
+  showStep('addpts');
 }
 </script>
 </body>
