@@ -580,15 +580,24 @@ function redeemScanFrame() {
   }
 
   window._barcodeDetector.detect(canvas).then(function(codes) {
-    if (!codes.length) return;
-    var code = codes[0].rawValue.trim().toUpperCase();
-    if (code.length !== 6) return;
-    stopRedeemScan();
-    // 扫到兑换码 → 自动填入并验证
-    document.getElementById('inp-code').value = code;
-    showStep('code');
-    doVerify();
-  }).catch(function(){});
+    // 调试：显示检测到的内容
+    var dbg = document.getElementById('redeem-scan-err');
+    if (codes.length) {
+      var raw = codes[0].rawValue.trim();
+      if (dbg) dbg.innerHTML = '<div class="msg msg-info">📷 Rilevato: ' + raw + ' (' + raw.length + ' car.)</div>';
+      var code = raw.toUpperCase();
+      if (code.length !== 6) return;
+      stopRedeemScan();
+      document.getElementById('inp-code').value = code;
+      showStep('code');
+      doVerify();
+    } else {
+      if (dbg && !dbg.innerHTML) dbg.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">Scansione in corso...</div>';
+    }
+  }).catch(function(e){
+    var dbg = document.getElementById('redeem-scan-err');
+    if (dbg) dbg.innerHTML = '<div class="msg msg-err">Errore: ' + e.message + '</div>';
+  });
 }
 
 function scanFrame() {
