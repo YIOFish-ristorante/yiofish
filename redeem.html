@@ -106,11 +106,18 @@ input:focus{border-color:var(--gold)}
         <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="doLogout()">Esci</button>
       </div>
       <div class="menu-grid">
+        <div class="menu-item" onclick="startRedeemScan()">
+          <span class="menu-icon">📷</span>
+          <div>
+            <div class="menu-label">SCANSIONA QR RISCATTO</div>
+            <div class="menu-desc">Inquadra il QR del cliente per riscattare</div>
+          </div>
+        </div>
         <div class="menu-item" onclick="showStep('code')">
           <span class="menu-icon">🎁</span>
           <div>
-            <div class="menu-label">RISCATTA PREMIO</div>
-            <div class="menu-desc">Verifica e conferma un codice riscatto</div>
+            <div class="menu-label">INSERISCI CODICE MANUALE</div>
+            <div class="menu-desc">Digita il codice di 6 caratteri</div>
           </div>
         </div>
         <div class="menu-item" onclick="startScan()">
@@ -247,11 +254,11 @@ input:focus{border-color:var(--gold)}
   </div>
 
 
-  <!-- STEP: scan -->
+  <!-- STEP: scan (加积分扫码) -->
   <div id="step-scan" style="display:none">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="margin:0">📷 Scansiona QR</h2>
+        <h2 style="margin:0">📷 Scansiona QR punti</h2>
         <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="stopScan();showStep('menu')">← Menu</button>
       </div>
       <div id="scan-err"></div>
@@ -262,7 +269,26 @@ input:focus{border-color:var(--gold)}
           <div style="width:200px;height:200px;border:2px solid rgba(212,171,72,.8);border-radius:8px;box-shadow:0 0 0 999px rgba(0,0,0,.4)"></div>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--muted);text-align:center">Inquadra il QR code del cliente</div>
+      <div style="font-size:12px;color:var(--muted);text-align:center">Inquadra il QR del cliente per aggiungere punti</div>
+    </div>
+  </div>
+
+  <!-- STEP: redeem-scan (核销扫码) -->
+  <div id="step-redeem-scan" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">📷 Scansiona QR riscatto</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="stopRedeemScan();showStep('menu')">← Menu</button>
+      </div>
+      <div id="redeem-scan-err"></div>
+      <div style="position:relative;width:100%;border-radius:var(--r);overflow:hidden;background:#000;margin-bottom:12px">
+        <video id="redeem-scan-video" style="width:100%;display:block" playsinline autoplay muted></video>
+        <canvas id="redeem-scan-canvas" style="display:none"></canvas>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <div style="width:200px;height:200px;border:2px solid rgba(39,174,96,.8);border-radius:8px;box-shadow:0 0 0 999px rgba(0,0,0,.4)"></div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);text-align:center">Inquadra il QR riscatto del cliente</div>
     </div>
   </div>
 
@@ -275,7 +301,7 @@ var _store = '';
 var _username = '';
 var _redemptionId = null;
 
-var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan'];
+var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan'];
 
 // 页面加载时自动填入已保存凭证
 window.addEventListener('load', function() {
@@ -285,6 +311,7 @@ window.addEventListener('load', function() {
 function showStep(step) {
   // 离开扫码页时停止摄像头
   if (step !== 'scan') stopScan();
+  if (step !== 'redeem-scan') stopRedeemScan();
   ALL_STEPS.forEach(function(s){
     var el = document.getElementById('step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
@@ -479,6 +506,8 @@ function resetAddPoints() {
 // ════════════════════════════════════════
 var _scanStream = null;
 var _scanInterval = null;
+var _redeemScanStream = null;
+var _redeemScanInterval = null;
 
 async function startScan() {
   showStep('scan');
@@ -505,6 +534,53 @@ function stopScan() {
   if (_scanStream) { _scanStream.getTracks().forEach(function(t){ t.stop(); }); _scanStream = null; }
   var video = document.getElementById('scan-video');
   if (video) { video.srcObject = null; }
+}
+
+async function startRedeemScan() {
+  showStep('redeem-scan');
+  showErr('redeem-scan-err', '');
+  try {
+    var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    _redeemScanStream = stream;
+    var video = document.getElementById('redeem-scan-video');
+    if (video) { video.srcObject = stream; video.play(); }
+    _redeemScanInterval = setInterval(redeemScanFrame, 200);
+  } catch(e) {
+    showErr('redeem-scan-err', '❌ Fotocamera non disponibile: ' + e.message);
+  }
+}
+
+function stopRedeemScan() {
+  if (_redeemScanInterval) { clearInterval(_redeemScanInterval); _redeemScanInterval = null; }
+  if (_redeemScanStream) { _redeemScanStream.getTracks().forEach(function(t){ t.stop(); }); _redeemScanStream = null; }
+  var video = document.getElementById('redeem-scan-video');
+  if (video) { video.srcObject = null; }
+}
+
+function redeemScanFrame() {
+  var video = document.getElementById('redeem-scan-video');
+  if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+  if (!window._barcodeDetector) {
+    if ('BarcodeDetector' in window) {
+      window._barcodeDetector = new BarcodeDetector({formats: ['qr_code']});
+    } else {
+      clearInterval(_redeemScanInterval); _redeemScanInterval = null;
+      showErr('redeem-scan-err', '⚠️ Questo browser non supporta la scansione QR. Usa "Inserisci codice manuale".');
+      return;
+    }
+  }
+
+  window._barcodeDetector.detect(video).then(function(codes) {
+    if (!codes.length) return;
+    var code = codes[0].rawValue.trim().toUpperCase();
+    if (code.length !== 6) return;
+    stopRedeemScan();
+    // 扫到兑换码 → 自动填入并验证
+    document.getElementById('inp-code').value = code;
+    showStep('code');
+    doVerify();
+  }).catch(function(){});
 }
 
 function scanFrame() {

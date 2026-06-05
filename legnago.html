@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.22.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.23.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -788,14 +788,17 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <!-- 步骤3：兑换码显示 -->
     <div id="ly-step-code" style="display:none">
       <div style="text-align:center;padding:8px 0 16px">
-        <div style="font-size:13px;color:#757575;margin-bottom:8px">Mostra questo codice al cameriere</div>
-        <div id="ly-code-display" style="font-size:36px;font-weight:700;letter-spacing:6px;color:#1a1510;background:#f4f1ec;border-radius:8px;padding:16px;margin-bottom:8px"></div>
+        <div style="font-size:13px;color:#757575;margin-bottom:12px">Mostra questo QR al cameriere</div>
+        <!-- 二维码 -->
+        <div id="ly-redeem-qr" style="display:flex;justify-content:center;margin-bottom:12px"></div>
+        <!-- 文字码（备用） -->
+        <div id="ly-code-display" style="font-size:24px;font-weight:700;letter-spacing:6px;color:#1a1510;background:#f4f1ec;border-radius:8px;padding:10px;margin-bottom:8px"></div>
         <div id="ly-code-reward" style="font-size:13px;font-weight:500;margin-bottom:4px"></div>
         <div id="ly-code-pts" style="font-size:12px;color:#b8902e"></div>
         <div id="ly-code-expires" style="font-size:11px;color:#7a7060;margin-top:6px"></div>
       </div>
       <div style="background:#edfaf3;border-radius:6px;padding:10px 12px;font-size:12px;color:#27ae60;margin-bottom:14px">
-        ✅ Il codice è valido per 24 ore. Lo staff lo verificherà prima di consegnare il premio.
+        ✅ Il codice è valido per 24 ore. Lo staff scansionerà il QR per riscattare il premio.
       </div>
       <button class="btn btn-gold" style="width:100%" onclick="lyBackToRewards()">← Torna ai premi</button>
     </div>
@@ -3442,13 +3445,27 @@ async function lyRedeem(rewardId) {
     var data = await res.json();
     if (!res.ok) { toast('❌ ' + (data.error||'Errore')); return; }
 
-    // 显示兑换码
+    // 显示兑换码 + 生成二维码
     document.getElementById('ly-code-display').textContent = data.code;
     document.getElementById('ly-code-reward').textContent = '🎁 ' + data.reward_name;
     document.getElementById('ly-code-pts').textContent = '− ' + data.points_cost + ' punti';
 
     var expires = new Date(Date.now() + 24*3600*1000);
     document.getElementById('ly-code-expires').textContent = 'Valido fino alle ' + expires.getHours()+':'+(expires.getMinutes()<10?'0':'')+expires.getMinutes() + ' di domani';
+
+    // 生成兑换码二维码
+    var qrEl = document.getElementById('ly-redeem-qr');
+    if (qrEl) {
+      qrEl.innerHTML = '';
+      new QRCode(qrEl, {
+        text: data.code,
+        width: 180,
+        height: 180,
+        colorDark: '#1a1510',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
 
     // 更新余额显示
     _lyCustomer.total_points = data.remaining_points !== undefined ? data.remaining_points : (_lyCustomer.total_points - data.points_cost);
