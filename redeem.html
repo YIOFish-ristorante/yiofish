@@ -284,6 +284,7 @@ input:focus{border-color:var(--gold)}
       <div style="position:relative;width:100%;border-radius:var(--r);overflow:hidden;background:#000;margin-bottom:12px">
         <video id="redeem-scan-video" style="width:100%;display:block" playsinline autoplay muted></video>
         <canvas id="redeem-scan-canvas" style="display:none"></canvas>
+        <canvas id="redeem-scan-canvas" style="display:none"></canvas>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
           <div style="width:200px;height:200px;border:2px solid rgba(39,174,96,.8);border-radius:8px;box-shadow:0 0 0 999px rgba(0,0,0,.4)"></div>
         </div>
@@ -559,7 +560,14 @@ function stopRedeemScan() {
 
 function redeemScanFrame() {
   var video = document.getElementById('redeem-scan-video');
-  if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+  var canvas = document.getElementById('redeem-scan-canvas');
+  if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+  // 画到 canvas 再检测（比直接 detect(video) 兼容性更好）
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   if (!window._barcodeDetector) {
     if ('BarcodeDetector' in window) {
@@ -571,7 +579,7 @@ function redeemScanFrame() {
     }
   }
 
-  window._barcodeDetector.detect(video).then(function(codes) {
+  window._barcodeDetector.detect(canvas).then(function(codes) {
     if (!codes.length) return;
     var code = codes[0].rawValue.trim().toUpperCase();
     if (code.length !== 6) return;
