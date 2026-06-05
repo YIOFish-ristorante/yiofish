@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.27.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.29.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -3178,15 +3178,18 @@ function sendOrder() {
       '⏰ Consegna: ' + orario,
       ''
     ];
+    var origSub = asportoOriginalSubtotal(); // 原价小计
     for (var id in cart_asporto) {
       var it = getItemForMenu(id);
       if (it) {
-        var p = effectivePrice(it);
+        var p = (it.price || 0); // 单品显示原价，折扣在合计处统一计算
         lines.push('• ' + displayDishText(it) + ' x' + cart_asporto[id] + (p > 0 ? ' (' + fmt(p * cart_asporto[id]) + ')' : ''));
       }
     }
     lines.push('');
-    lines.push('💵 Subtotale: ' + fmt(sub));
+    lines.push('💵 Subtotale: ' + fmt(origSub));
+    var consDisc = origSub - sub; // 折扣金额 = 原价 - 折后
+    if (consDisc > 0.01) lines.push('💚 Sconto: −' + fmt(consDisc));
     if (fee > 0) lines.push('🛵 Consegna: ' + fmt(fee));
     lines.push('💰 *Totale: ' + fmt(sub + fee) + '*');
     if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
@@ -3199,26 +3202,27 @@ function sendOrder() {
     for (var id2 in cart_asporto) {
       var it2 = getItemForMenu(id2);
       if (it2) {
-        var p2 = effectivePrice(it2);
+        var p2 = (it2.price || 0); // 单品显示原价，折扣在合计处统一计算
         lines.push('• ' + displayDishText(it2) + ' x' + cart_asporto[id2] + (p2 > 0 ? ' (' + fmt(p2 * cart_asporto[id2]) + ')' : ''));
       }
     }
-    // 价格明细（有起送价配置时显示更详细，便于 WhatsApp 沟通）
+    // 价格明细：单品显示原价，这里统一展示 Subtotale / Sconto / Totale
     var bw = asportoCartBreakdown();
-    if (bw.threshold > 0 && bw.origTotal > 0) {
+    if (bw.origTotal > 0) {
       lines.push('');
       lines.push('💵 Subtotale: ' + fmt(bw.origTotal));
       if (bw.isDiscounted) {
-        var rawDisc = bw.origTotal - bw.discounted;
-        if (rawDisc > 0.01) lines.push('💚 Sconto: −' + fmt(rawDisc));
-      } else if (bw.origTotal < bw.threshold) {
+        // 有折扣：显示省了多少 + 折后总额
+        lines.push('💚 Sconto: −' + fmt(bw.saved));
+        lines.push('💰 *Totale: ' + fmt(bw.finalTotal) + '*');
+      } else if (bw.threshold > 0 && bw.origTotal < bw.threshold) {
+        // 有门槛但未达到：提示未打折
         lines.push('ℹ️ Sotto soglia ' + fmt(bw.threshold) + ' (sconto non applicato)');
+        lines.push('💰 *Totale: ' + fmt(bw.finalTotal) + '*');
+      } else {
+        // 无折扣：只显示总额
+        lines.push('💰 *Totale: ' + fmt(bw.finalTotal) + '*');
       }
-      lines.push('💰 *Totale: ' + fmt(bw.finalTotal) + '*');
-    } else if (cartTotal() > 0) {
-      // 无门槛配置：简洁输出
-      lines.push('');
-      lines.push('💵 Totale: ' + fmt(cartTotal()));
     }
     if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
   }
