@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.26.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.27.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.26.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.27.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -636,7 +636,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.26.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.27.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1353,13 +1353,16 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.26.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.27.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
   // 切店后重渲依赖 _SETTINGS 的整页（其他页 loadAll 已重渲）
   if (_page === 'consegna-schedule' && typeof renderConsegnaSchedulePage === 'function') {
     renderConsegnaSchedulePage();
+  }
+  if (_page === 'loyalty' && typeof renderLoyaltyPage === 'function') {
+    renderLoyaltyPage();
   }
   toast('✅ 已切换到 ' + (store ? store.name : storeId));
 }
@@ -3865,7 +3868,10 @@ async function renderLoyaltyPage() {
 
     // ── 积分设置区块（仅 super_admin）──
     + (CURRENT_ROLE === 'super' ? '<div class="card" style="padding:18px 22px;margin-bottom:20px;border-left:3px solid #d4af37">'
-      + '<div style="font-size:14px;font-weight:600;color:#d4af37;margin-bottom:14px">⚙️ Impostazioni punti fedeltà</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+        + '<div style="font-size:14px;font-weight:600;color:#d4af37">⚙️ Impostazioni punti fedeltà</div>'
+        + '<div style="font-size:12px;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:20px">🏪 ' + RESTAURANT_ID + '</div>'
+      + '</div>'
       + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px 14px;background:var(--bg);border-radius:var(--r)">'
         + '<label class="toggle-switch" style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0">'
           + '<input type="checkbox" id="ly-toggle" style="opacity:0;width:0;height:0" onchange="updateLoyaltyToggleUI(this.checked)">'
