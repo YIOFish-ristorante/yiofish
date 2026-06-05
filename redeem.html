@@ -84,6 +84,10 @@ input:focus{border-color:var(--gold)}
     <div class="card">
       <h2>🔐 Accesso Staff</h2>
       <div id="login-err"></div>
+      <div id="saved-hint" style="display:none;background:#fdf8ee;border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:12px;color:#7a6020;display:none;justify-content:space-between;align-items:center">
+        <span id="saved-hint-text"></span>
+        <button onclick="clearSavedCredentials()" style="background:none;border:none;color:#c0392b;font-size:11px;cursor:pointer;font-family:inherit;padding:0;margin-left:8px;white-space:nowrap">✕ Dimentica</button>
+      </div>
       <div class="field-label">Username</div>
       <input type="text" id="inp-user" placeholder="Es. marco" autocomplete="username"
         onkeydown="if(event.keyCode===13)document.getElementById('inp-pwd').focus()">
@@ -273,6 +277,11 @@ var _redemptionId = null;
 
 var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan'];
 
+// 页面加载时自动填入已保存凭证
+window.addEventListener('load', function() {
+  loadSavedCredentials();
+});
+
 function showStep(step) {
   // 离开扫码页时停止摄像头
   if (step !== 'scan') stopScan();
@@ -309,6 +318,12 @@ async function doLogin() {
     _store = data.restaurantId;
     _username = data.username;
 
+    // 保存凭证到 localStorage
+    try {
+      localStorage.setItem('yio_staff_user', username);
+      localStorage.setItem('yio_staff_pwd', pwd);
+    } catch(e) {}
+
     // topbar 显示店员名 + 店铺
     var storeNames = {carpi:'Carpi', imola:'Imola', legnago:'Legnago'};
     var staffEl = document.getElementById('topbar-staff');
@@ -326,12 +341,38 @@ async function doLogin() {
 
 function doLogout() {
   _token = ''; _store = ''; _username = ''; _redemptionId = null;
-  document.getElementById('inp-user').value = '';
-  document.getElementById('inp-pwd').value = '';
   document.getElementById('inp-code').value = '';
   var staffEl = document.getElementById('topbar-staff');
   if (staffEl) staffEl.style.display = 'none';
   showStep('login');
+  // 退出后重新读取已保存凭证
+  loadSavedCredentials();
+}
+
+function loadSavedCredentials() {
+  try {
+    var savedUser = localStorage.getItem('yio_staff_user');
+    var savedPwd = localStorage.getItem('yio_staff_pwd');
+    if (savedUser && savedPwd) {
+      document.getElementById('inp-user').value = savedUser;
+      document.getElementById('inp-pwd').value = savedPwd;
+      var hint = document.getElementById('saved-hint');
+      var hintText = document.getElementById('saved-hint-text');
+      if (hint) hint.style.display = 'flex';
+      if (hintText) hintText.textContent = '👤 Credenziali salvate: ' + savedUser;
+    }
+  } catch(e) {}
+}
+
+function clearSavedCredentials() {
+  try {
+    localStorage.removeItem('yio_staff_user');
+    localStorage.removeItem('yio_staff_pwd');
+  } catch(e) {}
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pwd').value = '';
+  var hint = document.getElementById('saved-hint');
+  if (hint) hint.style.display = 'none';
 }
 
 async function doVerify() {
