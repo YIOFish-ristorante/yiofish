@@ -6,6 +6,7 @@
 <title>YIO Fish · Staff Fedeltà</title>
 <link rel="icon" type="image/png" href="icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -294,10 +295,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.2</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.3</div>
 
 <script>
-var APP_VERSION = 'v1.0.2';
+var APP_VERSION = 'v1.0.3';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -560,7 +561,6 @@ function stopRedeemScan() {
 function scanFrame() {
   var videoId = _scanMode === 'redeem' ? 'redeem-scan-video' : 'scan-video';
   var canvasId = _scanMode === 'redeem' ? 'redeem-scan-canvas' : 'scan-canvas';
-  var errId   = _scanMode === 'redeem' ? 'redeem-scan-err'   : 'scan-err';
   var video = document.getElementById(videoId);
   var canvas = document.getElementById(canvasId);
   if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
@@ -570,39 +570,31 @@ function scanFrame() {
   var ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  if (!window._barcodeDetector) {
-    if ('BarcodeDetector' in window) {
-      window._barcodeDetector = new BarcodeDetector({formats: ['qr_code']});
-    } else {
-      clearInterval(_scanInterval); _scanInterval = null;
-      showErr(errId, '⚠️ Questo browser non supporta la scansione QR. Usa la modalità manuale.');
-      return;
+  // 用 jsQR（纯JS库，兼容所有浏览器，比 BarcodeDetector 更稳定）
+  try {
+    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var result = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'attemptBoth' });
+    if (result && result.data) {
+      onScanResult(result.data.trim());
     }
+  } catch(e) {}
+}
+
+function onScanResult(raw) {
+  if (!raw) return;
+  if (_scanMode === 'redeem') {
+    var code = raw.toUpperCase();
+    if (code.length !== 6) return;
+    stopRedeemScan();
+    document.getElementById('inp-code').value = code;
+    showStep('code');
+    doVerify();
+  } else {
+    stopScan();
+    document.getElementById('addpts-phone').value = raw;
+    showStep('addpts');
+    document.getElementById('addpts-pts').focus();
   }
-
-  window._barcodeDetector.detect(canvas).then(function(codes) {
-    var dbg2 = document.getElementById(errId);
-    if (dbg2) dbg2.innerHTML = '<div style="font-size:11px;color:#27ae60;text-align:center">detect: ' + codes.length + ' codici' + (codes.length ? ' → [' + codes[0].rawValue + ']' : '') + '</div>';
-    if (!codes.length) return;
-    var raw = codes[0].rawValue.trim();
-    if (!raw) return;
-
-    if (_scanMode === 'redeem') {
-      // 核销模式：识别6位兑换码
-      var code = raw.toUpperCase();
-      if (code.length !== 6) return;
-      stopRedeemScan();
-      document.getElementById('inp-code').value = code;
-      showStep('code');
-      doVerify();
-    } else {
-      // 加积分模式：识别手机号
-      stopScan();
-      document.getElementById('addpts-phone').value = raw;
-      showStep('addpts');
-      document.getElementById('addpts-pts').focus();
-    }
-  }).catch(function(){});
 }
 
 async function doChangePassword() {
