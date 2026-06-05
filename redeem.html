@@ -118,7 +118,7 @@ input:focus{border-color:var(--gold)}
           <span class="menu-icon">🎁</span>
           <div>
             <div class="menu-label">INSERISCI CODICE MANUALE</div>
-            <div class="menu-desc">Digita il codice di 6 caratteri</div>
+            <div class="menu-desc">Digita il codice di 8 cifre</div>
           </div>
         </div>
         <div class="menu-item" onclick="startScan()">
@@ -154,8 +154,8 @@ input:focus{border-color:var(--gold)}
         <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
       </div>
       <div id="code-err"></div>
-      <div class="field-label">Codice riscatto (6 caratteri)</div>
-      <input type="text" id="inp-code" placeholder="Es. 4F8K2X" maxlength="6"
+      <div class="field-label">Codice riscatto (8 cifre)</div>
+      <input type="tel" id="inp-code" placeholder="Es. 48392071" maxlength="8"
         style="text-transform:uppercase;letter-spacing:4px;font-size:20px;text-align:center;font-weight:600"
         oninput="this.value=this.value.toUpperCase()"
         onkeydown="if(event.keyCode===13)doVerify()">
@@ -295,10 +295,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.7</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.8</div>
 
 <script>
-var APP_VERSION = 'v1.0.7';
+var APP_VERSION = 'v1.0.8';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -408,7 +408,7 @@ function clearSavedCredentials() {
 
 async function doVerify() {
   var code = (document.getElementById('inp-code').value || '').trim().toUpperCase();
-  if (code.length !== 6) { showErr('code-err', 'Il codice deve essere di 6 caratteri'); return; }
+  if (code.length !== 8) { showErr('code-err', 'Il codice deve essere di 8 cifre'); return; }
   showErr('code-err', '');
   try {
     var res = await fetch(WORKER_URL + '/loyalty/redeem/verify-staff', {
@@ -607,7 +607,7 @@ function onScanResult(raw) {
   if (!raw) return;
   if (_scanMode === 'redeem') {
     var code = raw.toUpperCase();
-    if (code.length !== 6) return;
+    if (code.length !== 8) return;
     stopRedeemScan();
     document.getElementById('inp-code').value = code;
     showStep('code');
