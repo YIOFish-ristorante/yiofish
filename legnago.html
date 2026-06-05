@@ -500,6 +500,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 </style>
 
   <!-- yio-error-log -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="/yio-error-log.js?app=legnago"></script>
 </head>
 <body>
@@ -545,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.20.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.21.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -771,6 +772,9 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <div style="font-size:11px;color:#7a6020;letter-spacing:1px;margin-bottom:4px">I TUOI PUNTI</div>
         <div id="ly-pts-display" style="font-size:36px;font-weight:700;color:#b8902e">0</div>
         <div id="ly-name-display" style="font-size:12px;color:#7a7060;margin-top:2px"></div>
+        <button onclick="lyShowQR()" style="margin-top:10px;padding:7px 18px;background:#1a1510;color:#f4f1ec;border:none;border-radius:20px;font-size:12px;font-family:inherit;cursor:pointer;letter-spacing:1px">
+          📱 Mostra QR al cameriere
+        </button>
       </div>
       <div style="font-size:13px;font-weight:600;margin-bottom:10px">🎁 Premi disponibili</div>
       <div id="ly-rewards-list" style="margin-bottom:14px"></div>
@@ -790,6 +794,17 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         ✅ Il codice è valido per 24 ore. Lo staff lo verificherà prima di consegnare il premio.
       </div>
       <button class="btn btn-gold" style="width:100%" onclick="lyBackToRewards()">← Torna ai premi</button>
+    </div>
+
+    <!-- QR码弹窗 -->
+    <div id="ly-qr-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;display:none;align-items:center;justify-content:center;flex-direction:column">
+      <div style="background:#fff;border-radius:12px;padding:28px 24px;text-align:center;max-width:300px;width:90%">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">📱 Il tuo QR fedeltà</div>
+        <div style="font-size:12px;color:#7a7060;margin-bottom:16px">Mostralo al cameriere per accumulare punti</div>
+        <div id="ly-qr-canvas" style="display:flex;justify-content:center;margin-bottom:14px"></div>
+        <div style="font-size:11px;color:#b0a898;margin-bottom:16px" id="ly-qr-phone"></div>
+        <button onclick="lyHideQR()" style="width:100%;padding:10px;background:#1a1510;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer">Chiudi</button>
+      </div>
     </div>
 
     <button class="btn-close" onclick="closeModal('loyaltyModal');lyShowStep('intro');" style="margin-top:8px">Chiudi</button>
@@ -3447,6 +3462,35 @@ function lyReset() {
   document.getElementById('ly-phone').value = '';
   document.getElementById('ly-phone-err').textContent = '';
   lyShowStep('intro');
+}
+
+function lyShowQR() {
+  if (!_lyPhone) return;
+  var overlay = document.getElementById('ly-qr-overlay');
+  var canvas = document.getElementById('ly-qr-canvas');
+  var phoneEl = document.getElementById('ly-qr-phone');
+  if (!overlay || !canvas) return;
+
+  // 清空旧QR
+  canvas.innerHTML = '';
+  if (phoneEl) phoneEl.textContent = _lyPhone;
+
+  // 生成QR码（内容：手机号）
+  var qr = new QRCode(canvas, {
+    text: _lyPhone,
+    width: 200,
+    height: 200,
+    colorDark: '#1a1510',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  overlay.style.display = 'flex';
+}
+
+function lyHideQR() {
+  var overlay = document.getElementById('ly-qr-overlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 function sendReservation() {

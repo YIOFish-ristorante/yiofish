@@ -109,11 +109,18 @@ input:focus{border-color:var(--gold)}
             <div class="menu-desc">Verifica e conferma un codice riscatto</div>
           </div>
         </div>
+        <div class="menu-item" onclick="startScan()">
+          <span class="menu-icon">📷</span>
+          <div>
+            <div class="menu-label">SCANSIONA QR</div>
+            <div class="menu-desc">Inquadra il QR del cliente per aggiungere punti</div>
+          </div>
+        </div>
         <div class="menu-item" onclick="showStep('addpts')">
           <span class="menu-icon">⭐</span>
           <div>
-            <div class="menu-label">AGGIUNGI PUNTI</div>
-            <div class="menu-desc">Assegna punti fedeltà a un cliente</div>
+            <div class="menu-label">AGGIUNGI PUNTI (manuale)</div>
+            <div class="menu-desc">Inserisci manualmente il numero del cliente</div>
           </div>
         </div>
         <div class="menu-item" onclick="showStep('changepwd')">
@@ -235,6 +242,26 @@ input:focus{border-color:var(--gold)}
     </div>
   </div>
 
+
+  <!-- STEP: scan -->
+  <div id="step-scan" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">📷 Scansiona QR</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="stopScan();showStep('menu')">← Menu</button>
+      </div>
+      <div id="scan-err"></div>
+      <div style="position:relative;width:100%;border-radius:var(--r);overflow:hidden;background:#000;margin-bottom:12px">
+        <video id="scan-video" style="width:100%;display:block" playsinline autoplay muted></video>
+        <canvas id="scan-canvas" style="display:none"></canvas>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <div style="width:200px;height:200px;border:2px solid rgba(212,171,72,.8);border-radius:8px;box-shadow:0 0 0 999px rgba(0,0,0,.4)"></div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);text-align:center">Inquadra il QR code del cliente</div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -244,9 +271,11 @@ var _store = '';
 var _username = '';
 var _redemptionId = null;
 
-var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success'];
+var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan'];
 
 function showStep(step) {
+  // 离开扫码页时停止摄像头
+  if (step !== 'scan') stopScan();
   ALL_STEPS.forEach(function(s){
     var el = document.getElementById('step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
@@ -402,6 +431,74 @@ function resetAddPoints() {
   document.getElementById('addpts-note').value = '';
   showErr('addpts-err', '');
   showStep('addpts');
+}
+
+// ════════════════════════════════════════
+//  QR 扫码功能
+// ════════════════════════════════════════
+var _scanStream = null;
+var _scanInterval = null;
+
+async function startScan() {
+  showStep('scan');
+  showErr('scan-err', '');
+  try {
+    var stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+    _scanStream = stream;
+    var video = document.getElementById('scan-video');
+    if (video) {
+      video.srcObject = stream;
+      video.play();
+    }
+    // 每200ms检测一次
+    _scanInterval = setInterval(scanFrame, 200);
+  } catch(e) {
+    showErr('scan-err', '❌ Fotocamera non disponibile: ' + e.message);
+  }
+}
+
+function stopScan() {
+  if (_scanInterval) { clearInterval(_scanInterval); _scanInterval = null; }
+  if (_scanStream) { _scanStream.getTracks().forEach(function(t){ t.stop(); }); _scanStream = null; }
+  var video = document.getElementById('scan-video');
+  if (video) { video.srcObject = null; }
+}
+
+function scanFrame() {
+  var video = document.getElementById('scan-video');
+  var canvas = document.getElementById('scan-canvas');
+  if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  // 用浏览器原生 BarcodeDetector
+  if (!window._barcodeDetector) {
+    if ('BarcodeDetector' in window) {
+      window._barcodeDetector = new BarcodeDetector({formats: ['qr_code']});
+    } else {
+      // 不支持时显示手动输入提示
+      clearInterval(_scanInterval); _scanInterval = null;
+      showErr('scan-err', '⚠️ Questo browser non supporta la scansione QR. Usa "Aggiungi punti manuale".');
+      return;
+    }
+  }
+
+  window._barcodeDetector.detect(video).then(function(codes) {
+    if (!codes.length) return;
+    var phone = codes[0].rawValue.trim();
+    if (!phone) return;
+    stopScan();
+    // 扫到手机号 → 跳到加积分页面并自动填入
+    document.getElementById('addpts-phone').value = phone;
+    showStep('addpts');
+    document.getElementById('addpts-pts').focus();
+  }).catch(function(){});
 }
 
 async function doChangePassword() {
