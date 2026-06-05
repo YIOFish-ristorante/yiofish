@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.25.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.26.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -3457,10 +3457,14 @@ async function lyRedeem(rewardId) {
     var qrEl = document.getElementById('ly-redeem-qr');
     if (qrEl) {
       qrEl.innerHTML = '';
-      new QRCode(qrEl, {
+      // 外层加白色边距（quiet zone），二维码识别需要四周留白
+      var qrWrap = document.createElement('div');
+      qrWrap.style.cssText = 'display:inline-block;padding:16px;background:#fff;border-radius:8px';
+      qrEl.appendChild(qrWrap);
+      new QRCode(qrWrap, {
         text: data.code,
-        width: 240,
-        height: 240,
+        width: 220,
+        height: 220,
         colorDark: '#000000',
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.L
