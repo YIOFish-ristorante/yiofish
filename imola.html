@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.21.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.22.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -775,6 +775,10 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <button onclick="lyShowQR()" style="margin-top:10px;padding:7px 18px;background:#1a1510;color:#f4f1ec;border:none;border-radius:20px;font-size:12px;font-family:inherit;cursor:pointer;letter-spacing:1px">
           📱 Mostra QR al cameriere
         </button>
+        <div id="ly-expiry-hint" style="display:none;margin-top:8px;font-size:11px;color:#c0392b"></div>
+        <div style="margin-top:8px">
+          <a href="/loyalty-rules.html" target="_blank" style="font-size:11px;color:#7a7060;text-decoration:underline">📋 Come funzionano i punti?</a>
+        </div>
       </div>
       <div style="font-size:13px;font-weight:600;margin-bottom:10px">🎁 Premi disponibili</div>
       <div id="ly-rewards-list" style="margin-bottom:14px"></div>
@@ -3393,10 +3397,12 @@ async function lyLookup() {
     document.getElementById('ly-pts-display').textContent = _lyCustomer.total_points;
     var nameEl = document.getElementById('ly-name-display');
     if (data.isNew) {
-      if (nameEl) nameEl.innerHTML = '<span style="color:#27ae60;font-size:12px">👋 Benvenuto! Account creato con successo.</span>';
+      if (nameEl) nameEl.innerHTML = '<span style="color:#27ae60;font-size:12px">👋 Benvenuto! Account creato con successo.' + (data.signup_bonus > 0 ? ' +' + data.signup_bonus + ' punti di benvenuto!' : '') + '</span>';
     } else {
       if (nameEl) nameEl.textContent = _lyCustomer.name ? '👤 ' + _lyCustomer.name : '';
     }
+    // 检查即将过期的积分（30天内）
+    lyCheckExpiry(_lyCustomer.id);
 
     // 加载奖品
     var rRes = await fetch(WORKER_URL + '/loyalty/rewards?restaurant_id=' + encodeURIComponent(RESTAURANT_ID), {cache:'no-store'});
@@ -3458,6 +3464,30 @@ async function lyRedeem(rewardId) {
 function lyBackToRewards() {
   document.getElementById('ly-pts-display').textContent = _lyCustomer.total_points;
   lyShowStep('rewards');
+}
+
+async function lyCheckExpiry(customerId) {
+  // 查30天内要过期的正积分流水
+  var soon = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+  var now = new Date().toISOString();
+  try {
+    var res = await fetch(WORKER_URL + '/public/rest/v1/loyalty_transactions?customer_id=eq.' + customerId
+      + '&points=gt.0&expires_at=gt.' + encodeURIComponent(now)
+      + '&expires_at=lt.' + encodeURIComponent(soon)
+      + '&select=points,expires_at', {cache:'no-store'});
+    if (!res.ok) return;
+    var txs = await res.json();
+    if (!txs.length) return;
+    var total = txs.reduce(function(s,t){ return s + t.points; }, 0);
+    var earliest = txs.reduce(function(a,b){ return a.expires_at < b.expires_at ? a : b; });
+    var expDate = new Date(earliest.expires_at);
+    var expStr = expDate.getDate()+'/'+(expDate.getMonth()+1)+'/'+expDate.getFullYear();
+    var hint = document.getElementById('ly-expiry-hint');
+    if (hint) {
+      hint.textContent = '⚠️ ' + total + ' punti scadono il ' + expStr;
+      hint.style.display = '';
+    }
+  } catch(e) {}
 }
 
 function lyReset() {
