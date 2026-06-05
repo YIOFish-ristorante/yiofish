@@ -280,10 +280,10 @@ input:focus{border-color:var(--gold)}
         <h2 style="margin:0">📷 Scansiona QR riscatto</h2>
         <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="stopRedeemScan();showStep('menu')">← Menu</button>
       </div>
-      <div id="scan-err"></div>
+      <div id="redeem-scan-err"></div>
       <div style="position:relative;width:100%;border-radius:var(--r);overflow:hidden;background:#000;margin-bottom:12px">
-        <video id="scan-video" style="width:100%;display:block" playsinline autoplay muted></video>
-        <canvas id="scan-canvas" style="display:none"></canvas>
+        <video id="redeem-scan-video" style="width:100%;display:block" playsinline autoplay muted></video>
+        <canvas id="redeem-scan-canvas" style="display:none"></canvas>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
           <div style="width:200px;height:200px;border:2px solid rgba(39,174,96,.8);border-radius:8px;box-shadow:0 0 0 999px rgba(0,0,0,.4)"></div>
         </div>
@@ -294,7 +294,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.0</div>
+
 <script>
+var APP_VERSION = 'v1.0.0';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -310,7 +313,8 @@ window.addEventListener('load', function() {
 
 function showStep(step) {
   // 离开扫码页时停止摄像头
-  if (step !== 'scan' && step !== 'redeem-scan') stopScan();
+  if (step !== 'scan') stopScan();
+  if (step !== 'redeem-scan') stopRedeemScan();
   ALL_STEPS.forEach(function(s){
     var el = document.getElementById('step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
@@ -531,29 +535,34 @@ function stopScan() {
 
 async function startRedeemScan() {
   _scanMode = 'redeem';
-  // 复用同一个 video/canvas（加积分那个），只改步骤显示
   showStep('redeem-scan');
-  showErr('scan-err', '');
+  showErr('redeem-scan-err', '');
   try {
     var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     _scanStream = stream;
-    var video = document.getElementById('scan-video');
+    var video = document.getElementById('redeem-scan-video');
     if (video) { video.srcObject = stream; video.play(); }
     _scanInterval = setInterval(scanFrame, 200);
   } catch(e) {
-    showErr('scan-err', '❌ Fotocamera non disponibile: ' + e.message);
+    showErr('redeem-scan-err', '❌ Fotocamera non disponibile: ' + e.message);
   }
 }
 
 function stopRedeemScan() {
-  stopScan();
+  if (_scanInterval) { clearInterval(_scanInterval); _scanInterval = null; }
+  if (_scanStream) { _scanStream.getTracks().forEach(function(t){ t.stop(); }); _scanStream = null; }
+  var video = document.getElementById('redeem-scan-video');
+  if (video) { video.srcObject = null; }
 }
 
 // redeemScanFrame rimosso: usa scanFrame con _scanMode
 
 function scanFrame() {
-  var video = document.getElementById('scan-video');
-  var canvas = document.getElementById('scan-canvas');
+  var videoId = _scanMode === 'redeem' ? 'redeem-scan-video' : 'scan-video';
+  var canvasId = _scanMode === 'redeem' ? 'redeem-scan-canvas' : 'scan-canvas';
+  var errId   = _scanMode === 'redeem' ? 'redeem-scan-err'   : 'scan-err';
+  var video = document.getElementById(videoId);
+  var canvas = document.getElementById(canvasId);
   if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
 
   canvas.width = video.videoWidth;
@@ -566,7 +575,7 @@ function scanFrame() {
       window._barcodeDetector = new BarcodeDetector({formats: ['qr_code']});
     } else {
       clearInterval(_scanInterval); _scanInterval = null;
-      showErr('scan-err', '⚠️ Questo browser non supporta la scansione QR. Usa la modalità manuale.');
+      showErr(errId, '⚠️ Questo browser non supporta la scansione QR. Usa la modalità manuale.');
       return;
     }
   }
@@ -580,7 +589,7 @@ function scanFrame() {
       // 核销模式：识别6位兑换码
       var code = raw.toUpperCase();
       if (code.length !== 6) return;
-      stopScan();
+      stopRedeemScan();
       document.getElementById('inp-code').value = code;
       showStep('code');
       doVerify();
