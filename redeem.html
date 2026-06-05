@@ -116,6 +116,13 @@ input:focus{border-color:var(--gold)}
             <div class="menu-desc">Assegna punti fedeltà a un cliente</div>
           </div>
         </div>
+        <div class="menu-item" onclick="showStep('changepwd')">
+          <span class="menu-icon">🔑</span>
+          <div>
+            <div class="menu-label">CAMBIA PASSWORD</div>
+            <div class="menu-desc">Modifica la tua password di accesso</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -194,6 +201,40 @@ input:focus{border-color:var(--gold)}
     </div>
   </div>
 
+
+  <!-- STEP: changepwd -->
+  <div id="step-changepwd" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">🔑 Cambia password</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
+      </div>
+      <div id="changepwd-err"></div>
+      <div class="field-label">Password attuale</div>
+      <input type="password" id="cp-old" placeholder="••••••"
+        onkeydown="if(event.keyCode===13)document.getElementById('cp-new1').focus()">
+      <div class="field-label">Nuova password (minimo 6 caratteri)</div>
+      <input type="password" id="cp-new1" placeholder="••••••"
+        onkeydown="if(event.keyCode===13)document.getElementById('cp-new2').focus()">
+      <div class="field-label">Ripeti nuova password</div>
+      <input type="password" id="cp-new2" placeholder="••••••"
+        onkeydown="if(event.keyCode===13)doChangePassword()">
+      <button class="btn btn-gold" onclick="doChangePassword()">Salva nuova password</button>
+    </div>
+  </div>
+
+  <!-- STEP: changepwd-success -->
+  <div id="step-changepwd-success" style="display:none">
+    <div class="card">
+      <div class="success-box">
+        <div class="success-icon">🔑</div>
+        <div class="success-title">Password aggiornata!</div>
+        <div class="success-sub">La tua password è stata modificata con successo.</div>
+      </div>
+      <button class="btn btn-gold" onclick="showStep('menu')">← Menu</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -203,7 +244,7 @@ var _store = '';
 var _username = '';
 var _redemptionId = null;
 
-var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success'];
+var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success'];
 
 function showStep(step) {
   ALL_STEPS.forEach(function(s){
@@ -361,6 +402,49 @@ function resetAddPoints() {
   document.getElementById('addpts-note').value = '';
   showErr('addpts-err', '');
   showStep('addpts');
+}
+
+async function doChangePassword() {
+  var oldPwd = document.getElementById('cp-old').value;
+  var newPwd1 = document.getElementById('cp-new1').value;
+  var newPwd2 = document.getElementById('cp-new2').value;
+  if (!oldPwd) { showErr('changepwd-err', 'Inserisci la password attuale'); return; }
+  if (!newPwd1 || newPwd1.length < 6) { showErr('changepwd-err', 'La nuova password deve avere almeno 6 caratteri'); return; }
+  if (newPwd1 !== newPwd2) { showErr('changepwd-err', 'Le due password non coincidono'); return; }
+  if (oldPwd === newPwd1) { showErr('changepwd-err', 'La nuova password deve essere diversa da quella attuale'); return; }
+  showErr('changepwd-err', '');
+
+  try {
+    // 先用旧密码重新验证（防止别人趁机改密码）
+    var verifyRes = await fetch(WORKER_URL + '/store-admin/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username: _username, password: oldPwd}),
+      cache: 'no-store'
+    });
+    if (!verifyRes.ok) {
+      showErr('changepwd-err', 'Password attuale non corretta');
+      return;
+    }
+
+    // 改密码
+    var res = await fetch(WORKER_URL + '/store-admin/change-password', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+_token},
+      body: JSON.stringify({password: newPwd1}),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { showErr('changepwd-err', data.error || 'Errore'); return; }
+
+    // 清空输入框
+    document.getElementById('cp-old').value = '';
+    document.getElementById('cp-new1').value = '';
+    document.getElementById('cp-new2').value = '';
+    showStep('changepwd-success');
+  } catch(e) {
+    showErr('changepwd-err', 'Errore: ' + e.message);
+  }
 }
 </script>
 </body>
