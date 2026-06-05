@@ -294,10 +294,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.1</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.2</div>
 
 <script>
-var APP_VERSION = 'v1.0.1';
+var APP_VERSION = 'v1.0.2';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -563,9 +563,6 @@ function scanFrame() {
   var errId   = _scanMode === 'redeem' ? 'redeem-scan-err'   : 'scan-err';
   var video = document.getElementById(videoId);
   var canvas = document.getElementById(canvasId);
-  // 调试：显示状态
-  var dbgEl = document.getElementById(errId);
-  if (dbgEl) dbgEl.innerHTML = '<div style="font-size:11px;color:#999;text-align:center">mode:' + _scanMode + ' video:' + (video?'ok':'NULL') + ' ready:' + (video?video.readyState:'-') + ' w:' + (video?video.videoWidth:'-') + '</div>';
   if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
 
   canvas.width = video.videoWidth;
@@ -584,6 +581,8 @@ function scanFrame() {
   }
 
   window._barcodeDetector.detect(canvas).then(function(codes) {
+    var dbg2 = document.getElementById(errId);
+    if (dbg2) dbg2.innerHTML = '<div style="font-size:11px;color:#27ae60;text-align:center">detect: ' + codes.length + ' codici' + (codes.length ? ' → [' + codes[0].rawValue + ']' : '') + '</div>';
     if (!codes.length) return;
     var raw = codes[0].rawValue.trim();
     if (!raw) return;
