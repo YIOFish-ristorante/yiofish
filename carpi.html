@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.23.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.24.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -797,8 +797,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <div id="ly-code-pts" style="font-size:12px;color:#b8902e"></div>
         <div id="ly-code-expires" style="font-size:11px;color:#7a7060;margin-top:6px"></div>
       </div>
-      <div style="background:#edfaf3;border-radius:6px;padding:10px 12px;font-size:12px;color:#27ae60;margin-bottom:14px">
-        ✅ Il codice è valido per 24 ore. Lo staff scansionerà il QR per riscattare il premio.
+      <div style="background:#fdf8ee;border-radius:6px;padding:10px 12px;font-size:12px;color:#7a6020;margin-bottom:14px">
+        ⭐ I tuoi punti verranno scalati solo dopo che lo staff avrà confermato il riscatto. Il codice è valido per 24 ore.
       </div>
       <button class="btn btn-gold" style="width:100%" onclick="lyBackToRewards()">← Torna ai premi</button>
     </div>
@@ -3472,8 +3472,8 @@ async function lyRedeem(rewardId) {
       });
     }
 
-    // 更新余额显示
-    _lyCustomer.total_points = data.remaining_points !== undefined ? data.remaining_points : (_lyCustomer.total_points - data.points_cost);
+    // 积分暂不扣除（核销后才扣），余额不变
+    // 但显示提示告知顾客
     lyShowStep('code');
   } catch(e) {
     toast('❌ Errore di connessione');
