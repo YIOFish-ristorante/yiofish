@@ -280,11 +280,10 @@ input:focus{border-color:var(--gold)}
         <h2 style="margin:0">📷 Scansiona QR riscatto</h2>
         <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="stopRedeemScan();showStep('menu')">← Menu</button>
       </div>
-      <div id="redeem-scan-err"></div>
+      <div id="scan-err"></div>
       <div style="position:relative;width:100%;border-radius:var(--r);overflow:hidden;background:#000;margin-bottom:12px">
-        <video id="redeem-scan-video" style="width:100%;display:block" playsinline autoplay muted></video>
-        <canvas id="redeem-scan-canvas" style="display:none"></canvas>
-        <canvas id="redeem-scan-canvas" style="display:none"></canvas>
+        <video id="scan-video" style="width:100%;display:block" playsinline autoplay muted></video>
+        <canvas id="scan-canvas" style="display:none"></canvas>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
           <div style="width:200px;height:200px;border:2px solid rgba(39,174,96,.8);border-radius:8px;box-shadow:0 0 0 999px rgba(0,0,0,.4)"></div>
         </div>
@@ -311,8 +310,7 @@ window.addEventListener('load', function() {
 
 function showStep(step) {
   // 离开扫码页时停止摄像头
-  if (step !== 'scan') stopScan();
-  if (step !== 'redeem-scan') stopRedeemScan();
+  if (step !== 'scan' && step !== 'redeem-scan') stopScan();
   ALL_STEPS.forEach(function(s){
     var el = document.getElementById('step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
@@ -507,23 +505,17 @@ function resetAddPoints() {
 // ════════════════════════════════════════
 var _scanStream = null;
 var _scanInterval = null;
-var _redeemScanStream = null;
-var _redeemScanInterval = null;
+var _scanMode = 'addpts'; // 'addpts' 或 'redeem'
 
 async function startScan() {
+  _scanMode = 'addpts';
   showStep('scan');
   showErr('scan-err', '');
   try {
-    var stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }
-    });
+    var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     _scanStream = stream;
     var video = document.getElementById('scan-video');
-    if (video) {
-      video.srcObject = stream;
-      video.play();
-    }
-    // 每200ms检测一次
+    if (video) { video.srcObject = stream; video.play(); }
     _scanInterval = setInterval(scanFrame, 200);
   } catch(e) {
     showErr('scan-err', '❌ Fotocamera non disponibile: ' + e.message);
@@ -538,67 +530,26 @@ function stopScan() {
 }
 
 async function startRedeemScan() {
+  _scanMode = 'redeem';
+  // 复用同一个 video/canvas（加积分那个），只改步骤显示
   showStep('redeem-scan');
-  showErr('redeem-scan-err', '');
+  showErr('scan-err', '');
   try {
     var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    _redeemScanStream = stream;
-    var video = document.getElementById('redeem-scan-video');
+    _scanStream = stream;
+    var video = document.getElementById('scan-video');
     if (video) { video.srcObject = stream; video.play(); }
-    _redeemScanInterval = setInterval(redeemScanFrame, 200);
+    _scanInterval = setInterval(scanFrame, 200);
   } catch(e) {
-    showErr('redeem-scan-err', '❌ Fotocamera non disponibile: ' + e.message);
+    showErr('scan-err', '❌ Fotocamera non disponibile: ' + e.message);
   }
 }
 
 function stopRedeemScan() {
-  if (_redeemScanInterval) { clearInterval(_redeemScanInterval); _redeemScanInterval = null; }
-  if (_redeemScanStream) { _redeemScanStream.getTracks().forEach(function(t){ t.stop(); }); _redeemScanStream = null; }
-  var video = document.getElementById('redeem-scan-video');
-  if (video) { video.srcObject = null; }
+  stopScan();
 }
 
-function redeemScanFrame() {
-  var video = document.getElementById('redeem-scan-video');
-  var canvas = document.getElementById('redeem-scan-canvas');
-  if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
-
-  // 画到 canvas 再检测（比直接 detect(video) 兼容性更好）
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  var ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  if (!window._barcodeDetector) {
-    if ('BarcodeDetector' in window) {
-      window._barcodeDetector = new BarcodeDetector({formats: ['qr_code']});
-    } else {
-      clearInterval(_redeemScanInterval); _redeemScanInterval = null;
-      showErr('redeem-scan-err', '⚠️ Questo browser non supporta la scansione QR. Usa "Inserisci codice manuale".');
-      return;
-    }
-  }
-
-  window._barcodeDetector.detect(canvas).then(function(codes) {
-    // 调试：显示检测到的内容
-    var dbg = document.getElementById('redeem-scan-err');
-    if (codes.length) {
-      var raw = codes[0].rawValue.trim();
-      if (dbg) dbg.innerHTML = '<div class="msg msg-info">📷 Rilevato: ' + raw + ' (' + raw.length + ' car.)</div>';
-      var code = raw.toUpperCase();
-      if (code.length !== 6) return;
-      stopRedeemScan();
-      document.getElementById('inp-code').value = code;
-      showStep('code');
-      doVerify();
-    } else {
-      if (dbg && !dbg.innerHTML) dbg.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">Scansione in corso...</div>';
-    }
-  }).catch(function(e){
-    var dbg = document.getElementById('redeem-scan-err');
-    if (dbg) dbg.innerHTML = '<div class="msg msg-err">Errore: ' + e.message + '</div>';
-  });
-}
+// redeemScanFrame rimosso: usa scanFrame con _scanMode
 
 function scanFrame() {
   var video = document.getElementById('scan-video');
@@ -609,29 +560,37 @@ function scanFrame() {
   canvas.height = video.videoHeight;
   var ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-  // 用浏览器原生 BarcodeDetector
   if (!window._barcodeDetector) {
     if ('BarcodeDetector' in window) {
       window._barcodeDetector = new BarcodeDetector({formats: ['qr_code']});
     } else {
-      // 不支持时显示手动输入提示
       clearInterval(_scanInterval); _scanInterval = null;
-      showErr('scan-err', '⚠️ Questo browser non supporta la scansione QR. Usa "Aggiungi punti manuale".');
+      showErr('scan-err', '⚠️ Questo browser non supporta la scansione QR. Usa la modalità manuale.');
       return;
     }
   }
 
-  window._barcodeDetector.detect(video).then(function(codes) {
+  window._barcodeDetector.detect(canvas).then(function(codes) {
     if (!codes.length) return;
-    var phone = codes[0].rawValue.trim();
-    if (!phone) return;
-    stopScan();
-    // 扫到手机号 → 跳到加积分页面并自动填入
-    document.getElementById('addpts-phone').value = phone;
-    showStep('addpts');
-    document.getElementById('addpts-pts').focus();
+    var raw = codes[0].rawValue.trim();
+    if (!raw) return;
+
+    if (_scanMode === 'redeem') {
+      // 核销模式：识别6位兑换码
+      var code = raw.toUpperCase();
+      if (code.length !== 6) return;
+      stopScan();
+      document.getElementById('inp-code').value = code;
+      showStep('code');
+      doVerify();
+    } else {
+      // 加积分模式：识别手机号
+      stopScan();
+      document.getElementById('addpts-phone').value = raw;
+      showStep('addpts');
+      document.getElementById('addpts-pts').focus();
+    }
   }).catch(function(){});
 }
 
