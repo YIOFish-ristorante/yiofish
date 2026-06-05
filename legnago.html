@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.29.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.30.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1073,6 +1073,19 @@ function displayDishText(it) {
     return n + ' / ' + (it.name||'');
   }
   return (it.name||'');
+}
+
+// WhatsApp 订单行格式：号码普通 + 菜名斜体 + 份数粗体 + 价格斜体
+// qty=数量；priceStr=已格式化的价格字符串（如 '€18,00'），不传则不显示价格
+function waDishLine(it, qty, priceStr) {
+  var noPart = '';
+  if (it.dish_no) {
+    var n = it.dish_no < 10 ? '0' + it.dish_no : it.dish_no;
+    noPart = n + ' / ';
+  }
+  var line = '• ' + noPart + '_' + (it.name||'') + '_ *x' + qty + '*';
+  if (priceStr) line += ' _(' + priceStr + ')_';
+  return line;
 }
 
 async function loadAll() {
@@ -2616,7 +2629,7 @@ function sendNotify() {
   var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Legnago*', '', '🪑 Tavolo: ' + tableNum, ''];
   for (var id in cart_dine) {
     var it = getItemForMenu(id);
-    if (it) lines.push('• ' + displayDishText(it) + ' x' + cart_dine[id]);
+    if (it) lines.push(waDishLine(it, cart_dine[id]));
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
   if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
@@ -3178,7 +3191,7 @@ function sendOrder() {
       var it = getItemForMenu(id);
       if (it) {
         var p = (it.price || 0); // 单品显示原价，折扣在合计处统一计算
-        lines.push('• ' + displayDishText(it) + ' x' + cart_asporto[id] + (p > 0 ? ' (' + fmt(p * cart_asporto[id]) + ')' : ''));
+        lines.push(waDishLine(it, cart_asporto[id], p > 0 ? fmt(p * cart_asporto[id]) : ''));
       }
     }
     lines.push('');
@@ -3198,7 +3211,7 @@ function sendOrder() {
       var it2 = getItemForMenu(id2);
       if (it2) {
         var p2 = (it2.price || 0); // 单品显示原价，折扣在合计处统一计算
-        lines.push('• ' + displayDishText(it2) + ' x' + cart_asporto[id2] + (p2 > 0 ? ' (' + fmt(p2 * cart_asporto[id2]) + ')' : ''));
+        lines.push(waDishLine(it2, cart_asporto[id2], p2 > 0 ? fmt(p2 * cart_asporto[id2]) : ''));
       }
     }
     // 价格明细：单品显示原价，这里统一展示 Subtotale / Sconto / Totale
