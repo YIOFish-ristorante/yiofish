@@ -295,10 +295,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.8</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.9</div>
 
 <script>
-var APP_VERSION = 'v1.0.8';
+var APP_VERSION = 'v1.0.9';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -571,18 +571,13 @@ function scanFrame() {
   var ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  var dbg = document.getElementById(errId);
-
-  // 引擎1：jsQR（如果加载成功）
+  // 引擎1：jsQR（纯JS库，识别率高）
   if (typeof jsQR === 'function') {
     try {
       var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       var result = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'attemptBoth' });
-      if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#999;text-align:center">jsQR · canvas ' + canvas.width + 'x' + canvas.height + ' · vid ' + video.videoWidth + 'x' + video.videoHeight + ' · ' + (result ? 'TROVATO: '+result.data : 'no') + '</div>';
       if (result && result.data) { onScanResult(result.data.trim()); return; }
-    } catch(e) {
-      if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#c0392b;text-align:center">jsQR errore: ' + e.message + '</div>';
-    }
+    } catch(e) {}
     return;
   }
 
@@ -591,12 +586,12 @@ function scanFrame() {
     if ('BarcodeDetector' in window) {
       window._barcodeDetector = new BarcodeDetector({formats: ['qr_code']});
     } else {
-      if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#c0392b;text-align:center">⚠️ jsQR non caricato e BarcodeDetector non disponibile</div>';
+      var errEl = document.getElementById(errId);
+      if (errEl) errEl.innerHTML = '<div class="msg msg-err">⚠️ Scansione non supportata. Usa la modalità manuale.</div>';
       return;
     }
   }
   window._barcodeDetector.detect(canvas).then(function(codes) {
-    if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#999;text-align:center">BarcodeDetector · ' + codes.length + ' codici</div>';
     if (!codes.length) return;
     var raw = codes[0].rawValue.trim();
     if (raw) onScanResult(raw);
