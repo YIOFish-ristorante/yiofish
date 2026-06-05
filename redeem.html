@@ -295,10 +295,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.6</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.7</div>
 
 <script>
-var APP_VERSION = 'v1.0.6';
+var APP_VERSION = 'v1.0.7';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -578,7 +578,7 @@ function scanFrame() {
     try {
       var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       var result = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'attemptBoth' });
-      if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#999;text-align:center">jsQR attivo · ' + (result ? 'TROVATO: '+result.data : 'nessun codice') + '</div>';
+      if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#999;text-align:center">jsQR · canvas ' + canvas.width + 'x' + canvas.height + ' · vid ' + video.videoWidth + 'x' + video.videoHeight + ' · ' + (result ? 'TROVATO: '+result.data : 'no') + '</div>';
       if (result && result.data) { onScanResult(result.data.trim()); return; }
     } catch(e) {
       if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#c0392b;text-align:center">jsQR errore: ' + e.message + '</div>';
