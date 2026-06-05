@@ -295,10 +295,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.3</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.0.4</div>
 
 <script>
-var APP_VERSION = 'v1.0.3';
+var APP_VERSION = 'v1.0.4';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -561,6 +561,7 @@ function stopRedeemScan() {
 function scanFrame() {
   var videoId = _scanMode === 'redeem' ? 'redeem-scan-video' : 'scan-video';
   var canvasId = _scanMode === 'redeem' ? 'redeem-scan-canvas' : 'scan-canvas';
+  var errId   = _scanMode === 'redeem' ? 'redeem-scan-err'   : 'scan-err';
   var video = document.getElementById(videoId);
   var canvas = document.getElementById(canvasId);
   if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) return;
@@ -570,14 +571,36 @@ function scanFrame() {
   var ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // 用 jsQR（纯JS库，兼容所有浏览器，比 BarcodeDetector 更稳定）
-  try {
-    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    var result = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'attemptBoth' });
-    if (result && result.data) {
-      onScanResult(result.data.trim());
+  var dbg = document.getElementById(errId);
+
+  // 引擎1：jsQR（如果加载成功）
+  if (typeof jsQR === 'function') {
+    try {
+      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var result = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'attemptBoth' });
+      if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#999;text-align:center">jsQR attivo · ' + (result ? 'TROVATO: '+result.data : 'nessun codice') + '</div>';
+      if (result && result.data) { onScanResult(result.data.trim()); return; }
+    } catch(e) {
+      if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#c0392b;text-align:center">jsQR errore: ' + e.message + '</div>';
     }
-  } catch(e) {}
+    return;
+  }
+
+  // 引擎2：BarcodeDetector（jsQR没加载时的备用）
+  if (!window._barcodeDetector) {
+    if ('BarcodeDetector' in window) {
+      window._barcodeDetector = new BarcodeDetector({formats: ['qr_code']});
+    } else {
+      if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#c0392b;text-align:center">⚠️ jsQR non caricato e BarcodeDetector non disponibile</div>';
+      return;
+    }
+  }
+  window._barcodeDetector.detect(canvas).then(function(codes) {
+    if (dbg) dbg.innerHTML = '<div style="font-size:11px;color:#999;text-align:center">BarcodeDetector · ' + codes.length + ' codici</div>';
+    if (!codes.length) return;
+    var raw = codes[0].rawValue.trim();
+    if (raw) onScanResult(raw);
+  }).catch(function(){});
 }
 
 function onScanResult(raw) {
