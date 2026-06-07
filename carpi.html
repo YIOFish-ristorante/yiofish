@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.34.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.35.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -933,7 +933,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 // Supabase 配置
 // ════════════════════════════════════
 // ⚠️ 已迁移到 Worker（v2.5.0）—— anon key 已彻底移除
-var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
+var WORKER_URL = 'https://yio.it/api';
 var RESTAURANT_ID = 'carpi';
 
 function sbFetch(path, opts) {
@@ -1213,18 +1213,6 @@ async function loadAll() {
   } catch(e) {
     document.getElementById('loading-overlay').style.display = 'none';
     console.error('Errore caricamento:', e);
-    // 在页面上显示真实错误（WebView 里看不到 console）
-    try {
-      var grid = document.getElementById('menu-grid') || document.getElementById('content') || document.body;
-      var errBox = document.createElement('div');
-      errBox.style.cssText = 'margin:20px;padding:16px;background:#2a1a1a;border:1px solid #c0392b;border-radius:8px;color:#f0e6d0;font-size:12px;line-height:1.6;word-break:break-all';
-      errBox.innerHTML = '<strong style="color:#e74c3c">⚠️ Errore caricamento menu</strong><br>'
-        + 'Tipo: ' + (e.name||'?') + '<br>'
-        + 'Msg: ' + (e.message||String(e)) + '<br>'
-        + 'UA: ' + navigator.userAgent.substring(0,80) + '<br>'
-        + '<button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;background:#c9a96e;border:none;border-radius:6px;color:#1a1a1a;font-weight:bold">Riprova</button>';
-      grid.insertBefore(errBox, grid.firstChild);
-    } catch(e2) {}
     loadMenu();
   }
 }
@@ -1581,14 +1569,7 @@ function renderMenuItems(items) {
   });
 
   if (!main.children.length) {
-    // 诊断信息：显示各项数据数量，定位空在哪一步
-    var diag = 'ALL_ITEMS:' + (ALL_ITEMS?ALL_ITEMS.length:'?')
-      + ' DISH_MENUS:' + (DISH_MENUS?DISH_MENUS.length:'?')
-      + ' CATS:' + (CATS?CATS.length:'?')
-      + ' menu:' + (currentMenuId||'-')
-      + ' items:' + (items?items.length:'?');
-    main.innerHTML = '<div class="nores"><div style="font-size:40px;margin-bottom:12px">🔍</div><h3>Nessun piatto disponibile</h3>'
-      + '<div style="margin-top:16px;font-size:10px;color:#c9a96e;word-break:break-all">' + diag + '</div></div>';
+    main.innerHTML = '<div class="nores"><div style="font-size:40px;margin-bottom:12px">🔍</div><h3>Nessun piatto disponibile</h3></div>';
     return;
   }
 
