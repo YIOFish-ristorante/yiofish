@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.32.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.33.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -948,6 +948,29 @@ function sbFetch(path, opts) {
   });
 }
 
+// 带超时 + 重试的 GET（WebView 如 Instagram/Threads 内置浏览器易掐断请求）
+async function sbFetchJSON(path, retries) {
+  retries = (retries == null) ? 2 : retries;
+  for (var attempt = 0; attempt <= retries; attempt++) {
+    try {
+      var controller = new AbortController();
+      var timer = setTimeout(function(){ controller.abort(); }, 12000); // 12秒超时
+      var res = await fetch(WORKER_URL + '/public/rest/v1/' + path, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch(e) {
+      if (attempt === retries) throw e;
+      await new Promise(function(r){ setTimeout(r, 400 * (attempt + 1)); }); // 递增退避
+    }
+  }
+}
+
 // ════════════════════════════════════
 // 全局数据
 // ════════════════════════════════════
@@ -1093,20 +1116,20 @@ function waDishLine(it, qty, priceStr) {
 
 async function loadAll() {
   try {
-    // 并行加载
-    var [rRes, sRes, cRes, dRes, mcRes, mclRes] = await Promise.all([
-      sbFetch('restaurants?id=eq.' + RESTAURANT_ID + '&select=*'),
-      sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
-      sbFetch('categories?restaurant_id=eq.legnago&select=*&order=sort_order'),
-      sbFetch('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000'),
-      sbFetch('menu_configs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
-      sbFetch('menu_cat_limits?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
+    // 并行加载（用 sbFetchJSON 带超时+重试，兼容 Instagram/Threads WebView）
+    var rData, sData, mcData, mclData, dishes;
+    var [rData_, sData_, CATS_, dishes_, mcData_, mclData_] = await Promise.all([
+      sbFetchJSON('restaurants?id=eq.' + RESTAURANT_ID + '&select=*'),
+      sbFetchJSON('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
+      sbFetchJSON('categories?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order'),
+      sbFetchJSON('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000'),
+      sbFetchJSON('menu_configs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
+      sbFetchJSON('menu_cat_limits?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
     ]);
-
-    var rData = await rRes.json();
+    rData = rData_;
+    sData = sData_;
     if (rData[0]) R = rData[0];
 
-    var sData = await sRes.json();
     if (sData[0]) {
       SETTINGS = sData[0];
       // 读取服务员密码
@@ -1118,10 +1141,10 @@ async function loadAll() {
       if (btnLoyalty) btnLoyalty.style.display = SETTINGS.loyalty_enabled ? '' : 'none';
     }
 
-    CATS = await cRes.json();
-    var dishes = await dRes.json();
-    var mcData = await mcRes.json();
-    var mclData = await mclRes.json();
+    CATS = CATS_;
+    dishes = dishes_;
+    mcData = mcData_;
+    mclData = mclData_;
     MENU_CAT_LIMITS = {};
     mclData.forEach(function(row) {
       if (!MENU_CAT_LIMITS[row.menu_id]) MENU_CAT_LIMITS[row.menu_id] = {};
@@ -1136,18 +1159,16 @@ async function loadAll() {
       };
     });
 
-    // dish_menus超过1000条，分3次加载 + 同时加载本店标签
-    var [dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
-      sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
+    // dish_menus超过1000条，分3次加载 + 同时加载本店标签（带重试）
+    var [dm1, dm2, dm3, tagsData] = await Promise.all([
+      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
+      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
+      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
+      sbFetchJSON('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
-    var dishMenus = (await dm1Res.json()).concat(await dm2Res.json()).concat(await dm3Res.json());
+    var dishMenus = (dm1||[]).concat(dm2||[]).concat(dm3||[]);
     DISH_MENUS = dishMenus;
 
-    // 加载本店过敏源标签
-    var tagsData = await tagsRes.json();
     if (Array.isArray(tagsData) && tagsData.length > 0) {
       TAGS = {};
       tagsData.forEach(function(t){
