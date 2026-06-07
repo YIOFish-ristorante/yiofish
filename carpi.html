@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.36.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.38.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -948,20 +948,21 @@ function sbFetch(path, opts) {
   });
 }
 
-// 带超时 + 重试的 GET（WebView 如 Instagram/Threads 内置浏览器易掐断请求）
+// 带超时 + 重试的 GET（不用 AbortController，部分 WebView 不支持 AbortSignal 克隆会报 DataCloneError）
 async function sbFetchJSON(path, retries) {
   retries = (retries == null) ? 2 : retries;
   for (var attempt = 0; attempt <= retries; attempt++) {
     try {
-      var controller = new AbortController();
-      var timer = setTimeout(function(){ controller.abort(); }, 12000); // 12秒超时
-      var res = await fetch(WORKER_URL + '/public/rest/v1/' + path, {
+      // 用 Promise.race 实现超时，避免 AbortSignal 兼容问题
+      var fetchPromise = fetch(WORKER_URL + '/public/rest/v1/' + path, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        signal: controller.signal,
         cache: 'no-store'
       });
-      clearTimeout(timer);
+      var timeoutPromise = new Promise(function(_, reject){
+        setTimeout(function(){ reject(new Error('timeout')); }, 15000);
+      });
+      var res = await Promise.race([fetchPromise, timeoutPromise]);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return await res.json();
     } catch(e) {
@@ -1119,14 +1120,13 @@ async function loadAll() {
   try {
     // 并行加载（用 sbFetchJSON 带超时+重试，兼容 Instagram/Threads WebView）
     var rData, sData, mcData, mclData, dishes;
-    var [rData_, sData_, CATS_, dishes_, mcData_, mclData_] = await Promise.all([
-      sbFetchJSON('restaurants?id=eq.' + RESTAURANT_ID + '&select=*'),
-      sbFetchJSON('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
-      sbFetchJSON('categories?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order'),
-      sbFetchJSON('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000'),
-      sbFetchJSON('menu_configs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
-      sbFetchJSON('menu_cat_limits?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
-    ]);
+    // 串行加载（逐个请求，避免 WebView 并发限制 / Worker 限流导致 Failed to fetch）
+    var rData_ = await sbFetchJSON('restaurants?id=eq.' + RESTAURANT_ID + '&select=*');
+    var sData_ = await sbFetchJSON('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*');
+    var CATS_ = await sbFetchJSON('categories?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order');
+    var dishes_ = await sbFetchJSON('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000');
+    var mcData_ = await sbFetchJSON('menu_configs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*');
+    var mclData_ = await sbFetchJSON('menu_cat_limits?restaurant_id=eq.' + RESTAURANT_ID + '&select=*');
     rData = rData_;
     sData = sData_;
     if (rData[0]) R = rData[0];
@@ -1161,12 +1161,10 @@ async function loadAll() {
     });
 
     // dish_menus超过1000条，分3次加载 + 同时加载本店标签（带重试）
-    var [dm1, dm2, dm3, tagsData] = await Promise.all([
-      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
-      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
-      sbFetchJSON('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
-    ]);
+    var dm1 = await sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0');
+    var dm2 = await sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000');
+    var dm3 = await sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000');
+    var tagsData = await sbFetchJSON('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order');
     var dishMenus = (dm1||[]).concat(dm2||[]).concat(dm3||[]);
     DISH_MENUS = dishMenus;
 
