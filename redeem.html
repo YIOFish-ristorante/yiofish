@@ -316,10 +316,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.1.0</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.1.1</div>
 
 <script>
-var APP_VERSION = 'v1.1.0';
+var APP_VERSION = 'v1.1.1';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -589,6 +589,15 @@ async function confirmPending(id, action, btn) {
     });
     var data = await res.json();
     if (!res.ok) { showErr('pending-err', data.error || 'Errore'); loadPending(); return; }
+    var okEl = document.getElementById('pending-err');
+    if (okEl) {
+      if (action === 'confirm') {
+        okEl.innerHTML = '<div class="msg msg-ok">✅ +' + (data.points_earned || 0) + ' punti assegnati</div>';
+      } else {
+        okEl.innerHTML = '<div class="msg msg-ok">✅ Ordine annullato</div>';
+      }
+      setTimeout(function(){ if(okEl) okEl.innerHTML=''; }, 4000);
+    }
     loadPending();
   } catch(e) {
     showErr('pending-err', e.message);
