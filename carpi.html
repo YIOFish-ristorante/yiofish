@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.39.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.40.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -948,24 +948,32 @@ function sbFetch(path, opts) {
   });
 }
 
-// 带超时 + 重试的 GET（不用 AbortController，部分 WebView 不支持 AbortSignal 克隆会报 DataCloneError）
-async function sbFetchJSON(path, retries) {
+// 用 XMLHttpRequest 代替 fetch（部分受限 WebView 如 HONOR 屏蔽了 fetch API，XHR 兼容性更强）
+function sbFetchJSON(path, retries) {
   retries = (retries == null) ? 2 : retries;
-  for (var attempt = 0; attempt <= retries; attempt++) {
-    try {
-      // 最精简 fetch：不加自定义 header（Content-Type/Prefer 会触发 CORS 预检，部分 WebView 拒绝预检）
-      var fetchPromise = fetch(WORKER_URL + '/public/rest/v1/' + path);
-      var timeoutPromise = new Promise(function(_, reject){
-        setTimeout(function(){ reject(new Error('timeout')); }, 15000);
-      });
-      var res = await Promise.race([fetchPromise, timeoutPromise]);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return await res.json();
-    } catch(e) {
-      if (attempt === retries) throw e;
-      await new Promise(function(r){ setTimeout(r, 400 * (attempt + 1)); }); // 递增退避
+  return new Promise(function(resolve, reject) {
+    function attempt(n) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', WORKER_URL + '/public/rest/v1/' + path, true);
+      xhr.timeout = 15000;
+      xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)); }
+          catch(e) { resolve([]); }
+        } else {
+          retry(n, new Error('HTTP ' + xhr.status));
+        }
+      };
+      xhr.onerror = function() { retry(n, new Error('network error')); };
+      xhr.ontimeout = function() { retry(n, new Error('timeout')); };
+      try { xhr.send(); } catch(e) { retry(n, e); }
     }
-  }
+    function retry(n, err) {
+      if (n >= retries) { reject(err); return; }
+      setTimeout(function(){ attempt(n + 1); }, 400 * (n + 1));
+    }
+    attempt(0);
+  });
 }
 
 // ════════════════════════════════════
