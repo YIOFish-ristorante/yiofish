@@ -269,6 +269,7 @@ input:focus{border-color:var(--gold)}
         <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Conferma per assegnare i punti al cliente, oppure annulla se l'ordine non è stato ritirato.</div>
+      <div id="pending-toast"></div>
       <div id="pending-err"></div>
       <div id="pending-list">Caricamento...</div>
       <button class="btn btn-ghost" style="margin-top:12px" onclick="loadPending()">🔄 Aggiorna</button>
@@ -316,10 +317,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.1.1</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.1.2</div>
 
 <script>
-var APP_VERSION = 'v1.1.1';
+var APP_VERSION = 'v1.1.2';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -589,7 +590,7 @@ async function confirmPending(id, action, btn) {
     });
     var data = await res.json();
     if (!res.ok) { showErr('pending-err', data.error || 'Errore'); loadPending(); return; }
-    var okEl = document.getElementById('pending-err');
+    var okEl = document.getElementById('pending-toast');
     if (okEl) {
       if (action === 'confirm') {
         okEl.innerHTML = '<div class="msg msg-ok">✅ +' + (data.points_earned || 0) + ' punti assegnati</div>';
