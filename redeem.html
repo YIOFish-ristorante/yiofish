@@ -107,32 +107,18 @@ input:focus{border-color:var(--gold)}
         <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="doLogout()">Esci</button>
       </div>
       <div class="menu-grid">
-        <div class="menu-item" onclick="startRedeemScan()">
-          <span class="menu-icon">📷</span>
-          <div>
-            <div class="menu-label">SCANSIONA QR RISCATTO</div>
-            <div class="menu-desc">Inquadra il QR del cliente per riscattare</div>
-          </div>
-        </div>
-        <div class="menu-item" onclick="showStep('code')">
+        <div class="menu-item" onclick="showStep('riscatta-choose')">
           <span class="menu-icon">🎁</span>
           <div>
-            <div class="menu-label">INSERISCI CODICE MANUALE</div>
-            <div class="menu-desc">Digita il codice di 8 cifre</div>
+            <div class="menu-label">RISCATTA PREMIO</div>
+            <div class="menu-desc">Riscatta un premio del cliente (QR o codice)</div>
           </div>
         </div>
-        <div class="menu-item" onclick="startScan()">
-          <span class="menu-icon">📷</span>
-          <div>
-            <div class="menu-label">SCANSIONA QR</div>
-            <div class="menu-desc">Inquadra il QR del cliente per aggiungere punti</div>
-          </div>
-        </div>
-        <div class="menu-item" onclick="showStep('addpts')">
+        <div class="menu-item" onclick="showStep('addpunti-choose')">
           <span class="menu-icon">⭐</span>
           <div>
-            <div class="menu-label">AGGIUNGI PUNTI (manuale)</div>
-            <div class="menu-desc">Inserisci manualmente il numero del cliente</div>
+            <div class="menu-label">AGGIUNGI PUNTI</div>
+            <div class="menu-desc">Aggiungi punti al cliente (QR o numero)</div>
           </div>
         </div>
         <div class="menu-item" onclick="showStep('pending');loadPending();">
@@ -142,11 +128,61 @@ input:focus{border-color:var(--gold)}
             <div class="menu-desc">Ordini d'asporto in attesa di conferma punti</div>
           </div>
         </div>
-        <div class="menu-item" onclick="showStep('changepwd')">
-          <span class="menu-icon">🔑</span>
+      </div>
+      <div style="text-align:center;margin-top:18px">
+        <button class="btn btn-ghost" style="width:auto;padding:6px 14px;font-size:12px;color:var(--muted)" onclick="showStep('changepwd')">🔑 Cambia password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP: riscatta-choose (核销：选扫码或手动) -->
+  <div id="step-riscatta-choose" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+        <h2 style="margin:0">🎁 Riscatta premio</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Come vuoi riscattare il premio?</div>
+      <div class="menu-grid">
+        <div class="menu-item" onclick="startRedeemScan()">
+          <span class="menu-icon">📷</span>
           <div>
-            <div class="menu-label">CAMBIA PASSWORD</div>
-            <div class="menu-desc">Modifica la tua password di accesso</div>
+            <div class="menu-label">SCANSIONA QR</div>
+            <div class="menu-desc">Inquadra il QR del cliente</div>
+          </div>
+        </div>
+        <div class="menu-item" onclick="showStep('code')">
+          <span class="menu-icon">⌨️</span>
+          <div>
+            <div class="menu-label">INSERISCI CODICE</div>
+            <div class="menu-desc">Digita il codice di 8 cifre</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP: addpunti-choose (加积分：选扫码或手动) -->
+  <div id="step-addpunti-choose" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+        <h2 style="margin:0">⭐ Aggiungi punti</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Come vuoi aggiungere i punti?</div>
+      <div class="menu-grid">
+        <div class="menu-item" onclick="startScan()">
+          <span class="menu-icon">📷</span>
+          <div>
+            <div class="menu-label">SCANSIONA QR</div>
+            <div class="menu-desc">Inquadra il QR del cliente</div>
+          </div>
+        </div>
+        <div class="menu-item" onclick="showStep('addpts')">
+          <span class="menu-icon">⌨️</span>
+          <div>
+            <div class="menu-label">INSERISCI NUMERO</div>
+            <div class="menu-desc">Inserisci manualmente il numero del cliente</div>
           </div>
         </div>
       </div>
@@ -317,17 +353,17 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.1.2</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.2.0</div>
 
 <script>
-var APP_VERSION = 'v1.1.2';
+var APP_VERSION = 'v1.2.0';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
 var _username = '';
 var _redemptionId = null;
 
-var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending'];
+var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','riscatta-choose','addpunti-choose'];
 
 // 页面加载时自动填入已保存凭证
 window.addEventListener('load', function() {
