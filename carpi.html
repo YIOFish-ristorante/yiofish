@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.38.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.39.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -953,12 +953,8 @@ async function sbFetchJSON(path, retries) {
   retries = (retries == null) ? 2 : retries;
   for (var attempt = 0; attempt <= retries; attempt++) {
     try {
-      // 用 Promise.race 实现超时，避免 AbortSignal 兼容问题
-      var fetchPromise = fetch(WORKER_URL + '/public/rest/v1/' + path, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        cache: 'no-store'
-      });
+      // 最精简 fetch：不加自定义 header（Content-Type/Prefer 会触发 CORS 预检，部分 WebView 拒绝预检）
+      var fetchPromise = fetch(WORKER_URL + '/public/rest/v1/' + path);
       var timeoutPromise = new Promise(function(_, reject){
         setTimeout(function(){ reject(new Error('timeout')); }, 15000);
       });
