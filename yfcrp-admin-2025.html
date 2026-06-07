@@ -3910,6 +3910,16 @@ async function renderLoyaltyPage() {
       + '</div>'
     + '</div>' : '')
 
+    // ── 待确认积分（打包订单）──
+    + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+        + '<div style="font-size:14px;font-weight:600">📦 Punti asporto da confermare</div>'
+        + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="loadPendingPoints()">🔄 Aggiorna</button>'
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-bottom:12px">Conferma per assegnare i punti, oppure annulla se l\'ordine non è stato ritirato.</div>'
+      + '<div id="ly-pending-list">Caricamento...</div>'
+    + '</div>'
+
     // ── 搜索会员 ──
     + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
       + '<div style="font-size:14px;font-weight:600;margin-bottom:12px">🔍 Cerca cliente</div>'
@@ -3945,6 +3955,8 @@ async function renderLoyaltyPage() {
   if (CURRENT_ROLE === 'super') loadLoyaltySettings();
   // 加载奖品档位
   if (CURRENT_ROLE === 'super') loadLoyaltyRewards();
+  // 加载待确认积分
+  loadPendingPoints();
   // 加载会员列表
   loadLoyaltyList();
 }
@@ -3962,6 +3974,65 @@ async function runExpirePoints() {
     if (res.ok) toast('✅ ' + (data.message || 'Completato'));
     else toast('❌ ' + (data.error || 'Errore'));
   } catch(e) { toast('❌ ' + e.message); }
+}
+
+// ── 待确认积分（打包订单）──
+function _lyEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+async function loadPendingPoints() {
+  var box = document.getElementById('ly-pending-list');
+  if (!box) return;
+  box.innerHTML = 'Caricamento...';
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var qs = (CURRENT_ROLE === 'super') ? '' : ('?restaurant_id=' + encodeURIComponent(RESTAURANT_ID));
+    var res = await fetch(WORKER_URL + '/loyalty/pending/list' + qs, {
+      headers: {'Authorization':'Bearer '+token}, cache:'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { box.innerHTML = '<div style="color:#c0392b;font-size:12px">' + (data.error||'Errore') + '</div>'; return; }
+    var list = data.pending || [];
+    if (!list.length) { box.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Nessun ordine in attesa 🎉</div>'; return; }
+    var storeNames = {carpi:'Carpi', imola:'Imola', legnago:'Legnago'};
+    var html = '';
+    list.forEach(function(p){
+      var when=''; try { when=new Date(p.created_at).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(e){}
+      var storeTag = (CURRENT_ROLE==='super') ? '<span style="font-size:10px;color:var(--muted2);margin-left:6px">'+(storeNames[p.restaurant_id]||p.restaurant_id)+'</span>' : '';
+      html += '<div style="border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:8px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">'
+          + '<span style="font-weight:500">' + _lyEsc(p.phone) + storeTag + '</span>'
+          + '<span style="color:var(--gold);font-weight:500">€ ' + Number(p.amount).toFixed(2).replace('.',',') + '</span>'
+        + '</div>'
+        + (p.items_summary ? '<div style="font-size:11px;color:var(--muted);margin-bottom:5px">'+_lyEsc(p.items_summary)+'</div>' : '')
+        + '<div style="font-size:10px;color:var(--muted2);margin-bottom:8px">'+when+'</div>'
+        + '<div style="display:flex;gap:8px">'
+          + '<button class="btn btn-sm btn-gold" style="flex:1" onclick="confirmPendingPoints('+p.id+',\'confirm\',this)">✅ Conferma</button>'
+          + '<button class="btn btn-sm" style="flex:1;border:1px solid var(--border2)" onclick="confirmPendingPoints('+p.id+',\'cancel\',this)">✕ Annulla</button>'
+        + '</div>'
+      + '</div>';
+    });
+    box.innerHTML = html;
+  } catch(e) { box.innerHTML = '<div style="color:#c0392b;font-size:12px">'+e.message+'</div>'; }
+}
+async function confirmPendingPoints(id, action, btn) {
+  if (action==='cancel' && !confirm('Annullare questo ordine? Non verranno assegnati punti.')) return;
+  if (btn) { btn.disabled=true; btn.textContent='...'; }
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/loyalty/pending/confirm', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ id:id, action:action }), cache:'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { toast('❌ ' + (data.error||'Errore')); loadPendingPoints(); return; }
+    if (action==='confirm') toast('✅ +' + (data.points_earned||0) + ' punti');
+    else toast('✅ Annullato');
+    loadPendingPoints();
+  } catch(e) { toast('❌ '+e.message); loadPendingPoints(); }
 }
 
 function updateLoyaltyToggleUI(enabled) {
