@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.40.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.41.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -948,32 +948,23 @@ function sbFetch(path, opts) {
   });
 }
 
-// 用 XMLHttpRequest 代替 fetch（部分受限 WebView 如 HONOR 屏蔽了 fetch API，XHR 兼容性更强）
-function sbFetchJSON(path, retries) {
+// 带超时 + 重试的 GET（用 Promise.race 实现超时，对网络抖动更稳健）
+async function sbFetchJSON(path, retries) {
   retries = (retries == null) ? 2 : retries;
-  return new Promise(function(resolve, reject) {
-    function attempt(n) {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', WORKER_URL + '/public/rest/v1/' + path, true);
-      xhr.timeout = 15000;
-      xhr.onload = function() {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try { resolve(JSON.parse(xhr.responseText)); }
-          catch(e) { resolve([]); }
-        } else {
-          retry(n, new Error('HTTP ' + xhr.status));
-        }
-      };
-      xhr.onerror = function() { retry(n, new Error('network error')); };
-      xhr.ontimeout = function() { retry(n, new Error('timeout')); };
-      try { xhr.send(); } catch(e) { retry(n, e); }
+  for (var attempt = 0; attempt <= retries; attempt++) {
+    try {
+      var fetchPromise = fetch(WORKER_URL + '/public/rest/v1/' + path);
+      var timeoutPromise = new Promise(function(_, reject){
+        setTimeout(function(){ reject(new Error('timeout')); }, 15000);
+      });
+      var res = await Promise.race([fetchPromise, timeoutPromise]);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch(e) {
+      if (attempt === retries) throw e;
+      await new Promise(function(r){ setTimeout(r, 400 * (attempt + 1)); });
     }
-    function retry(n, err) {
-      if (n >= retries) { reject(err); return; }
-      setTimeout(function(){ attempt(n + 1); }, 400 * (n + 1));
-    }
-    attempt(0);
-  });
+  }
 }
 
 // ════════════════════════════════════
@@ -1215,13 +1206,6 @@ async function loadAll() {
   } catch(e) {
     document.getElementById('loading-overlay').style.display = 'none';
     console.error('Errore caricamento:', e);
-    try {
-      var grid = document.getElementById('menu-grid') || document.getElementById('content') || document.body;
-      var errBox = document.createElement('div');
-      errBox.style.cssText = 'margin:20px;padding:16px;background:#2a1a1a;border:1px solid #c0392b;border-radius:8px;color:#f0e6d0;font-size:12px;line-height:1.6;word-break:break-all';
-      errBox.innerHTML = '<strong style="color:#e74c3c">⚠️ Errore</strong><br>Tipo: ' + (e.name||'?') + '<br>Msg: ' + (e.message||String(e)) + '<br>URL: ' + WORKER_URL + '<br>UA: ' + navigator.userAgent.substring(0,60);
-      grid.insertBefore(errBox, grid.firstChild);
-    } catch(e2) {}
     loadMenu();
   }
 }
@@ -1578,8 +1562,7 @@ function renderMenuItems(items) {
   });
 
   if (!main.children.length) {
-    var diag = 'ITEMS:' + (ALL_ITEMS?ALL_ITEMS.length:'?') + ' DM:' + (DISH_MENUS?DISH_MENUS.length:'?') + ' CATS:' + (CATS?CATS.length:'?') + ' url:' + WORKER_URL;
-    main.innerHTML = '<div class="nores"><div style="font-size:40px;margin-bottom:12px">🔍</div><h3>Nessun piatto disponibile</h3><div style="margin-top:16px;font-size:10px;color:#c9a96e;word-break:break-all">' + diag + '</div></div>';
+    main.innerHTML = '<div class="nores"><div style="font-size:40px;margin-bottom:12px">🔍</div><h3>Nessun piatto disponibile</h3></div>';
     return;
   }
 
