@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.33.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.42.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -693,6 +693,13 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
           style="width:100%;background:#1a1a1a;border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:#ede5d4;outline:none;-webkit-appearance:none;-webkit-text-fill-color:#ede5d4;">
           <option value="">Seleziona orario...</option>
         </select>
+      </div>
+
+      <!-- Telefono fedeltà (solo asporto, opzionale, mostrato se loyalty attivo) -->
+      <div class="table-input-wrap" id="asporto-loyalty-wrap" style="display:none">
+        <label>Telefono (opzionale, per punti fedeltà)</label>
+        <input type="tel" id="asporto-loyalty-phone" placeholder="+39 ..." onfocus="scrollInputIntoView(this)">
+        <div style="font-size:10px;color:#7a7060;margin-top:3px;padding-left:2px">⭐ Inserisci il numero per accumulare punti fedeltà</div>
       </div>
 
       <textarea id="asporto-note" placeholder="Note (opzionale): allergie, richieste speciali..." onfocus="scrollInputIntoView(this)"
@@ -933,7 +940,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 // Supabase 配置
 // ════════════════════════════════════
 // ⚠️ 已迁移到 Worker（v2.5.0）—— anon key 已彻底移除
-var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
+var WORKER_URL = 'https://yio.it/api';
 var RESTAURANT_ID = 'imola';
 
 function sbFetch(path, opts) {
@@ -948,25 +955,21 @@ function sbFetch(path, opts) {
   });
 }
 
-// 带超时 + 重试的 GET（WebView 如 Instagram/Threads 内置浏览器易掐断请求）
+// 带超时 + 重试的 GET（用 Promise.race 实现超时，对网络抖动更稳健）
 async function sbFetchJSON(path, retries) {
   retries = (retries == null) ? 2 : retries;
   for (var attempt = 0; attempt <= retries; attempt++) {
     try {
-      var controller = new AbortController();
-      var timer = setTimeout(function(){ controller.abort(); }, 12000); // 12秒超时
-      var res = await fetch(WORKER_URL + '/public/rest/v1/' + path, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        signal: controller.signal,
-        cache: 'no-store'
+      var fetchPromise = fetch(WORKER_URL + '/public/rest/v1/' + path);
+      var timeoutPromise = new Promise(function(_, reject){
+        setTimeout(function(){ reject(new Error('timeout')); }, 15000);
       });
-      clearTimeout(timer);
+      var res = await Promise.race([fetchPromise, timeoutPromise]);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return await res.json();
     } catch(e) {
       if (attempt === retries) throw e;
-      await new Promise(function(r){ setTimeout(r, 400 * (attempt + 1)); }); // 递增退避
+      await new Promise(function(r){ setTimeout(r, 400 * (attempt + 1)); });
     }
   }
 }
@@ -1212,6 +1215,7 @@ async function loadAll() {
   } catch(e) {
     document.getElementById('loading-overlay').style.display = 'none';
     console.error('Errore caricamento:', e);
+    // 在页面上显示真实错误（WebView 里看不到 console）
     loadMenu();
   }
 }
@@ -1236,6 +1240,8 @@ async function checkNewPublish() {
     // 控制积分手机号输入框显示
     var phoneWrapLoyalty = document.getElementById('res-phone-wrap');
     if (phoneWrapLoyalty) phoneWrapLoyalty.style.display = SETTINGS.loyalty_enabled ? '' : 'none';
+    // 刷新打包模式UI（让自取的选填积分手机号框正确显隐）
+    if (typeof applyOrderModeUI === 'function') applyOrderModeUI();
     // 检查是否有新发布
     if (s.published_at && s.published_at !== _lastPublishedAt) {
       _lastPublishedAt = s.published_at;
@@ -2814,6 +2820,9 @@ function applyOrderModeUI() {
   // 时间下拉首选项文字
   var sel = document.getElementById('asporto-time');
   if (sel && sel.options.length > 0) sel.options[0].textContent = isC ? 'Seleziona orario consegna...' : 'Seleziona orario...';
+  // 自取(asporto)模式 + 积分开启时，显示选填积分手机号框（外送已有必填电话，不需要）
+  var loyWrap = document.getElementById('asporto-loyalty-wrap');
+  if (loyWrap) loyWrap.style.display = (!isC && SETTINGS && SETTINGS.loyalty_enabled) ? 'block' : 'none';
 }
 
 // Haversine: 两点间直线距离 (km)
@@ -3263,6 +3272,29 @@ function sendOrder() {
     if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
   }
 
+  // ⭐ 积分：趁购物车还在，捕获手机号+金额+摘要，下单后存入待确认（店员确认才加分）
+  if (SETTINGS && SETTINGS.loyalty_enabled) {
+    var _lyPhone = '';
+    if (order_mode === 'consegna') {
+      _lyPhone = ((document.getElementById('consegna-phone') || {}).value || '').trim();
+    } else {
+      _lyPhone = ((document.getElementById('asporto-loyalty-phone') || {}).value || '').trim();
+    }
+    if (_lyPhone) {
+      var _lyAmount, _lySummary = [];
+      if (order_mode === 'consegna') {
+        _lyAmount = cartSubtotal() + consegnaFee();
+      } else {
+        _lyAmount = asportoCartBreakdown().finalTotal;
+      }
+      for (var _lid in cart_asporto) {
+        var _lit = getItemForMenu(_lid);
+        if (_lit) _lySummary.push(cart_asporto[_lid] + 'x ' + (_lit.name || _lid));
+      }
+      submitLoyaltyPending(_lyPhone, _lyAmount, _lySummary.join(', '));
+    }
+  }
+
   // 把已发送菜品转移到sent记录，清空购物车
   for (var sid in cart_asporto) {
     cart_asporto_sent[sid] = (cart_asporto_sent[sid] || 0) + cart_asporto[sid];
@@ -3272,6 +3304,23 @@ function sendOrder() {
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
+}
+
+// ⭐ 提交待确认积分（fire-and-forget，不阻塞下单）
+function submitLoyaltyPending(phone, amount, summary) {
+  try {
+    if (!phone || !amount || amount <= 0) return;
+    fetch(WORKER_URL + '/loyalty/pending/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: phone,
+        restaurant_id: RESTAURANT_ID,
+        amount: amount,
+        items_summary: summary || ''
+      })
+    }).catch(function(){});
+  } catch(e) {}
 }
 
 // ════════════════════════════════════
