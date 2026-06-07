@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.28.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.29.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.28.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.29.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -636,7 +636,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.28.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.29.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1353,7 +1353,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.28.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.29.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3883,7 +3883,13 @@ async function renderLoyaltyPage() {
         + '</div>'
       + '</div>'
       + '<div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">'
-        + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">€1 = N punti</div>'
+        + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Modalità punti</div>'
+          + '<select id="ly-mode" onchange="updateLoyaltyModeUI()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--surface)">'
+            + '<option value="per_euro">€1 = N punti</option>'
+            + '<option value="euros_per_point">Ogni N€ = 1 punto</option>'
+          + '</select>'
+        + '</div>'
+        + '<div><div id="ly-rate-label" style="font-size:11px;color:var(--muted);margin-bottom:4px">€1 = N punti</div>'
           + '<input type="number" id="ly-pts-per-euro" min="1" max="1000" style="width:90px;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)" value="10">'
         + '</div>'
         + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Bonus iscrizione (punti)</div>'
@@ -3968,17 +3974,31 @@ function updateLoyaltyToggleUI(enabled) {
   if (label) label.style.color = enabled ? '#27ae60' : 'var(--text)';
 }
 
+function updateLoyaltyModeUI() {
+  var modeEl = document.getElementById('ly-mode');
+  var rateLabel = document.getElementById('ly-rate-label');
+  if (!modeEl || !rateLabel) return;
+  if (modeEl.value === 'euros_per_point') {
+    rateLabel.textContent = 'Ogni N€ = 1 punto';
+  } else {
+    rateLabel.textContent = '€1 = N punti';
+  }
+}
+
 async function loadLoyaltySettings() {
   try {
-    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=points_per_euro,points_trigger,loyalty_enabled,loyalty_signup_bonus&limit=1');
+    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=points_per_euro,points_trigger,loyalty_enabled,loyalty_signup_bonus,loyalty_mode&limit=1');
     if (!res.ok) return;
     var data = await res.json();
     if (data && data[0]) {
       var el = document.getElementById('ly-pts-per-euro');
       var trig = document.getElementById('ly-trigger');
       var tog = document.getElementById('ly-toggle');
+      var modeEl = document.getElementById('ly-mode');
       if (el && data[0].points_per_euro) el.value = data[0].points_per_euro;
       if (trig && data[0].points_trigger) trig.value = data[0].points_trigger;
+      if (modeEl && data[0].loyalty_mode) modeEl.value = data[0].loyalty_mode;
+      updateLoyaltyModeUI();
       if (tog) {
         tog.checked = !!data[0].loyalty_enabled;
         updateLoyaltyToggleUI(!!data[0].loyalty_enabled);
@@ -3998,9 +4018,11 @@ async function saveLoyaltySettings() {
   try {
     var togEl = document.getElementById('ly-toggle');
     var loyaltyEnabled = togEl ? togEl.checked : false;
+    var modeEl = document.getElementById('ly-mode');
+    var loyaltyMode = modeEl ? modeEl.value : 'per_euro';
     var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID, {
       method: 'PATCH',
-      body: JSON.stringify({ points_per_euro: ppe, points_trigger: trigEl.value, loyalty_enabled: loyaltyEnabled, loyalty_signup_bonus: parseInt(document.getElementById('ly-signup-bonus').value||'0') || 0 })
+      body: JSON.stringify({ points_per_euro: ppe, points_trigger: trigEl.value, loyalty_enabled: loyaltyEnabled, loyalty_signup_bonus: parseInt(document.getElementById('ly-signup-bonus').value||'0') || 0, loyalty_mode: loyaltyMode })
     });
     if (res.ok) {
       toast('✅ Impostazioni salvate');
