@@ -17,16 +17,16 @@
     --gold: #bfa46f;
     --gold-lt: #e2c87a;
     --gold-dk: #8a6e2a;
-    --gold-dim: rgba(191,164,111,0.10);
-    --bg: #000;
-    --bg2: #0c0b09;
-    --surface: #111;
-    --surface2: #1a1a1a;
-    --border: #2a2a2a;
-    --border2: rgba(255,255,255,.13);
+    --gold-dim: rgba(191,164,111,0.12);
+    --bg: #07211a;
+    --bg2: #051a12;
+    --surface: #0a2c20;
+    --surface2: #0d3526;
+    --border: rgba(191,164,111,.18);
+    --border2: rgba(255,255,255,.12);
     --text: #fff;
     --text2: #ede5d4;
-    --muted: #7a7268;
+    --muted: #8fa597;
     --radius: 16px;
     --transition: 0.22s cubic-bezier(.4,0,.2,1);
   }
@@ -102,7 +102,7 @@
   .intro-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; }
   .intro-photo {
     aspect-ratio: 4/5; border-radius: var(--radius); border: 1px solid var(--border);
-    background: linear-gradient(145deg, #15140f, #0a0a0a);
+    background: linear-gradient(145deg, #0a2c20, #051a12);
     display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; letter-spacing: 2px;
   }
 
@@ -111,7 +111,7 @@
   .dish-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 14px; }
   .dish {
     aspect-ratio: 1; border-radius: 12px; overflow: hidden; position: relative;
-    background: linear-gradient(150deg, #16140f, #0a0a0a); border: 1px solid var(--border);
+    background: linear-gradient(150deg, #0a2c20, #04150d); border: 1px solid var(--border);
     display: flex; align-items: flex-end; padding: 14px; transition: transform var(--transition), border-color var(--transition);
   }
   .dish:hover { transform: translateY(-4px); border-color: var(--gold-dk); }
@@ -121,11 +121,42 @@
   /* ───── ④ 环境 ───── */
   .ambiance { background: var(--bg2); }
   .amb-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 14px; height: 460px; }
-  .amb-grid > div { border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(150deg,#16140f,#0a0a0a);
+  .amb-grid > div { border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(150deg,#0a2c20,#04150d);
     display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; letter-spacing:2px; }
   .amb-right { display: grid; grid-template-rows: 1fr 1fr; gap: 16px; }
 
-  /* ───── ⑤ 服务方式 ───── */
+  /* ───── ⑤ 特别活动 ───── */
+  .eventi { background: var(--bg2); }
+  .event-card {
+    display: grid; grid-template-columns: 0.85fr 1fr; gap: 40px; align-items: center;
+    margin-top: 14px;
+  }
+  .event-poster {
+    border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
+    aspect-ratio: 70/99; background: linear-gradient(150deg,#0a2c20,#04150d);
+  }
+  .event-poster img { width: 100%; height: 100%; object-fit: cover; }
+  .event-poster.event-ph::after {
+    content: 'LOCANDINA EVENTO'; display: flex; align-items: center; justify-content: center;
+    height: 100%; color: var(--muted); font-size: 12px; letter-spacing: 2px;
+  }
+  .event-info h3 { font-size: clamp(22px, 5vw, 30px); font-weight: 600; color: var(--gold-lt); letter-spacing: .5px; margin-bottom: 16px; }
+  .event-info p { font-size: 15px; line-height: 1.8; color: var(--text2); margin-bottom: 26px; max-width: 460px; }
+  .event-stores { display: flex; flex-direction: column; gap: 12px; max-width: 420px; }
+  .event-store {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface);
+  }
+  .event-store .es-name { font-size: 13px; font-weight: 600; letter-spacing: 2px; color: var(--gold); flex-shrink: 0; }
+  .es-links { display: flex; gap: 8px; }
+  .es-links a {
+    padding: 8px 13px; border-radius: 9px; border: 1px solid var(--gold-dk);
+    background: var(--gold-dim); color: var(--gold-lt); font-weight: 600; letter-spacing: .5px; font-size: 12px;
+    white-space: nowrap; transition: background var(--transition), transform var(--transition);
+  }
+  .es-links a:active { transform: scale(.95); background: rgba(191,164,111,.2); }
+
+  /* ───── ⑥ 服务方式 ───── */
   .services { background: var(--bg); }
   .svc-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin: 14px 0 48px; }
   .svc {
@@ -176,6 +207,12 @@
     .amb-right { grid-template-rows: none; grid-template-columns: 1fr 1fr; }
     .svc-row { grid-template-columns: 1fr; }
     .loc-grid { grid-template-columns: 1fr; }
+    .event-card { grid-template-columns: 1fr; gap: 26px; }
+    .event-poster { max-width: 300px; margin: 0 auto; }
+    .event-stores { max-width: none; }
+    .event-store { flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
+    .es-links { justify-content: center; }
+    .es-links a { flex: 1; text-align: center; }
   }
 </style>
 </head>
@@ -259,7 +296,50 @@
   </div>
 </section>
 
-<!-- ⑤ 服务方式 -->
+<!-- ⑤ 特别活动 -->
+<section class="eventi" id="eventi">
+  <div class="wrap">
+    <div class="reveal" style="text-align:center">
+      <p class="eyebrow">Eventi speciali</p>
+      <h2 class="section-title">Feste &amp; <strong>occasioni</strong></h2>
+      <div class="gold-rule" style="margin: 0 auto 28px"></div>
+    </div>
+    <div class="event-card reveal">
+      <div class="event-poster">
+        <img src="eventi/capodanno-2026.jpg" alt="Festa di Capodanno 2026" onerror="this.style.display='none';this.parentNode.classList.add('event-ph');">
+      </div>
+      <div class="event-info">
+        <h3>Festa di Capodanno 2026</h3>
+        <p>Cena all you can eat, brindisi di mezzanotte, musica dal vivo e fuochi d'artificio. Due turni disponibili — prenota il tuo posto nel ristorante più vicino a te!</p>
+        <div class="event-stores">
+          <div class="event-store">
+            <span class="es-name">CARPI</span>
+            <div class="es-links">
+              <a href="tel:+390598726624">📞 059 8726624</a>
+              <a href="https://wa.me/393391406020" target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+          <div class="event-store">
+            <span class="es-name">LEGNAGO</span>
+            <div class="es-links">
+              <a href="tel:+393773476774">📞 377 347 6774</a>
+              <a href="https://wa.me/393773476774" target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+          <div class="event-store">
+            <span class="es-name">IMOLA</span>
+            <div class="es-links">
+              <a href="tel:+393336189620">📞 333 618 9620</a>
+              <a href="https://wa.me/393336189620" target="_blank">💬 WhatsApp</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑥ 服务方式 -->
 <section class="services" id="servizi">
   <div class="wrap">
     <div class="reveal" style="text-align:center">
@@ -283,7 +363,7 @@
   </div>
 </section>
 
-<!-- ⑥ 联系 -->
+<!-- ⑦ 联系 -->
 <section class="contact" id="contatti">
   <div class="wrap">
     <div class="reveal" style="text-align:center">
@@ -317,14 +397,14 @@
   </div>
 </section>
 
-<!-- ⑦ 页脚 -->
+<!-- ⑧ 页脚 -->
 <footer>
   <img class="foot-logo" src="logo.png" alt="YIO Fish">
   <div class="social">
     <a href="#" aria-label="Instagram" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
     <a href="#" aria-label="Facebook" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 9h3V6h-3c-1.7 0-3 1.3-3 3v2H9v3h2v7h3v-7h2.5l.5-3H14V9z"/></svg></a>
   </div>
-  <p class="copyright">© <span id="yr"></span> YIO Fish · Ristorante Giapponese · www.yiofish.it</p>
+  <p class="copyright">© <span id="yr"></span> YIO Fish · Ristorante Giapponese</p>
 </footer>
 
 <script>
