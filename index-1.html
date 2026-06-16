@@ -18,10 +18,10 @@
     --gold-lt: #e2c87a;
     --gold-dk: #8a6e2a;
     --gold-dim: rgba(191,164,111,0.12);
-    --bg: #07211a;
-    --bg2: #051a12;
-    --surface: #0a2c20;
-    --surface2: #0d3526;
+    --bg: #04150f;
+    --bg2: #030f0a;
+    --surface: #061d15;
+    --surface2: #082619;
     --border: rgba(191,164,111,.18);
     --border2: rgba(255,255,255,.12);
     --text: #fff;
@@ -70,20 +70,20 @@
     align-items: center; justify-content: center; text-align: center;
     padding: 40px 20px 60px; position: relative;
     background:
-      radial-gradient(120% 80% at 50% 0%, rgba(191,164,111,.08), transparent 60%),
-      var(--bg);
+      radial-gradient(120% 80% at 50% 0%, rgba(191,164,111,.05), transparent 55%),
+      linear-gradient(180deg, #04150f 0%, #020a07 100%);
   }
   .hero-logo { width: min(56vw, 230px); margin: 0 auto 14px; filter: brightness(1.12); animation: heroIn 1s ease-out; }
   @keyframes heroIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   .hero-line { width: 44px; height: 1px; background: var(--gold); opacity: .5; margin: 18px auto 30px; }
   .hero-sub { font-size: 11px; letter-spacing: 5px; color: var(--muted); margin-bottom: 40px; }
 
-  .store-list { width: min(92vw, 380px); display: flex; flex-direction: column; gap: 14px; }
+  .store-list { width: min(90vw, 360px); display: flex; flex-direction: column; gap: 11px; }
   .store-btn {
-    padding: 22px 20px; border-radius: var(--radius); border: 1px solid var(--border);
-    background: var(--surface); cursor: pointer; -webkit-tap-highlight-color: transparent;
+    padding: 16px 20px; border-radius: 13px; border: 1px solid var(--border);
+    background: linear-gradient(158deg, #0a2417 0%, #030d08 100%); cursor: pointer; -webkit-tap-highlight-color: transparent;
     transition: border-color var(--transition), background var(--transition), transform var(--transition);
-    font-size: 16px; font-weight: 600; letter-spacing: 2px; color: var(--gold);
+    font-size: 15px; font-weight: 600; letter-spacing: 2px; color: var(--gold);
   }
   .store-btn:active { background: var(--gold-dim); border-color: var(--gold); transform: scale(.97); }
   .store-btn .city { display:block; font-size:10px; letter-spacing:2px; color:var(--muted); font-weight:400; margin-top:5px; }
@@ -102,7 +102,7 @@
   .intro-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; }
   .intro-photo {
     aspect-ratio: 4/5; border-radius: var(--radius); border: 1px solid var(--border);
-    background: linear-gradient(145deg, #0a2c20, #051a12);
+    background: linear-gradient(145deg, #061d15, #030f0a);
     display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; letter-spacing: 2px;
   }
 
@@ -111,7 +111,7 @@
   .dish-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 14px; }
   .dish {
     aspect-ratio: 1; border-radius: 12px; overflow: hidden; position: relative;
-    background: linear-gradient(150deg, #0a2c20, #04150d); border: 1px solid var(--border);
+    background: linear-gradient(150deg, #061d15, #020b07); border: 1px solid var(--border);
     display: flex; align-items: flex-end; padding: 14px; transition: transform var(--transition), border-color var(--transition);
   }
   .dish:hover { transform: translateY(-4px); border-color: var(--gold-dk); }
@@ -121,7 +121,7 @@
   /* ───── ④ 环境 ───── */
   .ambiance { background: var(--bg2); }
   .amb-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 14px; height: 460px; }
-  .amb-grid > div { border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(150deg,#0a2c20,#04150d);
+  .amb-grid > div { border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(150deg,#061d15,#020b07);
     display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; letter-spacing:2px; }
   .amb-right { display: grid; grid-template-rows: 1fr 1fr; gap: 16px; }
 
@@ -133,7 +133,7 @@
   }
   .event-poster {
     border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
-    aspect-ratio: 70/99; background: linear-gradient(150deg,#0a2c20,#04150d);
+    aspect-ratio: 70/99; background: linear-gradient(150deg,#061d15,#020b07);
   }
   .event-poster img { width: 100%; height: 100%; object-fit: cover; }
   .event-poster.event-ph::after {
@@ -376,21 +376,21 @@
         <h3>CARPI</h3>
         <div class="row"><span class="k">📍</span><span>Viale dell'Industria, 19<br>41012 Carpi (MO)</span></div>
         <div class="row"><span class="k">📞</span><a href="tel:+393391406020">339 140 6020</a></div>
-        <div class="row"><span class="k">🕒</span><span>[Orari di apertura]</span></div>
+        <div class="row"><span class="k">🕒</span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
         <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=YIO+Fish+Restaurant+-+Sushi+Carpi" target="_blank">Indicazioni →</a>
       </div>
       <div class="loc">
         <h3>LEGNAGO</h3>
         <div class="row"><span class="k">📍</span><span>Viale Europa, 20<br>37045 Legnago (VR)</span></div>
         <div class="row"><span class="k">📞</span><a href="tel:+393773476774">377 347 6774</a></div>
-        <div class="row"><span class="k">🕒</span><span>[Orari di apertura]</span></div>
+        <div class="row"><span class="k">🕒</span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
         <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=Yio+Fish+Legnago+Viale+Europa+20" target="_blank">Indicazioni →</a>
       </div>
       <div class="loc">
         <h3>IMOLA</h3>
         <div class="row"><span class="k">📍</span><span>Via Giuseppe Fanin, 21<br>40026 Imola (BO)</span></div>
         <div class="row"><span class="k">📞</span><a href="tel:+393336189620">333 618 9620</a></div>
-        <div class="row"><span class="k">🕒</span><span>[Orari di apertura]</span></div>
+        <div class="row"><span class="k">🕒</span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
         <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=Via+Giuseppe+Fanin+21+Imola+BO" target="_blank">Indicazioni →</a>
       </div>
     </div>
