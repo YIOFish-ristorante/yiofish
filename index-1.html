@@ -31,7 +31,9 @@
     --transition: 0.22s cubic-bezier(.4,0,.2,1);
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
+  .hero { scroll-snap-align: start; scroll-snap-stop: always; }
+  .intro { scroll-snap-align: start; }
   body {
     background: var(--bg);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
@@ -42,24 +44,59 @@
   }
   /* 极淡暗纹理 + 一丝丝金色丝线质感 */
   body::before {
-    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    content: ''; position: fixed; inset: 0; z-index: 40; pointer-events: none;
     background-image:
-      radial-gradient(circle at 20% 15%, rgba(191,164,111,.05), transparent 40%),
-      radial-gradient(circle at 85% 70%, rgba(191,164,111,.04), transparent 45%),
-      repeating-linear-gradient(115deg, rgba(191,164,111,.022) 0px, rgba(191,164,111,.022) 1px, transparent 1px, transparent 7px),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+      radial-gradient(circle at 20% 15%, rgba(191,164,111,.045), transparent 42%),
+      radial-gradient(circle at 85% 70%, rgba(191,164,111,.04), transparent 46%),
+      repeating-linear-gradient(115deg, rgba(191,164,111,.025) 0px, rgba(191,164,111,.025) 1px, transparent 1px, transparent 11px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
     opacity: .9;
   }
   /* 缓慢流动的金色光泽 */
   body::after {
-    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background: linear-gradient(120deg, transparent 30%, rgba(226,200,122,.05) 48%, transparent 62%);
+    content: ''; position: fixed; inset: 0; z-index: 41; pointer-events: none;
+    background: linear-gradient(120deg, transparent 28%, rgba(226,200,122,.06) 48%, transparent 64%);
     background-size: 300% 300%;
     animation: shimmer 14s ease-in-out infinite;
   }
   @keyframes shimmer { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
   @media (prefers-reduced-motion: reduce) { body::after { animation: none; } }
   body > * { position: relative; z-index: 1; }
+
+  /* ───── 顶部导航 ───── */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px; height: 58px;
+    background: rgba(4,21,15,.6); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(191,164,111,.14);
+    opacity: 0; transform: translateY(-100%); transition: opacity .4s ease, transform .4s ease;
+    pointer-events: none;
+  }
+  .topnav.show { opacity: 1; transform: none; pointer-events: auto; }
+  .nav-logo img { height: 28px; width: auto; filter: brightness(1.12); }
+  .nav-logo { color: var(--gold); font-weight: 600; letter-spacing: 2px; font-size: 15px; }
+  .nav-links { display: flex; gap: 28px; }
+  .nav-links a {
+    font-size: 13px; letter-spacing: 1.5px; color: var(--text2); text-transform: uppercase;
+    transition: color var(--transition); position: relative;
+  }
+  .nav-links a:hover { color: var(--gold-lt); }
+  .nav-burger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 6px; }
+  .nav-burger span { width: 24px; height: 2px; background: var(--gold); border-radius: 2px; transition: transform var(--transition), opacity var(--transition); }
+  .nav-burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-burger.open span:nth-child(2) { opacity: 0; }
+  .nav-burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .nav-drawer {
+    position: fixed; top: 58px; left: 0; right: 0; z-index: 49;
+    background: rgba(4,21,15,.92); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(191,164,111,.14);
+    display: flex; flex-direction: column; padding: 8px 24px 18px;
+    transform: translateY(-130%); transition: transform .35s cubic-bezier(.4,0,.2,1); pointer-events: none;
+  }
+  .nav-drawer.open { transform: none; pointer-events: auto; }
+  .nav-drawer a { padding: 14px 0; font-size: 15px; letter-spacing: 1px; color: var(--text2); border-bottom: 1px solid rgba(255,255,255,.06); }
+  .nav-drawer a:last-child { border-bottom: none; }
   img { display: block; max-width: 100%; }
   a { text-decoration: none; color: inherit; }
 
@@ -77,7 +114,7 @@
   .gold-rule { width: 48px; height: 1px; background: var(--gold); opacity: .55; margin: 0 0 28px; }
   .lead { font-size: 16px; line-height: 1.8; color: var(--text2); max-width: 640px; }
 
-  section { padding: 92px 0; position: relative; }
+  section { padding: 92px 0; position: relative; scroll-margin-top: 58px; }
   .reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s ease; }
   .reveal.in { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) {
@@ -252,6 +289,8 @@
 
   /* ───── 响应式 ───── */
   @media (max-width: 760px) {
+    .nav-links { display: none; }
+    .nav-burger { display: flex; }
     section { padding: 64px 0; }
     .intro-grid { grid-template-columns: 1fr; gap: 30px; }
     .intro-photo { aspect-ratio: 16/10; }
@@ -268,6 +307,29 @@
 </style>
 </head>
 <body>
+
+<!-- 顶部导航（滚动到第二屏后淡入） -->
+<nav class="topnav" id="topnav">
+  <a href="#top" class="nav-logo">
+    <img src="logo.png" alt="YIO Fish" onerror="this.style.display='none';this.parentNode.textContent='YIO Fish';">
+  </a>
+  <div class="nav-links">
+    <a href="#piatti">Piatti</a>
+    <a href="#ambiente">Ambiente</a>
+    <a href="#eventi">Eventi</a>
+    <a href="#contatti">Contatti</a>
+  </div>
+  <button class="nav-burger" id="navBurger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="nav-drawer" id="navDrawer">
+  <a href="#piatti">Piatti</a>
+  <a href="#ambiente">Ambiente</a>
+  <a href="#eventi">Eventi</a>
+  <a href="#servizi">Come ordinare</a>
+  <a href="#contatti">Contatti</a>
+</div>
 
 <!-- ① HERO -->
 <header class="hero" id="top">
@@ -487,7 +549,30 @@
     }, { passive: true });
   });
 
-  // ───── 环境轮播 ─────
+  // ───── 顶部导航：滚过第一屏后淡入 ─────
+  (function(){
+    var nav = document.getElementById('topnav');
+    var hero = document.getElementById('top');
+    var burger = document.getElementById('navBurger');
+    var drawer = document.getElementById('navDrawer');
+    if (!nav || !hero) return;
+    // 用 IntersectionObserver 监测 hero 是否还在视野
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { nav.classList.remove('show'); closeDrawer(); }
+        else { nav.classList.add('show'); }
+      });
+    }, { threshold: 0.35 });
+    io.observe(hero);
+    // 汉堡开关
+    function closeDrawer(){ if(drawer)drawer.classList.remove('open'); if(burger)burger.classList.remove('open'); }
+    if (burger) burger.addEventListener('click', function(){
+      drawer.classList.toggle('open'); burger.classList.toggle('open');
+    });
+    // 点抽屉链接后关闭
+    if (drawer) drawer.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', closeDrawer); });
+  })();
+
   (function(){
     var track = document.getElementById('amb-track');
     var dotsBox = document.getElementById('amb-dots');
