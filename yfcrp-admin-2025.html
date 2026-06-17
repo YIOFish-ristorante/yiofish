@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.29.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.30.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.29.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.30.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -636,7 +636,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.29.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.30.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -666,7 +666,7 @@ function sbFetch(path, opts) {
 var R = {};
 var C = [];
 var I = [];
-var _SETTINGS = {notify_enabled:false, takeaway_enabled:true, consegna_enabled:true, is_open:true};
+var _SETTINGS = {notify_enabled:false, takeaway_enabled:true, consegna_enabled:true, is_open:true, all_day_menu:false};
 var _loading = true;
 var _MENU_CONFIGS = {};
 var _TABLE_CONFIGS = []; // [{table_number, guest_count}]
@@ -1353,7 +1353,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.29.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.30.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3360,6 +3360,7 @@ function renderSettings(){
         +makeSwitch('takeaway_enabled', s.takeaway_enabled, '📦 外卖接单', '关闭后外卖菜单隐藏WhatsApp发送按钮')
         +makeSwitch('consegna_enabled', s.consegna_enabled !== false, '🛵 外送 Consegna', '关闭后顾客只能选打包自取，不能选外送（人手不足时用）')
         +makeSwitch('is_open', s.is_open, '🟢 营业状态', '关闭后菜单顶部显示"已打烊"提示')
+        +makeSwitch('all_day_menu', s.all_day_menu, '🕐 全天营业', '开启后全天显示所有菜单（午餐+晚餐），不受时段限制')
       +'</div>'
     +'</div>'
     +'<div class="card" id="section-asporto-min" style="padding:20px 22px;margin-bottom:16px">'
