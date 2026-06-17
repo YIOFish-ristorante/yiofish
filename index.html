@@ -176,9 +176,10 @@
     display: flex; align-items: flex-end; padding: 14px; transition: transform var(--transition), border-color var(--transition);
   }
   .dish:hover { transform: translateY(-4px); border-color: var(--gold-dk); }
-  .dish .ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; letter-spacing:2px; }
-  .dish .dish-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
-  .dish .name { position: relative; font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: .5px; z-index:1; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+  .dish .ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; letter-spacing:2px; z-index:0; }
+  .dish.has-img .ph { display:none; }
+  .dish .dish-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; }
+  .dish .name { position: relative; font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: .5px; z-index:2; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
 
   /* ───── ④ 环境（轮播）───── */
   .ambiance { background: var(--bg2); }
@@ -379,15 +380,15 @@
       <div class="gold-rule" style="margin: 0 auto 28px"></div>
     </div>
     <div class="dish-grid reveal">
-      <div class="dish"><img src="foto/piatti/misto.webp" alt="Sushi Misto" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Sushi Misto</span></div>
-      <div class="dish"><img src="foto/piatti/sashimi.webp" alt="Sashimi" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Sashimi</span></div>
-      <div class="dish"><img src="foto/piatti/uramaki.webp" alt="Uramaki Special" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Uramaki Special</span></div>
-      <div class="dish"><img src="foto/piatti/nigiri.webp" alt="Nigiri" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Nigiri</span></div>
-      <div class="dish"><img src="foto/piatti/tempura.webp" alt="Tempura" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Tempura</span></div>
-      <div class="dish"><img src="foto/piatti/ramen.webp" alt="Ramen" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Ramen</span></div>
-      <div class="dish"><img src="foto/piatti/tartare.webp" alt="Tartare" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Tartare</span></div>
-      <div class="dish"><img src="foto/piatti/hosomaki.webp" alt="Hosomaki" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Hosomaki</span></div>
-      <div class="dish"><img src="foto/piatti/dessert.webp" alt="Dolce" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Dolce</span></div>
+      <div class="dish"><img src="foto/piatti/misto.webp" alt="Sushi Misto" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Sushi Misto</span></div>
+      <div class="dish"><img src="foto/piatti/sashimi.webp" alt="Sashimi" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Sashimi</span></div>
+      <div class="dish"><img src="foto/piatti/uramaki.webp" alt="Uramaki Special" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Uramaki Special</span></div>
+      <div class="dish"><img src="foto/piatti/nigiri.webp" alt="Nigiri" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Nigiri</span></div>
+      <div class="dish"><img src="foto/piatti/tempura.webp" alt="Tempura" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Tempura</span></div>
+      <div class="dish"><img src="foto/piatti/ramen.webp" alt="Ramen" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Ramen</span></div>
+      <div class="dish"><img src="foto/piatti/tartare.webp" alt="Tartare" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Tartare</span></div>
+      <div class="dish"><img src="foto/piatti/hosomaki.webp" alt="Hosomaki" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Hosomaki</span></div>
+      <div class="dish"><img src="foto/piatti/dessert.webp" alt="Dolce" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Dolce</span></div>
     </div>
   </div>
 </section>
