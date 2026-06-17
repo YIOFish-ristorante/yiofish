@@ -38,7 +38,28 @@
     color: var(--text);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    position: relative;
   }
+  /* 极淡暗纹理 + 一丝丝金色丝线质感 */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(191,164,111,.05), transparent 40%),
+      radial-gradient(circle at 85% 70%, rgba(191,164,111,.04), transparent 45%),
+      repeating-linear-gradient(115deg, rgba(191,164,111,.022) 0px, rgba(191,164,111,.022) 1px, transparent 1px, transparent 7px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    opacity: .9;
+  }
+  /* 缓慢流动的金色光泽 */
+  body::after {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: linear-gradient(120deg, transparent 30%, rgba(226,200,122,.05) 48%, transparent 62%);
+    background-size: 300% 300%;
+    animation: shimmer 14s ease-in-out infinite;
+  }
+  @keyframes shimmer { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+  @media (prefers-reduced-motion: reduce) { body::after { animation: none; } }
+  body > * { position: relative; z-index: 1; }
   img { display: block; max-width: 100%; }
   a { text-decoration: none; color: inherit; }
 
@@ -81,9 +102,12 @@
   .store-list { width: min(90vw, 360px); display: flex; flex-direction: column; gap: 11px; }
   .store-btn {
     padding: 16px 20px; border-radius: 13px; border: 1px solid var(--border);
-    background: linear-gradient(158deg, #0a2417 0%, #030d08 100%); cursor: pointer; -webkit-tap-highlight-color: transparent;
+    background: linear-gradient(158deg, rgba(20,52,38,.55) 0%, rgba(6,20,14,.55) 100%);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
     transition: border-color var(--transition), background var(--transition), transform var(--transition);
     font-size: 15px; font-weight: 600; letter-spacing: 2px; color: var(--gold);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
   }
   .store-btn:active { background: var(--gold-dim); border-color: var(--gold); transform: scale(.97); }
   .store-btn .city { display:block; font-size:10px; letter-spacing:2px; color:var(--muted); font-weight:400; margin-top:5px; }
@@ -102,9 +126,10 @@
   .intro-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; }
   .intro-photo {
     aspect-ratio: 4/5; border-radius: var(--radius); border: 1px solid var(--border);
-    background: linear-gradient(145deg, #061d15, #030f0a);
+    background: linear-gradient(145deg, #061d15, #030f0a); overflow: hidden;
     display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; letter-spacing: 2px;
   }
+  .intro-photo img { width: 100%; height: 100%; object-fit: cover; }
 
   /* ───── ③ 菜品 ───── */
   .menu-showcase { background: var(--bg); }
@@ -116,14 +141,29 @@
   }
   .dish:hover { transform: translateY(-4px); border-color: var(--gold-dk); }
   .dish .ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; letter-spacing:2px; }
-  .dish .name { position: relative; font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: .5px; z-index:1; }
+  .dish .dish-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+  .dish .name { position: relative; font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: .5px; z-index:1; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
 
-  /* ───── ④ 环境 ───── */
+  /* ───── ④ 环境（轮播）───── */
   .ambiance { background: var(--bg2); }
-  .amb-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 14px; height: 460px; }
-  .amb-grid > div { border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(150deg,#061d15,#020b07);
-    display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; letter-spacing:2px; }
-  .amb-right { display: grid; grid-template-rows: 1fr 1fr; gap: 16px; }
+  .carousel { position: relative; margin-top: 14px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: linear-gradient(150deg,#061d15,#020b07); }
+  .carousel-track { display: flex; transition: transform .55s cubic-bezier(.4,0,.2,1); }
+  .slide { min-width: 100%; aspect-ratio: 16/9; position: relative; }
+  .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slide-ph::after { content: attr(data-ph); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; letter-spacing: 2px; }
+  .slide-ph { aspect-ratio: 16/9; }
+  .carousel-btn {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 42px; height: 42px;
+    border-radius: 50%; border: 1px solid var(--border2); background: rgba(0,0,0,.4);
+    color: var(--gold-lt); font-size: 24px; line-height: 1; cursor: pointer; backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; transition: background var(--transition);
+  }
+  .carousel-btn:active { background: rgba(191,164,111,.25); }
+  .carousel-btn.prev { left: 14px; }
+  .carousel-btn.next { right: 14px; }
+  .carousel-dots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+  .carousel-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.35); cursor: pointer; transition: background var(--transition), width var(--transition); }
+  .carousel-dots .dot.active { background: var(--gold); width: 22px; border-radius: 4px; }
 
   /* ───── ⑤ 特别活动 ───── */
   .eventi { background: var(--bg2); }
@@ -133,19 +173,30 @@
   }
   .event-poster {
     border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
-    aspect-ratio: 70/99; background: linear-gradient(150deg,#061d15,#020b07);
+    aspect-ratio: 70/99; background: linear-gradient(150deg,#061d15,#020b07); position: relative;
   }
-  .event-poster img { width: 100%; height: 100%; object-fit: cover; }
-  .event-poster.event-ph::after {
-    content: 'LOCANDINA EVENTO'; display: flex; align-items: center; justify-content: center;
-    height: 100%; color: var(--muted); font-size: 12px; letter-spacing: 2px;
+  .ev-carousel, .ev-track, .ev-slide { height: 100%; }
+  .ev-carousel { position: relative; }
+  .ev-track { display: flex; transition: transform .55s cubic-bezier(.4,0,.2,1); }
+  .ev-slide { min-width: 100%; position: relative; }
+  .ev-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ev-ph::after { content: attr(data-ph); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; letter-spacing: 2px; }
+  .ev-btn {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid var(--border2); background: rgba(0,0,0,.4); color: var(--gold-lt); font-size: 22px; line-height: 1;
+    cursor: pointer; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center;
   }
+  .ev-btn.prev { left: 10px; } .ev-btn.next { right: 10px; }
+  .ev-dots { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
+  .ev-dots .dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.4); cursor: pointer; transition: background var(--transition), width var(--transition); }
+  .ev-dots .dot.active { background: var(--gold); width: 20px; border-radius: 4px; }
   .event-info h3 { font-size: clamp(22px, 5vw, 30px); font-weight: 600; color: var(--gold-lt); letter-spacing: .5px; margin-bottom: 16px; }
   .event-info p { font-size: 15px; line-height: 1.8; color: var(--text2); margin-bottom: 26px; max-width: 460px; }
   .event-stores { display: flex; flex-direction: column; gap: 12px; max-width: 420px; }
   .event-store {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface);
+    padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border);
+    background: rgba(10,44,32,.45); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   }
   .event-store .es-name { font-size: 13px; font-weight: 600; letter-spacing: 2px; color: var(--gold); flex-shrink: 0; }
   .es-links { display: flex; gap: 8px; }
@@ -161,7 +212,8 @@
   .svc-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin: 14px 0 48px; }
   .svc {
     padding: 32px 24px; border-radius: var(--radius); border: 1px solid var(--border);
-    background: var(--surface); text-align: center;
+    background: rgba(10,44,32,.45); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    text-align: center; box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
   }
   .svc .ic { font-size: 30px; margin-bottom: 14px; }
   .svc h3 { font-size: 16px; letter-spacing: 1px; color: var(--gold-lt); margin-bottom: 8px; font-weight: 600; }
@@ -180,7 +232,9 @@
   .contact { background: var(--bg2); }
   .loc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 14px; }
   .loc {
-    padding: 28px 24px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface);
+    padding: 28px 24px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: rgba(10,44,32,.45); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
   }
   .loc h3 { font-size: 17px; letter-spacing: 2px; color: var(--gold); margin-bottom: 16px; font-weight: 600; }
   .loc .row { display: flex; gap: 10px; font-size: 13px; line-height: 1.6; color: var(--text2); margin-bottom: 12px; }
@@ -202,9 +256,6 @@
     .intro-grid { grid-template-columns: 1fr; gap: 30px; }
     .intro-photo { aspect-ratio: 16/10; }
     .dish-grid { grid-template-columns: repeat(2, 1fr); }
-    .amb-grid { grid-template-columns: 1fr; height: auto; }
-    .amb-grid > div { aspect-ratio: 16/10; }
-    .amb-right { grid-template-rows: none; grid-template-columns: 1fr 1fr; }
     .svc-row { grid-template-columns: 1fr; }
     .loc-grid { grid-template-columns: 1fr; }
     .event-card { grid-template-columns: 1fr; gap: 26px; }
@@ -252,7 +303,9 @@
         <span style="color:var(--muted);font-size:14px">[Sostituisci con la tua presentazione — storia, chef, specialità]</span>
       </p>
     </div>
-    <div class="reveal intro-photo">FOTO · Chef / Bancone sushi</div>
+    <div class="reveal intro-photo">
+      <img src="foto/chef.webp" alt="YIO Fish — il nostro chef" onerror="this.style.display='none';this.parentNode.textContent='FOTO · Chef / Bancone sushi';">
+    </div>
   </div>
 </section>
 
@@ -265,15 +318,15 @@
       <div class="gold-rule" style="margin: 0 auto 28px"></div>
     </div>
     <div class="dish-grid reveal">
-      <div class="dish"><span class="ph">FOTO</span><span class="name">Sushi Misto</span></div>
-      <div class="dish"><span class="ph">FOTO</span><span class="name">Sashimi</span></div>
-      <div class="dish"><span class="ph">FOTO</span><span class="name">Uramaki Special</span></div>
-      <div class="dish"><span class="ph">FOTO</span><span class="name">Nigiri</span></div>
-      <div class="dish"><span class="ph">FOTO</span><span class="name">Tempura</span></div>
-      <div class="dish"><span class="ph">FOTO</span><span class="name">Ramen</span></div>
-      <div class="dish"><span class="ph">FOTO</span><span class="name">Tartare</span></div>
-      <div class="dish"><span class="ph">FOTO</span><span class="name">Hosomaki</span></div>
-      <div class="dish"><span class="ph">FOTO</span><span class="name">Dolce</span></div>
+      <div class="dish"><img src="foto/piatti/misto.webp" alt="Sushi Misto" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Sushi Misto</span></div>
+      <div class="dish"><img src="foto/piatti/sashimi.webp" alt="Sashimi" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Sashimi</span></div>
+      <div class="dish"><img src="foto/piatti/uramaki.webp" alt="Uramaki Special" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Uramaki Special</span></div>
+      <div class="dish"><img src="foto/piatti/nigiri.webp" alt="Nigiri" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Nigiri</span></div>
+      <div class="dish"><img src="foto/piatti/tempura.webp" alt="Tempura" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Tempura</span></div>
+      <div class="dish"><img src="foto/piatti/ramen.webp" alt="Ramen" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Ramen</span></div>
+      <div class="dish"><img src="foto/piatti/tartare.webp" alt="Tartare" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Tartare</span></div>
+      <div class="dish"><img src="foto/piatti/hosomaki.webp" alt="Hosomaki" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Hosomaki</span></div>
+      <div class="dish"><img src="foto/piatti/dolce.webp" alt="Dolce" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Dolce</span></div>
     </div>
   </div>
 </section>
@@ -286,12 +339,15 @@
       <h2 class="section-title">Un ambiente <strong>accogliente</strong></h2>
       <div class="gold-rule" style="margin: 0 auto 28px"></div>
     </div>
-    <div class="amb-grid reveal">
-      <div>FOTO · Sala principale</div>
-      <div class="amb-right">
-        <div>FOTO · Dettaglio</div>
-        <div>FOTO · Bancone</div>
+    <div class="carousel reveal" id="amb-carousel">
+      <div class="carousel-track" id="amb-track">
+        <div class="slide"><img src="foto/ambiente/sala.webp" alt="Sala" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Sala principale"></div>
+        <div class="slide"><img src="foto/ambiente/dettaglio.webp" alt="Dettaglio" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Dettaglio"></div>
+        <div class="slide"><img src="foto/ambiente/bancone.webp" alt="Bancone" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Bancone"></div>
       </div>
+      <button class="carousel-btn prev" onclick="ambGo(-1)" aria-label="Precedente">‹</button>
+      <button class="carousel-btn next" onclick="ambGo(1)" aria-label="Successiva">›</button>
+      <div class="carousel-dots" id="amb-dots"></div>
     </div>
   </div>
 </section>
@@ -306,7 +362,14 @@
     </div>
     <div class="event-card reveal">
       <div class="event-poster">
-        <img src="eventi/capodanno-2026.jpg" alt="Festa di Capodanno 2026" onerror="this.style.display='none';this.parentNode.classList.add('event-ph');">
+        <div class="ev-carousel" id="ev-carousel">
+          <div class="ev-track" id="ev-track">
+            <div class="ev-slide"><img src="foto/eventi/capodanno-2026.webp" alt="Festa di Capodanno 2026" onerror="this.closest('.ev-slide').classList.add('ev-ph');this.remove();" data-ph="Locandina evento"></div>
+          </div>
+          <button class="ev-btn prev" onclick="evGo(-1)" aria-label="Precedente">‹</button>
+          <button class="ev-btn next" onclick="evGo(1)" aria-label="Successiva">›</button>
+          <div class="ev-dots" id="ev-dots"></div>
+        </div>
       </div>
       <div class="event-info">
         <h3>Festa di Capodanno 2026</h3>
@@ -423,6 +486,71 @@
       try { sessionStorage.setItem('yio_route_v1', btn.getAttribute('href')); } catch(e){}
     }, { passive: true });
   });
+
+  // ───── 环境轮播 ─────
+  (function(){
+    var track = document.getElementById('amb-track');
+    var dotsBox = document.getElementById('amb-dots');
+    var carousel = document.getElementById('amb-carousel');
+    if (!track || !carousel) return;
+    var slides = Array.prototype.slice.call(track.children);
+    var n = slides.length;
+    if (n <= 1) { // 只有0或1张，隐藏控件
+      var pv=carousel.querySelector('.prev'), nx=carousel.querySelector('.next');
+      if(pv)pv.style.display='none'; if(nx)nx.style.display='none';
+      return;
+    }
+    var idx = 0, timer = null;
+    // 圆点
+    for (var i=0;i<n;i++){
+      var d=document.createElement('div'); d.className='dot'+(i===0?' active':'');
+      (function(k){ d.onclick=function(){ go(k); restart(); }; })(i);
+      dotsBox.appendChild(d);
+    }
+    var dots = Array.prototype.slice.call(dotsBox.children);
+    function render(){
+      track.style.transform='translateX(-'+(idx*100)+'%)';
+      dots.forEach(function(dt,k){ dt.classList.toggle('active',k===idx); });
+    }
+    function go(k){ idx=(k+n)%n; render(); }
+    window.ambGo=function(step){ go(idx+step); restart(); };
+    function restart(){ if(timer)clearInterval(timer); timer=setInterval(function(){ go(idx+1); }, 4000); }
+    // 触摸滑动
+    var sx=0;
+    track.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+    track.addEventListener('touchend',function(e){
+      var dx=e.changedTouches[0].clientX-sx;
+      if(Math.abs(dx)>40){ go(idx+(dx<0?1:-1)); restart(); }
+    },{passive:true});
+    render(); restart();
+  })();
+
+  // ───── 活动轮播（自适应：单张静态，多张轮播）─────
+  (function(){
+    var track = document.getElementById('ev-track');
+    var dotsBox = document.getElementById('ev-dots');
+    var carousel = document.getElementById('ev-carousel');
+    if (!track || !carousel) return;
+    var n = track.children.length;
+    var pv=carousel.querySelector('.prev'), nx=carousel.querySelector('.next');
+    if (n <= 1) { return; } // 单张：不显示箭头圆点，不轮播
+    if(pv)pv.style.display='flex'; if(nx)nx.style.display='flex';
+    var idx=0, timer=null;
+    for (var i=0;i<n;i++){
+      var d=document.createElement('div'); d.className='dot'+(i===0?' active':'');
+      (function(k){ d.onclick=function(){ go(k); restart(); }; })(i);
+      dotsBox.appendChild(d);
+    }
+    var dots=Array.prototype.slice.call(dotsBox.children);
+    function render(){ track.style.transform='translateX(-'+(idx*100)+'%)'; dots.forEach(function(dt,k){ dt.classList.toggle('active',k===idx); }); }
+    function go(k){ idx=(k+n)%n; render(); }
+    window.evGo=function(step){ go(idx+step); restart(); };
+    function restart(){ if(timer)clearInterval(timer); timer=setInterval(function(){ go(idx+1); }, 5000); }
+    var sx=0;
+    track.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+    track.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40){ go(idx+(dx<0?1:-1)); restart(); } },{passive:true});
+    render(); restart();
+  })();
 </script>
 </body>
 </html>
