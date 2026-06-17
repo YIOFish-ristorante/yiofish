@@ -18,10 +18,10 @@
     --gold-lt: #e2c87a;
     --gold-dk: #8a6e2a;
     --gold-dim: rgba(191,164,111,0.12);
-    --bg: #04150f;
-    --bg2: #030f0a;
-    --surface: #061d15;
-    --surface2: #082619;
+    --bg: #02100b;
+    --bg2: #010a06;
+    --surface: #051710;
+    --surface2: #07200f;
     --border: rgba(191,164,111,.18);
     --border2: rgba(255,255,255,.12);
     --text: #fff;
@@ -67,7 +67,7 @@
     position: fixed; top: 0; left: 0; right: 0; z-index: 50;
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 24px; height: 58px;
-    background: rgba(4,21,15,.6); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    background: rgba(2,16,11,.62); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
     border-bottom: 1px solid rgba(191,164,111,.14);
     opacity: 0; transform: translateY(-100%); transition: opacity .4s ease, transform .4s ease;
     pointer-events: none;
@@ -88,7 +88,7 @@
   .nav-burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
   .nav-drawer {
     position: fixed; top: 58px; left: 0; right: 0; z-index: 49;
-    background: rgba(4,21,15,.92); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    background: rgba(2,16,11,.94); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
     border-bottom: 1px solid rgba(191,164,111,.14);
     display: flex; flex-direction: column; padding: 8px 24px 18px;
     transform: translateY(-130%); transition: transform .35s cubic-bezier(.4,0,.2,1); pointer-events: none;
@@ -128,25 +128,25 @@
     padding: 40px 20px 60px; position: relative;
     background:
       radial-gradient(120% 80% at 50% 0%, rgba(191,164,111,.05), transparent 55%),
-      linear-gradient(180deg, #04150f 0%, #020a07 100%);
+      linear-gradient(180deg, #02100b 0%, #010705 100%);
   }
-  .hero-logo { width: min(56vw, 230px); margin: 0 auto 14px; filter: brightness(1.12); animation: heroIn 1s ease-out; }
+  .hero-logo { width: min(44vw, 175px); margin: 0 auto 14px; filter: brightness(1.12); animation: heroIn 1s ease-out; }
   @keyframes heroIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   .hero-line { width: 44px; height: 1px; background: var(--gold); opacity: .5; margin: 18px auto 30px; }
   .hero-sub { font-size: 11px; letter-spacing: 5px; color: var(--muted); margin-bottom: 40px; }
 
   .store-list { width: min(90vw, 360px); display: flex; flex-direction: column; gap: 11px; }
   .store-btn {
-    padding: 16px 20px; border-radius: 13px; border: 1px solid var(--border);
-    background: linear-gradient(158deg, rgba(20,52,38,.55) 0%, rgba(6,20,14,.55) 100%);
+    padding: 13px 20px; border-radius: 12px; border: 1px solid var(--border);
+    background: linear-gradient(158deg, rgba(12,40,28,.55) 0%, rgba(3,13,8,.6) 100%);
     -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     cursor: pointer; -webkit-tap-highlight-color: transparent;
     transition: border-color var(--transition), background var(--transition), transform var(--transition);
-    font-size: 15px; font-weight: 600; letter-spacing: 2px; color: var(--gold);
+    font-size: 14px; font-weight: 600; letter-spacing: 2px; color: var(--gold);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
   }
   .store-btn:active { background: var(--gold-dim); border-color: var(--gold); transform: scale(.97); }
-  .store-btn .city { display:block; font-size:10px; letter-spacing:2px; color:var(--muted); font-weight:400; margin-top:5px; }
+  .store-btn .city { display:block; font-size:10px; letter-spacing:2px; color:var(--muted); font-weight:400; margin-top:3px; }
 
   .scroll-cue {
     position: absolute; bottom: 24px; right: 24px;
@@ -162,7 +162,7 @@
   .intro-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; }
   .intro-photo {
     aspect-ratio: 4/5; border-radius: var(--radius); border: 1px solid var(--border);
-    background: linear-gradient(145deg, #061d15, #030f0a); overflow: hidden;
+    background: linear-gradient(145deg, #051710, #010705); overflow: hidden;
     display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; letter-spacing: 2px;
   }
   .intro-photo img { width: 100%; height: 100%; object-fit: cover; }
@@ -172,7 +172,7 @@
   .dish-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 14px; }
   .dish {
     aspect-ratio: 1; border-radius: 12px; overflow: hidden; position: relative;
-    background: linear-gradient(150deg, #061d15, #020b07); border: 1px solid var(--border);
+    background: linear-gradient(150deg, #051710, #010604); border: 1px solid var(--border);
     display: flex; align-items: flex-end; padding: 14px; transition: transform var(--transition), border-color var(--transition);
   }
   .dish:hover { transform: translateY(-4px); border-color: var(--gold-dk); }
@@ -182,7 +182,7 @@
 
   /* ───── ④ 环境（轮播）───── */
   .ambiance { background: var(--bg2); }
-  .carousel { position: relative; margin-top: 14px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: linear-gradient(150deg,#061d15,#020b07); }
+  .carousel { position: relative; margin-top: 14px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: linear-gradient(150deg,#051710,#010604); }
   .carousel-track { display: flex; transition: transform .55s cubic-bezier(.4,0,.2,1); }
   .slide { min-width: 100%; aspect-ratio: 16/9; position: relative; }
   .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -209,7 +209,7 @@
   }
   .event-poster {
     border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
-    aspect-ratio: 70/99; background: linear-gradient(150deg,#061d15,#020b07); position: relative;
+    aspect-ratio: 70/99; background: linear-gradient(150deg,#051710,#010604); position: relative;
   }
   .ev-carousel, .ev-track, .ev-slide { height: 100%; }
   .ev-carousel { position: relative; }
@@ -232,7 +232,7 @@
   .event-store {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border);
-    background: rgba(10,44,32,.45); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    background: rgba(6,30,21,.5); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   }
   .event-store .es-name { font-size: 13px; font-weight: 600; letter-spacing: 2px; color: var(--gold); flex-shrink: 0; }
   .es-links { display: flex; gap: 8px; }
@@ -248,7 +248,7 @@
   .svc-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin: 14px 0 48px; }
   .svc {
     padding: 32px 24px; border-radius: var(--radius); border: 1px solid var(--border);
-    background: rgba(10,44,32,.45); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    background: rgba(6,30,21,.5); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     text-align: center; box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
   }
   .svc .ic { font-size: 30px; margin-bottom: 14px; }
@@ -269,7 +269,7 @@
   .loc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 14px; }
   .loc {
     padding: 28px 24px; border-radius: var(--radius); border: 1px solid var(--border);
-    background: rgba(10,44,32,.45); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    background: rgba(6,30,21,.5); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
   }
   .loc h3 { font-size: 17px; letter-spacing: 2px; color: var(--gold); margin-bottom: 16px; font-weight: 600; }
@@ -382,7 +382,7 @@
       <div class="dish"><img src="foto/piatti/ramen.webp" alt="Ramen" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Ramen</span></div>
       <div class="dish"><img src="foto/piatti/tartare.webp" alt="Tartare" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Tartare</span></div>
       <div class="dish"><img src="foto/piatti/hosomaki.webp" alt="Hosomaki" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Hosomaki</span></div>
-      <div class="dish"><img src="foto/piatti/dolce.webp" alt="Dolce" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Dolce</span></div>
+      <div class="dish"><img src="foto/piatti/dessert.webp" alt="Dolce" onerror="this.remove();" class="dish-img"><span class="ph">FOTO</span><span class="name">Dolce</span></div>
     </div>
   </div>
 </section>
@@ -397,9 +397,13 @@
     </div>
     <div class="carousel reveal" id="amb-carousel">
       <div class="carousel-track" id="amb-track">
-        <div class="slide"><img src="foto/ambiente/sala.webp" alt="Sala" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Sala principale"></div>
-        <div class="slide"><img src="foto/ambiente/dettaglio.webp" alt="Dettaglio" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Dettaglio"></div>
-        <div class="slide"><img src="foto/ambiente/bancone.webp" alt="Bancone" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Bancone"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente1.webp" alt="Ambiente 1" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente2.webp" alt="Ambiente 2" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente3.webp" alt="Ambiente 3" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente4.webp" alt="Ambiente 4" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente5.webp" alt="Ambiente 5" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente6.webp" alt="Ambiente 6" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente7.webp" alt="Ambiente 7" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
       </div>
       <button class="carousel-btn prev" onclick="ambGo(-1)" aria-label="Precedente">‹</button>
       <button class="carousel-btn next" onclick="ambGo(1)" aria-label="Successiva">›</button>
@@ -420,7 +424,7 @@
       <div class="event-poster">
         <div class="ev-carousel" id="ev-carousel">
           <div class="ev-track" id="ev-track">
-            <div class="ev-slide"><img src="foto/eventi/capodanno-2026.webp" alt="Festa di Capodanno 2026" onerror="this.closest('.ev-slide').classList.add('ev-ph');this.remove();" data-ph="Locandina evento"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-capodano.webp" alt="Festa di Capodanno 2026" onerror="this.closest('.ev-slide').classList.add('ev-ph');this.remove();" data-ph="Locandina evento"></div>
           </div>
           <button class="ev-btn prev" onclick="evGo(-1)" aria-label="Precedente">‹</button>
           <button class="ev-btn next" onclick="evGo(1)" aria-label="Successiva">›</button>
