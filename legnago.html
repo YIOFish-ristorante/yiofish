@@ -981,7 +981,7 @@ var R = {name:"Yio Fish", subtitle:"Ristorante Giapponese · Legnago", phone:"37
 var CATS = [];
 var ALL_ITEMS = [];
 var DISH_MENUS = [];
-var SETTINGS = {notify_enabled: false, takeaway_enabled: true, consegna_enabled: true, is_open: true, loyalty_enabled: false, all_day_menu: false};
+var SETTINGS = {notify_enabled: false, takeaway_enabled: true, consegna_enabled: true, is_open: true, loyalty_enabled: false};
 // 过敏源标签 - 运行时从 restaurant_tags 表加载（按 RESTAURANT_ID 独立）
 var TAGS = {};
 // 默认 fallback（数据库无数据时使用）
@@ -1164,9 +1164,9 @@ async function loadAll() {
 
     // dish_menus超过1000条，分3次加载 + 同时加载本店标签（带重试）
     var [dm1, dm2, dm3, tagsData] = await Promise.all([
-      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
-      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
+      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=0'),
+      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=1000'),
+      sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=2000'),
       sbFetchJSON('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
     var dishMenus = (dm1||[]).concat(dm2||[]).concat(dm3||[]);
@@ -1224,7 +1224,7 @@ var _lastPublishedAt = null;
 
 async function checkNewPublish() {
   try {
-    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=published_at,notify_enabled,takeaway_enabled,is_open,round_max,round_total,round_interval,loyalty_enabled,all_day_menu');
+    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=published_at,notify_enabled,takeaway_enabled,is_open,round_max,round_total,round_interval,loyalty_enabled');
     var data = await res.json();
     if (!data || !data[0]) return;
     var s = data[0];
@@ -1233,7 +1233,6 @@ async function checkNewPublish() {
     SETTINGS.takeaway_enabled = s.takeaway_enabled;
     SETTINGS.consegna_enabled = s.consegna_enabled;
     SETTINGS.is_open = s.is_open;
-    SETTINGS.all_day_menu = !!s.all_day_menu;
     SETTINGS.round_max = s.round_max || 0;
     SETTINGS.round_total = s.round_total || 0;
     SETTINGS.round_interval = s.round_interval || 0;
@@ -1270,9 +1269,9 @@ async function reloadMenuData() {
       };
     });
     var [dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=0'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=1000'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&limit=1000&offset=2000'),
+      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=0'),
+      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=1000'),
+      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=2000'),
       sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
     DISH_MENUS = (await dm1Res.json()).concat(await dm2Res.json()).concat(await dm3Res.json());
@@ -1357,13 +1356,6 @@ function loadMenu() {
   if (!SETTINGS.is_open) {
     showMenuButtons([]);
     setStatus("CHIUSO · RIAPRIAMO PRESTO","closed");
-    return;
-  }
-  // 全天营业：店开着且后台勾选了 all_day_menu → 显示所有菜单，不受时段限制
-  if (SETTINGS.all_day_menu) {
-    showMenuButtons(["btnBevande","btnPranzo","btnCena","btnSpecial","btnDessert"]);
-    setStatus("APERTO TUTTO IL GIORNO");
-    setTimerBanner(0);
     return;
   }
   var t = getRomeMinutes();
