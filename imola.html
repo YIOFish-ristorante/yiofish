@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.44.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.45.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1224,7 +1224,7 @@ var _lastPublishedAt = null;
 
 async function checkNewPublish() {
   try {
-    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=published_at,notify_enabled,takeaway_enabled,is_open,round_max,round_total,round_interval,loyalty_enabled,all_day_menu');
+    var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=published_at,notify_enabled,takeaway_enabled,is_open,round_max,round_total,round_interval,loyalty_enabled,all_day_menu,lunch_start,lunch_kitchen,lunch_end,dinner_start,dinner_kitchen,dinner_end');
     var data = await res.json();
     if (!data || !data[0]) return;
     var s = data[0];
@@ -1234,6 +1234,12 @@ async function checkNewPublish() {
     SETTINGS.consegna_enabled = s.consegna_enabled;
     SETTINGS.is_open = s.is_open;
     SETTINGS.all_day_menu = !!s.all_day_menu;
+    SETTINGS.lunch_start = s.lunch_start;
+    SETTINGS.lunch_kitchen = s.lunch_kitchen;
+    SETTINGS.lunch_end = s.lunch_end;
+    SETTINGS.dinner_start = s.dinner_start;
+    SETTINGS.dinner_kitchen = s.dinner_kitchen;
+    SETTINGS.dinner_end = s.dinner_end;
     SETTINGS.round_max = s.round_max || 0;
     SETTINGS.round_total = s.round_total || 0;
     SETTINGS.round_interval = s.round_interval || 0;
@@ -1328,6 +1334,27 @@ function getRomeMinutes() {
   var parts = str.split(", ")[1].split(":");
   return parseInt(parts[0])*60 + parseInt(parts[1]);
 }
+// "HH:MM" → 分钟数；解析失败返回 fallback（CONFIG 默认值），保证安全回退
+function hm2min(str, fallback) {
+  if (!str || typeof str !== 'string') return fallback;
+  var p = str.split(':');
+  if (p.length !== 2) return fallback;
+  var h = parseInt(p[0],10), m = parseInt(p[1],10);
+  if (isNaN(h) || isNaN(m)) return fallback;
+  return h*60 + m;
+}
+// 读取时段配置：优先数据库 SETTINGS，缺失则回退 CONFIG 写死值
+function getMealTimes() {
+  return {
+    LUNCH_START:         hm2min(SETTINGS.lunch_start,    CONFIG.LUNCH_START),
+    LUNCH_KITCHEN_CLOSE: hm2min(SETTINGS.lunch_kitchen,  CONFIG.LUNCH_KITCHEN_CLOSE),
+    LUNCH_END:           hm2min(SETTINGS.lunch_end,      CONFIG.LUNCH_END),
+    DINNER_START:        hm2min(SETTINGS.dinner_start,   CONFIG.DINNER_START),
+    DINNER_KITCHEN_CLOSE:hm2min(SETTINGS.dinner_kitchen, CONFIG.DINNER_KITCHEN_CLOSE),
+    DINNER_END:          hm2min(SETTINGS.dinner_end,     CONFIG.DINNER_END),
+    TIMER_WARNING_MINS:  CONFIG.TIMER_WARNING_MINS
+  };
+}
 function setStatus(text, cls) {
   var el = document.getElementById("status");
   el.textContent = text;
@@ -1367,7 +1394,7 @@ function loadMenu() {
     return;
   }
   var t = getRomeMinutes();
-  var C = CONFIG;
+  var C = getMealTimes();
   setTimerBanner(0);
   if (t >= C.LUNCH_START && t < C.LUNCH_END) {
     var rem = C.LUNCH_KITCHEN_CLOSE - t;

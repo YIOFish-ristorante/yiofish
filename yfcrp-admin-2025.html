@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.31.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.32.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.31.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.32.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -636,7 +636,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.31.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.32.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -666,7 +666,7 @@ function sbFetch(path, opts) {
 var R = {};
 var C = [];
 var I = [];
-var _SETTINGS = {notify_enabled:false, takeaway_enabled:true, consegna_enabled:true, is_open:true, all_day_menu:false};
+var _SETTINGS = {notify_enabled:false, takeaway_enabled:true, consegna_enabled:true, is_open:true, all_day_menu:false, lunch_start:'11:00', lunch_kitchen:'15:00', lunch_end:'16:00', dinner_start:'17:00', dinner_kitchen:'23:00', dinner_end:'23:59'};
 var _loading = true;
 var _MENU_CONFIGS = {};
 var _TABLE_CONFIGS = []; // [{table_number, guest_count}]
@@ -1353,7 +1353,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.31.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.32.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3363,6 +3363,29 @@ function renderSettings(){
         +makeSwitch('all_day_menu', s.all_day_menu, '🕐 全天营业', '开启后全天显示所有菜单（午餐+晚餐），不受时段限制')
       +'</div>'
     +'</div>'
+    +'<div class="card" id="section-meal-times" style="padding:20px 22px;margin-bottom:16px">'
+      +'<div class="s-label" style="padding:0 0 12px">🕐 营业时段设置</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6;">'
+        +'控制顾客端午餐/晚餐菜单的显示时间（罗马时间）。<br>'
+        +'• <b>开始</b>：从几点开始显示该时段菜单<br>'
+        +'• <b>厨房关闭</b>：厨房停止接单时间（之后只剩饮料+甜点）<br>'
+        +'• <b>结束</b>：该时段完全结束时间<br>'
+        +'<span style="color:rgba(212,171,72,.7)">提示：开启上方"全天营业"会忽略这些时段限制。</span>'
+      +'</div>'
+      +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:6px 0 8px;letter-spacing:1px;">☀️ 午餐 Pranzo</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">'
+        +mealTimeInput('mt-lunch-start','开始', s.lunch_start || '11:00')
+        +mealTimeInput('mt-lunch-kitchen','厨房关闭', s.lunch_kitchen || '15:00')
+        +mealTimeInput('mt-lunch-end','结束', s.lunch_end || '16:00')
+      +'</div>'
+      +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:6px 0 8px;letter-spacing:1px;">🌙 晚餐 Cena</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">'
+        +mealTimeInput('mt-dinner-start','开始', s.dinner_start || '17:00')
+        +mealTimeInput('mt-dinner-kitchen','厨房关闭', s.dinner_kitchen || '23:00')
+        +mealTimeInput('mt-dinner-end','结束', s.dinner_end || '23:59')
+      +'</div>'
+      +'<button onclick="saveMealTimes()" style="background:var(--gold);border:none;border-radius:var(--r);padding:10px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-weight:600;">💾 保存时段</button>'
+    +'</div>'
     +'<div class="card" id="section-asporto-min" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">📦 Asporto 折扣门槛</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6;">'
@@ -3676,6 +3699,49 @@ async function saveAsportoMin() {
     }
   } catch(e) { toast('❌ 保存失败: ' + e.message); }
 }
+
+// 生成时段时间输入框（type=time）
+function mealTimeInput(id, label, val) {
+  return '<div style="display:flex;flex-direction:column;gap:4px;">'
+    +'<span style="font-size:10px;color:var(--muted);letter-spacing:.5px;">'+label+'</span>'
+    +'<input id="'+id+'" type="time" value="'+(val||'')+'" '
+    +'style="background:var(--bg2,#1a1510);border:1px solid rgba(212,171,72,.3);border-radius:8px;padding:8px 10px;color:var(--gold,#d4ab48);font-size:13px;">'
+    +'</div>';
+}
+
+// 校验 "HH:MM" 格式
+function isValidHM(v) { return /^([01]?\d|2[0-3]):[0-5]\d$/.test(v); }
+
+async function saveMealTimes() {
+  var ids = {
+    lunch_start:'mt-lunch-start', lunch_kitchen:'mt-lunch-kitchen', lunch_end:'mt-lunch-end',
+    dinner_start:'mt-dinner-start', dinner_kitchen:'mt-dinner-kitchen', dinner_end:'mt-dinner-end'
+  };
+  var patch = {};
+  for (var key in ids) {
+    var el = document.getElementById(ids[key]);
+    if (!el) continue;
+    var v = el.value;
+    if (!isValidHM(v)) { toast('⚠️ 时间格式有误，请检查'); return; }
+    patch[key] = v;
+  }
+  // 简单合理性检查：开始 < 厨房关闭 ≤ 结束（午餐、晚餐各自）
+  function m(v){ var p=v.split(':'); return parseInt(p[0])*60+parseInt(p[1]); }
+  if (!(m(patch.lunch_start) < m(patch.lunch_kitchen) && m(patch.lunch_kitchen) <= m(patch.lunch_end))) {
+    toast('⚠️ 午餐时段顺序不对：开始 < 厨房关闭 ≤ 结束'); return;
+  }
+  if (!(m(patch.dinner_start) < m(patch.dinner_kitchen) && m(patch.dinner_kitchen) <= m(patch.dinner_end))) {
+    toast('⚠️ 晚餐时段顺序不对：开始 < 厨房关闭 ≤ 结束'); return;
+  }
+  try {
+    markDirty();
+    await saveSettingsToDB(patch);
+    for (var k in patch) _SETTINGS[k] = patch[k];
+    markSaved();
+    toast('✅ 营业时段已保存');
+  } catch(e) { toast('❌ 保存失败: ' + e.message); }
+}
+
 
 // ════════════════════════════════════
 //  🛵 Consegna 排班
