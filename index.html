@@ -459,7 +459,14 @@
       <div class="event-poster">
         <div class="ev-carousel" id="ev-carousel">
           <div class="ev-track" id="ev-track">
-            <div class="ev-slide"><img src="foto/eventi/eventi-1.webp" alt="Ventaglio edizione speciale YIO Fish" onerror="this.closest('.ev-slide').classList.add('ev-ph');this.remove();" data-ph="Immagine evento"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-1.webp" alt="Evento YIO Fish 1" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-2.webp" alt="Evento YIO Fish 2" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-3.webp" alt="Evento YIO Fish 3" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-4.webp" alt="Evento YIO Fish 4" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-5.webp" alt="Evento YIO Fish 5" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-6.webp" alt="Evento YIO Fish 6" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-7.webp" alt="Evento YIO Fish 7" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-8.webp" alt="Evento YIO Fish 8" onerror="this.closest('.ev-slide').remove();"></div>
           </div>
           <button class="ev-btn prev" onclick="evGo(-1)" aria-label="Precedente">‹</button>
           <button class="ev-btn next" onclick="evGo(1)" aria-label="Successiva">›</button>
@@ -673,31 +680,57 @@
     render(); restart();
   })();
 
-  // ───── 活动轮播（自适应：单张静态，多张轮播）─────
+  // ───── 活动轮播（自适应：自动检测有几张图，1张静态，多张轮播）─────
   (function(){
     var track = document.getElementById('ev-track');
     var dotsBox = document.getElementById('ev-dots');
     var carousel = document.getElementById('ev-carousel');
     if (!track || !carousel) return;
-    var n = track.children.length;
     var pv=carousel.querySelector('.prev'), nx=carousel.querySelector('.next');
-    if (n <= 1) { return; } // 单张：不显示箭头圆点，不轮播
-    if(pv)pv.style.display='flex'; if(nx)nx.style.display='flex';
-    var idx=0, timer=null;
-    for (var i=0;i<n;i++){
-      var d=document.createElement('div'); d.className='dot'+(i===0?' active':'');
-      (function(k){ d.onclick=function(){ go(k); restart(); }; })(i);
-      dotsBox.appendChild(d);
+
+    // 等所有预留图片加载完（成功或失败），失败的 slide 会被 onerror 移除
+    function waitImages(cb){
+      var imgs = Array.prototype.slice.call(track.querySelectorAll('img'));
+      if (!imgs.length) { cb(); return; }
+      var pending = imgs.length;
+      function done(){ pending--; if(pending<=0) cb(); }
+      imgs.forEach(function(img){
+        if (img.complete) {
+          // 已完成：成功或已缓存的失败
+          if (img.naturalWidth === 0) { var sl=img.closest('.ev-slide'); if(sl) sl.remove(); }
+          done();
+        } else {
+          img.addEventListener('load', done, {once:true});
+          img.addEventListener('error', function(){ var sl=img.closest('.ev-slide'); if(sl) sl.remove(); done(); }, {once:true});
+        }
+      });
     }
-    var dots=Array.prototype.slice.call(dotsBox.children);
-    function render(){ track.style.transform='translateX(-'+(idx*100)+'%)'; dots.forEach(function(dt,k){ dt.classList.toggle('active',k===idx); }); }
-    function go(k){ idx=(k+n)%n; render(); }
-    window.evGo=function(step){ go(idx+step); restart(); };
-    function restart(){ if(timer)clearInterval(timer); timer=setInterval(function(){ go(idx+1); }, 5000); }
-    var sx=0;
-    track.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
-    track.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40){ go(idx+(dx<0?1:-1)); restart(); } },{passive:true});
-    render(); restart();
+
+    function initCarousel(){
+      var slides = track.querySelectorAll('.ev-slide');
+      var n = slides.length;
+      if (n === 0) { carousel.style.display='none'; return; } // 一张都没传
+      if (n === 1) { if(pv)pv.style.display='none'; if(nx)nx.style.display='none'; return; } // 单张不轮播
+
+      if(pv)pv.style.display='flex'; if(nx)nx.style.display='flex';
+      var idx=0, timer=null;
+      for (var i=0;i<n;i++){
+        var d=document.createElement('div'); d.className='dot'+(i===0?' active':'');
+        (function(k){ d.onclick=function(){ go(k); restart(); }; })(i);
+        dotsBox.appendChild(d);
+      }
+      var dots=Array.prototype.slice.call(dotsBox.children);
+      function render(){ track.style.transform='translateX(-'+(idx*100)+'%)'; dots.forEach(function(dt,k){ dt.classList.toggle('active',k===idx); }); }
+      function go(k){ idx=(k+n)%n; render(); }
+      window.evGo=function(step){ go(idx+step); restart(); };
+      function restart(){ if(timer)clearInterval(timer); timer=setInterval(function(){ go(idx+1); }, 5000); }
+      var sx=0;
+      track.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+      track.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40){ go(idx+(dx<0?1:-1)); restart(); } },{passive:true});
+      render(); restart();
+    }
+
+    waitImages(initCarousel);
   })();
 </script>
 </body>
