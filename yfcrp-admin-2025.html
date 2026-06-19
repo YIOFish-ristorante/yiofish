@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.33.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.34.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.33.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.34.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -636,7 +636,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.33.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.34.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -666,7 +666,7 @@ function sbFetch(path, opts) {
 var R = {};
 var C = [];
 var I = [];
-var _SETTINGS = {notify_enabled:false, takeaway_enabled:true, consegna_enabled:true, is_open:true, all_day_menu:false, lunch_start:'11:00', lunch_kitchen:'15:00', lunch_end:'16:00', dinner_start:'17:00', dinner_kitchen:'23:00', dinner_end:'23:59'};
+var _SETTINGS = {notify_enabled:false, takeaway_enabled:true, consegna_enabled:true, is_open:true, all_day_menu:false};
 var _loading = true;
 var _MENU_CONFIGS = {};
 var _TABLE_CONFIGS = []; // [{table_number, guest_count}]
@@ -1353,7 +1353,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.33.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.34.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3705,13 +3705,10 @@ function mealTimeInput(id, label, val) {
   return '<div style="display:flex;flex-direction:column;gap:4px;">'
     +'<span style="font-size:10px;color:var(--muted);letter-spacing:.5px;">'+label+'</span>'
     +'<input id="'+id+'" type="time" value="'+(val||'')+'" '
-    +'style="background:var(--bg2,#1a1510);border:1px solid rgba(212,171,72,.3);border-radius:8px;padding:8px 10px;color:var(--gold,#d4ab48);font-size:13px;">'
+    +'style="background:var(--surface);border:1px solid rgba(212,171,72,.3);border-radius:8px;padding:8px 10px;color:var(--gold);font-size:13px;">'
     +'</div>';
 }
-
-// 校验 "HH:MM" 格式
 function isValidHM(v) { return /^([01]?\d|2[0-3]):[0-5]\d$/.test(v); }
-
 async function saveMealTimes() {
   var ids = {
     lunch_start:'mt-lunch-start', lunch_kitchen:'mt-lunch-kitchen', lunch_end:'mt-lunch-end',
@@ -3725,7 +3722,6 @@ async function saveMealTimes() {
     if (!isValidHM(v)) { toast('⚠️ 时间格式有误，请检查'); return; }
     patch[key] = v;
   }
-  // 简单合理性检查：开始 < 厨房关闭 ≤ 结束（午餐、晚餐各自）
   function m(v){ var p=v.split(':'); return parseInt(p[0])*60+parseInt(p[1]); }
   if (!(m(patch.lunch_start) < m(patch.lunch_kitchen) && m(patch.lunch_kitchen) <= m(patch.lunch_end))) {
     toast('⚠️ 午餐时段顺序不对：开始 < 厨房关闭 ≤ 结束'); return;
@@ -3741,7 +3737,6 @@ async function saveMealTimes() {
     toast('✅ 营业时段已保存');
   } catch(e) { toast('❌ 保存失败: ' + e.message); }
 }
-
 
 // ════════════════════════════════════
 //  🛵 Consegna 排班
@@ -4242,6 +4237,19 @@ function renderCustomerDetail(customer, transactions) {
       + '</div>'
     + '</div>'
 
+    // PIN 安全状态 + 重置
+    + '<div style="background:var(--bg);border-radius:var(--r);padding:14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+      + '<div>'
+        + '<div style="font-size:12px;font-weight:600">🔒 PIN sicurezza</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:2px">'
+          + (customer.pin_hash ? '✅ PIN impostato — il cliente lo usa per riscattare' : '⚠️ Nessun PIN — verrà impostato al primo riscatto')
+        + '</div>'
+      + '</div>'
+      + (customer.pin_hash
+          ? '<button class="btn btn-sm" style="background:#c0392b;color:#fff" onclick="resetLoyaltyPin(\'' + customer.phone + '\')">Reset PIN</button>'
+          : '')
+    + '</div>'
+
     // 流水记录
     + '<div style="font-size:12px;font-weight:600;margin-bottom:8px">📋 Storico transazioni</div>'
     + txHtml
@@ -4274,6 +4282,27 @@ async function applyLoyaltyAdjust() {
       if (ptsEl) ptsEl.value = '';
       if (noteEl) noteEl.value = '';
       // 刷新会员详情
+      searchLoyaltyCustomer();
+    } else {
+      toast('❌ ' + (data.error || 'Errore'));
+    }
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+async function resetLoyaltyPin(phone) {
+  if (!phone) return;
+  if (!confirm('Reset del PIN per ' + phone + '?\nIl cliente dovrà impostarne uno nuovo al prossimo riscatto.')) return;
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/loyalty/pin/reset', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone }),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (res.ok) {
+      toast('✅ PIN resettato');
       searchLoyaltyCustomer();
     } else {
       toast('❌ ' + (data.error || 'Errore'));
@@ -4413,7 +4442,7 @@ async function loadLoyaltyList() {
         }).join('')
       + '</tbody></table></div>'
       + '<div style="font-size:11px;color:var(--muted);margin-top:8px">Totale: ' + (data.total || customers.length) + ' clienti · Clicca su una riga per vedere i dettagli</div>';
-    // 事件委托：点击行搜索该会员（用 onclick 直接赋值，避免重复绑定，且可反复点击）
+    // 事件委托：点击行搜索该会员（onclick 赋值，避免重复绑定且可反复点击）
     setTimeout(function() {
       var listEl2 = document.getElementById('ly-list');
       if (listEl2) listEl2.onclick = function(e) {

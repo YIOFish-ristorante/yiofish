@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.45.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.46.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1331,7 +1331,6 @@ function getRomeMinutes() {
   var parts = str.split(", ")[1].split(":");
   return parseInt(parts[0])*60 + parseInt(parts[1]);
 }
-// "HH:MM" → 分钟数；解析失败返回 fallback（CONFIG 默认值），保证安全回退
 function hm2min(str, fallback) {
   if (!str || typeof str !== 'string') return fallback;
   var p = str.split(':');
@@ -1340,7 +1339,6 @@ function hm2min(str, fallback) {
   if (isNaN(h) || isNaN(m)) return fallback;
   return h*60 + m;
 }
-// 读取时段配置：优先数据库 SETTINGS，缺失则回退 CONFIG 写死值
 function getMealTimes() {
   return {
     LUNCH_START:         hm2min(SETTINGS.lunch_start,    CONFIG.LUNCH_START),
@@ -3561,15 +3559,59 @@ async function lyLookup() {
   }
 }
 
+// PIN 辅助：确保顾客已通过 PIN 验证，返回有效 PIN 字符串或 null（取消）
+async function lyEnsurePin() {
+  var statusRes, statusData;
+  try {
+    statusRes = await fetch(WORKER_URL + '/loyalty/pin/status', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone: _lyPhone}), cache: 'no-store'
+    });
+    statusData = await statusRes.json();
+  } catch(e) { toast('❌ Errore di connessione'); return null; }
+
+  if (!statusData.has_pin) {
+    var p1 = prompt('🔒 Per proteggere i tuoi punti, imposta un PIN di 4 cifre:');
+    if (p1 === null) return null;
+    p1 = p1.trim();
+    if (!/^\d{4}$/.test(p1)) { toast('⚠️ Il PIN deve essere di 4 cifre'); return null; }
+    var p2 = prompt('Conferma il PIN (inseriscilo di nuovo):');
+    if (p2 === null) return null;
+    if (p1 !== p2.trim()) { toast('⚠️ I due PIN non coincidono'); return null; }
+    try {
+      var setRes = await fetch(WORKER_URL + '/loyalty/pin/set', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({phone: _lyPhone, new_pin: p1}), cache: 'no-store'
+      });
+      var setData = await setRes.json();
+      if (!setRes.ok) { toast('❌ ' + (setData.error||'Errore')); return null; }
+    } catch(e) { toast('❌ Errore di connessione'); return null; }
+    toast('✅ PIN impostato');
+    return p1;
+  } else {
+    var pin = prompt('🔒 Inserisci il tuo PIN di 4 cifre per riscattare:');
+    if (pin === null) return null;
+    pin = pin.trim();
+    if (!/^\d{4}$/.test(pin)) { toast('⚠️ Il PIN deve essere di 4 cifre'); return null; }
+    return pin;
+  }
+}
+
 async function lyRedeem(rewardId) {
+  var pin = await lyEnsurePin();
+  if (pin === null) return;
   try {
     var res = await fetch(WORKER_URL + '/loyalty/redeem/create', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({phone: _lyPhone, restaurant_id: RESTAURANT_ID, reward_id: rewardId}),
+      body: JSON.stringify({phone: _lyPhone, restaurant_id: RESTAURANT_ID, reward_id: rewardId, pin: pin}),
       cache: 'no-store'
     });
     var data = await res.json();
-    if (!res.ok) { toast('❌ ' + (data.error||'Errore')); return; }
+    if (!res.ok) {
+      if (data.pin_error) { toast('❌ PIN errato'); }
+      else { toast('❌ ' + (data.error||'Errore')); }
+      return;
+    }
 
     // 显示兑换码 + 生成二维码
     document.getElementById('ly-code-display').textContent = data.code;
