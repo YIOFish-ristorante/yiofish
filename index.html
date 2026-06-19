@@ -234,6 +234,27 @@
     border: 1px solid var(--gold-dk); background: var(--gold-dim);
     color: var(--gold-lt); font-size: 13px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
   }
+  /* 倒计时 */
+  .countdown {
+    display: flex; align-items: baseline; gap: 12px; margin: 4px 0 22px;
+  }
+  .cd-num {
+    font-size: clamp(56px, 14vw, 88px); font-weight: 700; line-height: 1; color: var(--gold-lt);
+    text-shadow: 0 2px 20px rgba(212,171,72,.35); letter-spacing: -2px;
+  }
+  .cd-label { font-size: 14px; letter-spacing: 2px; color: var(--text2); text-transform: uppercase; }
+  /* 活动条件 */
+  .event-reqs { display: flex; flex-direction: column; gap: 14px; margin: 22px 0; max-width: 480px; }
+  .req { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.6; color: var(--text2); }
+  .req b { color: var(--gold-lt); }
+  .req-n {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--gold-dim); border: 1px solid var(--gold-dk); color: var(--gold-lt);
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .req-ig { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+  .req-ig a { font-size: 13px; color: var(--gold-lt); border-bottom: 1px solid var(--gold-dim); padding-bottom: 2px; width: fit-content; }
+  .req-ig a:hover { border-bottom-color: var(--gold-lt); }
   .event-stores { display: flex; flex-direction: column; gap: 12px; max-width: 420px; }
   .event-store {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -438,12 +459,45 @@
         </div>
       </div>
       <div class="event-info">
-        <h3>Ventaglio in edizione speciale</h3>
-        <p>Un'esclusiva riservata ai clienti YIO Fish. Raccogli punti e ottieni il nostro elegante ventaglio in edizione speciale.</p>
-        <span class="event-soon">Prossimamente</span>
+        <h3>Il grande fresco sta arrivando! 🪭</h3>
+        <div class="countdown" id="fan-countdown">
+          <span class="cd-num" id="cd-days">–</span>
+          <span class="cd-label">giorni all'arrivo</span>
+        </div>
+        <p>I nostri esclusivi ventagli orientali firmati YIO Fish sono in viaggio! Vuoi essere tra i primi ad averlo? Inizia ad accumulare i punti DA OGGI! 🏃‍♂️💨</p>
+        <div class="event-reqs">
+          <div class="req"><span class="req-n">1</span><div><b>15 PUNTI</b> — Registrati su yio.it (🎁 +5 punti gratis subito) e accumula i punti!</div></div>
+          <div class="req"><span class="req-n">2</span><div><b>1 STORIA INSTAGRAM</b> — Condividi la tua cena, tagga il ristorante e mantienila visibile almeno 12 ore! 📸
+            <div class="req-ig">
+              <a href="https://instagram.com/yio_fish_carpi" target="_blank">Carpi → @yio_fish_carpi</a>
+              <a href="https://instagram.com/yio_fish_legnago" target="_blank">Legnago → @yio_fish_legnago</a>
+              <a href="https://instagram.com/yio_fish_imola" target="_blank">Imola → @yio_fish_imola</a>
+            </div>
+          </div></div>
+          <div class="req"><span class="req-n">3</span><div><b>PROSSIMA CONSUMAZIONE</b> — Al raggiungimento dei 15 punti, ritira il ventaglio alla cassa alla tua prima cena o pranzo successivo! 🥢</div></div>
+        </div>
+        <span class="event-soon">Inizia oggi · Link in bio</span>
       </div>
     </div>
   </div>
+  <script>
+    (function(){
+      // 扇子到达倒计时（目标：2026-07-14，罗马时区）
+      function updateFanCountdown(){
+        var el = document.getElementById('cd-days');
+        if(!el) return;
+        var target = new Date('2026-07-14T00:00:00+02:00');
+        var now = new Date();
+        var diff = Math.ceil((target - now) / (1000*60*60*24));
+        var cd = document.getElementById('fan-countdown');
+        if(diff > 0){ el.textContent = diff; }
+        else if(diff === 0){ el.textContent = '0'; if(cd){var l=cd.querySelector('.cd-label'); if(l)l.textContent='è arrivato! 🪭';} }
+        else { if(cd) cd.style.display='none'; }
+      }
+      updateFanCountdown();
+      setInterval(updateFanCountdown, 60*60*1000); // 每小时刷新
+    })();
+  </script>
 </section>
 
 <!-- ⑥ 服务方式 -->
