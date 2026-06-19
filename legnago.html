@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.46.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.47.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -785,6 +785,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         <div id="ly-expiry-hint" style="display:none;margin-top:8px;font-size:11px;color:#c0392b"></div>
         <div style="margin-top:8px">
           <a href="/loyalty-rules.html" target="_blank" style="font-size:11px;color:#7a7060;text-decoration:underline">📋 Come funzionano i punti?</a>
+          <span style="color:#d0c8b8;margin:0 6px">·</span>
+          <a href="#" onclick="lyManagePin();return false;" style="font-size:11px;color:#7a7060;text-decoration:underline">🔒 Gestisci PIN</a>
         </div>
       </div>
       <div style="font-size:13px;font-weight:600;margin-bottom:10px">🎁 Premi disponibili</div>
@@ -3594,6 +3596,46 @@ async function lyEnsurePin() {
     if (!/^\d{4}$/.test(pin)) { toast('⚠️ Il PIN deve essere di 4 cifre'); return null; }
     return pin;
   }
+}
+
+// 顾客自助修改/设置 PIN
+async function lyManagePin() {
+  if (!_lyPhone) { toast('⚠️ Inserisci prima il tuo numero'); return; }
+  // 查是否已有 PIN
+  var has = false;
+  try {
+    var st = await fetch(WORKER_URL + '/loyalty/pin/status', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone: _lyPhone}), cache: 'no-store'
+    });
+    var stData = await st.json();
+    has = !!stData.has_pin;
+  } catch(e) { toast('❌ Errore di connessione'); return; }
+
+  var oldPin = '';
+  if (has) {
+    oldPin = prompt('🔒 Inserisci il PIN attuale:');
+    if (oldPin === null) return;
+    oldPin = oldPin.trim();
+    if (!/^\d{4}$/.test(oldPin)) { toast('⚠️ Il PIN deve essere di 4 cifre'); return; }
+  }
+  var p1 = prompt(has ? 'Inserisci il NUOVO PIN di 4 cifre:' : '🔒 Imposta un PIN di 4 cifre:');
+  if (p1 === null) return;
+  p1 = p1.trim();
+  if (!/^\d{4}$/.test(p1)) { toast('⚠️ Il PIN deve essere di 4 cifre'); return; }
+  var p2 = prompt('Conferma il nuovo PIN:');
+  if (p2 === null) return;
+  if (p1 !== p2.trim()) { toast('⚠️ I due PIN non coincidono'); return; }
+
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/pin/set', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone: _lyPhone, new_pin: p1, old_pin: oldPin}), cache: 'no-store'
+    });
+    var data = await res.json();
+    if (res.ok) { toast('✅ PIN aggiornato'); }
+    else { toast('❌ ' + (data.error || 'Errore')); }
+  } catch(e) { toast('❌ Errore di connessione'); }
 }
 
 async function lyRedeem(rewardId) {
