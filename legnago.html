@@ -546,7 +546,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.47.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.48.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -776,7 +776,9 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <!-- 步骤2：显示积分+奖品 -->
     <div id="ly-step-rewards" style="display:none">
       <div id="ly-balance-box" style="background:#fdf8ee;border-radius:6px;padding:14px;text-align:center;margin-bottom:16px">
-        <div style="font-size:11px;color:#7a6020;letter-spacing:1px;margin-bottom:4px">I TUOI PUNTI</div>
+        <div style="font-size:11px;color:#7a6020;letter-spacing:1px;margin-bottom:4px">I TUOI PUNTI
+          <a href="#" onclick="lyRefresh();return false;" id="ly-refresh-btn" style="color:#b8902e;text-decoration:none;margin-left:6px;font-size:13px" title="Aggiorna">🔄</a>
+        </div>
         <div id="ly-pts-display" style="font-size:36px;font-weight:700;color:#b8902e">0</div>
         <div id="ly-name-display" style="font-size:12px;color:#7a7060;margin-top:2px"></div>
         <button onclick="lyShowQR()" style="margin-top:10px;padding:7px 18px;background:#1a1510;color:#f4f1ec;border:none;border-radius:20px;font-size:12px;font-family:inherit;cursor:pointer;letter-spacing:1px">
@@ -3499,6 +3501,21 @@ function lyStartFlow(flow) {
     : 'Inserisci il tuo numero per vedere i tuoi punti e riscattare premi.';
   lyShowStep('phone');
   setTimeout(function(){ var el = document.getElementById('ly-phone'); if(el) el.focus(); }, 100);
+}
+
+// 刷新积分：复用已登录的手机号重新拉取最新积分+奖品
+async function lyRefresh() {
+  if (!_lyPhone) return;
+  var btn = document.getElementById('ly-refresh-btn');
+  if (btn) { btn.textContent = '⏳'; btn.style.pointerEvents = 'none'; }
+  // 把手机号填回输入框，复用 lyLookup 的完整拉取逻辑
+  var inp = document.getElementById('ly-phone');
+  if (inp) inp.value = _lyPhone;
+  try {
+    await lyLookup();
+    toast('✅ Aggiornato');
+  } catch(e) {}
+  if (btn) { btn.textContent = '🔄'; btn.style.pointerEvents = ''; }
 }
 
 async function lyLookup() {
