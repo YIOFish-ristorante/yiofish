@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.35.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.37.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.35.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.37.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -636,7 +636,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.35.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.37.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1353,7 +1353,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.35.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.37.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -4007,7 +4007,10 @@ async function renderLoyaltyPage() {
     + '<div class="card" style="padding:18px 22px">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
         + '<div style="font-size:14px;font-weight:600">👥 Lista clienti</div>'
-        + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="loadLoyaltyList()">🔄 Aggiorna</button>'
+        + '<div style="display:flex;gap:6px">'
+          + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="exportLoyaltyList()">📥 Esporta</button>'
+          + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="loadLoyaltyList()">🔄 Aggiorna</button>'
+        + '</div>'
       + '</div>'
       + '<div id="ly-list">Caricamento...</div>'
     + '</div>'
@@ -4435,52 +4438,167 @@ async function toggleReward(id, isActive) {
   } catch(e) { toast('❌ ' + e.message); }
 }
 
+var _lyListData = [];        // 当前加载的全部会员（供排序/导出）
+var _lySortKey = 'total_points';  // 默认按积分
+var _lySortDir = 'desc';     // 默认降序
+var _lyStoreFilter = '';     // 主力店筛选：''=全部
+
 async function loadLoyaltyList() {
   var listEl = document.getElementById('ly-list');
   if (!listEl) return;
   listEl.innerHTML = '⏳ Caricamento...';
   try {
     var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
-    var res = await fetch(WORKER_URL + '/loyalty/list?limit=50&offset=0', {
+    var res = await fetch(WORKER_URL + '/loyalty/list?limit=1000&offset=0&with_stores=1', {
       headers: { 'Authorization': 'Bearer ' + token },
       cache: 'no-store'
     });
     var data = await res.json();
     if (!res.ok) { listEl.innerHTML = '❌ ' + (data.error || 'Errore'); return; }
-    var customers = data.customers || [];
-    if (!customers.length) {
+    _lyListData = data.customers || [];
+    if (!_lyListData.length) {
       listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Nessun cliente registrato</div>';
       return;
     }
-    listEl.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
-      + '<thead><tr style="border-bottom:2px solid var(--border)">'
-        + '<th style="text-align:left;padding:8px 4px;color:var(--muted);font-weight:500">Nome</th>'
-        + '<th style="text-align:left;padding:8px 4px;color:var(--muted);font-weight:500">Telefono</th>'
-        + '<th style="text-align:right;padding:8px 4px;color:var(--muted);font-weight:500">Punti</th>'
-        + '<th style="text-align:right;padding:8px 4px;color:var(--muted);font-weight:500">Dal</th>'
-      + '</tr></thead><tbody>'
-      + customers.map(function(c) {
-          return '<tr style="border-bottom:1px solid var(--border);cursor:pointer" data-phone="'+c.phone+'" class="ly-row">'
-            + '<td style="padding:8px 4px">' + (c.name || '<span style="color:var(--muted)">—</span>') + '</td>'
-            + '<td style="padding:8px 4px;color:var(--muted)">' + c.phone + '</td>'
-            + '<td style="padding:8px 4px;text-align:right;font-weight:600;color:#d4af37">' + c.total_points + '</td>'
-            + '<td style="padding:8px 4px;text-align:right;color:var(--muted);font-size:11px">' + new Date(c.created_at).toLocaleDateString('it-IT') + '</td>'
-          + '</tr>';
-        }).join('')
-      + '</tbody></table></div>'
-      + '<div style="font-size:11px;color:var(--muted);margin-top:8px">Totale: ' + (data.total || customers.length) + ' clienti · Clicca su una riga per vedere i dettagli</div>';
-    // 事件委托：点击行搜索该会员（onclick 赋值，避免重复绑定且可反复点击）
-    setTimeout(function() {
-      var listEl2 = document.getElementById('ly-list');
-      if (listEl2) listEl2.onclick = function(e) {
-        var tr = e.target.closest('tr.ly-row');
-        if (tr) {
-          var ph = tr.getAttribute('data-phone');
-          if (ph) { document.getElementById('ly-search').value = ph; searchLoyaltyCustomer(); }
-        }
-      };
-    }, 100);
+    renderLoyaltyList();
   } catch(e) { listEl.innerHTML = '❌ ' + e.message; }
 }
+
+// 主力店中文/显示名
+function lyStoreName(rid) {
+  if (!rid) return '—';
+  return rid.charAt(0).toUpperCase() + rid.slice(1);
+}
+
+// 切换店铺筛选
+function lyFilterStore(rid) {
+  _lyStoreFilter = rid;
+  renderLoyaltyList();
+}
+
+// 排序：点击表头切换。同列再点切换升降序
+function lySortBy(key) {
+  if (_lySortKey === key) {
+    _lySortDir = (_lySortDir === 'asc') ? 'desc' : 'asc';
+  } else {
+    _lySortKey = key;
+    _lySortDir = (key === 'total_points' || key === 'created_at') ? 'desc' : 'asc';
+  }
+  renderLoyaltyList();
+}
+
+function renderLoyaltyList() {
+  var listEl = document.getElementById('ly-list');
+  if (!listEl) return;
+
+  // 先按主力店筛选
+  var filtered = _lyListData.filter(function(c) {
+    if (!_lyStoreFilter) return true;
+    return (c.main_store || '') === _lyStoreFilter;
+  });
+
+  // 排序
+  var arr = filtered.slice();
+  var k = _lySortKey, dir = (_lySortDir === 'asc' ? 1 : -1);
+  arr.sort(function(a, b) {
+    var va, vb;
+    if (k === 'total_points') { va = a.total_points||0; vb = b.total_points||0; }
+    else if (k === 'created_at') { va = new Date(a.created_at).getTime()||0; vb = new Date(b.created_at).getTime()||0; }
+    else if (k === 'phone') { va = a.phone||''; vb = b.phone||''; return dir * va.localeCompare(vb); }
+    else if (k === 'main_store') { return dir * (a.main_store||'').localeCompare(b.main_store||''); }
+    else { va = (a.name||'').toLowerCase(); vb = (b.name||'').toLowerCase(); return dir * va.localeCompare(vb); }
+    return dir * (va - vb);
+  });
+
+  function arrow(key) {
+    if (_lySortKey !== key) return '<span style="opacity:.3">↕</span>';
+    return _lySortDir === 'asc' ? '▲' : '▼';
+  }
+  var thBase = 'padding:8px 4px;color:var(--muted);font-weight:500;cursor:pointer;user-select:none';
+
+  // 统计各店会员数（按主力店），放进筛选下拉
+  var counts = { '': _lyListData.length };
+  _lyListData.forEach(function(c){ var m=c.main_store||'_none'; counts[m]=(counts[m]||0)+1; });
+  var stores = ['carpi','legnago','imola'];
+  var filterBar = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">'
+    + '<span style="font-size:11px;color:var(--muted)">Negozio principale:</span>'
+    + '<button onclick="lyFilterStore(\'\')" style="padding:4px 10px;border-radius:14px;font-size:11px;cursor:pointer;border:1px solid var(--border2);'
+      + (_lyStoreFilter===''?'background:var(--gold);color:#1a1510':'background:transparent;color:var(--muted)') + '">Tutti (' + (counts['']||0) + ')</button>'
+    + stores.map(function(rid){
+        return '<button onclick="lyFilterStore(\''+rid+'\')" style="padding:4px 10px;border-radius:14px;font-size:11px;cursor:pointer;border:1px solid var(--border2);'
+          + (_lyStoreFilter===rid?'background:var(--gold);color:#1a1510':'background:transparent;color:var(--muted)') + '">'
+          + lyStoreName(rid) + ' (' + (counts[rid]||0) + ')</button>';
+      }).join('')
+    + '</div>';
+
+  listEl.innerHTML = filterBar
+    + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+    + '<thead><tr style="border-bottom:2px solid var(--border)">'
+      + '<th style="text-align:left;'+thBase+'" onclick="lySortBy(\'name\')">Nome ' + arrow('name') + '</th>'
+      + '<th style="text-align:left;'+thBase+'" onclick="lySortBy(\'phone\')">Telefono ' + arrow('phone') + '</th>'
+      + '<th style="text-align:left;'+thBase+'" onclick="lySortBy(\'main_store\')">Negozio ' + arrow('main_store') + '</th>'
+      + '<th style="text-align:right;'+thBase+'" onclick="lySortBy(\'total_points\')">Punti ' + arrow('total_points') + '</th>'
+      + '<th style="text-align:right;'+thBase+'" onclick="lySortBy(\'created_at\')">Dal ' + arrow('created_at') + '</th>'
+    + '</tr></thead><tbody>'
+    + arr.map(function(c) {
+        return '<tr style="border-bottom:1px solid var(--border);cursor:pointer" data-phone="'+c.phone+'" class="ly-row">'
+          + '<td style="padding:8px 4px">' + (c.name || '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td style="padding:8px 4px;color:var(--muted)">' + c.phone + '</td>'
+          + '<td style="padding:8px 4px;font-size:12px">' + lyStoreName(c.main_store) + '</td>'
+          + '<td style="padding:8px 4px;text-align:right;font-weight:600;color:#d4af37">' + c.total_points + '</td>'
+          + '<td style="padding:8px 4px;text-align:right;color:var(--muted);font-size:11px">' + new Date(c.created_at).toLocaleDateString('it-IT') + '</td>'
+        + '</tr>';
+      }).join('')
+    + '</tbody></table></div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">Mostrati: ' + arr.length + ' / ' + _lyListData.length + ' clienti · Clicca su una riga per i dettagli</div>';
+
+  var listEl2 = document.getElementById('ly-list');
+  if (listEl2) listEl2.onclick = function(e) {
+    if (e.target.closest('th') || e.target.closest('button')) return; // 表头排序/筛选按钮不触发查询
+    var tr = e.target.closest('tr.ly-row');
+    if (tr) {
+      var ph = tr.getAttribute('data-phone');
+      if (ph) { document.getElementById('ly-search').value = ph; searchLoyaltyCustomer(); }
+    }
+  };
+}
+
+// 导出（跟随当前筛选）为 CSV
+function exportLoyaltyList() {
+  if (!_lyListData.length) { toast('⚠️ Nessun cliente da esportare'); return; }
+  // 应用当前筛选
+  var arr = _lyListData.filter(function(c) {
+    if (!_lyStoreFilter) return true;
+    return (c.main_store || '') === _lyStoreFilter;
+  });
+  // 按当前排序
+  var k = _lySortKey, dir = (_lySortDir === 'asc' ? 1 : -1);
+  arr.sort(function(a, b) {
+    var va, vb;
+    if (k === 'total_points') { va=a.total_points||0; vb=b.total_points||0; }
+    else if (k === 'created_at') { va=new Date(a.created_at).getTime()||0; vb=new Date(b.created_at).getTime()||0; }
+    else if (k === 'phone') { return dir*(a.phone||'').localeCompare(b.phone||''); }
+    else if (k === 'main_store') { return dir*((a.main_store||'').localeCompare(b.main_store||'')); }
+    else { return dir*((a.name||'').toLowerCase()).localeCompare((b.name||'').toLowerCase()); }
+    return dir*(va-vb);
+  });
+  function esc(v) { v = (v==null?'':String(v)); return '"' + v.replace(/"/g,'""') + '"'; }
+  var rows = [['Nome','Telefono','Negozio principale','Punti','Data registrazione']];
+  arr.forEach(function(c) {
+    rows.push([ c.name||'', c.phone||'', lyStoreName(c.main_store), c.total_points||0, new Date(c.created_at).toLocaleDateString('it-IT') ]);
+  });
+  var csv = '\ufeff' + rows.map(function(r){ return r.map(esc).join(','); }).join('\r\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  var suffix = _lyStoreFilter ? ('-' + _lyStoreFilter) : '';
+  a.download = 'clienti-fedelta' + suffix + '-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✅ Esportati ' + arr.length + ' clienti');
+}
+
+
 
 </script>
