@@ -493,9 +493,20 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 
 @media (max-width: 520px) {
   .mhdr-logo { width: 170px; height: 62px; }
-  .grid { grid-template-columns: 1fr; gap: 12px; }
   main { padding: 20px 10px 160px; }
-  .cname { font-size: 14px; }
+  /* 紧凑网格：一行2个菜品卡 */
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .cname { font-size: 14px; line-height: 1.2; }
+  .cimg { aspect-ratio: 1/1; min-height: 0; }        /* 缩略图正方形，更紧凑 */
+  .cbody { padding: 8px; gap: 4px; }
+  .cdesc { font-size: 11px; line-height: 1.4; max-height: 2.8em; overflow: hidden; }
+  .cfoot { padding-top: 6px; }
+  .cprice { font-size: 16px; }
+  .cprice .sym { font-size: 11px; }
+  .ctags { gap: 3px; }
+  .ctags .tag { font-size: 9px; padding: 1px 4px; }
+  /* 加减按钮在窄卡里缩小 */
+  .qctrl { transform: scale(.92); transform-origin: right center; }
 }
 </style>
 
@@ -546,7 +557,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.48.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.49.0 · 2026-05-30</span></div>
 </div>
 </div>
 
