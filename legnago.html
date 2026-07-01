@@ -491,11 +491,40 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .key.empty { pointer-events: none; background: transparent; border-color: transparent; }
 .admin-error { color: var(--red); font-size: 12px; letter-spacing: 1px; margin-top: 12px; min-height: 18px; }
 
+/* 菜品详情弹窗 */
+.dd-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+.dd-overlay.show { display: flex; }
+.dd-box { background: var(--surface, #14120c); border: 1px solid rgba(212,171,72,.25); border-radius: 16px; max-width: 440px; width: 100%; max-height: 88vh; overflow-y: auto; position: relative; }
+.dd-close { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 50%; background: rgba(0,0,0,.55); border: none; color: #fff; font-size: 16px; cursor: pointer; z-index: 2; }
+.dd-img { width: 100%; aspect-ratio: 4/3; overflow: hidden; background: #100f09; border-radius: 16px 16px 0 0; }
+.dd-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dd-content { padding: 18px 20px 22px; }
+.dd-name { font-family: "Cormorant Garamond", serif; font-size: 24px; color: var(--text2, #ede5d4); line-height: 1.2; margin-bottom: 10px; }
+.dd-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.dd-tag { font-size: 12px; padding: 3px 9px; border: 1px solid; border-radius: 20px; }
+.dd-desc { font-size: 15px; color: var(--muted2, #b0a898); line-height: 1.7; margin-bottom: 18px; }
+.dd-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border, #2a2519); }
+.dd-price { font-family: "Cormorant Garamond", serif; font-size: 26px; color: var(--gold, #d4ab48); }
+.dd-price-old { font-size: 15px; color: rgba(237,229,212,.5); text-decoration: line-through; margin-left: 8px; }
+.dd-add-btn { background: var(--gold, #d4ab48); border: none; border-radius: 24px; color: #0c0b09; font-size: 15px; font-weight: 600; padding: 11px 22px; cursor: pointer; white-space: nowrap; letter-spacing: .5px; }
+.dd-add-btn:active { transform: scale(.96); }
+
 @media (max-width: 520px) {
   .mhdr-logo { width: 170px; height: 62px; }
-  .grid { grid-template-columns: 1fr; gap: 12px; }
   main { padding: 20px 10px 160px; }
-  .cname { font-size: 14px; }
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .cname { font-size: 14px; line-height: 1.2; }
+  .cimg { aspect-ratio: 1/1; min-height: 0; }
+  .cbody { padding: 8px; gap: 4px; }
+  .cdesc { font-size: 11px; line-height: 1.4; max-height: 2.8em; overflow: hidden; }
+  .cfoot { padding-top: 6px; }
+  .cprice { font-size: 16px; }
+  .cprice .sym { font-size: 11px; }
+  .ctags { gap: 3px; }
+  .ctags .tag { font-size: 9px; padding: 2px; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; }
+  .ctags .tag .tag-lb { display: none; }
+  .ctags .tag .tag-ic { font-size: 12px; }
+  .qctrl { transform: scale(.92); transform-origin: right center; }
 }
 </style>
 
@@ -546,7 +575,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.48.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.51.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1713,7 +1742,7 @@ function mkCard(it, delay) {
     sp.className = 'tag';
     sp.style.color = td.color;
     sp.style.borderColor = td.color;
-    sp.textContent = td.icon + ' ' + td.label;
+    sp.innerHTML = '<span class="tag-ic">' + td.icon + '</span><span class="tag-lb"> ' + td.label + '</span>';
     te.appendChild(sp);
   });
   if (te.children.length) body.appendChild(te);
@@ -1756,9 +1785,87 @@ function mkCard(it, delay) {
   ft.appendChild(ac);
 
   body.appendChild(ft);
-  if (iw) card.appendChild(iw);
+  if (iw) {
+    iw.style.cursor = 'pointer';
+    (function(item){ iw.onclick = function(){ showDishDetail(item); }; })(it);
+    card.appendChild(iw);
+  }
+  (function(item){ nm.style.cursor = 'pointer'; nm.onclick = function(){ showDishDetail(item); }; })(it);
   card.appendChild(body);
   return card;
+}
+
+// 大图详情弹窗（点缩略图卡片展开）
+function showDishDetail(it) {
+  var m = document.getElementById('dish-detail-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'dish-detail-modal';
+    m.className = 'dd-overlay';
+    m.onclick = function(e){ if (e.target === m) closeDishDetail(); };
+    document.body.appendChild(m);
+  }
+  var dispPrice = effectivePrice(it);
+  var actuallyDiscounted = (it.price > 0 && dispPrice < it.price - 0.001);
+  var displaySconto;
+  if (isAsporto && order_mode === 'consegna') {
+    displaySconto = (it.sconto_consegna != null) ? (it.sconto_consegna || 0) : (it.sconto || 0);
+  } else { displaySconto = it.sconto || 0; }
+
+  var tagsHtml = (it.tags || []).filter(function(t){ return t !== 'new' && TAGS[t]; }).map(function(t){
+    var td = TAGS[t];
+    return '<span class="dd-tag" style="color:'+td.color+';border-color:'+td.color+'">'+td.icon+' '+td.label+'</span>';
+  }).join('');
+
+  var priceHtml = '';
+  if (dispPrice > 0) {
+    priceHtml = '<span class="dd-price">€ ' + Number(dispPrice).toFixed(2).replace('.', ',') + '</span>';
+    if (displaySconto > 0 && actuallyDiscounted) {
+      priceHtml += '<span class="dd-price-old">€ ' + Number(it.price).toFixed(2).replace('.', ',') + '</span>';
+    }
+  }
+
+  m.innerHTML = '<div class="dd-box">'
+    + '<button class="dd-close" onclick="closeDishDetail()">✕</button>'
+    + (it.image ? '<div class="dd-img"><img src="'+it.image+'" alt=""></div>' : '')
+    + '<div class="dd-content">'
+      + '<div class="dd-name">' + displayDishHTML(it) + '</div>'
+      + (tagsHtml ? '<div class="dd-tags">'+tagsHtml+'</div>' : '')
+      + (it.desc ? '<div class="dd-desc">'+it.desc+'</div>' : '')
+      + '<div class="dd-foot"><div class="dd-price-wrap">'+priceHtml+'</div><div id="dd-ac"></div></div>'
+    + '</div>'
+  + '</div>';
+  renderDetailAc(it);
+  m.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function renderDetailAc(it) {
+  var el = document.getElementById('dd-ac');
+  if (!el) return;
+  var q = (isAsporto ? cart_asporto : cart_dine)[it.id] || 0;
+  el.innerHTML = '';
+  el.className = (q === 0) ? '' : 'qctrl';
+  if (q === 0) {
+    var btn = document.createElement('button');
+    btn.className = 'dd-add-btn';
+    btn.textContent = '+ Aggiungi';
+    btn.onclick = function(){ changeQty(it, +1); renderDetailAc(it); };
+    el.appendChild(btn);
+  } else {
+    var bm = document.createElement('button'); bm.className='qbtn'; bm.textContent='−';
+    var sp = document.createElement('span'); sp.className='qnum'; sp.textContent=q;
+    var bp = document.createElement('button'); bp.className='qbtn'; bp.textContent='+';
+    bm.onclick = function(){ changeQty(it,-1); renderDetailAc(it); };
+    bp.onclick = function(){ changeQty(it,+1); renderDetailAc(it); };
+    el.appendChild(bm); el.appendChild(sp); el.appendChild(bp);
+  }
+}
+
+function closeDishDetail() {
+  var m = document.getElementById('dish-detail-modal');
+  if (m) m.classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 // ════════════════════════════════════
