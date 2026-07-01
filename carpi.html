@@ -506,6 +506,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .dd-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border, #2a2519); }
 .dd-price { font-family: "Cormorant Garamond", serif; font-size: 26px; color: var(--gold, #d4ab48); }
 .dd-price-old { font-size: 15px; color: rgba(237,229,212,.5); text-decoration: line-through; margin-left: 8px; }
+.dd-add-btn { background: var(--gold, #d4ab48); border: none; border-radius: 24px; color: #0c0b09; font-size: 15px; font-weight: 600; padding: 11px 22px; cursor: pointer; white-space: nowrap; letter-spacing: .5px; }
+.dd-add-btn:active { transform: scale(.96); }
 
 @media (max-width: 520px) {
   .mhdr-logo { width: 170px; height: 62px; }
@@ -575,7 +577,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.50.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.51.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1833,7 +1835,7 @@ function showDishDetail(it) {
       + '<div class="dd-name">' + displayDishHTML(it) + '</div>'
       + (tagsHtml ? '<div class="dd-tags">'+tagsHtml+'</div>' : '')
       + (it.desc ? '<div class="dd-desc">'+it.desc+'</div>' : '')
-      + '<div class="dd-foot"><div class="dd-price-wrap">'+priceHtml+'</div><div id="dd-ac" class="qctrl"></div></div>'
+      + '<div class="dd-foot"><div class="dd-price-wrap">'+priceHtml+'</div><div id="dd-ac"></div></div>'
     + '</div>'
   + '</div>';
   // 详情里的加减：独立渲染，复用 changeQty/addItem，操作后同步刷新
@@ -1848,9 +1850,10 @@ function renderDetailAc(it) {
   if (!el) return;
   var q = (isAsporto ? cart_asporto : cart_dine)[it.id] || 0;
   el.innerHTML = '';
+  el.className = (q === 0) ? '' : 'qctrl';
   if (q === 0) {
     var btn = document.createElement('button');
-    btn.className = 'add-btn';
+    btn.className = 'dd-add-btn';
     btn.textContent = '+ Aggiungi';
     btn.onclick = function(){ changeQty(it, +1); renderDetailAc(it); };
     el.appendChild(btn);
