@@ -509,6 +509,21 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .dd-add-btn { background: var(--gold, #d4ab48); border: none; border-radius: 24px; color: #0c0b09; font-size: 15px; font-weight: 600; padding: 11px 22px; cursor: pointer; white-space: nowrap; letter-spacing: .5px; }
 .dd-add-btn:active { transform: scale(.96); }
 
+/* ══════════════════════════════════════ */
+/* v1.60: 锁定整页缩放 + 禁止选中文字 + 详情大图可缩放 */
+/* ══════════════════════════════════════ */
+html, body { touch-action: pan-x pan-y; }        /* 允许上下/左右滚动，禁止双指缩放与双击放大整页 */
+* {
+  -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+  -webkit-touch-callout: none;                    /* 关掉 iOS 长按“拷贝/分享/存图”气泡 */
+}
+input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选中/可粘贴，否则填不了名字电话 */
+  -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text;
+  -webkit-touch-callout: default;
+}
+.dd-img { touch-action: pan-y; cursor: zoom-in; }      /* 详情大图：自定义缩放；1x 时仍可上下滚动弹窗 */
+.dd-img img { will-change: transform; }
+
 /* BOX 套餐横条 */
 .box-bar {
   display: flex; align-items: center; gap: 8px; overflow-x: auto;
@@ -603,7 +618,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.59.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.60.0 · 2026-07-02</span></div>
 </div>
 </div>
 
@@ -2102,6 +2117,7 @@ function showDishDetail(it) {
   renderDetailAc(it);
   m.classList.add('show');
   document.body.style.overflow = 'hidden';
+  setupDishImageZoom();
 }
 
 // 渲染详情弹窗里的加减控件
@@ -2167,6 +2183,93 @@ function closeDishDetail() {
   if (m) m.classList.remove('show');
   document.body.style.overflow = '';
 }
+
+// ══════════════════════════════════════
+// v1.60: 详情大图 双指缩放 + 双击放大（只缩放图片，页面纹丝不动）
+// ══════════════════════════════════════
+function setupDishImageZoom() {
+  var wrap = document.querySelector('#dish-detail-modal .dd-img');
+  if (!wrap) return;
+  var img = wrap.querySelector('img');
+  if (!img) return;
+
+  var scale = 1, tx = 0, ty = 0;
+  var MIN = 1, MAX = 4;
+  var startDist = 0, startScale = 1, startX = 0, startY = 0, startTx = 0, startTy = 0;
+  var mode = null;                 // 'pinch' | 'pan'
+  var lastTap = 0, lastTapX = 0, lastTapY = 0;
+
+  img.style.transformOrigin = 'center center';
+  function apply() {
+    img.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+    wrap.style.touchAction = (scale > 1.02) ? 'none' : 'pan-y';   // 放大后单指平移图片；未放大时可滚动弹窗
+    wrap.style.cursor = (scale > 1.02) ? 'zoom-out' : 'zoom-in';
+  }
+  function clampPan() {
+    var r = wrap.getBoundingClientRect();
+    var mx = (r.width  * (scale - 1)) / 2;
+    var my = (r.height * (scale - 1)) / 2;
+    tx = Math.max(-mx, Math.min(mx, tx));
+    ty = Math.max(-my, Math.min(my, ty));
+  }
+  function reset() { scale = 1; tx = 0; ty = 0; apply(); }
+  function dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+
+  img.style.transition = 'transform .15s ease';
+  reset();
+
+  wrap.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+      mode = 'pinch'; startDist = dist(e.touches); startScale = scale;
+      img.style.transition = 'none'; e.preventDefault();
+    } else if (e.touches.length === 1) {
+      var t = e.touches[0], now = Date.now();
+      if (now - lastTap < 300 && Math.abs(t.clientX - lastTapX) < 30 && Math.abs(t.clientY - lastTapY) < 30) {
+        img.style.transition = 'transform .2s ease';               // 双击：放大 / 还原
+        if (scale > 1.05) { reset(); }
+        else {
+          scale = 2.5;
+          var r = wrap.getBoundingClientRect();
+          tx = -(t.clientX - r.left - r.width  / 2) * (scale - 1);
+          ty = -(t.clientY - r.top  - r.height / 2) * (scale - 1);
+          clampPan(); apply();
+        }
+        lastTap = 0; e.preventDefault(); return;
+      }
+      lastTap = now; lastTapX = t.clientX; lastTapY = t.clientY;
+      if (scale > 1) {
+        mode = 'pan'; startX = t.clientX; startY = t.clientY; startTx = tx; startTy = ty;
+        img.style.transition = 'none'; e.preventDefault();
+      } else { mode = null; }                                      // 未放大：单指不拦截，弹窗照常滚动/关闭
+    }
+  }, { passive: false });
+
+  wrap.addEventListener('touchmove', function(e) {
+    if (mode === 'pinch' && e.touches.length === 2) {
+      scale = Math.max(MIN, Math.min(MAX, startScale * (dist(e.touches) / startDist)));
+      clampPan(); apply(); e.preventDefault();
+    } else if (mode === 'pan' && e.touches.length === 1) {
+      var t = e.touches[0];
+      tx = startTx + (t.clientX - startX); ty = startTy + (t.clientY - startY);
+      clampPan(); apply(); e.preventDefault();
+    }
+  }, { passive: false });
+
+  wrap.addEventListener('touchend', function(e) {
+    if (mode === 'pinch') {
+      img.style.transition = 'transform .15s ease';
+      if (scale <= 1.02) { reset(); } else { clampPan(); apply(); }
+    }
+    if (e.touches.length === 0) mode = null;
+  }, { passive: false });
+}
+
+// v1.60: 彻底关闭 iOS 原生双指缩放（touch-action 之外的保险，iPhone 必需）
+(function(){
+  ['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+    document.addEventListener(ev, function(e){ e.preventDefault(); }, { passive: false });
+  });
+})();
 
 
 // ════════════════════════════════════
