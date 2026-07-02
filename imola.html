@@ -575,7 +575,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.51.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.52.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -715,13 +715,18 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
         </div>
       </div>
 
-      <!-- Orario -->
+      <!-- Data + Orario (stessa riga) -->
       <div class="table-input-wrap" id="asporto-time-wrap">
-        <label><span id="orario-label">Orario di ritiro</span></label>
-        <select id="asporto-time" onchange="onConsegnaFormChange()"
-          style="width:100%;background:#1a1a1a;border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:#ede5d4;outline:none;-webkit-appearance:none;-webkit-text-fill-color:#ede5d4;">
-          <option value="">Seleziona orario...</option>
-        </select>
+        <label><span id="orario-label">Data e orario di ritiro</span></label>
+        <div style="display:flex;gap:8px;">
+          <select id="asporto-date" onchange="onAsportoDateChange()"
+            style="flex:1;min-width:0;background:#1a1a1a;border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:#ede5d4;outline:none;-webkit-appearance:none;-webkit-text-fill-color:#ede5d4;">
+          </select>
+          <select id="asporto-time" onchange="onConsegnaFormChange()"
+            style="flex:1;min-width:0;background:#1a1a1a;border:1px solid var(--border2);border-radius:var(--r);padding:9px 11px;font-size:13px;color:#ede5d4;outline:none;-webkit-appearance:none;-webkit-text-fill-color:#ede5d4;">
+            <option value="">Seleziona orario...</option>
+          </select>
+        </div>
       </div>
 
       <!-- Telefono fedeltà (solo asporto, opzionale, mostrato se loyalty attivo) -->
@@ -1467,8 +1472,8 @@ function loadMenu() {
 function openMenuView(menuId) {
   currentMenuId = menuId;
   isAsporto = menuId === 'asporto';
-  // 外卖菜单：填充时间选项
-  if (isAsporto) buildAsportoTimes();
+  // 外卖菜单：填充日期+时间选项
+  if (isAsporto) { buildAsportoDates(); buildAsportoTimes(); }
   try { history.pushState({ menuId: menuId }, '', '#menu-' + menuId); } catch(e) {}
 
   var cfg = MENU_CONFIG[menuId] || {label: menuId, emoji: '🍽️', color: '#c8a84c'};
@@ -3199,6 +3204,38 @@ function getRomeNow() {
   return { day: day, minutes: totalMin };
 }
 
+// 填充日期下拉：今天 + 未来 6 天（共 7 天）
+function buildAsportoDates() {
+  var sel = document.getElementById('asporto-date');
+  if (!sel) return;
+  sel.innerHTML = '';
+  var rome = getRomeNow();
+  var todayDow = rome.day;
+  var romeDateStr = new Date().toLocaleString('en-US', {timeZone:'Europe/Rome'});
+  var base = new Date(romeDateStr);
+  base.setHours(0,0,0,0);
+  for (var i = 0; i <= 6; i++) {
+    var d = new Date(base.getTime() + i*24*3600*1000);
+    var dow = (todayDow + i) % 7;
+    var dd = (d.getDate()<10?'0':'') + d.getDate();
+    var mm = ((d.getMonth()+1)<10?'0':'') + (d.getMonth()+1);
+    var label;
+    if (i === 0) label = 'Oggi (' + dd + '/' + mm + ')';
+    else if (i === 1) label = 'Domani (' + dd + '/' + mm + ')';
+    else label = GIORNI_IT[dow] + ' (' + dd + '/' + mm + ')';
+    var opt = document.createElement('option');
+    opt.value = String(i);
+    opt.setAttribute('data-dow', dow);
+    opt.textContent = label;
+    sel.appendChild(opt);
+  }
+}
+
+function onAsportoDateChange() {
+  buildAsportoTimes();
+  onConsegnaFormChange();
+}
+
 function buildAsportoTimes() {
   var sel = document.getElementById('asporto-time');
   if (!sel) return;
@@ -3209,12 +3246,18 @@ function buildAsportoTimes() {
   var today = rome.day;
   var isConsegna = (order_mode === 'consegna');
 
-  var minTime = romeMinutes + 30;  // 当前时间 +30 分钟备餐缓冲
+  var dateSel = document.getElementById('asporto-date');
+  var dayOffset = 0, targetDow = today;
+  if (dateSel && dateSel.value !== '') {
+    dayOffset = parseInt(dateSel.value) || 0;
+    var dowAttr = dateSel.options[dateSel.selectedIndex].getAttribute('data-dow');
+    targetDow = (dowAttr != null) ? parseInt(dowAttr) : ((today + dayOffset) % 7);
+  }
+  var isToday = (dayOffset === 0);
+  var minTime = romeMinutes + 30;
 
-  // 生成某一天的时段时间点；dayLabel 非空时加前缀（如 "Domani · "）
-  function slotsForDay(dayOfWeek, applyMinTime, dayLabel) {
+  function slotsForDay(dayOfWeek, applyMinTime) {
     var out = [];
-    // ASPORTO 不受星期限制（沿用默认 12-15 / 19-23）
     var windows;
     if (isConsegna) {
       windows = getConsegnaWindowsForDay(dayOfWeek);
@@ -3225,31 +3268,27 @@ function buildAsportoTimes() {
       };
     }
     function pushRange(startMin, endMin) {
-      for (var t = startMin; t <= endMin; t += 30) {
+      for (var t = startMin; t <= endMin; t += 15) {
         if (applyMinTime && t < minTime) continue;
         var hh = (Math.floor(t/60)<10?'0':'')+Math.floor(t/60);
         var mm = (t%60<10?'0':'')+(t%60);
-        out.push((dayLabel||'') + hh + ':' + mm);
+        out.push(hh + ':' + mm);
       }
     }
     if (windows.lunch)  pushRange(windows.lunch.startMin, windows.lunch.endMin);
-    // 午餐和晚餐都有时，中间插一条分割线标记
     if (windows.lunch && windows.dinner && out.length > 0) out.push('---SEP---');
     if (windows.dinner) pushRange(windows.dinner.startMin, windows.dinner.endMin);
     return out;
   }
 
-  // 今天剩余可选时段
-  var slots = slotsForDay(today, true, '');
+  var slots = slotsForDay(targetDow, isToday);
 
-  // 今天没有了 → 往后找最近的可送日（最多查 7 天）
   if (slots.length === 0) {
-    for (var i = 1; i <= 7; i++) {
-      var d = (today + i) % 7;
-      var label = (i === 1) ? 'Domani · ' : GIORNI_IT[d] + ' · ';
-      var daySlots = slotsForDay(d, false, label);
-      if (daySlots.length > 0) { slots = daySlots; break; }
-    }
+    var opt0 = document.createElement('option');
+    opt0.textContent = isToday ? 'Nessun orario disponibile oggi' : 'Nessun orario disponibile';
+    opt0.disabled = true;
+    sel.appendChild(opt0);
+    return;
   }
 
   slots.forEach(function(s) {
@@ -3301,8 +3340,16 @@ function sendOrder() {
 
   var nameEl = document.getElementById('asporto-name');
   var timeEl = document.getElementById('asporto-time');
+  var dateEl = document.getElementById('asporto-date');
   var nome = nameEl ? nameEl.value.trim() : '';
   var orario = timeEl ? timeEl.value : '';
+  var dataLabel = '';
+  if (dateEl && dateEl.value !== '' && dateEl.selectedIndex >= 0) {
+    if (parseInt(dateEl.value) > 0) {
+      dataLabel = dateEl.options[dateEl.selectedIndex].textContent + ' ';
+    }
+  }
+  var orarioFull = orario ? (dataLabel + orario) : '';
   var note = (document.getElementById('asporto-note') || {}).value || '';
   note = note.trim();
 
@@ -3364,7 +3411,7 @@ function sendOrder() {
       '🏠 Civico: ' + civico + (citofono ? ' · ' + citofono : ''),
       '📏 GPS: ' + consegna_geo.distance_km.toFixed(1) + ' km',
       '🗺️ Posizione: ' + mapsUrl,
-      '⏰ Consegna: ' + orario,
+      '⏰ Consegna: ' + orarioFull,
       ''
     ];
     var origSub = asportoOriginalSubtotal(); // 原价小计
@@ -3387,7 +3434,7 @@ function sendOrder() {
     if (!nome) { toast('⚠️ Inserisci il tuo nome'); focusField('asporto-name'); return; }
     if (!orario) { toast("⚠️ Seleziona l'orario di ritiro"); focusField('asporto-time'); return; }
 
-    lines = ['📦 *ORDINE ASPORTO - Yio Fish Imola*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orario, ''];
+    lines = ['📦 *ORDINE ASPORTO - Yio Fish Imola*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orarioFull, ''];
     for (var id2 in cart_asporto) {
       var it2 = getItemForMenu(id2);
       if (it2) {
