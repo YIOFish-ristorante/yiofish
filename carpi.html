@@ -603,7 +603,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.58.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.59.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1620,9 +1620,6 @@ function boxPickItem(it) {
   if (!g) { toast('⚠️ Questo piatto non è incluso nel ' + _boxMode.name); return; }
   // 该组已选够 → 不能再加
   if (g.picked.length >= g.count) { toast('⚠️ Hai già scelto ' + g.count + ' per "' + g.name + '"'); return; }
-  // 同组内去重：同一道菜不能选两次
-  var already = g.picked.some(function(p){ return p.id === it.id; });
-  if (already) { toast('⚠️ Non puoi inserire lo stesso piatto due volte'); return; }
   g.picked.push({ id: it.id, name: it.name });
   updateItemUI(it.id);
   renderBoxModeBanner();
