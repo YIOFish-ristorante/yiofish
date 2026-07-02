@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.38.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.39.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.38.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.39.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -433,6 +433,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     </div>
     <div class="fg" style="margin-bottom:10px"><label>过敏原标签</label><div class="tag-grid" id="f-tags"></div></div>
     <label class="chk-row"><input type="checkbox" id="f-soldout"> 标记为售罄</label>
+    <label class="chk-row"><input type="checkbox" id="f-boxexcl"> ❌ 不可进 BOX 套餐（即使分类被允许）</label>
     <div class="modal-foot">
       <button class="btn" style="color:var(--muted);border:1px solid var(--border)" onclick="closeModal()">取消</button>
       <button class="btn btn-gold" onclick="saveDish()">保存菜品</button>
@@ -639,7 +640,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.38.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.39.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -864,6 +865,7 @@ async function reloadDishes() {
         image: d.image || '',
         tags: d.tags || [],
         sold_out: !!d.sold_out,
+        box_excluded: !!d.box_excluded,
         menus: menus
       };
     });
@@ -965,6 +967,7 @@ async function loadAll() {
         image: d.image || '',
         tags: d.tags || [],
         sold_out: !!d.sold_out,
+        box_excluded: !!d.box_excluded,
         menus: menus
       };
     });
@@ -1356,7 +1359,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.38.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.39.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1469,7 +1472,8 @@ async function saveDishToDB(dish) {
     description: dish.desc || '',
     image: dish.image || '',
     tags: dish.tags || [],
-    sold_out: !!dish.sold_out
+    sold_out: !!dish.sold_out,
+    box_excluded: !!dish.box_excluded
   };
   if (dish._isNew) {
     if (!dbDish.dish_no) { throw new Error('请填写菜品号'); }
@@ -1841,6 +1845,7 @@ function openEditDish(id){
   $('f-desc').value = it.desc||'';
   $('f-image').value = it.image||'';
   $('f-soldout').checked = !!it.sold_out;
+  $('f-boxexcl').checked = !!it.box_excluded;
   buildCatSel(it.category);
   buildTagPicker(it.tags||[]);
   MENUS.forEach(function(m){
@@ -1934,7 +1939,8 @@ async function saveDish(){
     image: $('f-image').value.trim(),
     tags: getSelTags(),
     menus: menus,
-    sold_out: !!$('f-soldout').checked
+    sold_out: !!$('f-soldout').checked,
+    box_excluded: !!$('f-boxexcl').checked
   };
   try {
     markDirty();

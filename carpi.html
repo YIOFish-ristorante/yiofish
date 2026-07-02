@@ -603,7 +603,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.54.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.55.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1194,12 +1194,23 @@ function waDishLine(it, qty, priceStr) {
   return line;
 }
 
-// BOX 套餐的 WhatsApp 消息行
+// BOX 套餐的 WhatsApp 消息行（菜品用和平时打包一样的格式：*份数x号码.* _菜名_）
 function waBoxLines() {
   var out = [];
   cart_boxes.forEach(function(bx) {
     out.push('🍱 *' + bx.name + '* _(' + fmt(bx.price) + ')_');
-    bx.dishes.forEach(function(d){ out.push('   · ' + d.name); });
+    // 统计每道菜的份数（同一道菜可能被选多次）
+    var counts = {};
+    bx.dishes.forEach(function(d){ counts[d.id] = (counts[d.id]||0) + 1; });
+    Object.keys(counts).forEach(function(did){
+      var it = ALL_ITEMS.find(function(x){ return x.id == did; });
+      if (it) out.push('   ' + waDishLine(it, counts[did], ''));
+      else {
+        // 找不到菜品对象时回退用存的名字
+        var d = bx.dishes.find(function(x){ return x.id == did; });
+        out.push('   *' + counts[did] + 'x* _' + (d ? d.name : did) + '_');
+      }
+    });
   });
   return out;
 }
@@ -1274,7 +1285,7 @@ async function loadAll() {
         .forEach(function(dm) {
           menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0, sconto_consegna: (dm.sconto_consegna != null ? parseInt(dm.sconto_consegna) : null) };
         });
-      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description, image: d.image, tags: d.tags || [], sold_out: !!d.sold_out, menus: menus };
+      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description, image: d.image, tags: d.tags || [], sold_out: !!d.sold_out, box_excluded: !!d.box_excluded, menus: menus };
     });
 
     document.getElementById('loading-overlay').style.display = 'none';
@@ -1381,7 +1392,7 @@ async function reloadMenuData() {
         .forEach(function(dm) {
           menus[dm.menu_id] = { on: dm.enabled, price: parseFloat(dm.price)||0, max_qty: parseInt(dm.max_qty)||0, sconto: parseInt(dm.sconto)||0, sconto_consegna: (dm.sconto_consegna != null ? parseInt(dm.sconto_consegna) : null) };
         });
-      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description||'', image: d.image||'', tags: d.tags || [], sold_out: !!d.sold_out, menus: menus };
+      return { id: d.id, dish_no: d.dish_no, category: d.category_id, name: d.name, desc: d.description||'', image: d.image||'', tags: d.tags || [], sold_out: !!d.sold_out, box_excluded: !!d.box_excluded, menus: menus };
     });
     if (currentMenuId) openMenuView(currentMenuId);
   } catch(e) { console.log('reload failed:', e); }
@@ -1569,6 +1580,7 @@ function renderBoxModeBanner() {
 
 function boxAllowsItem(it) {
   if (!_boxMode) return false;
+  if (it.box_excluded) return false;  // 个别排除的菜不能进 BOX
   return _boxMode.categories.indexOf(it.category) >= 0;
 }
 
