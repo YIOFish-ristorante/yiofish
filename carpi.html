@@ -603,7 +603,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.56.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.57.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -1723,7 +1723,29 @@ function jumpToCategory(catId) {
     c.className = 'cat-cell' + (c.getAttribute('data-id') === catId ? ' active' : '');
   });
   var sec = document.getElementById('sec-' + catId);
-  if (sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+  if (sec) {
+    // 计算顶部固定条（catnav + BOX 横条/横幅）总高度
+    var offset = 0;
+    var catnav = document.querySelector('.catnav');
+    if (catnav) offset += catnav.offsetHeight;
+    var boxBar = document.getElementById('box-bar');
+    if (boxBar && boxBar.style.display !== 'none') offset += boxBar.offsetHeight;
+    var boxBanner = document.getElementById('box-mode-banner');
+    if (boxBanner && boxBanner.style.display !== 'none') offset += boxBanner.offsetHeight;
+    // 自动判断真实滚动容器（本页是 body 滚，html:overflow hidden；但兼容 window/documentElement）
+    var scroller = document.body;
+    if (document.scrollingElement && document.scrollingElement.scrollHeight > document.body.scrollHeight) {
+      scroller = document.scrollingElement;
+    }
+    var curTop = scroller.scrollTop;
+    var target = curTop + sec.getBoundingClientRect().top - offset - 8;
+    target = Math.max(0, target);
+    // 用两种方式都滚一次，确保命中真实滚动元素
+    try { scroller.scrollTo({ top: target, behavior: 'smooth' }); } catch(e) { scroller.scrollTop = target; }
+    if (scroller !== document.body) {
+      try { document.body.scrollTo({ top: target, behavior: 'smooth' }); } catch(e){}
+    }
+  }
   scrollLockTimer = setTimeout(function(){ scrollLock = false; }, 1000);
   // 同步把横滑条对应分类滚到中间
   var navEl = document.getElementById('catnav-inner');
