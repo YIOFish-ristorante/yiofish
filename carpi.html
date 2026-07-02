@@ -509,6 +509,32 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .dd-add-btn { background: var(--gold, #d4ab48); border: none; border-radius: 24px; color: #0c0b09; font-size: 15px; font-weight: 600; padding: 11px 22px; cursor: pointer; white-space: nowrap; letter-spacing: .5px; }
 .dd-add-btn:active { transform: scale(.96); }
 
+/* BOX 套餐横条 */
+.box-bar {
+  display: flex; align-items: center; gap: 8px; overflow-x: auto;
+  padding: 10px 14px; background: rgba(63,163,77,.08);
+  border-bottom: 1px solid rgba(63,163,77,.2); scrollbar-width: none;
+}
+.box-bar::-webkit-scrollbar { display: none; }
+.box-bar-label { font-size: 12px; color: #3fa34d; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.box-chip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  background: #14120c; border: 1px solid #3fa34d; border-radius: 10px;
+  padding: 6px 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.box-chip-name { font-size: 13px; font-weight: 600; color: #3fa34d; }
+.box-chip-info { font-size: 10px; color: var(--muted); }
+.box-mode-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; background: #3fa34d; color: #fff;
+  position: sticky; top: 0; z-index: 40;
+}
+.bmb-title { font-size: 14px; font-weight: 600; }
+.bmb-prog { font-size: 12px; opacity: .9; margin-top: 2px; }
+.bmb-cancel {
+  background: rgba(255,255,255,.2); border: none; color: #fff;
+  border-radius: 20px; padding: 6px 14px; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
 @media (max-width: 520px) {
   .mhdr-logo { width: 170px; height: 62px; }
   main { padding: 20px 10px 160px; }
@@ -577,7 +603,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.53.0 · 2026-05-30</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.54.0 · 2026-05-30</span></div>
 </div>
 </div>
 
@@ -594,6 +620,8 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
     <button class="cat-all-btn" id="cat-all-btn" aria-label="所有分类" title="所有分类">☰</button>
     <div class="catnav-inner" id="catnav-inner"></div>
   </nav>
+  <div class="box-bar" id="box-bar" style="display:none"></div>
+  <div class="box-mode-banner" id="box-mode-banner" style="display:none"></div>
   <div class="cat-overlay" id="cat-overlay">
     <div class="cat-panel">
       <div class="cat-panel-hdr">
@@ -1047,6 +1075,11 @@ var cart_dine_sent = {}; // 已发送的堂食菜品（灰色显示）
 var cart_asporto_sent = {}; // 已发送的打包菜品（灰色显示）
 var guestCount = 1;  // 人数（服务员控制）
 
+// ── BOX 套餐（固定价·选N道）──
+var ASPORTO_BOXES = [];   // 从 Worker 加载的当前店 BOX 配置
+var cart_boxes = [];      // 购物车里的 BOX：[{boxId,name,price,dishCount,dishes:[{id,name}]}]
+var _boxMode = null;      // 选菜模式：null 或 {boxId,name,price,dishCount,categories:[],picked:[{id,name}]}
+
 // ── ASPORTO/CONSEGNA 模式（v1.5.0）──
 // 'asporto'  = ritiro in negozio (sconto come da DB, default 20%)
 // 'consegna' = consegna a domicilio (sconto fisso 10% + spese consegna)
@@ -1067,6 +1100,7 @@ function saveCartToLS() {
     localStorage.setItem(LS_KEY_SENT, JSON.stringify({data: cart_dine_sent, ts: now}));
     localStorage.setItem(LS_KEY_ASP, JSON.stringify({data: cart_asporto, ts: now}));
     localStorage.setItem(LS_KEY_ASP+'_sent', JSON.stringify({data: cart_asporto_sent, ts: now}));
+    localStorage.setItem(LS_KEY_ASP+'_boxes', JSON.stringify({data: cart_boxes, ts: now}));
   } catch(e) {}
 }
 
@@ -1082,6 +1116,8 @@ function loadCartFromLS() {
     if (a) { var obj3 = JSON.parse(a); if (now - obj3.ts < FOUR_HOURS) cart_asporto = obj3.data || {}; }
     var as = localStorage.getItem(LS_KEY_ASP+'_sent');
     if (as) { var obj4 = JSON.parse(as); if (now - obj4.ts < FOUR_HOURS) cart_asporto_sent = obj4.data || {}; }
+    var ab = localStorage.getItem(LS_KEY_ASP+'_boxes');
+    if (ab) { var obj5 = JSON.parse(ab); if (now - obj5.ts < FOUR_HOURS) cart_boxes = obj5.data || []; }
     // 模式（无过期限制：默认就 asporto）
     var m = localStorage.getItem(LS_KEY_MODE);
     if (m === 'consegna' || m === 'asporto') order_mode = m;
@@ -1158,6 +1194,16 @@ function waDishLine(it, qty, priceStr) {
   return line;
 }
 
+// BOX 套餐的 WhatsApp 消息行
+function waBoxLines() {
+  var out = [];
+  cart_boxes.forEach(function(bx) {
+    out.push('🍱 *' + bx.name + '* _(' + fmt(bx.price) + ')_');
+    bx.dishes.forEach(function(d){ out.push('   · ' + d.name); });
+  });
+  return out;
+}
+
 async function loadAll() {
   try {
     // 并行加载（用 sbFetchJSON 带超时+重试，兼容 Instagram/Threads WebView）
@@ -1185,6 +1231,8 @@ async function loadAll() {
     }
 
     CATS = CATS_;
+    // 加载 BOX 套餐配置（Worker 自定义路由，非 rest 代理）
+    loadAsportoBoxes();
     dishes = dishes_;
     mcData = mcData_;
     mclData = mclData_;
@@ -1466,6 +1514,117 @@ function loadMenu() {
 }
 
 // ════════════════════════════════════
+//  🍱 BOX 套餐选菜逻辑
+// ════════════════════════════════════
+function loadAsportoBoxes() {
+  fetch(WORKER_URL + '/asporto/boxes?restaurant_id=' + encodeURIComponent(RESTAURANT_ID), { cache: 'no-store' })
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(data){ ASPORTO_BOXES = Array.isArray(data) ? data : []; })
+    .catch(function(){ ASPORTO_BOXES = []; });
+}
+
+function renderBoxBar() {
+  var bar = document.getElementById('box-bar');
+  if (!bar) return;
+  if (!isAsporto || !ASPORTO_BOXES.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = '<div class="box-bar-label">🍱 Menu BOX:</div>' + ASPORTO_BOXES.map(function(b){
+    return '<button class="box-chip" onclick="startBoxMode(' + b.id + ')">'
+      + '<span class="box-chip-name">' + b.name + '</span>'
+      + '<span class="box-chip-info">€' + Number(b.price).toFixed(0) + ' · ' + b.dish_count + ' pz</span>'
+    + '</button>';
+  }).join('');
+}
+
+function startBoxMode(boxId) {
+  var box = ASPORTO_BOXES.find(function(b){ return b.id === boxId; });
+  if (!box) return;
+  _boxMode = {
+    boxId: box.id, name: box.name, price: Number(box.price),
+    dishCount: box.dish_count, categories: box.categories || [], picked: []
+  };
+  renderBoxModeBanner();
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+  toast('🍱 ' + box.name + ': scegli ' + box.dish_count + ' piatti');
+}
+
+function cancelBoxMode() {
+  _boxMode = null;
+  renderBoxModeBanner();
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+}
+
+function renderBoxModeBanner() {
+  var banner = document.getElementById('box-mode-banner');
+  if (!banner) return;
+  if (!_boxMode) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+  var picked = _boxMode.picked.length, total = _boxMode.dishCount;
+  banner.style.display = 'flex';
+  banner.innerHTML = '<div class="bmb-info">'
+    + '<div class="bmb-title">🍱 ' + _boxMode.name + ' · €' + _boxMode.price.toFixed(2) + '</div>'
+    + '<div class="bmb-prog">Seleziona ' + total + ' piatti (' + picked + '/' + total + ')</div>'
+    + '</div>'
+    + '<button class="bmb-cancel" onclick="cancelBoxMode()">✕ Annulla</button>';
+}
+
+function boxAllowsItem(it) {
+  if (!_boxMode) return false;
+  return _boxMode.categories.indexOf(it.category) >= 0;
+}
+
+function boxPickItem(it) {
+  if (!_boxMode) return;
+  if (!boxAllowsItem(it)) { toast('⚠️ Questo piatto non è incluso nel ' + _boxMode.name); return; }
+  if (_boxMode.picked.length >= _boxMode.dishCount) return;
+  _boxMode.picked.push({ id: it.id, name: it.name });
+  updateItemUI(it.id);
+  renderBoxModeBanner();
+  if (_boxMode.picked.length >= _boxMode.dishCount) finalizeBox();
+}
+
+function boxUnpickItem(it) {
+  if (!_boxMode) return;
+  for (var i = _boxMode.picked.length - 1; i >= 0; i--) {
+    if (_boxMode.picked[i].id === it.id) { _boxMode.picked.splice(i, 1); break; }
+  }
+  updateItemUI(it.id);
+  renderBoxModeBanner();
+}
+
+function boxPickedCount(itemId) {
+  if (!_boxMode) return 0;
+  return _boxMode.picked.filter(function(p){ return p.id === itemId; }).length;
+}
+
+function finalizeBox() {
+  if (!_boxMode) return;
+  cart_boxes.push({
+    boxId: _boxMode.boxId, name: _boxMode.name, price: _boxMode.price,
+    dishCount: _boxMode.dishCount, dishes: _boxMode.picked.slice()
+  });
+  saveCartToLS();
+  var nm = _boxMode.name;
+  _boxMode = null;
+  renderBoxModeBanner();
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+  updateCartUI();
+  toast('✅ ' + nm + ' aggiunto al carrello');
+}
+
+function removeBox(idx) {
+  if (idx >= 0 && idx < cart_boxes.length) {
+    cart_boxes.splice(idx, 1);
+    saveCartToLS();
+    updateCartUI();
+    if (typeof renderCart === 'function') renderCart();
+  }
+}
+
+function boxesSubtotal() {
+  return cart_boxes.reduce(function(s, b){ return s + (b.price || 0); }, 0);
+}
+
+// ════════════════════════════════════
 // 菜单视图
 // ════════════════════════════════════
 function openMenuView(menuId) {
@@ -1510,6 +1669,9 @@ function openMenuView(menuId) {
 
   // 渲染菜品
   renderMenuItems(items);
+  // BOX 横条（仅 ASPORTO 且有 BOX 时）
+  renderBoxBar();
+  renderBoxModeBanner();
 
   // 更新购物车按钮显示
   updateCartUI();
@@ -1910,6 +2072,7 @@ function cartCount() {
   var c = isAsporto ? cart_asporto : cart_dine;
   var n = 0;
   for (var k in c) n += c[k];
+  if (isAsporto) n += cart_boxes.length;  // 每个 BOX 算 1 件
   return n;
 }
 
@@ -2009,7 +2172,7 @@ function effectivePrice(it) {
 function cartSubtotal() {
   // Asporto 非 Consegna 模式：使用统一的 breakdown 算法（含折后补足到起送价）
   if (isAsporto && order_mode !== 'consegna') {
-    return asportoCartBreakdown().finalTotal;
+    return asportoCartBreakdown().finalTotal + boxesSubtotal();  // 加 BOX 固定价
   }
   // Consegna 或堂食：按单道菜的 effectivePrice 累加
   var c = isAsporto ? cart_asporto : cart_dine;
@@ -2018,6 +2181,7 @@ function cartSubtotal() {
     var it = getItemForMenu(id);
     if (it) t += effectivePrice(it) * c[id];
   }
+  if (isAsporto) t += boxesSubtotal();  // Consegna 模式也加 BOX
   return t;
 }
 
@@ -2189,6 +2353,41 @@ function updateItemUI(itemId) {
   if (!el) return;
   var it = getItemForMenu(itemId);
   if (!it) return;
+
+  // ── BOX 选菜模式：卡片加减改成"选入BOX"逻辑 ──
+  if (_boxMode) {
+    el.innerHTML = '';
+    var allowed = boxAllowsItem(it);
+    var pc = boxPickedCount(itemId);
+    if (!allowed) {
+      // 不在 BOX 分类里：灰色不可选
+      var na = document.createElement('span');
+      na.style.cssText = 'font-size:10px;color:var(--muted);opacity:.5;padding:0 6px;';
+      na.textContent = '—';
+      el.appendChild(na);
+      return;
+    }
+    if (pc === 0) {
+      var badd = document.createElement('button');
+      badd.className = 'add-btn';
+      badd.style.background = '#3fa34d';
+      badd.textContent = '+';
+      (function(i){ badd.onclick = function(){ boxPickItem(i); }; })(it);
+      el.appendChild(badd);
+    } else {
+      var bdiv = document.createElement('div');
+      bdiv.className = 'qctrl';
+      bdiv.style.borderColor = '#3fa34d';
+      var bbm = document.createElement('button'); bbm.className='qbtn'; bbm.style.color='#3fa34d'; bbm.textContent='−';
+      var bsp = document.createElement('span'); bsp.className='qnum'; bsp.style.color='#3fa34d'; bsp.textContent=pc;
+      var bbp = document.createElement('button'); bbp.className='qbtn'; bbp.style.color='#3fa34d'; bbp.textContent='+';
+      (function(i){ bbm.onclick=function(){ boxUnpickItem(i); }; bbp.onclick=function(){ boxPickItem(i); }; })(it);
+      bdiv.appendChild(bbm); bdiv.appendChild(bsp); bdiv.appendChild(bbp);
+      el.appendChild(bdiv);
+    }
+    return;
+  }
+
   var q = (isAsporto ? cart_asporto : cart_dine)[itemId] || 0;
   var qs = isAsporto ? (cart_asporto_sent[itemId] || 0) : (cart_dine_sent[itemId] || 0);
   el.innerHTML = '';
@@ -2399,6 +2598,28 @@ function renderCartBody() {
   }
   el.innerHTML = '';
   var activeCart = isAsporto ? cart_asporto : cart_dine;
+  // ── 先渲染 BOX 套餐（仅 asporto）──
+  if (isAsporto && cart_boxes.length) {
+    cart_boxes.forEach(function(bx, idx) {
+      var row = document.createElement('div');
+      row.className = 'ci';
+      row.style.cssText = 'flex-direction:column;align-items:stretch;background:rgba(63,163,77,.06);border:1px solid rgba(63,163,77,.3);border-radius:10px;padding:10px 12px;margin-bottom:8px;';
+      var head = document.createElement('div');
+      head.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
+      head.innerHTML = '<div style="font-weight:600;color:#3fa34d;font-size:14px">🍱 ' + bx.name + '</div>'
+        + '<div style="display:flex;align-items:center;gap:10px"><span style="color:var(--gold);font-weight:600">' + fmt(bx.price) + '</span></div>';
+      var rmBtn = document.createElement('button');
+      rmBtn.textContent = '✕';
+      rmBtn.style.cssText = 'background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 2px;';
+      (function(i){ rmBtn.onclick = function(){ removeBox(i); }; })(idx);
+      head.querySelector('div:last-child').appendChild(rmBtn);
+      var dishList = document.createElement('div');
+      dishList.style.cssText = 'font-size:12px;color:var(--muted2);margin-top:6px;line-height:1.6;';
+      dishList.innerHTML = bx.dishes.map(function(d){ return '· ' + d.name; }).join('<br>');
+      row.appendChild(head); row.appendChild(dishList);
+      el.appendChild(row);
+    });
+  }
   for (var id in activeCart) {
     (function(id, qty) {
       var it = getItemForMenu(id);
@@ -3435,6 +3656,8 @@ function sendOrder() {
       ''
     ];
     var origSub = asportoOriginalSubtotal(); // 原价小计
+    // BOX 套餐先列
+    waBoxLines().forEach(function(l){ lines.push(l); });
     for (var id in cart_asporto) {
       var it = getItemForMenu(id);
       if (it) {
@@ -3443,9 +3666,11 @@ function sendOrder() {
       }
     }
     lines.push('');
-    lines.push('💵 Subtotale: ' + fmt(origSub));
-    var consDisc = origSub - sub; // 折扣金额 = 原价 - 折后
+    lines.push('💵 Subtotale piatti: ' + fmt(origSub));
+    var subNoBox = sub - boxesSubtotal();       // 散菜折后（不含BOX）
+    var consDisc = origSub - subNoBox;           // 折扣只针对散菜
     if (consDisc > 0.01) lines.push('💚 Sconto: −' + fmt(consDisc));
+    if (boxesSubtotal() > 0) lines.push('🍱 BOX: ' + fmt(boxesSubtotal()));
     if (fee > 0) lines.push('🛵 Consegna: ' + fmt(fee));
     lines.push('💰 *Totale: ' + fmt(sub + fee) + '*');
     if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
@@ -3455,6 +3680,7 @@ function sendOrder() {
     if (!orario) { toast("⚠️ Seleziona l'orario di ritiro"); focusField('asporto-time'); return; }
 
     lines = ['📦 *ORDINE ASPORTO - Yio Fish Carpi*', '', '👤 Nome: ' + nome, '⏰ Ritiro: ' + orarioFull, ''];
+    waBoxLines().forEach(function(l){ lines.push(l); });
     for (var id2 in cart_asporto) {
       var it2 = getItemForMenu(id2);
       if (it2) {
@@ -3464,21 +3690,14 @@ function sendOrder() {
     }
     // 价格明细：单品显示原价，这里统一展示 Subtotale / Sconto / Totale
     var bw = asportoCartBreakdown();
-    if (bw.origTotal > 0) {
+    var boxSub = boxesSubtotal();
+    if (bw.origTotal > 0 || boxSub > 0) {
       lines.push('');
-      lines.push('💵 Subtotale: ' + fmt(bw.origTotal));
-      if (bw.isDiscounted) {
-        // 有折扣：显示省了多少 + 折后总额
-        lines.push('💚 Sconto: −' + fmt(bw.saved));
-        lines.push('💰 *Totale: ' + fmt(bw.finalTotal) + '*');
-      } else if (bw.threshold > 0 && bw.origTotal < bw.threshold) {
-        // 有门槛但未达到：提示未打折
-        lines.push('ℹ️ Sotto soglia ' + fmt(bw.threshold) + ' (sconto non applicato)');
-        lines.push('💰 *Totale: ' + fmt(bw.finalTotal) + '*');
-      } else {
-        // 无折扣：只显示总额
-        lines.push('💰 *Totale: ' + fmt(bw.finalTotal) + '*');
-      }
+      if (bw.origTotal > 0) lines.push('💵 Subtotale piatti: ' + fmt(bw.origTotal));
+      if (bw.isDiscounted) lines.push('💚 Sconto: −' + fmt(bw.saved));
+      else if (bw.threshold > 0 && bw.origTotal < bw.threshold && bw.origTotal > 0) lines.push('ℹ️ Sotto soglia ' + fmt(bw.threshold) + ' (sconto non applicato)');
+      if (boxSub > 0) lines.push('🍱 BOX: ' + fmt(boxSub));
+      lines.push('💰 *Totale: ' + fmt(bw.finalTotal + boxSub) + '*');
     }
     if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
   }
@@ -3511,6 +3730,7 @@ function sendOrder() {
     cart_asporto_sent[sid] = (cart_asporto_sent[sid] || 0) + cart_asporto[sid];
   }
   cart_asporto = {};
+  cart_boxes = [];   // BOX 一次性清空
   saveCartToLS();
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
@@ -3563,6 +3783,7 @@ var btnAsp = document.getElementById('btn-clear-asporto');
 if (btnAsp) btnAsp.onclick = function() {
   cart_asporto = {};
   cart_asporto_sent = {};
+  cart_boxes = [];
   saveCartToLS();
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();

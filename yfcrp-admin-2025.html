@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.37.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.38.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.37.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.38.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -353,6 +353,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     </button>
     <button class="s-btn" id="nav-consegna" onclick="showPage('consegna-schedule')">
       <span class="s-ico">🛵</span>Consegna 排班
+    </button>
+    <button class="s-btn" id="nav-boxes" onclick="showPage('boxes')">
+      <span class="s-ico">🍱</span>BOX 套餐
     </button>
     <button class="s-btn" id="nav-settings" onclick="showPage('settings')">
       <span class="s-ico">⚙️</span>设置
@@ -636,7 +639,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.37.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.38.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1353,7 +1356,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.37.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.38.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1686,6 +1689,14 @@ function showPage(p){
     var nbcs = document.getElementById('nav-consegna');
     if (nbcs) nbcs.classList.add('active');
     renderConsegnaSchedulePage();
+    return;
+  }
+  if (p === 'boxes') {
+    _page = 'boxes';
+    document.querySelectorAll('.s-btn').forEach(function(b){ b.classList.remove('active'); });
+    var nbbox = document.getElementById('nav-boxes');
+    if (nbbox) nbbox.classList.add('active');
+    renderBoxesPage();
     return;
   }
   if (p === 'loyalty') {
@@ -3752,6 +3763,160 @@ var CONSEGNA_DEFAULT_SCHEDULE = {
 };
 var GIORNI_IT_ADMIN = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
 var GIORNI_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+// ════════════════════════════════════
+//  🍱 ASPORTO BOX 套餐管理
+// ════════════════════════════════════
+var _BOXES = [];
+var _editingBoxId = null;
+
+async function renderBoxesPage() {
+  var content = document.getElementById('content');
+  if (!content) return;
+  var storeName = '';
+  if (typeof STORES !== 'undefined') {
+    var st = STORES.find(function(x){ return x.id === RESTAURANT_ID; });
+    if (st) storeName = st.name;
+  }
+  content.innerHTML =
+    '<div style="padding:0;">'
+    + '<div class="page-head"><div><h1>🍱 BOX 套餐</h1><p>固定价套餐（' + (storeName || RESTAURANT_ID) + '）· 顾客在 ASPORTO 里选 BOX，从指定分类任选 N 道，付固定价</p></div>'
+    + '<button class="btn btn-gold" onclick="openBoxEditor(null)">＋ Nuovo BOX</button></div>'
+    + '<div id="box-editor"></div>'
+    + '<div id="box-list">⏳ Caricamento...</div>'
+    + '</div>';
+  await loadBoxes();
+}
+
+async function loadBoxes() {
+  var listEl = document.getElementById('box-list');
+  if (!listEl) return;
+  try {
+    var res = await fetch(WORKER_URL + '/asporto/boxes?all=1&restaurant_id=' + encodeURIComponent(RESTAURANT_ID), { cache: 'no-store' });
+    var data = await res.json();
+    if (!res.ok) { listEl.innerHTML = '❌ ' + (data.error || 'Errore'); return; }
+    _BOXES = Array.isArray(data) ? data : [];
+    renderBoxList();
+  } catch(e) { listEl.innerHTML = '❌ ' + e.message; }
+}
+
+function renderBoxList() {
+  var listEl = document.getElementById('box-list');
+  if (!listEl) return;
+  var active = _BOXES.filter(function(b){ return b.is_active; });
+  if (!active.length) {
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px;">Nessun BOX configurato. Clicca "＋ Nuovo BOX" per crearne uno.</div>';
+    return;
+  }
+  listEl.innerHTML = active.map(function(b) {
+    var catNames = (b.categories || []).map(function(cid){
+      var c = C.find(function(x){ return x.id === cid; });
+      return c ? c.name : cid;
+    });
+    var catText = catNames.length ? catNames.join(', ') : '⚠️ nessuna categoria';
+    return '<div class="card" style="padding:16px 20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'
+      + '<div style="flex:1;min-width:200px">'
+        + '<div style="font-size:16px;font-weight:600;color:var(--gold)">🍱 ' + b.name + '</div>'
+        + '<div style="font-size:13px;color:var(--text2);margin-top:4px">€ ' + Number(b.price).toFixed(2) + ' · ' + b.dish_count + ' piatti a scelta</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:6px">Categorie: ' + catText + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:6px;flex-shrink:0">'
+        + '<button class="btn btn-sm btn-gold-s" onclick="openBoxEditor(' + b.id + ')">✏️ Modifica</button>'
+        + '<button class="btn btn-sm btn-red" onclick="deleteBox(' + b.id + ',\'' + String(b.name).replace(/'/g,"\\'") + '\')">🗑 Elimina</button>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+}
+
+function openBoxEditor(boxId) {
+  _editingBoxId = boxId;
+  var box = boxId ? _BOXES.find(function(b){ return b.id === boxId; }) : null;
+  var ed = document.getElementById('box-editor');
+  if (!ed) return;
+  var name = box ? box.name : '';
+  var price = box ? box.price : '';
+  var dishCount = box ? box.dish_count : 4;
+  var selCats = box ? (box.categories || []) : [];
+
+  var catChecks = C.map(function(cat) {
+    var checked = selCats.indexOf(cat.id) >= 0 ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2)">'
+      + '<input type="checkbox" class="box-cat-chk" value="' + cat.id + '" ' + checked + '>'
+      + '<span>' + cat.icon + ' ' + cat.name + '</span>'
+    + '</label>';
+  }).join('');
+
+  ed.innerHTML = '<div class="card" style="padding:20px 22px;margin-bottom:16px;border:1px solid var(--gold-dk)">'
+    + '<div style="font-size:14px;font-weight:600;margin-bottom:16px;color:var(--gold)">' + (box ? '✏️ Modifica BOX' : '＋ Nuovo BOX') + '</div>'
+    + '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px">'
+      + '<div style="flex:2;min-width:160px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nome BOX</label>'
+        + '<input id="box-name" type="text" value="' + String(name).replace(/"/g,'&quot;') + '" placeholder="es. BOX 1" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--text2);outline:none"></div>'
+      + '<div style="flex:1;min-width:90px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Prezzo €</label>'
+        + '<input id="box-price" type="number" step="0.5" min="0" value="' + price + '" placeholder="20" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--text2);outline:none"></div>'
+      + '<div style="flex:1;min-width:90px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">N. piatti</label>'
+        + '<input id="box-count" type="number" min="1" value="' + dishCount + '" placeholder="4" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--text2);outline:none"></div>'
+    + '</div>'
+    + '<label style="font-size:11px;color:var(--muted);display:block;margin-bottom:8px">Categorie ammesse (il cliente sceglie i piatti da queste categorie)</label>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">' + catChecks + '</div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end">'
+      + '<button class="btn btn-sm" onclick="closeBoxEditor()" style="border:1px solid var(--border2)">Annulla</button>'
+      + '<button class="btn btn-gold" onclick="saveBox()">💾 Salva</button>'
+    + '</div>'
+  + '</div>';
+  ed.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function closeBoxEditor() {
+  var ed = document.getElementById('box-editor');
+  if (ed) ed.innerHTML = '';
+  _editingBoxId = null;
+}
+
+async function saveBox() {
+  var name = (document.getElementById('box-name').value || '').trim();
+  var price = parseFloat(document.getElementById('box-price').value);
+  var dishCount = parseInt(document.getElementById('box-count').value);
+  var cats = Array.prototype.slice.call(document.querySelectorAll('.box-cat-chk:checked')).map(function(c){ return c.value; });
+
+  if (!name) { toast('⚠️ Inserisci il nome del BOX'); return; }
+  if (!isFinite(price) || price < 0) { toast('⚠️ Prezzo non valido'); return; }
+  if (!isFinite(dishCount) || dishCount < 1) { toast('⚠️ N. piatti non valido'); return; }
+  if (!cats.length) { toast('⚠️ Seleziona almeno una categoria'); return; }
+
+  var payload = {
+    restaurant_id: RESTAURANT_ID,
+    name: name, price: price, dish_count: dishCount, categories: cats,
+    sort_order: _editingBoxId ? ((_BOXES.find(function(b){return b.id===_editingBoxId;})||{}).sort_order || 0) : _BOXES.length
+  };
+  if (_editingBoxId) payload.id = _editingBoxId;
+
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/asporto/boxes/save', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload), cache: 'no-store'
+    });
+    var data = await res.json();
+    if (res.ok) { toast('✅ BOX salvato'); closeBoxEditor(); await loadBoxes(); }
+    else { toast('❌ ' + (data.error || 'Errore')); }
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+async function deleteBox(boxId, boxName) {
+  if (!confirm('Eliminare "' + boxName + '"?\nIl BOX non sarà più disponibile per i clienti.')) return;
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/asporto/boxes/delete', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: boxId }), cache: 'no-store'
+    });
+    var data = await res.json();
+    if (res.ok) { toast('✅ BOX eliminato'); await loadBoxes(); }
+    else { toast('❌ ' + (data.error || 'Errore')); }
+  } catch(e) { toast('❌ ' + e.message); }
+}
 
 function renderConsegnaSchedulePage() {
   var content = document.getElementById('content');
