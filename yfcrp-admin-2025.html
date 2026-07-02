@@ -3815,16 +3815,20 @@ function renderBoxList() {
     return;
   }
   listEl.innerHTML = active.map(function(b) {
-    var catNames = (b.categories || []).map(function(cid){
-      var c = C.find(function(x){ return x.id === cid; });
-      return c ? c.name : cid;
-    });
-    var catText = catNames.length ? catNames.join(', ') : '⚠️ nessuna categoria';
+    // 组信息：优先 groups，回退旧单组
+    var grps = (Array.isArray(b.groups) && b.groups.length) ? b.groups
+             : [{ name: 'Piatti', count: b.dish_count, categories: b.categories || [] }];
+    var grpHtml = grps.map(function(g){
+      var catNames = (g.categories || []).map(function(cid){
+        var c = C.find(function(x){ return x.id === cid; });
+        return c ? c.name : cid;
+      });
+      return '<div style="font-size:11px;color:var(--muted);margin-top:4px">• <b style="color:var(--text2)">' + g.count + ' ' + g.name + '</b> — ' + (catNames.join(', ') || '⚠️ nessuna categoria') + '</div>';
+    }).join('');
     return '<div class="card" style="padding:16px 20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'
       + '<div style="flex:1;min-width:200px">'
-        + '<div style="font-size:16px;font-weight:600;color:var(--gold)">🍱 ' + b.name + '</div>'
-        + '<div style="font-size:13px;color:var(--text2);margin-top:4px">€ ' + Number(b.price).toFixed(2) + ' · ' + b.dish_count + ' piatti a scelta</div>'
-        + '<div style="font-size:11px;color:var(--muted);margin-top:6px">Categorie: ' + catText + '</div>'
+        + '<div style="font-size:16px;font-weight:600;color:var(--gold)">🍱 ' + b.name + ' · € ' + Number(b.price).toFixed(2) + '</div>'
+        + grpHtml
       + '</div>'
       + '<div style="display:flex;gap:6px;flex-shrink:0">'
         + '<button class="btn btn-sm btn-gold-s" onclick="openBoxEditor(' + b.id + ')">✏️ Modifica</button>'
@@ -3834,6 +3838,8 @@ function renderBoxList() {
   }).join('');
 }
 
+var _boxGroups = [];  // 编辑中的组：[{name,count,categories:[]}]
+
 function openBoxEditor(boxId) {
   _editingBoxId = boxId;
   var box = boxId ? _BOXES.find(function(b){ return b.id === boxId; }) : null;
@@ -3841,16 +3847,15 @@ function openBoxEditor(boxId) {
   if (!ed) return;
   var name = box ? box.name : '';
   var price = box ? box.price : '';
-  var dishCount = box ? box.dish_count : 4;
-  var selCats = box ? (box.categories || []) : [];
 
-  var catChecks = C.map(function(cat) {
-    var checked = selCats.indexOf(cat.id) >= 0 ? 'checked' : '';
-    return '<label style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2)">'
-      + '<input type="checkbox" class="box-cat-chk" value="' + cat.id + '" ' + checked + '>'
-      + '<span>' + cat.icon + ' ' + cat.name + '</span>'
-    + '</label>';
-  }).join('');
+  // 初始化组：优先用 groups；旧 BOX 无 groups 时，用旧 dish_count/categories 转成一个组
+  if (box && Array.isArray(box.groups) && box.groups.length) {
+    _boxGroups = box.groups.map(function(g){ return { name: g.name||'', count: g.count||1, categories: (g.categories||[]).slice() }; });
+  } else if (box && (box.categories||[]).length) {
+    _boxGroups = [{ name: 'Piatti', count: box.dish_count||1, categories: (box.categories||[]).slice() }];
+  } else {
+    _boxGroups = [{ name: 'Piatti', count: 4, categories: [] }];
+  }
 
   ed.innerHTML = '<div class="card" style="padding:20px 22px;margin-bottom:16px;border:1px solid var(--gold-dk)">'
     + '<div style="font-size:14px;font-weight:600;margin-bottom:16px;color:var(--gold)">' + (box ? '✏️ Modifica BOX' : '＋ Nuovo BOX') + '</div>'
@@ -3858,18 +3863,61 @@ function openBoxEditor(boxId) {
       + '<div style="flex:2;min-width:160px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nome BOX</label>'
         + '<input id="box-name" type="text" value="' + String(name).replace(/"/g,'&quot;') + '" placeholder="es. BOX 1" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--text2);outline:none"></div>'
       + '<div style="flex:1;min-width:90px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Prezzo €</label>'
-        + '<input id="box-price" type="number" step="0.5" min="0" value="' + price + '" placeholder="20" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--text2);outline:none"></div>'
-      + '<div style="flex:1;min-width:90px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">N. piatti</label>'
-        + '<input id="box-count" type="number" min="1" value="' + dishCount + '" placeholder="4" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--text2);outline:none"></div>'
+        + '<input id="box-price" type="number" step="0.5" min="0" value="' + price + '" placeholder="55" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--text2);outline:none"></div>'
     + '</div>'
-    + '<label style="font-size:11px;color:var(--muted);display:block;margin-bottom:8px">Categorie ammesse (il cliente sceglie i piatti da queste categorie)</label>'
-    + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">' + catChecks + '</div>'
+    + '<div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px">Gruppi di scelta</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Ogni gruppo = una scelta separata (es. "10 Piatti", "1 Birra", "1 Bibita"). Il cliente sceglie il numero indicato da ogni gruppo.</div>'
+    + '<div id="box-groups"></div>'
+    + '<button class="btn btn-sm" onclick="addBoxGroup()" style="border:1px dashed var(--border2);margin-bottom:18px">＋ Aggiungi gruppo</button>'
     + '<div style="display:flex;gap:8px;justify-content:flex-end">'
       + '<button class="btn btn-sm" onclick="closeBoxEditor()" style="border:1px solid var(--border2)">Annulla</button>'
       + '<button class="btn btn-gold" onclick="saveBox()">💾 Salva</button>'
     + '</div>'
   + '</div>';
+  renderBoxGroups();
   ed.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// 渲染所有组的编辑 UI
+function renderBoxGroups() {
+  var box = document.getElementById('box-groups');
+  if (!box) return;
+  box.innerHTML = _boxGroups.map(function(g, gi) {
+    var catChecks = C.map(function(cat) {
+      var checked = g.categories.indexOf(cat.id) >= 0 ? 'checked' : '';
+      return '<label style="display:flex;align-items:center;gap:5px;padding:5px 9px;background:var(--s2);border:1px solid var(--border2);border-radius:7px;cursor:pointer;font-size:11px;color:var(--text2)">'
+        + '<input type="checkbox" onchange="toggleBoxGroupCat(' + gi + ',\'' + cat.id + '\',this.checked)" ' + checked + '>'
+        + '<span>' + cat.icon + ' ' + cat.name + '</span>'
+      + '</label>';
+    }).join('');
+    return '<div style="border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:12px;background:rgba(255,255,255,.02)">'
+      + '<div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap">'
+        + '<div style="flex:2;min-width:120px"><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Nome gruppo</label>'
+          + '<input type="text" value="' + String(g.name).replace(/"/g,'&quot;') + '" onchange="_boxGroups[' + gi + '].name=this.value" placeholder="es. Piatti / Birra / Bibita" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:7px;padding:7px 9px;font-size:12px;color:var(--text2);outline:none"></div>'
+        + '<div style="flex:1;min-width:70px"><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Quantità</label>'
+          + '<input type="number" min="1" value="' + g.count + '" onchange="_boxGroups[' + gi + '].count=parseInt(this.value)||1" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:7px;padding:7px 9px;font-size:12px;color:var(--text2);outline:none"></div>'
+        + (_boxGroups.length > 1 ? '<button class="btn btn-sm btn-red" onclick="removeBoxGroup(' + gi + ')" style="flex-shrink:0">🗑</button>' : '')
+      + '</div>'
+      + '<label style="font-size:10px;color:var(--muted);display:block;margin-bottom:6px">Categorie per questo gruppo</label>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + catChecks + '</div>'
+    + '</div>';
+  }).join('');
+}
+
+function addBoxGroup() {
+  _boxGroups.push({ name: '', count: 1, categories: [] });
+  renderBoxGroups();
+}
+function removeBoxGroup(gi) {
+  _boxGroups.splice(gi, 1);
+  renderBoxGroups();
+}
+function toggleBoxGroupCat(gi, catId, checked) {
+  var g = _boxGroups[gi];
+  if (!g) return;
+  var idx = g.categories.indexOf(catId);
+  if (checked && idx < 0) g.categories.push(catId);
+  else if (!checked && idx >= 0) g.categories.splice(idx, 1);
 }
 
 function closeBoxEditor() {
@@ -3881,17 +3929,28 @@ function closeBoxEditor() {
 async function saveBox() {
   var name = (document.getElementById('box-name').value || '').trim();
   var price = parseFloat(document.getElementById('box-price').value);
-  var dishCount = parseInt(document.getElementById('box-count').value);
-  var cats = Array.prototype.slice.call(document.querySelectorAll('.box-cat-chk:checked')).map(function(c){ return c.value; });
 
   if (!name) { toast('⚠️ Inserisci il nome del BOX'); return; }
   if (!isFinite(price) || price < 0) { toast('⚠️ Prezzo non valido'); return; }
-  if (!isFinite(dishCount) || dishCount < 1) { toast('⚠️ N. piatti non valido'); return; }
-  if (!cats.length) { toast('⚠️ Seleziona almeno una categoria'); return; }
+
+  // 校验每组：要有名字、数量≥1、至少一个分类
+  if (!_boxGroups.length) { toast('⚠️ Aggiungi almeno un gruppo'); return; }
+  for (var i = 0; i < _boxGroups.length; i++) {
+    var g = _boxGroups[i];
+    if (!g.name || !g.name.trim()) { toast('⚠️ Il gruppo ' + (i+1) + ' non ha nome'); return; }
+    if (!g.count || g.count < 1) { toast('⚠️ Quantità non valida nel gruppo "' + g.name + '"'); return; }
+    if (!g.categories.length) { toast('⚠️ Seleziona categorie per il gruppo "' + g.name + '"'); return; }
+  }
+
+  var groups = _boxGroups.map(function(g){ return { name: g.name.trim(), count: g.count, categories: g.categories.slice() }; });
+  // 向后兼容：dish_count/categories 存第一组的值
+  var first = groups[0];
 
   var payload = {
     restaurant_id: RESTAURANT_ID,
-    name: name, price: price, dish_count: dishCount, categories: cats,
+    name: name, price: price,
+    dish_count: first.count, categories: first.categories,
+    groups: groups,
     sort_order: _editingBoxId ? ((_BOXES.find(function(b){return b.id===_editingBoxId;})||{}).sort_order || 0) : _BOXES.length
   };
   if (_editingBoxId) payload.id = _editingBoxId;
