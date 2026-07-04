@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.40.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.41.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.40.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.41.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -640,7 +640,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.40.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.41.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1359,7 +1359,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.40.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.41.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -4432,14 +4432,25 @@ function renderCustomerDetail(customer, transactions) {
           'order_auto': '🛒 Ordine auto',
           'order_manual': '🛒 Ordine manuale',
           'manual_adjust': '✏️ Rettifica',
-          'redeem': '🎁 Riscatto'
+          'redeem': '🎁 Riscatto',
+          'storno': '↩︎ Storno',
+          'expire_deduct': '⏳ Scadenza punti',
+          'signup_bonus': '🎉 Bonus benvenuto'
         }[tx.type] || tx.type;
         var d = new Date(tx.created_at);
         var dateStr = d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">'
-          + '<div><div style="font-size:13px">' + typeLabel + (tx.description ? ' · ' + tx.description : '') + '</div>'
-            + '<div style="font-size:11px;color:var(--muted)">' + dateStr + (tx.operator ? ' · ' + tx.operator : '') + (tx.restaurant_id ? ' · ' + tx.restaurant_id : '') + '</div></div>'
-          + '<div style="font-weight:600;color:' + (isPos ? '#27ae60' : '#c0392b') + '">' + (isPos ? '+' : '') + tx.points + ' pt</div>'
+        // v5.41.0 冲正：可冲 = 未作废、非 storno/expire_deduct、且正积分未过期
+        var canStorno = !tx.voided && tx.type !== 'storno' && tx.type !== 'expire_deduct'
+          && !(tx.points > 0 && tx.expires_at && new Date(tx.expires_at) < new Date());
+        var titleHtml = (tx.voided ? '<s>' : '') + typeLabel + (tx.description ? ' · ' + tx.description : '') + (tx.voided ? '</s>' : '')
+          + (tx.voided ? ' <span style="font-size:10px;background:#c0392b;color:#fff;border-radius:3px;padding:1px 5px;vertical-align:1px">ANNULLATA</span>' : '');
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);' + (tx.voided ? 'opacity:.55' : '') + '">'
+          + '<div style="min-width:0"><div style="font-size:13px;' + (tx.type === 'storno' ? 'color:#c0392b' : '') + '">' + titleHtml + '</div>'
+            + '<div style="font-size:11px;color:var(--muted)">#' + tx.id + ' · ' + dateStr + (tx.operator ? ' · ' + tx.operator : '') + (tx.restaurant_id ? ' · ' + tx.restaurant_id : '') + '</div></div>'
+          + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+            + '<div style="font-weight:600;color:' + (isPos ? '#27ae60' : '#c0392b') + '">' + (isPos ? '+' : '') + tx.points + ' pt</div>'
+            + (canStorno ? '<button class="btn btn-sm" style="background:#fdf0ee;color:#c0392b;border:1px solid rgba(192,57,43,.3);padding:3px 8px;font-size:11px" onclick="stornoTx(' + tx.id + ',' + tx.points + ',\'' + (tx.type || '') + '\')">↩︎ Storno</button>' : '')
+          + '</div>'
         + '</div>';
       }).join('');
 
@@ -4490,6 +4501,32 @@ function renderCustomerDetail(customer, transactions) {
     + '<div style="font-size:12px;font-weight:600;margin-bottom:8px">📋 Storico transazioni</div>'
     + txHtml
   + '</div>';
+}
+
+// v5.41.0 冲正：按笔反冲一条流水（原记录保留并标 ANNULLATA）
+async function stornoTx(txId, pts, type) {
+  if (!_loyaltyCustomer) return;
+  var msg = 'STORNO operazione #' + txId + ' (' + (pts > 0 ? '+' : '') + pts + ' pt, ' + type + ')?\n\n'
+    + 'Verrà creata una transazione opposta di ' + (-pts > 0 ? '+' : '') + (-pts) + ' pt.\n'
+    + 'L\'operazione originale resterà visibile ma annullata.';
+  if (!confirm(msg)) return;
+  var note = prompt('Motivo dello storno (opzionale):', '') || '';
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/loyalty/storno', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tx_id: txId, note: note }),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (res.ok) {
+      toast('✅ Storno eseguito. Totale: ' + data.total_points);
+      searchLoyaltyCustomer();
+    } else {
+      toast('❌ ' + (data.error || 'Errore'));
+    }
+  } catch (e) { toast('❌ ' + e.message); }
 }
 
 async function applyLoyaltyAdjust() {

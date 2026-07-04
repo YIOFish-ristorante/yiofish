@@ -106,6 +106,7 @@ input:focus{border-color:var(--gold)}
         <h2 style="margin:0">Cosa vuoi fare?</h2>
         <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="doLogout()">Esci</button>
       </div>
+      <div id="undo-banner"></div>
       <div class="menu-grid">
         <div class="menu-item" onclick="showStep('riscatta-choose')">
           <span class="menu-icon">🎁</span>
@@ -353,15 +354,67 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.2.0</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.3.0</div>
 
 <script>
-var APP_VERSION = 'v1.2.0';
+var APP_VERSION = 'v1.3.0';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
 var _username = '';
 var _redemptionId = null;
+
+// ══════════════════════════════════════
+// v1.3.0 撤销上一笔（Annulla ultima operazione）
+// 本机 15 分钟内可一键冲正刚做的加分/核销/确认订单
+// ══════════════════════════════════════
+var UNDO_WINDOW_MS = 15 * 60 * 1000;
+function _undoKey() { return 'yio_staff_lastop_' + _store; }
+function saveLastOp(op) {
+  try { localStorage.setItem(_undoKey(), JSON.stringify(op)); } catch (e) {}
+  renderUndoBanner();
+}
+function getLastOp() {
+  try {
+    var raw = localStorage.getItem(_undoKey());
+    if (!raw) return null;
+    var op = JSON.parse(raw);
+    if (!op || !op.tx_id || (Date.now() - op.ts) > UNDO_WINDOW_MS) return null;
+    return op;
+  } catch (e) { return null; }
+}
+function clearLastOp() {
+  try { localStorage.removeItem(_undoKey()); } catch (e) {}
+  renderUndoBanner();
+}
+function renderUndoBanner() {
+  var box = document.getElementById('undo-banner');
+  if (!box) return;
+  var op = getLastOp();
+  if (!op) { box.innerHTML = ''; return; }
+  box.innerHTML = '<div style="background:#fdf8ee;border:1px solid rgba(184,144,46,.25);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px">'
+    + '<span style="font-size:12px;color:#7a6020">Ultima: ' + op.label + '</span>'
+    + '<button class="btn" style="width:auto;background:#fdf0ee;color:var(--red);border:1px solid rgba(192,57,43,.3);padding:6px 10px;font-size:12px" onclick="undoLastOp()">↩️ Annulla</button>'
+  + '</div>';
+}
+async function undoLastOp() {
+  var op = getLastOp();
+  if (!op) { clearLastOp(); return; }
+  if (!confirm('Annullare l\'ultima operazione?\n' + op.label)) return;
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/storno', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
+      body: JSON.stringify({ tx_id: op.tx_id, note: 'Annulla ultima (staff ' + _username + ')' }),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { alert('❌ ' + (data.error || 'Errore')); return; }
+    clearLastOp();
+    alert('✅ Operazione annullata.\nPunti attuali del cliente: ' + data.total_points);
+    showStep('menu');
+  } catch (e) { alert('❌ Errore: ' + e.message); }
+}
 
 var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','riscatta-choose','addpunti-choose'];
 
@@ -374,6 +427,7 @@ function showStep(step) {
   // 离开扫码页时停止摄像头
   if (step !== 'scan') stopScan();
   if (step !== 'redeem-scan') stopRedeemScan();
+  if (step === 'menu') { try { renderUndoBanner(); } catch (e) {} }
   ALL_STEPS.forEach(function(s){
     var el = document.getElementById('step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
@@ -506,6 +560,7 @@ async function doConfirm() {
     });
     var data = await res.json();
     if (!res.ok) { showStep('code'); showErr('code-err', data.error || 'Errore nella conferma'); return; }
+    if (data.tx_id) saveLastOp({ tx_id: data.tx_id, label: 'Riscatto −' + (data.points_deducted || '?') + ' pt', ts: Date.now() });
     document.getElementById('success-msg').textContent = 'Premio riscattato da ' + _username + '.\nConsegna il premio al cliente.';
     document.getElementById('inp-code').value = '';
     _redemptionId = null;
@@ -546,6 +601,7 @@ async function doAddPoints() {
     var data = await res.json();
     if (!res.ok) { showErr('addpts-err', data.error || 'Errore'); return; }
 
+    if (data.tx_id) saveLastOp({ tx_id: data.tx_id, label: '+' + pts + ' pt a ' + phone, ts: Date.now() });
     document.getElementById('addpts-success-title').textContent = '+' + pts + ' punti aggiunti!';
     document.getElementById('addpts-success-msg').textContent =
       'Cliente: ' + phone + '\nTotale punti: ' + data.total_points + '\nOperatore: ' + _username;
@@ -629,6 +685,7 @@ async function confirmPending(id, action, btn) {
     var okEl = document.getElementById('pending-toast');
     if (okEl) {
       if (action === 'confirm') {
+        if (data.tx_id) saveLastOp({ tx_id: data.tx_id, label: '+' + (data.points_earned || 0) + ' pt (asporto)', ts: Date.now() });
         okEl.innerHTML = '<div class="msg msg-ok">✅ +' + (data.points_earned || 0) + ' punti assegnati</div>';
       } else {
         okEl.innerHTML = '<div class="msg msg-ok">✅ Ordine annullato</div>';
