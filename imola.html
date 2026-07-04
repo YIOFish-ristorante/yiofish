@@ -618,7 +618,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.60.0 · 2026-07-02</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.61.0 · 2026-07-04</span></div>
 </div>
 </div>
 
@@ -4158,6 +4158,28 @@ async function lyRefresh() {
   if (btn) { btn.textContent = '🔄'; btn.style.pointerEvents = ''; }
 }
 
+// v1.61: 注册即设 PIN —— 识别/注册后立即引导设置 PIN，把设 PIN 从"首次兑换"提前到"注册"，减少"有分无 PIN"空窗。可跳过（不强制）。
+async function lyPromptCreatePin() {
+  var p1 = prompt('🔒 Crea un PIN di 4 cifre per proteggere i tuoi punti (ti servirà per riscattare i premi). Puoi anche saltare e impostarlo più tardi:');
+  if (p1 === null) return false;                 // 顾客选择跳过
+  p1 = p1.trim();
+  if (!/^\d{4}$/.test(p1)) { toast('⚠️ Il PIN deve essere di 4 cifre'); return false; }
+  var p2 = prompt('Conferma il PIN (inseriscilo di nuovo):');
+  if (p2 === null) return false;
+  if (p1 !== p2.trim()) { toast('⚠️ I due PIN non coincidono'); return false; }
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/pin/set', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone: _lyPhone, new_pin: p1}), cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { toast('❌ ' + (data.error||'Errore')); return false; }
+    if (_lyCustomer) _lyCustomer.pin_hash = 'set';   // 本地标记已设，兑换时不再重复要求
+    toast('✅ PIN impostato');
+    return true;
+  } catch(e) { toast('❌ Errore di connessione'); return false; }
+}
+
 async function lyLookup() {
   var phone = (document.getElementById('ly-phone').value||'').trim().replace(/\s+/g,'');
   var errEl = document.getElementById('ly-phone-err');
@@ -4185,6 +4207,18 @@ async function lyLookup() {
     }
     // 检查即将过期的积分（30天内）
     lyCheckExpiry(_lyCustomer.id);
+
+    // v1.61: 注册即设 PIN —— 若该会员还没有 PIN，立即引导设置（用 pin/status 判断，不依赖 identify 返回的敏感字段）
+    try {
+      var _pinSt = await fetch(WORKER_URL + '/loyalty/pin/status', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({phone: phone}), cache: 'no-store'
+      });
+      var _pinStData = await _pinSt.json();
+      if (_pinStData && _pinStData.exists && !_pinStData.has_pin) {
+        await lyPromptCreatePin();
+      }
+    } catch(e) { /* 设 PIN 失败不影响查看积分 */ }
 
     // 加载奖品
     var rRes = await fetch(WORKER_URL + '/loyalty/rewards?restaurant_id=' + encodeURIComponent(RESTAURANT_ID), {cache:'no-store'});

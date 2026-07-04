@@ -129,6 +129,13 @@ input:focus{border-color:var(--gold)}
             <div class="menu-desc">Ordini d'asporto in attesa di conferma punti</div>
           </div>
         </div>
+        <div class="menu-item" onclick="showStep('resetpin')">
+          <span class="menu-icon">🔑</span>
+          <div>
+            <div class="menu-label">RESET PIN CLIENTE</div>
+            <div class="menu-desc">Azzera il PIN di un cliente (richiede codice cameriere)</div>
+          </div>
+        </div>
       </div>
       <div style="text-align:center;margin-top:18px">
         <button class="btn btn-ghost" style="width:auto;padding:6px 14px;font-size:12px;color:var(--muted)" onclick="showStep('changepwd')">🔑 Cambia password</button>
@@ -352,12 +359,43 @@ input:focus{border-color:var(--gold)}
     </div>
   </div>
 
+  <!-- STEP: resetpin（重置顾客 PIN，需服务员密码） -->
+  <div id="step-resetpin" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">🔑 Reset PIN cliente</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Azzera il PIN del cliente: lo reimposterà lui al prossimo riscatto. Richiede il codice cameriere.</div>
+      <div id="resetpin-err"></div>
+      <div class="field-label">Numero di telefono cliente</div>
+      <input type="tel" id="resetpin-phone" placeholder="Es. 3771234567"
+        onkeydown="if(event.keyCode===13)document.getElementById('resetpin-pwd').focus()">
+      <div class="field-label">Codice cameriere</div>
+      <input type="password" id="resetpin-pwd" placeholder="••••••"
+        onkeydown="if(event.keyCode===13)doResetPin()">
+      <button class="btn btn-gold" onclick="doResetPin()">Reset PIN</button>
+    </div>
+  </div>
+
+  <!-- STEP: resetpin-success -->
+  <div id="step-resetpin-success" style="display:none">
+    <div class="card">
+      <div class="success-box">
+        <div class="success-icon">✅</div>
+        <div class="success-title">PIN resettato</div>
+        <div class="success-sub" id="resetpin-success-msg"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="showStep('menu')">← Menu</button>
+    </div>
+  </div>
+
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.3.0</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.4.0</div>
 
 <script>
-var APP_VERSION = 'v1.3.0';
+var APP_VERSION = 'v1.4.0';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -416,7 +454,7 @@ async function undoLastOp() {
   } catch (e) { alert('❌ Errore: ' + e.message); }
 }
 
-var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','riscatta-choose','addpunti-choose'];
+var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','riscatta-choose','addpunti-choose','resetpin','resetpin-success'];
 
 // 页面加载时自动填入已保存凭证
 window.addEventListener('load', function() {
@@ -617,6 +655,31 @@ function resetAddPoints() {
   document.getElementById('addpts-note').value = '';
   showErr('addpts-err', '');
   showStep('addpts');
+}
+
+// v1.4.0: 店员重置顾客 PIN（需服务员密码）
+async function doResetPin() {
+  var phone = (document.getElementById('resetpin-phone').value || '').trim().replace(/\s+/g,'');
+  var pwd = document.getElementById('resetpin-pwd').value;
+  if (!phone) { showErr('resetpin-err', 'Inserisci il numero di telefono'); return; }
+  if (!pwd) { showErr('resetpin-err', 'Inserisci il codice cameriere'); return; }
+  if (!confirm('Azzerare il PIN di ' + phone + '?\nIl cliente dovrà impostarne uno nuovo al prossimo riscatto.')) return;
+  showErr('resetpin-err', '');
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/pin/reset-staff', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ phone: phone, restaurant_id: _store, waiter_password: pwd }),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { showErr('resetpin-err', data.error || 'Errore'); return; }
+    document.getElementById('resetpin-success-msg').textContent =
+      'Cliente: ' + (data.customer_name ? data.customer_name + ' (' + phone + ')' : phone)
+      + '\nImposterà un nuovo PIN al prossimo riscatto.';
+    document.getElementById('resetpin-phone').value = '';
+    document.getElementById('resetpin-pwd').value = '';
+    showStep('resetpin-success');
+  } catch(e) { showErr('resetpin-err', 'Errore: ' + e.message); }
 }
 
 // ════════════════════════════════════════
