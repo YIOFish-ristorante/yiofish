@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.41.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.42.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.41.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.42.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -640,7 +640,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.41.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.42.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1037,7 +1037,8 @@ var PERM_DEFS = [
   ['nav_settings','设置'],
   ['is_open','营业状态开关'],['announcement','公告管理'],['takeaway','外卖设置'],
   ['waiter_password','服务员密码'],['dish_price','菜品价格修改'],['publish_menu','发布菜单'],
-  ['round_settings','轮次设置'],['menu_limit','菜单限点设置'],['cat_limit','分类限点设置']
+  ['round_settings','轮次设置'],['menu_limit','菜单限点设置'],['cat_limit','分类限点设置'],
+  ['loyalty_correction','⭐ Fedeltà: correzione punti (Storno/Rettifica)']
 ];
 var _permData = {};
 var _permActiveStore = '';
@@ -1083,8 +1084,9 @@ function renderPermList() {
   var storePerm = _permData[_permActiveStore] || {};
   el.innerHTML = PERM_DEFS.map(function(p) {
     var key = p[0], label = p[1];
-    // 默认值改为 true（与 store_admin 侧逻辑一致：没记录 = 默认允许）
-    var enabled = storePerm[key] !== undefined ? storePerm[key] : true;
+    // 默认值 true（缺记录=允许）；但 loyalty_correction 默认关闭（缺记录=拒绝，更安全）
+    var _defVal = (key === 'loyalty_correction') ? false : true;
+    var enabled = storePerm[key] !== undefined ? storePerm[key] : _defVal;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--border);">'
       + '<span style="font-size:15px;font-weight:500;color:var(--text);">'+label+'</span>'
       + '<label style="position:relative;display:inline-block;width:54px;height:30px;cursor:pointer;">'
@@ -1148,6 +1150,9 @@ function applyPermissions(myPerms) {
     if (!el) return;
     el.style.display = (myPerms[key] === false) ? 'none' : '';
   });
+  // v5.42.0: 积分纠错默认关闭，只有超管显式授权(true)才给 store_admin 显示 Fedeltà 页
+  var _loyBtn = document.getElementById('nav-loyalty');
+  if (_loyBtn) _loyBtn.style.display = (myPerms['loyalty_correction'] === true) ? '' : 'none';
   // 保存权限供settings渲染后使用
   window._myPerms = myPerms;
 
@@ -1359,7 +1364,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.41.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.42.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
