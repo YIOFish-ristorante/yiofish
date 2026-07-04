@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.42.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.44.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.42.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.44.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -640,7 +640,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.42.0</span>';
+    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.44.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1017,7 +1017,7 @@ async function loadAll() {
       if (createBtn) createBtn.style.display = '';
       var saBtn = document.getElementById('nav-store-admin');
       if (saBtn) saBtn.style.display = '';
-      _permActiveStore = STORES[0].id;
+      _permActiveStore = RESTAURANT_ID || STORES[0].id;  // v5.44.0: 默认跟随顶部当前店
       loadPermissions();
     } else if (CURRENT_ROLE === 'store_admin') {
       loadMyPermissions();
@@ -1066,10 +1066,14 @@ async function loadPermissions() {
 function renderPermTabs() {
   var tabsEl = document.getElementById('perm-store-tabs');
   if (!tabsEl) return;
+  var _act = STORES.filter(function(s){ return s.id === _permActiveStore; })[0];
+  var _actName = _act ? _act.name : _permActiveStore;
   tabsEl.innerHTML = STORES.map(function(s) {
     var active = s.id === _permActiveStore;
-    return '<button onclick="switchPermStore(\''+s.id+'\')" style="padding:6px 16px;border:1px solid '+(active?'var(--gold)':'var(--border)')+';border-radius:6px;background:'+(active?'rgba(212,171,72,.15)':'transparent')+';color:var(--text);cursor:pointer;font-size:12px;">'+s.name+'</button>';
-  }).join('');
+    // v5.44.0: 当前店金色实心加粗，一眼看清在设哪家
+    return '<button onclick="switchPermStore(\''+s.id+'\')" style="padding:7px 18px;border:2px solid '+(active?'var(--gold)':'var(--border)')+';border-radius:6px;background:'+(active?'var(--gold)':'transparent')+';color:'+(active?'#1a1510':'var(--text)')+';font-weight:'+(active?'700':'400')+';cursor:pointer;font-size:12px;">'+s.name+'</button>';
+  }).join('')
+    + '<div style="width:100%;margin-top:10px;padding:9px 12px;background:rgba(212,171,72,.12);border-left:3px solid var(--gold);border-radius:4px;font-size:13px;color:var(--text)">⚙️ Stai impostando i permessi di: <b style="color:#b8902e">'+_actName+'</b></div>';
   renderPermList();
 }
 
@@ -1364,7 +1368,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.42.0</span>';
+  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.44.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1671,7 +1675,7 @@ function showPage(p){
         + '<div id="perm-store-tabs" style="display:flex;gap:8px;margin-bottom:20px;"></div>'
         + '<div id="perm-list"></div>'
         + '</div>';
-      _permActiveStore = STORES[0].id;
+      _permActiveStore = RESTAURANT_ID || STORES[0].id;  // v5.44.0: 默认跟随顶部当前店
       loadPermissions();
     }
     return;
@@ -4718,6 +4722,8 @@ var _lyStoreFilter = '';     // 主力店筛选：''=全部
 async function loadLoyaltyList() {
   var listEl = document.getElementById('ly-list');
   if (!listEl) return;
+  // v5.43.0: store_admin 打开积分页时，默认只看"本店常客"（主力店=本店）；可切到全部
+  if (CURRENT_ROLE === 'store_admin' && RESTAURANT_ID) _lyStoreFilter = RESTAURANT_ID;
   listEl.innerHTML = '⏳ Caricamento...';
   try {
     var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
@@ -4792,16 +4798,30 @@ function renderLoyaltyList() {
   var counts = { '': _lyListData.length };
   _lyListData.forEach(function(c){ var m=c.main_store||'_none'; counts[m]=(counts[m]||0)+1; });
   var stores = ['carpi','legnago','imola'];
-  var filterBar = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">'
-    + '<span style="font-size:11px;color:var(--muted)">Negozio principale:</span>'
-    + '<button onclick="lyFilterStore(\'\')" style="padding:4px 10px;border-radius:14px;font-size:11px;cursor:pointer;border:1px solid var(--border2);'
-      + (_lyStoreFilter===''?'background:var(--gold);color:#1a1510':'background:transparent;color:var(--muted)') + '">Tutti (' + (counts['']||0) + ')</button>'
-    + stores.map(function(rid){
-        return '<button onclick="lyFilterStore(\''+rid+'\')" style="padding:4px 10px;border-radius:14px;font-size:11px;cursor:pointer;border:1px solid var(--border2);'
-          + (_lyStoreFilter===rid?'background:var(--gold);color:#1a1510':'background:transparent;color:var(--muted)') + '">'
-          + lyStoreName(rid) + ' (' + (counts[rid]||0) + ')</button>';
-      }).join('')
-    + '</div>';
+  var _pill = 'padding:4px 10px;border-radius:14px;font-size:11px;cursor:pointer;border:1px solid var(--border2);';
+  var filterBar;
+  if (CURRENT_ROLE === 'store_admin' && RESTAURANT_ID) {
+    // v5.43.0: 店铺管理员只看到"本店常客 / 全部"两个选项（客户是跨店共享的，全部用于给跨店新客加分）
+    var _myN = counts[RESTAURANT_ID] || 0;
+    filterBar = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">'
+      + '<span style="font-size:11px;color:var(--muted)">Clienti:</span>'
+      + '<button onclick="lyFilterStore(\''+RESTAURANT_ID+'\')" style="'+_pill
+        + (_lyStoreFilter===RESTAURANT_ID?'background:var(--gold);color:#1a1510':'background:transparent;color:var(--muted)') + '">Solo miei clienti (' + _myN + ')</button>'
+      + '<button onclick="lyFilterStore(\'\')" style="'+_pill
+        + (_lyStoreFilter===''?'background:var(--gold);color:#1a1510':'background:transparent;color:var(--muted)') + '">Tutti (' + (counts['']||0) + ')</button>'
+      + '</div>';
+  } else {
+    filterBar = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">'
+      + '<span style="font-size:11px;color:var(--muted)">Negozio principale:</span>'
+      + '<button onclick="lyFilterStore(\'\')" style="'+_pill
+        + (_lyStoreFilter===''?'background:var(--gold);color:#1a1510':'background:transparent;color:var(--muted)') + '">Tutti (' + (counts['']||0) + ')</button>'
+      + stores.map(function(rid){
+          return '<button onclick="lyFilterStore(\''+rid+'\')" style="'+_pill
+            + (_lyStoreFilter===rid?'background:var(--gold);color:#1a1510':'background:transparent;color:var(--muted)') + '">'
+            + lyStoreName(rid) + ' (' + (counts[rid]||0) + ')</button>';
+        }).join('')
+      + '</div>';
+  }
 
   listEl.innerHTML = filterBar
     + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
