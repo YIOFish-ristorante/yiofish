@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>YIO Fish · Ristorante Giapponese</title>
+<!-- YIO index · Summer Fan 2026 disponibile · agg. 2026-07-13 -->
+  <title>YIO Fish · Ristorante Giapponese</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
@@ -474,64 +475,25 @@
         </div>
       </div>
       <div class="event-info">
-        <h3>Il grande fresco sta arrivando! 🪭</h3>
-        <div class="countdown" id="fan-countdown">
-          <div class="cd-days-wrap">
-            <span class="cd-num" id="cd-days">–</span>
-            <span class="cd-label">giorni</span>
-          </div>
-          <div class="cd-hms" id="cd-hms">
-            <span id="cd-h">00</span><i>:</i><span id="cd-m">00</span><i>:</i><span id="cd-s">00</span>
-          </div>
-        </div>
-        <p>I nostri esclusivi ventagli orientali firmati YIO Fish sono in viaggio! Vuoi essere tra i primi ad averlo? Inizia ad accumulare i punti DA OGGI! 🏃‍♂️💨</p>
+        <h3>🎐 YIO Summer Fan 2026 · Già disponibile!</h3>
+        <p>L'estate ha il suo simbolo. Abbiamo creato un ventaglio esclusivo firmato <b>YIO FISH</b>, con struttura in bambù e carta tradizionale: leggero, pieghevole ed elegante, perfetto da portare sempre con te nelle giornate più calde. ☀️</p>
+        <p style="color:var(--gold-lt);font-weight:600;margin-bottom:16px">✨ Come riceverlo? Scegli una delle due opzioni:</p>
         <div class="event-reqs">
-          <div class="req"><span class="req-n">1</span><div><b>8 PUNTI</b> — Registrati su yio.it (🎁 +2 punti gratis subito) e accumula i punti!</div></div>
-          <div class="req"><span class="req-n">2</span><div><b>1 STORIA INSTAGRAM</b> — Condividi la tua cena, tagga il ristorante e mantienila visibile almeno 12 ore! 📸
+          <div class="req"><span class="req-n">⭐</span><div><b>Accumula 8 YIO Punti</b> — Registrati su yio.it (🎁 +2 punti gratis subito) e accumula i punti con le tue consumazioni!</div></div>
+          <div class="req"><span class="req-n">👥</span><div><b>Vieni a cena in 2 persone</b> — e ricevi subito il tuo YIO Summer Fan 2026 alla cassa! 🥢</div></div>
+          <div class="req"><span class="req-n">📸</span><div><b>Bonus · +10 YIO Punti</b> — Condividi una foto o una Story con il tuo ventaglio e tagga il tuo ristorante! Le foto più belle finiranno sul nostro profilo. 💚
             <div class="req-ig">
               <a href="https://instagram.com/yio_fish_carpi" target="_blank">Carpi → @yio_fish_carpi</a>
               <a href="https://instagram.com/yio.fish_legnago" target="_blank">Legnago → @yio.fish_legnago</a>
               <a href="https://instagram.com/yio_fish_imola" target="_blank">Imola → @yio_fish_imola</a>
             </div>
           </div></div>
-          <div class="req"><span class="req-n">3</span><div><b>PROSSIMA CONSUMAZIONE</b> — Al raggiungimento dei 15 punti, ritira il ventaglio alla cassa alla tua prima cena o pranzo successivo! 🥢</div></div>
         </div>
-        <span class="event-soon">Inizia oggi · Link in bio</span>
+        <p style="font-size:13px;color:var(--muted);margin-top:4px">⚠️ Le quantità sono limitate. Ti aspettiamo da YIO FISH!</p>
+        <span class="event-soon">Già disponibile · Ritira alla cassa</span>
       </div>
     </div>
   </div>
-  <script>
-    (function(){
-      // 扇子到达倒计时（目标：2026-07-14 00:00 罗马时区）
-      function pad(n){ return n < 10 ? '0'+n : ''+n; }
-      function updateFanCountdown(){
-        var elD = document.getElementById('cd-days');
-        if(!elD) return;
-        var target = new Date('2026-07-14T00:00:00+02:00');
-        var now = new Date();
-        var ms = target - now;
-        var cd = document.getElementById('fan-countdown');
-        if(ms <= 0){
-          if(cd){
-            cd.innerHTML = '<div class="cd-days-wrap"><span class="cd-num">🪭</span><span class="cd-label">è arrivato!</span></div>';
-          }
-          return;
-        }
-        var totSec = Math.floor(ms/1000);
-        var days = Math.floor(totSec / 86400);
-        var h = Math.floor((totSec % 86400) / 3600);
-        var m = Math.floor((totSec % 3600) / 60);
-        var s = totSec % 60;
-        elD.textContent = days;
-        var eh=document.getElementById('cd-h'), em=document.getElementById('cd-m'), es=document.getElementById('cd-s');
-        if(eh) eh.textContent = pad(h);
-        if(em) em.textContent = pad(m);
-        if(es) es.textContent = pad(s);
-      }
-      updateFanCountdown();
-      setInterval(updateFanCountdown, 1000); // 每秒跳动
-    })();
-  </script>
 </section>
 
 <!-- ⑥ 服务方式 -->
