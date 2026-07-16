@@ -458,7 +458,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 /* 弹窗 */
 .overlay { position: fixed; inset: 0; display: none; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.85); z-index: 999; backdrop-filter: blur(6px); }
 .overlay.open { display: flex; }
-.sheet { background: var(--surface); border-radius: 24px 24px 0 0; padding: 28px 24px 40px; width: 100%; max-width: 480px; border: 1px solid var(--border); border-bottom: none; text-align: center; animation: slideUp .28s cubic-bezier(.4,0,.2,1); }
+.sheet { background: var(--surface); border-radius: 24px 24px 0 0; padding: 28px 24px 40px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); border-bottom: none; text-align: center; animation: slideUp .28s cubic-bezier(.4,0,.2,1); }
 @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
 .sheet h3 { color: var(--gold); font-weight: 300; letter-spacing: 3px; font-size: 14px; margin-bottom: 22px; }
 .drag-bar { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 22px; }
@@ -618,7 +618,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.61.0 · 2026-07-04</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.62.0 · 2026-07-13</span></div>
 </div>
 </div>
 
@@ -4230,13 +4230,13 @@ async function lyLookup() {
     } else {
       listEl.innerHTML = _lyRewards.map(function(r) {
         var canRedeem = _lyCustomer.total_points >= r.points_cost;
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e2ddd4">'
-          + '<div><div style="font-size:13px;font-weight:500">' + r.name + '</div>'
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #e2ddd4">'
+          + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">' + r.name + '</div>'
             + (r.description ? '<div style="font-size:11px;color:#7a7060">' + r.description + '</div>' : '')
             + '<div style="font-size:12px;color:#b8902e;margin-top:2px">' + r.points_cost + ' pt</div>'
           + '</div>'
           + '<button onclick="lyRedeem(' + r.id + ')" '
-            + 'style="padding:7px 14px;border-radius:6px;border:none;font-size:12px;cursor:pointer;font-family:inherit;'
+            + 'style="flex-shrink:0;white-space:nowrap;padding:7px 14px;border-radius:6px;border:none;font-size:12px;cursor:pointer;font-family:inherit;'
             + (canRedeem ? 'background:#b8902e;color:#fff' : 'background:#e2ddd4;color:#7a7060;cursor:not-allowed') + '"'
             + (canRedeem ? '' : ' disabled') + '>'
             + (canRedeem ? 'Riscatta' : 'Punti insuff.')
