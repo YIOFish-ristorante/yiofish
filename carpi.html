@@ -620,7 +620,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.63.0 · 2026-07-19</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.64.0 · 2026-07-19</span></div>
 </div>
 </div>
 
@@ -1151,7 +1151,23 @@ function clearCartLS() {
     localStorage.removeItem(LS_KEY_ASP); localStorage.removeItem(LS_KEY_ASP+'_sent');
   } catch(e) {}
 }
-var WAITER_PASSWORD = '5555';  // 服务员密码（从Supabase读取）
+// v1.64.0: 服务员密码不再下发到前端（Worker v5.31 起从公开接口剥离），
+// 校验改走服务端 /public/waiter-verify，本地不再保存任何密码
+async function waiterVerify(pwd) {
+  try {
+    var r = await fetch(WORKER_URL + '/public/waiter-verify', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({restaurant_id: RESTAURANT_ID, password: pwd}),
+      cache: 'no-store'
+    });
+    var d = await r.json();
+    return !!(r.ok && d && d.ok);
+  } catch (e) {
+    toast('❌ Errore di connessione');
+    return false;
+  }
+}
 var _tableSession = null;  // 当前桌号的轮次状态
 var _clientId = null;      // 本机唯一ID
 var _tableConfig = null;   // 当前桌号配置（人数限制等）
@@ -1281,8 +1297,7 @@ async function loadAll() {
 
     if (sData[0]) {
       SETTINGS = sData[0];
-      // 读取服务员密码
-      if (SETTINGS.waiter_password) WAITER_PASSWORD = SETTINGS.waiter_password;
+      // v1.64.0: waiter_password 不再下发（服务端校验），忽略该字段
       // 积分系统开关：控制手机号输入框 + 积分按钮显示
       var phoneWrapLoyalty = document.getElementById('res-phone-wrap');
       if (phoneWrapLoyalty) phoneWrapLoyalty.style.display = SETTINGS.loyalty_enabled ? '' : 'none';
@@ -3273,11 +3288,11 @@ function canAddItem() {
   return {ok: true};
 }
 
-// 修改人数（需要服务员密码）
-function changeGuestCount() {
+// 修改人数（需要服务员密码，v1.64 起服务端校验）
+async function changeGuestCount() {
   var pwd = prompt('Inserisci il codice cameriere:');
   if (pwd === null) return;
-  if (pwd !== WAITER_PASSWORD) {
+  if (!(await waiterVerify(pwd.trim()))) {
     alert('Codice non corretto.');
     return;
   }
@@ -3304,10 +3319,10 @@ function changeGuestCount() {
   }
 }
 
-function confirmResetRound() {
+async function confirmResetRound() {
   var pwd = prompt('Codice cameriere per reset:');
   if (pwd === null) return;
-  if (pwd !== WAITER_PASSWORD) { alert('Codice non corretto.'); return; }
+  if (!(await waiterVerify(pwd.trim()))) { alert('Codice non corretto.'); return; }
   var tableNum = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
   if (!tableNum) { alert('Inserisci prima il numero del tavolo.'); return; }
   resetTableSession(tableNum);
@@ -4191,6 +4206,30 @@ async function lyRefresh() {
 }
 
 // v1.61: 注册即设 PIN —— 识别/注册后立即引导设置 PIN，把设 PIN 从"首次兑换"提前到"注册"，减少"有分无 PIN"空窗。可跳过（不强制）。
+// v1.64.0: 统一设 PIN。Worker v5.31 起："有余额但未设 PIN"的账户需店员协助
+// （防手机号盗设 PIN → 盗兑积分），返回 need_staff 时请店员输密码后自动重试一次
+async function lyPinSet(newPin, oldPin) {
+  var payload = {phone: _lyPhone, new_pin: newPin};
+  if (oldPin) payload.old_pin = oldPin;
+  for (var attempt = 0; attempt < 2; attempt++) {
+    var res = await fetch(WORKER_URL + '/loyalty/pin/set', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload), cache: 'no-store'
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (res.ok) return {ok: true};
+    if (data && data.need_staff && attempt === 0) {
+      var staffPwd = prompt('👤 Questo account ha già punti: il primo PIN va impostato con lo staff.\nInserisci il codice cameriere:');
+      if (staffPwd === null) return {ok: false, cancelled: true};
+      payload.restaurant_id = RESTAURANT_ID;
+      payload.waiter_password = staffPwd.trim();
+      continue;
+    }
+    return {ok: false, error: (data && data.error) || 'Errore'};
+  }
+  return {ok: false, error: 'Errore'};
+}
+
 async function lyPromptCreatePin() {
   var p1 = prompt('🔒 Crea un PIN di 4 cifre per proteggere i tuoi punti (ti servirà per riscattare i premi). Puoi anche saltare e impostarlo più tardi:');
   if (p1 === null) return false;                 // 顾客选择跳过
@@ -4200,12 +4239,8 @@ async function lyPromptCreatePin() {
   if (p2 === null) return false;
   if (p1 !== p2.trim()) { toast('⚠️ I due PIN non coincidono'); return false; }
   try {
-    var res = await fetch(WORKER_URL + '/loyalty/pin/set', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({phone: _lyPhone, new_pin: p1}), cache: 'no-store'
-    });
-    var data = await res.json();
-    if (!res.ok) { toast('❌ ' + (data.error||'Errore')); return false; }
+    var r = await lyPinSet(p1);
+    if (!r.ok) { if (!r.cancelled) toast('❌ ' + (r.error || 'Errore')); return false; }
     if (_lyCustomer) _lyCustomer.pin_hash = 'set';   // 本地标记已设，兑换时不再重复要求
     toast('✅ PIN impostato');
     return true;
@@ -4303,12 +4338,8 @@ async function lyEnsurePin() {
     if (p2 === null) return null;
     if (p1 !== p2.trim()) { toast('⚠️ I due PIN non coincidono'); return null; }
     try {
-      var setRes = await fetch(WORKER_URL + '/loyalty/pin/set', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({phone: _lyPhone, new_pin: p1}), cache: 'no-store'
-      });
-      var setData = await setRes.json();
-      if (!setRes.ok) { toast('❌ ' + (setData.error||'Errore')); return null; }
+      var sr = await lyPinSet(p1);
+      if (!sr.ok) { if (!sr.cancelled) toast('❌ ' + (sr.error || 'Errore')); return null; }
     } catch(e) { toast('❌ Errore di connessione'); return null; }
     toast('✅ PIN impostato');
     return p1;
@@ -4351,13 +4382,9 @@ async function lyManagePin() {
   if (p1 !== p2.trim()) { toast('⚠️ I due PIN non coincidono'); return; }
 
   try {
-    var res = await fetch(WORKER_URL + '/loyalty/pin/set', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({phone: _lyPhone, new_pin: p1, old_pin: oldPin}), cache: 'no-store'
-    });
-    var data = await res.json();
-    if (res.ok) { toast('✅ PIN aggiornato'); }
-    else { toast('❌ ' + (data.error || 'Errore')); }
+    var r = await lyPinSet(p1, oldPin);
+    if (r.ok) { toast('✅ PIN aggiornato'); }
+    else if (!r.cancelled) { toast('❌ ' + (r.error || 'Errore')); }
   } catch(e) { toast('❌ Errore di connessione'); }
 }
 
