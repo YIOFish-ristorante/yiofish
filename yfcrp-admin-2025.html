@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.45.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.46.1</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.45.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.46.1</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -640,7 +640,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.45.0</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.46.1</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1368,7 +1368,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = store.name + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.45.0</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.46.1</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1615,8 +1615,8 @@ function toast(msg, dur){
   clearTimeout(el._t);
   el._t = setTimeout(function(){ el.className = 'toast'; }, dur || 2500);
 }
-function catIcon(id){ for(var i=0;i<C.length;i++) if(C[i].id===id) return C[i].icon; return '🍽️'; }
-function catName(id){ for(var i=0;i<C.length;i++) if(C[i].id===id) return C[i].name; return id; }
+function catIcon(id){ for(var i=0;i<C.length;i++) if(C[i].id===id) return _lyEsc(C[i].icon); return '🍽️'; }
+function catName(id){ for(var i=0;i<C.length;i++) if(C[i].id===id) return _lyEsc(C[i].name); return _lyEsc(id); }
 function fmtP(n){ return '€\u00a0' + Number(n).toFixed(2); }
 // markDirty/markSaved/updateCounts/openModal → defined in Supabase block
 function closeModal(){
@@ -1761,8 +1761,8 @@ function renderDishes(){
     return true;
   });
 
-  var catOpts = C.map(function(c){ return '<option value="'+c.id+'"'+(c.id===_fCat?' selected':'')+'>'+c.icon+' '+c.name+'</option>'; }).join('');
-  var menuOpts = MENUS.map(function(m){ return '<option value="'+m.id+'"'+(m.id===_fMenu?' selected':'')+'>'+m.icon+' '+m.name+'</option>'; }).join('');
+  var catOpts = C.map(function(c){ return '<option value="'+c.id+'"'+(c.id===_fCat?' selected':'')+'>'+_lyEsc(c.icon)+' '+_lyEsc(c.name)+'</option>'; }).join('');
+  var menuOpts = MENUS.map(function(m){ return '<option value="'+m.id+'"'+(m.id===_fMenu?' selected':'')+'>'+_lyEsc(m.icon)+' '+_lyEsc(m.name)+'</option>'; }).join('');
 
   var rows = items.map(function(it){
     var pills = MENUS.map(function(m){
@@ -1770,14 +1770,14 @@ function renderDishes(){
       var p = parseFloat((it.menus && it.menus[m.id]) ? (it.menus[m.id].price||0) : 0);
       var sc = parseFloat((it.menus && it.menus[m.id]) ? (it.menus[m.id].sconto||0) : 0);
       var displayP = sc > 0 ? p*(1-sc/100) : p;
-      return '<span class="mpill'+(on?'':' off')+'" style="color:'+m.color+';border-color:'+m.color+'">'
-        +m.icon+(on&&m.showPrice&&displayP>0?' '+fmtP(displayP):on?' ✓':' —')+'</span>';
+      return '<span class="mpill'+(on?'':' off')+'" style="color:'+_lyEsc(m.color)+';border-color:'+_lyEsc(m.color)+'">'
+        +_lyEsc(m.icon)+(on&&m.showPrice&&displayP>0?' '+fmtP(displayP):on?' ✓':' —')+'</span>';
     }).join('');
-    var thumb = it.image ? '<img src="'+it.image+'" alt="" onerror="this.style.display=\'none\'">' : catIcon(it.category);
+    var thumb = it.image ? '<img src="'+_lyEsc(it.image)+'" alt="" onerror="this.style.display=\'none\'">' : catIcon(it.category);
     return '<div class="item-row">'
       +'<div class="i-thumb">'+thumb+'</div>'
       +'<div class="i-info">'
-        +'<div class="i-name">'+(it.dish_no?((it.dish_no<10?'0'+it.dish_no:it.dish_no)+' / '):'')+it.name+(it.sold_out?' <span class="sold-chip">售罄</span>':'')+'</div>'
+        +'<div class="i-name">'+(it.dish_no?(_lyEsc(it.dish_no<10?'0'+it.dish_no:it.dish_no)+' / '):'')+_lyEsc(it.name)+(it.sold_out?' <span class="sold-chip">售罄</span>':'')+'</div>'
         +'<div class="i-meta">'+catIcon(it.category)+' '+catName(it.category)+'&nbsp;&nbsp;'+pills+'</div>'
       +'</div>'
       +'<div class="i-actions">'
@@ -1876,7 +1876,7 @@ function openEditDish(id){
 
 function buildCatSel(sel){
   $('f-cat').innerHTML = C.map(function(c){
-    return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+c.icon+' '+c.name+'</option>';
+    return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+_lyEsc(c.icon)+' '+_lyEsc(c.name)+'</option>';
   }).join('');
 }
 function buildTagPicker(sel){
@@ -1988,8 +1988,8 @@ function renderCats(){
     var cnt = I.filter(function(it){ return it.category===cat.id; }).length;
     return '<div class="cat-row" draggable="true" data-ci="'+i+'">'
       +'<div style="color:var(--muted);font-size:18px;cursor:grab;padding:0 4px;flex-shrink:0">⠿</div>'
-      +'<div class="cat-icon-box">'+cat.icon+'</div>'
-      +'<div class="cat-info"><div class="cat-name-t">'+cat.name+'</div><div class="cat-id-t">id: '+cat.id+' · '+cnt+' piatti</div></div>'
+      +'<div class="cat-icon-box">'+_lyEsc(cat.icon)+'</div>'
+      +'<div class="cat-info"><div class="cat-name-t">'+_lyEsc(cat.name)+'</div><div class="cat-id-t">id: '+cat.id+' · '+cnt+' piatti</div></div>'
       +'<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">'
         +'<span style="font-size:10px;color:var(--muted);letter-spacing:.5px;">限/人:</span>'
         +'<input type="number" min="0" value="'+(cat.cat_limit||0)+'" '
@@ -2115,11 +2115,11 @@ function renderTags(){
   var rows = keys.map(function(tid){
     var tg = ALL_TAGS[tid];
     var cnt = I.filter(function(it){ return (it.tags||[]).indexOf(tid)>=0; }).length;
-    var badge = '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:3px;font-size:12px;border:1px solid '+tg.color+';color:'+tg.color+'">'+tg.icon+' '+tg.label+'</span>';
-    return '<div class="cat-row">'      +'<div class="cat-icon-box" style="font-size:20px">'+tg.icon+'</div>'      +'<div class="cat-info"><div class="cat-name-t">'+badge+'</div>'      +'<div class="cat-id-t">id: '+tid+' · '+cnt+' piatti</div></div>'      +'<button class="btn btn-sm btn-gold-s" onclick="openEditTag(\''+tid+'\')">编辑</button>'      +'<button class="btn btn-sm btn-red" onclick="delTag(\''+tid+'\')">删除</button>'      +'</div>';
+    var badge = '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:3px;font-size:12px;border:1px solid '+_lyEsc(tg.color)+';color:'+_lyEsc(tg.color)+'">'+_lyEsc(tg.icon)+' '+_lyEsc(tg.label)+'</span>';
+    return '<div class="cat-row">'      +'<div class="cat-icon-box" style="font-size:20px">'+_lyEsc(tg.icon)+'</div>'      +'<div class="cat-info"><div class="cat-name-t">'+badge+'</div>'      +'<div class="cat-id-t">id: '+tid+' · '+cnt+' piatti</div></div>'      +'<button class="btn btn-sm btn-gold-s" onclick="openEditTag(\''+tid+'\')">编辑</button>'      +'<button class="btn btn-sm btn-red" onclick="delTag(\''+tid+'\')">删除</button>'      +'</div>';
   }).join('');
   $('content').innerHTML =
-    '<div class="page-head"><div><h1>🏷️ 标签管理</h1><p>📍 '+storeName+' · 共 '+keys.length+' 个标签（每家店独立设置）</p></div>'      +'<button class="btn btn-gold" onclick="openAddTag()">＋ 添加标签</button></div>'    +'<div class="card" style="padding:0">'+rows+'</div>';
+    '<div class="page-head"><div><h1>🏷️ 标签管理</h1><p>📍 '+_lyEsc(storeName)+' · 共 '+keys.length+' 个标签（每家店独立设置）</p></div>'      +'<button class="btn btn-gold" onclick="openAddTag()">＋ 添加标签</button></div>'    +'<div class="card" style="padding:0">'+rows+'</div>';
 }
 var _editTagId = null;
 function openAddTag(){
@@ -2198,11 +2198,11 @@ function renderRestaurant(){
     '<div class="page-head"><div><h1>🏪 餐厅信息</h1></div>'
       +'<button class="btn btn-gold" onclick="saveRestaurant()">保存</button></div>'
     +'<div class="card" style="padding:20px 22px">'
-      +'<div class="form-row"><div class="fg"><label>餐厅名称</label><input id="r-name" value="'+R.name+'"></div><div class="fg"><label>电话</label><input id="r-phone" value="'+R.phone+'"></div></div>'
-      +'<div class="fg" style="margin-bottom:12px"><label>简介（显示在菜单头部）</label><input id="r-sub" value="'+R.subtitle+'"></div>'
-      +'<div class="form-row"><div class="fg"><label>货币</label><input id="r-cur" value="'+R.currency+'" style="max-width:70px"></div></div>'
-      +'<div class="fg" style="margin-bottom:12px"><label>营业时间</label><input id="r-hours" value="'+(R.hours||'')+'"></div>'
-      +'<div class="form-row"><div class="fg"><label>Logo 文件</label><input id="r-logo" value="'+R.logo+'"></div><div class="fg"><label>Favicon</label><input id="r-fav" value="'+(R.favicon||'')+'"></div></div>'
+      +'<div class="form-row"><div class="fg"><label>餐厅名称</label><input id="r-name" value="'+_lyEsc(R.name)+'"></div><div class="fg"><label>电话</label><input id="r-phone" value="'+_lyEsc(R.phone)+'"></div></div>'
+      +'<div class="fg" style="margin-bottom:12px"><label>简介（显示在菜单头部）</label><input id="r-sub" value="'+_lyEsc(R.subtitle)+'"></div>'
+      +'<div class="form-row"><div class="fg"><label>货币</label><input id="r-cur" value="'+_lyEsc(R.currency)+'" style="max-width:70px"></div></div>'
+      +'<div class="fg" style="margin-bottom:12px"><label>营业时间</label><input id="r-hours" value="'+_lyEsc(R.hours||'')+'"></div>'
+      +'<div class="form-row"><div class="fg"><label>Logo 文件</label><input id="r-logo" value="'+_lyEsc(R.logo)+'"></div><div class="fg"><label>Favicon</label><input id="r-fav" value="'+_lyEsc(R.favicon||'')+'"></div></div>'
     +'</div>';
 }
 async function saveRestaurant(){
@@ -2444,9 +2444,9 @@ function importProcessRows(rows) {
     var price = d.menus.pranzo.price || d.menus.bevande.price || d.menus.dessert.price || 0;
     return '<tr style="border-bottom:1px solid var(--border)">'+
       '<td style="padding:6px">'+op+'</td>'+
-      '<td style="padding:6px">'+d.dish_no+'</td>'+
-      '<td style="padding:6px">'+d.category+'</td>'+
-      '<td style="padding:6px">'+d.name+'</td>'+
+      '<td style="padding:6px">'+_lyEsc(d.dish_no)+'</td>'+
+      '<td style="padding:6px">'+_lyEsc(d.category)+'</td>'+
+      '<td style="padding:6px">'+_lyEsc(d.name)+'</td>'+
       '<td style="padding:6px;text-align:right">'+(price?('€'+price):'-')+'</td></tr>';
   }).join('');
   // 下架的菜也显示几行
@@ -2454,9 +2454,9 @@ function importProcessRows(rows) {
     toDeactivate.slice(0, 10).forEach(function(d){
       trs += '<tr style="border-bottom:1px solid var(--border);background:rgba(243,156,18,.05)">'+
         '<td style="padding:6px"><span style="color:#f39c12">下架</span></td>'+
-        '<td style="padding:6px">'+d.dish_no+'</td>'+
-        '<td style="padding:6px">'+d.category+'</td>'+
-        '<td style="padding:6px">'+d.name+'</td>'+
+        '<td style="padding:6px">'+_lyEsc(d.dish_no)+'</td>'+
+        '<td style="padding:6px">'+_lyEsc(d.category)+'</td>'+
+        '<td style="padding:6px">'+_lyEsc(d.name)+'</td>'+
         '<td style="padding:6px;text-align:right;color:var(--muted)">-</td></tr>';
     });
     if (toDeactivate.length > 10) trs += '<tr><td colspan="5" style="padding:8px;text-align:center;color:var(--muted)">… 还有 '+(toDeactivate.length-10)+' 道菜将下架</td></tr>';
@@ -3091,8 +3091,8 @@ function renderExport(){
       return it.menus && it.menus[m.id] && it.menus[m.id].on;
     }).length;
     return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px;">'
-      +'<span>'+m.icon+' '+m.name+' <span style="color:var(--muted);font-size:11px">('+m.nameIT+')</span></span>'
-      +'<span style="color:'+m.color+';font-weight:600">'+cnt+' 道</span>'
+      +'<span>'+_lyEsc(m.icon)+' '+_lyEsc(m.name)+' <span style="color:var(--muted);font-size:11px">('+_lyEsc(m.nameIT)+')</span></span>'
+      +'<span style="color:'+_lyEsc(m.color)+';font-weight:600">'+cnt+' 道</span>'
     +'</div>';
   }).join('');
 
@@ -3353,7 +3353,7 @@ function renderSettings(){
         +'<input type="checkbox"'+(included?' checked':'')
         +' onchange="toggleMenuCat(\'' + m.id + '\', \'' + cat.id + '\', this.checked)"'
         +' style="accent-color:var(--gold);width:14px;height:14px;">'
-        +cat.icon+' '+cat.name
+        +_lyEsc(cat.icon)+' '+_lyEsc(cat.name)
         +'</label>'
         +'<input type="number" min="0" step="1" value="'+catLimitVal+'" placeholder="∞"'
         +' onchange="setMenuCatLimitDB(\'' + m.id + '\', \'' + cat.id + '\', this.value)"'
@@ -3366,7 +3366,7 @@ function renderSettings(){
     });
     menuConfigHTML += '<div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
-        +'<div style="font-size:13px;font-weight:500;">'+m.icon+' '+m.nameIT+'</div>'
+        +'<div style="font-size:13px;font-weight:500;">'+_lyEsc(m.icon)+' '+_lyEsc(m.nameIT)+'</div>'
         +'<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">限选道数:'
           +'<input type="number" min="0" step="1" value="'+menuLimit+'"'
           +' onchange="setMenuLimitDB(\'' + m.id + '\', this.value)"'
@@ -3795,7 +3795,7 @@ async function renderBoxesPage() {
   }
   content.innerHTML =
     '<div style="padding:0;">'
-    + '<div class="page-head"><div><h1>🍱 BOX 套餐</h1><p>固定价套餐（' + (storeName || RESTAURANT_ID) + '）· 顾客在 ASPORTO 里选 BOX，从指定分类任选 N 道，付固定价</p></div>'
+    + '<div class="page-head"><div><h1>🍱 BOX 套餐</h1><p>固定价套餐（' + _lyEsc(storeName || RESTAURANT_ID) + '）· 顾客在 ASPORTO 里选 BOX，从指定分类任选 N 道，付固定价</p></div>'
     + '<button class="btn btn-gold" onclick="openBoxEditor(null)">＋ Nuovo BOX</button></div>'
     + '<div id="box-editor"></div>'
     + '<div id="box-list">⏳ Caricamento...</div>'
@@ -3830,13 +3830,13 @@ function renderBoxList() {
     var grpHtml = grps.map(function(g){
       var catNames = (g.categories || []).map(function(cid){
         var c = C.find(function(x){ return x.id === cid; });
-        return c ? c.name : cid;
+        return c ? _lyEsc(c.name) : _lyEsc(cid);
       });
-      return '<div style="font-size:11px;color:var(--muted);margin-top:4px">• <b style="color:var(--text2)">' + g.count + ' ' + g.name + '</b> — ' + (catNames.join(', ') || '⚠️ nessuna categoria') + '</div>';
+      return '<div style="font-size:11px;color:var(--muted);margin-top:4px">• <b style="color:var(--text2)">' + _lyEsc(g.count) + ' ' + _lyEsc(g.name) + '</b> — ' + (catNames.join(', ') || '⚠️ nessuna categoria') + '</div>';
     }).join('');
     return '<div class="card" style="padding:16px 20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'
       + '<div style="flex:1;min-width:200px">'
-        + '<div style="font-size:16px;font-weight:600;color:var(--gold)">🍱 ' + b.name + ' · € ' + Number(b.price).toFixed(2) + '</div>'
+        + '<div style="font-size:16px;font-weight:600;color:var(--gold)">🍱 ' + _lyEsc(b.name) + ' · € ' + Number(b.price).toFixed(2) + '</div>'
         + grpHtml
       + '</div>'
       + '<div style="display:flex;gap:6px;flex-shrink:0">'
@@ -3896,7 +3896,7 @@ function renderBoxGroups() {
       var checked = g.categories.indexOf(cat.id) >= 0 ? 'checked' : '';
       return '<label style="display:flex;align-items:center;gap:5px;padding:5px 9px;background:var(--s2);border:1px solid var(--border2);border-radius:7px;cursor:pointer;font-size:11px;color:var(--text2)">'
         + '<input type="checkbox" onchange="toggleBoxGroupCat(' + gi + ',\'' + cat.id + '\',this.checked)" ' + checked + '>'
-        + '<span>' + cat.icon + ' ' + cat.name + '</span>'
+        + '<span>' + _lyEsc(cat.icon) + ' ' + _lyEsc(cat.name) + '</span>'
       + '</label>';
     }).join('');
     return '<div style="border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:12px;background:rgba(255,255,255,.02)">'
@@ -4004,7 +4004,7 @@ function renderConsegnaSchedulePage() {
   }
   content.innerHTML =
     '<div style="padding:0;">'
-    + '<div class="page-head"><div><h1>🛵 Consegna 排班</h1><p>设置外送服务的每周时段（' + (storeName || RESTAURANT_ID) + '）</p></div></div>'
+    + '<div class="page-head"><div><h1>🛵 Consegna 排班</h1><p>设置外送服务的每周时段（' + _lyEsc(storeName || RESTAURANT_ID) + '）</p></div></div>'
     + '<div class="card" style="padding:20px 22px;margin-bottom:16px;">'
     + '  <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">'
     +   '设置每天每个时段是否提供外送。点击右侧按钮可以关闭某个餐段（即"那天那一餐不送"）。<br>'
@@ -4451,11 +4451,11 @@ function renderCustomerDetail(customer, transactions) {
         // v5.41.0 冲正：可冲 = 未作废、非 storno/expire_deduct、且正积分未过期
         var canStorno = !tx.voided && tx.type !== 'storno' && tx.type !== 'expire_deduct'
           && !(tx.points > 0 && tx.expires_at && new Date(tx.expires_at) < new Date());
-        var titleHtml = (tx.voided ? '<s>' : '') + typeLabel + (tx.description ? ' · ' + tx.description : '') + (tx.voided ? '</s>' : '')
+        var titleHtml = (tx.voided ? '<s>' : '') + typeLabel + (tx.description ? ' · ' + _lyEsc(tx.description) : '') + (tx.voided ? '</s>' : '')
           + (tx.voided ? ' <span style="font-size:10px;background:#c0392b;color:#fff;border-radius:3px;padding:1px 5px;vertical-align:1px">ANNULLATA</span>' : '');
         return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);' + (tx.voided ? 'opacity:.55' : '') + '">'
           + '<div style="min-width:0"><div style="font-size:13px;' + (tx.type === 'storno' ? 'color:#c0392b' : '') + '">' + titleHtml + '</div>'
-            + '<div style="font-size:11px;color:var(--muted)">#' + tx.id + ' · ' + dateStr + (tx.operator ? ' · ' + tx.operator : '') + (tx.restaurant_id ? ' · ' + tx.restaurant_id : '') + '</div></div>'
+            + '<div style="font-size:11px;color:var(--muted)">#' + tx.id + ' · ' + dateStr + (tx.operator ? ' · ' + _lyEsc(tx.operator) : '') + (tx.restaurant_id ? ' · ' + _lyEsc(tx.restaurant_id) : '') + '</div></div>'
           + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
             + '<div style="font-weight:600;color:' + (isPos ? '#27ae60' : '#c0392b') + '">' + (isPos ? '+' : '') + tx.points + ' pt</div>'
             + (canStorno ? '<button class="btn btn-sm" style="background:#fdf0ee;color:#c0392b;border:1px solid rgba(192,57,43,.3);padding:3px 8px;font-size:11px" onclick="stornoTx(' + tx.id + ',' + tx.points + ',\'' + (tx.type || '') + '\')">↩︎ Storno</button>' : '')
@@ -4466,8 +4466,8 @@ function renderCustomerDetail(customer, transactions) {
   detail.innerHTML = '<div class="card" style="padding:18px 22px;margin-bottom:20px;border-left:3px solid #27ae60">'
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">'
       + '<div>'
-        + '<div style="font-size:16px;font-weight:600">' + (customer.name || '—') + '</div>'
-        + '<div style="font-size:13px;color:var(--muted)">📱 ' + customer.phone + '</div>'
+        + '<div style="font-size:16px;font-weight:600">' + _lyEsc(customer.name || '—') + '</div>'
+        + '<div style="font-size:13px;color:var(--muted)">📱 ' + _lyEsc(customer.phone) + '</div>'
         + '<div style="font-size:11px;color:var(--muted2);margin-top:2px">Cliente dal ' + new Date(customer.created_at).toLocaleDateString('it-IT') + '</div>'
       + '</div>'
       + '<div style="text-align:right">'
@@ -4495,13 +4495,13 @@ function renderCustomerDetail(customer, transactions) {
       + '<div>'
         + '<div style="font-size:12px;font-weight:600">🔒 PIN sicurezza</div>'
         + '<div style="font-size:11px;color:var(--muted);margin-top:2px">'
-          + (customer.has_pin ? '✅ PIN impostato — il cliente lo usa per riscattare' : '⚠️ Nessun PIN — verrà impostato al primo riscatto')
+          + ((customer.has_pin || customer.pin_hash) ? '✅ PIN impostato — il cliente lo usa per riscattare' : '⚠️ Nessun PIN — verrà impostato al primo riscatto')
         + '</div>'
       + '</div>'
       + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
-        + '<button class="btn btn-sm btn-gold" onclick="adminSetLoyaltyPin(\'' + customer.phone + '\')">' + (customer.has_pin ? 'Cambia PIN' : 'Imposta PIN') + '</button>'
-        + (customer.has_pin
-            ? '<button class="btn btn-sm" style="background:#c0392b;color:#fff" onclick="resetLoyaltyPin(\'' + customer.phone + '\')">Reset</button>'
+        + '<button class="btn btn-sm btn-gold" onclick="adminSetLoyaltyPin()">' + ((customer.has_pin || customer.pin_hash) ? 'Cambia PIN' : 'Imposta PIN') + '</button>'
+        + ((customer.has_pin || customer.pin_hash)
+            ? '<button class="btn btn-sm" style="background:#c0392b;color:#fff" onclick="resetLoyaltyPin()">Reset</button>'
             : '')
       + '</div>'
     + '</div>'
@@ -4572,6 +4572,7 @@ async function applyLoyaltyAdjust() {
 }
 
 async function resetLoyaltyPin(phone) {
+  phone = phone || (_loyaltyCustomer && _loyaltyCustomer.phone);
   if (!phone) return;
   if (!confirm('Reset del PIN per ' + phone + '?\nIl cliente dovrà impostarne uno nuovo al prossimo riscatto.')) return;
   try {
@@ -4593,6 +4594,7 @@ async function resetLoyaltyPin(phone) {
 }
 
 async function adminSetLoyaltyPin(phone) {
+  phone = phone || (_loyaltyCustomer && _loyaltyCustomer.phone);
   if (!phone) return;
   var pin = prompt('Imposta un nuovo PIN di 4 cifre per ' + phone + ':');
   if (pin === null) return;
@@ -4631,9 +4633,9 @@ async function loadLoyaltyRewards() {
     listEl.innerHTML = rewards.map(function(r) {
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">'
         + '<div>'
-          + '<div style="font-size:13px;font-weight:500">' + r.name + '</div>'
-          + (r.description ? '<div style="font-size:11px;color:var(--muted)">' + r.description + '</div>' : '')
-          + '<div style="font-size:11px;color:var(--gold);margin-top:2px">' + r.points_cost + ' pt · ' + (r.type === 'voucher' ? '🎟 Voucher' : '🎁 Regalo') + '</div>'
+          + '<div style="font-size:13px;font-weight:500">' + _lyEsc(r.name) + '</div>'
+          + (r.description ? '<div style="font-size:11px;color:var(--muted)">' + _lyEsc(r.description) + '</div>' : '')
+          + '<div style="font-size:11px;color:var(--gold);margin-top:2px">' + _lyEsc(r.points_cost) + ' pt · ' + (r.type === 'voucher' ? '🎟 Voucher' : '🎁 Regalo') + '</div>'
         + '</div>'
         + '<div style="display:flex;gap:6px;flex-shrink:0">'
           + '<button class="btn btn-sm" style="border:1px solid var(--border2);font-size:11px" onclick="openRewardForm(' + JSON.stringify(r).replace(/"/g,"'") + ')">✏️</button>'
@@ -4657,7 +4659,7 @@ function openRewardForm(r) {
       + '<input id="rf-desc" type="text" value="' + (r.description||'') + '" placeholder="Es. Sconto di €5 sul conto" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:10px">'
       + '<div style="display:flex;gap:10px;margin-bottom:10px">'
         + '<div style="flex:1"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Punti richiesti</div>'
-          + '<input id="rf-pts" type="number" min="1" value="' + (r.points_cost||'') + '" placeholder="Es. 80" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px"></div>'
+          + '<input id="rf-pts" type="number" min="1" value="' + _lyEsc(r.points_cost||'') + '" placeholder="Es. 80" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px"></div>'
         + '<div style="flex:1"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Tipo</div>'
           + '<select id="rf-type" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px">'
             + '<option value="voucher"' + (r.type==='voucher'?' selected':'') + '>🎟 Voucher</option>'
@@ -4833,9 +4835,9 @@ function renderLoyaltyList() {
       + '<th style="text-align:right;'+thBase+'" onclick="lySortBy(\'created_at\')">Dal ' + arrow('created_at') + '</th>'
     + '</tr></thead><tbody>'
     + arr.map(function(c) {
-        return '<tr style="border-bottom:1px solid var(--border);cursor:pointer" data-phone="'+c.phone+'" class="ly-row">'
-          + '<td style="padding:8px 4px">' + (c.name || '<span style="color:var(--muted)">—</span>') + '</td>'
-          + '<td style="padding:8px 4px;color:var(--muted)">' + c.phone + '</td>'
+        return '<tr style="border-bottom:1px solid var(--border);cursor:pointer" data-phone="'+_lyEsc(c.phone)+'" class="ly-row">'
+          + '<td style="padding:8px 4px">' + (c.name ? _lyEsc(c.name) : '<span style="color:var(--muted)">—</span>') + '</td>'
+          + '<td style="padding:8px 4px;color:var(--muted)">' + _lyEsc(c.phone) + '</td>'
           + '<td style="padding:8px 4px;font-size:12px">' + lyStoreName(c.main_store) + '</td>'
           + '<td style="padding:8px 4px;text-align:right;font-weight:600;color:#d4af37">' + c.total_points + '</td>'
           + '<td style="padding:8px 4px;text-align:right;color:var(--muted);font-size:11px">' + new Date(c.created_at).toLocaleDateString('it-IT') + '</td>'
