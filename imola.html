@@ -620,7 +620,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.64.1 · 2026-07-19</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.65.0 · 2026-07-19</span></div>
 </div>
 </div>
 
@@ -1151,7 +1151,7 @@ function clearCartLS() {
     localStorage.removeItem(LS_KEY_ASP); localStorage.removeItem(LS_KEY_ASP+'_sent');
   } catch(e) {}
 }
-// v1.64.1: 服务员密码不再下发到前端（Worker v5.31 起从公开接口剥离），
+// v1.65.0: 服务员密码不再下发到前端（Worker v5.31 起从公开接口剥离），
 // 校验改走服务端 /public/waiter-verify，本地不再保存任何密码
 async function waiterVerify(pwd) {
   try {
@@ -1297,7 +1297,7 @@ async function loadAll() {
 
     if (sData[0]) {
       SETTINGS = sData[0];
-      // v1.64.1: waiter_password 不再下发（服务端校验），忽略该字段
+      // v1.65.0: waiter_password 不再下发（服务端校验），忽略该字段
       // 积分系统开关：控制手机号输入框 + 积分按钮显示
       var phoneWrapLoyalty = document.getElementById('res-phone-wrap');
       if (phoneWrapLoyalty) phoneWrapLoyalty.style.display = SETTINGS.loyalty_enabled ? '' : 'none';
@@ -1356,6 +1356,7 @@ async function loadAll() {
       }
     } catch(e) {}
     loadMenu();
+    applyModeFromUrl(); // v1.65.0: ?mode=asporto|consegna 直达外卖模式（官网服务卡跳转）
     // 每30秒检查营业状态和新发布（页面隐藏时暂停，回前台立即补查一次）
     setInterval(function(){
       if (document.hidden) return;
@@ -4206,10 +4207,10 @@ async function lyRefresh() {
 }
 
 // v1.61: 注册即设 PIN —— 识别/注册后立即引导设置 PIN，把设 PIN 从"首次兑换"提前到"注册"，减少"有分无 PIN"空窗。可跳过（不强制）。
-// v1.64.1: 统一设 PIN。Worker v5.31 起："有余额但未设 PIN"的账户需店员协助
+// v1.65.0: 统一设 PIN。Worker v5.31 起："有余额但未设 PIN"的账户需店员协助
 // （防手机号盗设 PIN → 盗兑积分），返回 need_staff 时请店员输密码后自动重试一次
 async function lyPinSet(newPin, oldPin) {
-  var payload = {phone: _lyPhone, new_pin: newPin, restaurant_id: RESTAURANT_ID}; // v1.64.1: 首请求即带店ID——Worker按注册赠分阈值判断可否自助设PIN
+  var payload = {phone: _lyPhone, new_pin: newPin, restaurant_id: RESTAURANT_ID}; // v1.65.0: 首请求即带店ID——Worker按注册赠分阈值判断可否自助设PIN
   if (oldPin) payload.old_pin = oldPin;
   for (var attempt = 0; attempt < 2; attempt++) {
     var res = await fetch(WORKER_URL + '/loyalty/pin/set', {
@@ -4538,6 +4539,18 @@ function sendReservation() {
 // ════════════════════════════════════
 // 启动
 // ════════════════════════════════════
+// v1.65.0: 支持 ?mode=asporto|consegna 直达（官网 yio.it 服务卡跳转）。
+// 复用 chooseTakeaway 完整流程：外卖开关防御 + 模式纠正 + UI 更新 + 打开外卖菜单。
+// 应用后清掉参数——用户之后手动切换/刷新不受残留参数影响。
+function applyModeFromUrl() {
+  try {
+    var mode = new URLSearchParams(window.location.search).get('mode');
+    if (mode !== 'asporto' && mode !== 'consegna') return;
+    chooseTakeaway(mode);
+    history.replaceState(null, '', window.location.pathname + window.location.hash);
+  } catch(e) {}
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('res-date').min = romeTodayStr();
   loadAll();
