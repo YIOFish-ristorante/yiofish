@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<!-- YIO index · Summer Fan 2026 disponibile · agg. 2026-07-13 -->
+<!-- YIO index · Summer Fan 2026 disponibile · agg. 2026-07-19 · quiet-luxury restyle -->
   <title>YIO Fish · Ristorante Giapponese</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
@@ -13,23 +13,28 @@
 <meta name="apple-mobile-web-app-title" content="YIO Fish">
 <meta name="description" content="YIO Fish — Ristorante giapponese. Sushi, sashimi e cucina giapponese a Carpi, Legnago e Imola.">
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+
 <style>
   :root {
-    --gold: #bfa46f;
-    --gold-lt: #e2c87a;
-    --gold-dk: #8a6e2a;
-    --gold-dim: rgba(191,164,111,0.12);
-    --bg: #02100b;
-    --bg2: #010a06;
-    --surface: #051710;
-    --surface2: #07200f;
-    --border: rgba(191,164,111,.18);
-    --border2: rgba(255,255,255,.12);
-    --text: #fff;
-    --text2: #ede5d4;
-    --muted: #8fa597;
-    --radius: 16px;
-    --transition: 0.22s cubic-bezier(.4,0,.2,1);
+    --gold: #c9a962;
+    --gold-lt: #e8d5a3;
+    --gold-dk: #8f7440;
+    --gold-dim: rgba(201,169,98,.10);
+    --bg: #050b08;
+    --bg2: #030806;
+    --surface: rgba(255,255,255,.018);
+    --border: rgba(201,169,98,.16);
+    --border2: rgba(255,255,255,.10);
+    --text: #f5f2ea;
+    --text2: #ddd6c6;
+    --muted: #7d8a7f;
+    --radius: 6px;
+    --serif: 'Cormorant Garamond', 'Times New Roman', serif;
+    --sans: 'Jost', -apple-system, BlinkMacSystemFont, sans-serif;
+    --transition: 0.3s cubic-bezier(.33,1,.68,1);
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
@@ -37,27 +42,34 @@
   .intro { scroll-snap-align: start; }
   body {
     background: var(--bg);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    font-family: var(--sans);
+    font-weight: 300;
     color: var(--text);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     position: relative;
   }
+  ::selection { background: rgba(201,169,98,.28); color: #fff; }
+  ::-webkit-scrollbar { width: 9px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: rgba(201,169,98,.25); border-radius: 9px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(201,169,98,.45); }
+
   /* 极淡暗纹理 + 一丝丝金色丝线质感 */
   body::before {
     content: ''; position: fixed; inset: 0; z-index: 40; pointer-events: none;
     background-image:
-      radial-gradient(circle at 20% 15%, rgba(191,164,111,.05), transparent 42%),
-      radial-gradient(circle at 85% 70%, rgba(191,164,111,.04), transparent 46%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+      radial-gradient(circle at 20% 12%, rgba(201,169,98,.045), transparent 44%),
+      radial-gradient(circle at 82% 74%, rgba(201,169,98,.035), transparent 48%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
     opacity: .9;
   }
   /* 缓慢流动的金色光泽 */
   body::after {
     content: ''; position: fixed; inset: 0; z-index: 41; pointer-events: none;
-    background: linear-gradient(120deg, transparent 28%, rgba(226,200,122,.06) 48%, transparent 64%);
+    background: linear-gradient(118deg, transparent 30%, rgba(232,213,163,.045) 48%, transparent 62%);
     background-size: 300% 300%;
-    animation: shimmer 14s ease-in-out infinite;
+    animation: shimmer 16s ease-in-out infinite;
   }
   @keyframes shimmer { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
   @media (prefers-reduced-motion: reduce) { body::after { animation: none; } }
@@ -67,55 +79,73 @@
   .topnav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 50;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 24px; height: 58px;
-    background: rgba(2,16,11,.62); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(191,164,111,.14);
-    opacity: 0; transform: translateY(-100%); transition: opacity .4s ease, transform .4s ease;
+    padding: 12px 28px; height: 62px;
+    background: rgba(5,11,8,.58); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(201,169,98,.12);
+    opacity: 0; transform: translateY(-100%); transition: opacity .45s ease, transform .45s ease;
     pointer-events: none;
   }
   .topnav.show { opacity: 1; transform: none; pointer-events: auto; }
-  .nav-logo img { height: 28px; width: auto; filter: brightness(1.12); }
-  .nav-logo { color: var(--gold); font-weight: 600; letter-spacing: 2px; font-size: 15px; }
-  .nav-links { display: flex; gap: 28px; }
+  .nav-logo img { height: 27px; width: auto; filter: brightness(1.1); }
+  .nav-logo { color: var(--gold); font-weight: 400; letter-spacing: 3px; font-size: 14px; }
+  .nav-links { display: flex; gap: 34px; }
   .nav-links a {
-    font-size: 13px; letter-spacing: 1.5px; color: var(--text2); text-transform: uppercase;
-    transition: color var(--transition); position: relative;
+    font-size: 11px; letter-spacing: 2.5px; color: var(--text2); text-transform: uppercase;
+    font-weight: 300; transition: color var(--transition); position: relative; padding: 4px 0;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 1px;
+    background: var(--gold); transform: scaleX(0); transform-origin: right;
+    transition: transform .38s cubic-bezier(.33,1,.68,1);
   }
   .nav-links a:hover { color: var(--gold-lt); }
-  .nav-burger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 6px; }
-  .nav-burger span { width: 24px; height: 2px; background: var(--gold); border-radius: 2px; transition: transform var(--transition), opacity var(--transition); }
+  .nav-links a:hover::after { transform: scaleX(1); transform-origin: left; }
+  .nav-burger { display: none; flex-direction: column; gap: 6px; background: none; border: none; cursor: pointer; padding: 6px; }
+  .nav-burger span { width: 22px; height: 1px; background: var(--gold); transition: transform var(--transition), opacity var(--transition); }
   .nav-burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
   .nav-burger.open span:nth-child(2) { opacity: 0; }
   .nav-burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
   .nav-drawer {
-    position: fixed; top: 58px; left: 0; right: 0; z-index: 49;
-    background: rgba(2,16,11,.94); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
-    border-bottom: 1px solid rgba(191,164,111,.14);
-    display: flex; flex-direction: column; padding: 8px 24px 18px;
-    transform: translateY(-130%); transition: transform .35s cubic-bezier(.4,0,.2,1); pointer-events: none;
+    position: fixed; top: 62px; left: 0; right: 0; z-index: 49;
+    background: rgba(4,9,7,.96); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(201,169,98,.12);
+    display: flex; flex-direction: column; padding: 10px 28px 22px;
+    transform: translateY(-130%); transition: transform .4s cubic-bezier(.33,1,.68,1); pointer-events: none;
   }
   .nav-drawer.open { transform: none; pointer-events: auto; }
-  .nav-drawer a { padding: 14px 0; font-size: 15px; letter-spacing: 1px; color: var(--text2); border-bottom: 1px solid rgba(255,255,255,.06); }
+  .nav-drawer a {
+    padding: 15px 0; font-size: 13px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--text2); border-bottom: 1px solid rgba(255,255,255,.05); font-weight: 300;
+  }
   .nav-drawer a:last-child { border-bottom: none; }
   img { display: block; max-width: 100%; }
   a { text-decoration: none; color: inherit; }
 
   /* ───── 通用 ───── */
-  .wrap { width: 92%; max-width: 1080px; margin: 0 auto; }
+  .wrap { width: 92%; max-width: 1100px; margin: 0 auto; }
   .eyebrow {
-    font-size: 11px; letter-spacing: 4px; color: var(--gold);
-    text-transform: uppercase; margin-bottom: 18px; font-weight: 600;
+    font-size: 10px; letter-spacing: 5px; color: var(--gold);
+    text-transform: uppercase; margin-bottom: 20px; font-weight: 400;
+    display: flex; align-items: center; gap: 14px;
   }
+  .eyebrow::before { content: ''; width: 26px; height: 1px; background: var(--gold); opacity: .5; flex-shrink: 0; }
+  .eyebrow.center { justify-content: center; }
+  .eyebrow.center::after { content: ''; width: 26px; height: 1px; background: var(--gold); opacity: .5; flex-shrink: 0; }
   .section-title {
-    font-size: clamp(26px, 6vw, 42px); font-weight: 300;
-    letter-spacing: 1px; line-height: 1.15; margin-bottom: 22px;
+    font-family: var(--serif);
+    font-size: clamp(30px, 6.5vw, 48px); font-weight: 300;
+    letter-spacing: .5px; line-height: 1.18; margin-bottom: 24px;
   }
-  .section-title strong { font-weight: 600; color: var(--gold-lt); }
-  .gold-rule { width: 48px; height: 1px; background: var(--gold); opacity: .55; margin: 0 0 28px; }
-  .lead { font-size: 16px; line-height: 1.8; color: var(--text2); max-width: 640px; }
+  .section-title strong {
+    font-weight: 400; font-style: italic;
+    background: linear-gradient(120deg, #e8d5a3 10%, #c9a962 55%, #a5854a 90%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .gold-rule { display: none; }
+  .lead { font-size: 15.5px; line-height: 1.95; color: var(--text2); max-width: 620px; font-weight: 300; }
 
-  section { padding: 92px 0; position: relative; scroll-margin-top: 58px; }
-  .reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s ease; }
+  section { padding: 104px 0; position: relative; scroll-margin-top: 62px; }
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .9s cubic-bezier(.33,1,.68,1), transform .9s cubic-bezier(.33,1,.68,1); }
   .reveal.in { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
@@ -126,216 +156,269 @@
   .hero {
     min-height: 100svh; display: flex; flex-direction: column;
     align-items: center; justify-content: center; text-align: center;
-    padding: 40px 20px 60px; position: relative;
+    padding: 40px 20px 64px; position: relative;
     background:
-      radial-gradient(120% 80% at 50% 0%, rgba(191,164,111,.05), transparent 55%),
-      linear-gradient(180deg, #02100b 0%, #010705 100%);
+      radial-gradient(110% 70% at 50% 0%, rgba(201,169,98,.06), transparent 56%),
+      linear-gradient(180deg, #060d09 0%, #030806 100%);
   }
-  .hero-logo { width: min(44vw, 175px); margin: 0 auto 14px; filter: brightness(1.12); animation: heroIn 1s ease-out; }
-  @keyframes heroIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  .hero-line { width: 44px; height: 1px; background: var(--gold); opacity: .5; margin: 18px auto 30px; }
-  .hero-sub { font-size: 11px; letter-spacing: 5px; color: var(--muted); margin-bottom: 40px; }
+  .hero-logo {
+    width: min(40vw, 168px); margin: 0 auto 20px; filter: brightness(1.12) drop-shadow(0 0 26px rgba(201,169,98,.14));
+    animation: heroIn 1.6s cubic-bezier(.33,1,.68,1);
+  }
+  @keyframes heroIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .hero-line {
+    width: 1px; height: 44px; margin: 4px auto 26px;
+    background: linear-gradient(180deg, transparent, var(--gold), transparent); opacity: .55;
+    animation: heroIn 1.6s .25s cubic-bezier(.33,1,.68,1) backwards;
+  }
+  .hero-sub {
+    font-size: 10px; letter-spacing: 6.5px; color: var(--muted); margin-bottom: 46px;
+    font-weight: 300; text-transform: uppercase; padding-left: 6.5px;
+    animation: heroIn 1.6s .45s cubic-bezier(.33,1,.68,1) backwards;
+  }
 
-  .store-list { width: min(90vw, 360px); display: flex; flex-direction: column; gap: 11px; }
+  .store-list { width: min(90vw, 380px); display: flex; flex-direction: column; gap: 14px; animation: heroIn 1.6s .6s cubic-bezier(.33,1,.68,1) backwards; }
   .store-btn {
-    padding: 13px 20px; border-radius: 12px; border: 1px solid var(--border);
-    background: linear-gradient(158deg, rgba(12,40,28,.55) 0%, rgba(3,13,8,.6) 100%);
-    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    position: relative; overflow: hidden; z-index: 0;
+    padding: 17px 24px; border-radius: 2px; border: 1px solid rgba(201,169,98,.38);
+    background: transparent;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
-    transition: border-color var(--transition), background var(--transition), transform var(--transition);
-    font-size: 14px; font-weight: 600; letter-spacing: 2px; color: var(--gold);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    transition: color var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    font-family: var(--sans); font-size: 13px; font-weight: 400; letter-spacing: 3.5px; color: var(--gold-lt);
   }
-  .store-btn:active { background: var(--gold-dim); border-color: var(--gold); transform: scale(.97); }
-  .store-btn .city { display:block; font-size:10px; letter-spacing:2px; color:var(--muted); font-weight:400; margin-top:3px; }
+  .store-btn::before {
+    content: ''; position: absolute; inset: 0; z-index: -1;
+    background: linear-gradient(120deg, #e8d5a3, #c9a962 60%, #b3904c);
+    transform: translateY(101%); transition: transform .42s cubic-bezier(.33,1,.68,1);
+  }
+  .store-btn:hover::before, .store-btn:active::before { transform: translateY(0); }
+  .store-btn:hover, .store-btn:active { border-color: var(--gold); color: #1a1408; box-shadow: 0 8px 30px rgba(201,169,98,.16); }
+  .store-btn:hover .city, .store-btn:active .city { color: rgba(26,20,8,.68); }
+  .store-btn:active { transform: scale(.985); }
+  .store-btn .city { display:block; font-size:9px; letter-spacing:2.5px; color:var(--muted); font-weight:300; margin-top:4px; transition: color var(--transition); text-transform: uppercase; }
 
   .scroll-cue {
-    position: absolute; bottom: 24px; right: 24px;
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    color: var(--gold); opacity: .8; cursor: pointer; animation: bob 1.8s ease-in-out infinite;
+    position: absolute; bottom: 26px; right: 28px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    color: var(--gold); opacity: .75; cursor: pointer;
   }
-  .scroll-cue span { font-size: 9px; letter-spacing: 2px; color: var(--muted); }
-  .scroll-cue svg { width: 22px; height: 22px; }
-  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
+  .scroll-cue span { font-size: 8px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; writing-mode: vertical-rl; }
+  .scroll-cue .cue-line { width: 1px; height: 46px; background: linear-gradient(180deg, var(--gold), transparent); overflow: hidden; position: relative; }
+  .scroll-cue .cue-line::after {
+    content: ''; position: absolute; left: 0; top: -50%; width: 100%; height: 50%;
+    background: linear-gradient(180deg, transparent, #fff); animation: cueDrop 2.2s cubic-bezier(.65,0,.35,1) infinite;
+  }
+  @keyframes cueDrop { to { top: 110%; } }
+  @media (prefers-reduced-motion: reduce) { .scroll-cue .cue-line::after { animation: none; } }
 
   /* ───── ② 介绍 ───── */
   .intro { background: var(--bg2); }
-  .intro-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; }
+  .intro-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center; }
   .intro-photo {
     aspect-ratio: 4/5; border-radius: var(--radius); border: 1px solid var(--border);
-    background: linear-gradient(145deg, #051710, #010705); overflow: hidden;
-    display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; letter-spacing: 2px;
+    background: linear-gradient(145deg, #071009, #020604); overflow: hidden;
+    display: flex; align-items: center; justify-content: center; color: var(--muted);
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35);
   }
   .intro-photo img { width: 100%; height: 100%; object-fit: cover; }
 
   /* ───── ③ 菜品 ───── */
   .menu-showcase { background: var(--bg); }
-  .dish-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 14px; }
+  .dish-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 18px; }
   .dish {
-    aspect-ratio: 1; border-radius: 12px; overflow: hidden; position: relative;
-    background: linear-gradient(150deg, #051710, #010604); border: 1px solid var(--border);
-    display: flex; align-items: flex-end; padding: 14px; transition: transform var(--transition), border-color var(--transition);
+    aspect-ratio: 1; border-radius: 4px; overflow: hidden; position: relative;
+    background: linear-gradient(150deg, #071009, #020604); border: 1px solid var(--border);
+    display: flex; align-items: flex-end; padding: 16px;
+    transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
   }
-  .dish:hover { transform: translateY(-4px); border-color: var(--gold-dk); }
-  .dish .ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; letter-spacing:2px; z-index:0; }
+  .dish:hover { transform: translateY(-4px); border-color: rgba(201,169,98,.45); box-shadow: 0 16px 40px rgba(0,0,0,.4); }
+  .dish .ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:10px; letter-spacing:3px; text-transform: uppercase; z-index:0; }
   .dish.has-img .ph { display:none; }
-  .dish .dish-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; }
-  .dish .name { position: relative; font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: .5px; z-index:2; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+  .dish .dish-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; transition: transform .7s cubic-bezier(.33,1,.68,1); }
+  .dish:hover .dish-img { transform: scale(1.06); }
+  .dish .name { position: relative; font-family: var(--serif); font-size: 17px; font-weight: 400; font-style: italic; color: var(--text); letter-spacing: .5px; z-index:2; text-shadow: 0 1px 8px rgba(0,0,0,.8); }
 
   /* ───── ④ 环境（轮播）───── */
   .ambiance { background: var(--bg2); }
-  .carousel { position: relative; margin-top: 14px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: linear-gradient(150deg,#051710,#010604); }
-  .carousel-track { display: flex; transition: transform .55s cubic-bezier(.4,0,.2,1); }
+  .carousel { position: relative; margin-top: 18px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: linear-gradient(150deg,#071009,#020604); box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+  .carousel-track { display: flex; transition: transform .6s cubic-bezier(.33,1,.68,1); }
   .slide { min-width: 100%; aspect-ratio: 16/9; position: relative; }
   .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .slide-ph::after { content: attr(data-ph); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; letter-spacing: 2px; }
+  .slide-ph::after { content: attr(data-ph); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
   .slide-ph { aspect-ratio: 16/9; }
   .carousel-btn {
-    position: absolute; top: 50%; transform: translateY(-50%); width: 42px; height: 42px;
-    border-radius: 50%; border: 1px solid var(--border2); background: rgba(0,0,0,.4);
-    color: var(--gold-lt); font-size: 24px; line-height: 1; cursor: pointer; backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center; transition: background var(--transition);
+    position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px;
+    border-radius: 50%; border: 1px solid rgba(201,169,98,.35); background: rgba(3,8,6,.5);
+    color: var(--gold-lt); font-size: 22px; line-height: 1; cursor: pointer; backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center; transition: border-color var(--transition), background var(--transition);
+    font-weight: 300;
   }
-  .carousel-btn:active { background: rgba(191,164,111,.25); }
-  .carousel-btn.prev { left: 14px; }
-  .carousel-btn.next { right: 14px; }
-  .carousel-dots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
-  .carousel-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.35); cursor: pointer; transition: background var(--transition), width var(--transition); }
-  .carousel-dots .dot.active { background: var(--gold); width: 22px; border-radius: 4px; }
+  .carousel-btn:hover { border-color: var(--gold); background: rgba(201,169,98,.14); }
+  .carousel-btn.prev { left: 16px; }
+  .carousel-btn.next { right: 16px; }
+  .carousel-dots { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+  .carousel-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; transition: background var(--transition), width var(--transition); }
+  .carousel-dots .dot.active { background: var(--gold); width: 20px; border-radius: 3px; }
 
   /* ───── ⑤ 特别活动 ───── */
   .eventi { background: var(--bg2); }
   .event-card {
-    display: grid; grid-template-columns: 0.85fr 1fr; gap: 40px; align-items: center;
-    margin-top: 14px;
+    display: grid; grid-template-columns: 0.85fr 1fr; gap: 48px; align-items: center;
+    margin-top: 18px;
   }
   .event-poster {
     border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
-    aspect-ratio: 70/99; background: linear-gradient(150deg,#051710,#010604); position: relative;
+    aspect-ratio: 70/99; background: linear-gradient(150deg,#071009,#020604); position: relative;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35);
   }
   .ev-carousel, .ev-track, .ev-slide { height: 100%; }
   .ev-carousel { position: relative; }
-  .ev-track { display: flex; transition: transform .55s cubic-bezier(.4,0,.2,1); }
+  .ev-track { display: flex; transition: transform .6s cubic-bezier(.33,1,.68,1); }
   .ev-slide { min-width: 100%; position: relative; }
   .ev-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .ev-ph::after { content: attr(data-ph); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; letter-spacing: 2px; }
+  .ev-ph::after { content: attr(data-ph); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 10px; letter-spacing: 3px; text-transform: uppercase; }
   .ev-btn {
     position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%;
-    border: 1px solid var(--border2); background: rgba(0,0,0,.4); color: var(--gold-lt); font-size: 22px; line-height: 1;
-    cursor: pointer; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center;
+    border: 1px solid rgba(201,169,98,.35); background: rgba(3,8,6,.5); color: var(--gold-lt); font-size: 20px; line-height: 1;
+    cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center;
+    font-weight: 300;
   }
-  .ev-btn.prev { left: 10px; } .ev-btn.next { right: 10px; }
-  .ev-dots { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
-  .ev-dots .dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.4); cursor: pointer; transition: background var(--transition), width var(--transition); }
-  .ev-dots .dot.active { background: var(--gold); width: 20px; border-radius: 4px; }
-  .event-info h3 { font-size: clamp(22px, 5vw, 30px); font-weight: 600; color: var(--gold-lt); letter-spacing: .5px; margin-bottom: 16px; }
-  .event-info p { font-size: 15px; line-height: 1.8; color: var(--text2); margin-bottom: 26px; max-width: 460px; }
+  .ev-btn.prev { left: 12px; } .ev-btn.next { right: 12px; }
+  .ev-dots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
+  .ev-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; transition: background var(--transition), width var(--transition); }
+  .ev-dots .dot.active { background: var(--gold); width: 18px; border-radius: 3px; }
+  .event-info h3 { font-family: var(--serif); font-size: clamp(26px, 5vw, 34px); font-weight: 400; color: var(--gold-lt); letter-spacing: .5px; margin-bottom: 18px; }
+  .event-info h3 em { font-style: italic; }
+  .event-info p { font-size: 14.5px; line-height: 1.9; color: var(--text2); margin-bottom: 26px; max-width: 460px; font-weight: 300; }
   .event-soon {
-    display: inline-block; padding: 9px 22px; border-radius: 30px;
-    border: 1px solid var(--gold-dk); background: var(--gold-dim);
-    color: var(--gold-lt); font-size: 13px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+    display: inline-block; padding: 11px 26px; border-radius: 2px;
+    border: 1px solid rgba(201,169,98,.4); background: transparent;
+    color: var(--gold-lt); font-size: 11px; font-weight: 400; letter-spacing: 3.5px; text-transform: uppercase;
   }
   /* 倒计时 */
   .countdown {
-    display: flex; align-items: flex-end; gap: 18px; margin: 4px 0 22px; flex-wrap: wrap;
+    display: flex; align-items: flex-end; gap: 20px; margin: 4px 0 24px; flex-wrap: wrap;
   }
-  .cd-days-wrap { display: flex; align-items: baseline; gap: 10px; }
+  .cd-days-wrap { display: flex; align-items: baseline; gap: 12px; }
   .cd-num {
-    font-size: clamp(56px, 14vw, 88px); font-weight: 700; line-height: 1; color: var(--gold-lt);
-    text-shadow: 0 2px 20px rgba(212,171,72,.35); letter-spacing: -2px;
+    font-family: var(--serif); font-size: clamp(60px, 14vw, 92px); font-weight: 300; line-height: 1; color: var(--gold-lt);
+    letter-spacing: -1px;
   }
-  .cd-label { font-size: 14px; letter-spacing: 2px; color: var(--text2); text-transform: uppercase; }
+  .cd-label { font-size: 11px; letter-spacing: 3px; color: var(--text2); text-transform: uppercase; font-weight: 300; }
   .cd-hms {
-    display: flex; align-items: center; gap: 3px; padding-bottom: 8px;
-    font-size: 20px; font-weight: 600; color: var(--gold); letter-spacing: 1px;
-    font-variant-numeric: tabular-nums; opacity: .85;
+    display: flex; align-items: center; gap: 3px; padding-bottom: 10px;
+    font-size: 18px; font-weight: 300; color: var(--gold); letter-spacing: 1px;
+    font-variant-numeric: tabular-nums; opacity: .9;
   }
-  .cd-hms i { font-style: normal; color: var(--text2); margin: 0 1px; }
+  .cd-hms i { font-style: normal; color: var(--text2); margin: 0 2px; }
   .cd-hms span { min-width: 28px; text-align: center; }
   /* 活动条件 */
-  .event-reqs { display: flex; flex-direction: column; gap: 14px; margin: 22px 0; max-width: 480px; }
-  .req { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.6; color: var(--text2); }
-  .req b { color: var(--gold-lt); }
+  .event-reqs { display: flex; flex-direction: column; gap: 16px; margin: 24px 0; max-width: 480px; }
+  .req { display: flex; gap: 14px; align-items: flex-start; font-size: 14px; line-height: 1.75; color: var(--text2); font-weight: 300; }
+  .req b { color: var(--gold-lt); font-weight: 500; }
   .req-n {
-    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
-    background: var(--gold-dim); border: 1px solid var(--gold-dk); color: var(--gold-lt);
-    font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px;
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+    background: transparent; border: 1px solid rgba(201,169,98,.45); color: var(--gold-lt);
+    font-family: var(--serif); font-size: 14px; font-weight: 400; font-style: italic;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
   }
-  .req-ig { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
-  .req-ig a { font-size: 13px; color: var(--gold-lt); border-bottom: 1px solid var(--gold-dim); padding-bottom: 2px; width: fit-content; }
+  .req-ig { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .req-ig a { font-size: 12.5px; letter-spacing: .5px; color: var(--gold-lt); border-bottom: 1px solid rgba(201,169,98,.3); padding-bottom: 2px; width: fit-content; transition: border-color var(--transition); }
   .req-ig a:hover { border-bottom-color: var(--gold-lt); }
   .event-stores { display: flex; flex-direction: column; gap: 12px; max-width: 420px; }
   .event-store {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border);
-    background: rgba(6,30,21,.5); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    padding: 13px 18px; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--surface); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   }
-  .event-store .es-name { font-size: 13px; font-weight: 600; letter-spacing: 2px; color: var(--gold); flex-shrink: 0; }
+  .event-store .es-name { font-size: 11px; font-weight: 400; letter-spacing: 3px; color: var(--gold); flex-shrink: 0; }
   .es-links { display: flex; gap: 8px; }
   .es-links a {
-    padding: 8px 13px; border-radius: 9px; border: 1px solid var(--gold-dk);
-    background: var(--gold-dim); color: var(--gold-lt); font-weight: 600; letter-spacing: .5px; font-size: 12px;
-    white-space: nowrap; transition: background var(--transition), transform var(--transition);
+    padding: 9px 14px; border-radius: 2px; border: 1px solid rgba(201,169,98,.35);
+    background: transparent; color: var(--gold-lt); font-weight: 400; letter-spacing: 1.5px; font-size: 11px;
+    white-space: nowrap; transition: background var(--transition), border-color var(--transition), transform var(--transition);
+    text-transform: uppercase;
   }
-  .es-links a:active { transform: scale(.95); background: rgba(191,164,111,.2); }
+  .es-links a:hover { background: var(--gold-dim); border-color: var(--gold); }
+  .es-links a:active { transform: scale(.97); }
 
   /* ───── ⑥ 服务方式 ───── */
   .services { background: var(--bg); }
-  .svc-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin: 14px 0 48px; }
+  .svc-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin: 18px 0 56px; }
   .svc {
-    padding: 32px 24px; border-radius: var(--radius); border: 1px solid var(--border);
-    background: rgba(6,30,21,.5); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-    text-align: center; box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    padding: 40px 26px 36px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    text-align: center; transition: border-color var(--transition), transform var(--transition);
   }
-  .svc .ic { font-size: 30px; margin-bottom: 14px; }
-  .svc h3 { font-size: 16px; letter-spacing: 1px; color: var(--gold-lt); margin-bottom: 8px; font-weight: 600; }
-  .svc p { font-size: 13px; line-height: 1.6; color: var(--muted); }
+  .svc:hover { border-color: rgba(201,169,98,.4); transform: translateY(-3px); }
+  .svc .ic { margin-bottom: 20px; color: var(--gold); display: flex; justify-content: center; }
+  .svc .ic svg { width: 34px; height: 34px; stroke-width: 1.1; }
+  .svc h3 { font-size: 12px; letter-spacing: 3px; color: var(--gold-lt); margin-bottom: 12px; font-weight: 400; text-transform: uppercase; }
+  .svc p { font-size: 13px; line-height: 1.75; color: var(--muted); font-weight: 300; }
   .order-cta { text-align: center; }
-  .order-cta .ct-label { font-size: 12px; letter-spacing: 3px; color: var(--muted); margin-bottom: 18px; }
-  .order-btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .order-cta .ct-label { font-size: 10px; letter-spacing: 4px; color: var(--muted); margin-bottom: 22px; text-transform: uppercase; }
+  .order-btns { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
   .order-btns a {
-    padding: 16px 30px; border-radius: 12px; border: 1px solid var(--gold-dk);
-    background: var(--gold-dim); color: var(--gold-lt); font-weight: 600; letter-spacing: 2px; font-size: 14px;
-    transition: background var(--transition), transform var(--transition);
+    position: relative; overflow: hidden; z-index: 0;
+    padding: 16px 34px; border-radius: 2px; border: 1px solid rgba(201,169,98,.4);
+    background: transparent; color: var(--gold-lt); font-weight: 400; letter-spacing: 3px; font-size: 12px;
+    transition: color var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    text-transform: uppercase;
   }
-  .order-btns a:active { transform: scale(.96); background: rgba(191,164,111,.2); }
+  .order-btns a::before {
+    content: ''; position: absolute; inset: 0; z-index: -1;
+    background: linear-gradient(120deg, #e8d5a3, #c9a962 60%, #b3904c);
+    transform: translateY(101%); transition: transform .42s cubic-bezier(.33,1,.68,1);
+  }
+  .order-btns a:hover::before { transform: translateY(0); }
+  .order-btns a:hover { color: #1a1408; border-color: var(--gold); box-shadow: 0 8px 30px rgba(201,169,98,.16); }
+  .order-btns a:active { transform: scale(.97); }
 
   /* ───── ⑥ 联系 ───── */
   .contact { background: var(--bg2); }
-  .loc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 14px; }
+  .loc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 18px; }
   .loc {
-    padding: 28px 24px; border-radius: var(--radius); border: 1px solid var(--border);
-    background: rgba(6,30,21,.5); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    padding: 34px 28px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    transition: border-color var(--transition);
   }
-  .loc h3 { font-size: 17px; letter-spacing: 2px; color: var(--gold); margin-bottom: 16px; font-weight: 600; }
-  .loc .row { display: flex; gap: 10px; font-size: 13px; line-height: 1.6; color: var(--text2); margin-bottom: 12px; }
-  .loc .row .k { color: var(--gold-dk); flex-shrink: 0; width: 16px; }
-  .loc a.maplink { display: inline-block; margin-top: 6px; font-size: 12px; letter-spacing: 1px; color: var(--gold); border-bottom: 1px solid var(--gold-dk); padding-bottom: 2px; }
+  .loc:hover { border-color: rgba(201,169,98,.35); }
+  .loc h3 { font-size: 13px; letter-spacing: 4px; color: var(--gold); margin-bottom: 22px; font-weight: 400; }
+  .loc h3::after { content: ''; display: block; width: 22px; height: 1px; background: var(--gold); opacity: .5; margin-top: 12px; }
+  .loc .row { display: flex; gap: 12px; font-size: 13.5px; line-height: 1.7; color: var(--text2); margin-bottom: 14px; font-weight: 300; }
+  .loc .row .k { color: var(--gold); flex-shrink: 0; width: 15px; display: flex; padding-top: 2px; }
+  .loc .row .k svg { width: 14px; height: 14px; stroke-width: 1.3; }
+  .loc a.maplink { display: inline-block; margin-top: 8px; font-size: 11px; letter-spacing: 2px; color: var(--gold); border-bottom: 1px solid rgba(201,169,98,.35); padding-bottom: 3px; text-transform: uppercase; transition: border-color var(--transition), color var(--transition); }
+  .loc a.maplink:hover { color: var(--gold-lt); border-color: var(--gold-lt); }
 
   /* ───── ⑦ 页脚 ───── */
-  footer { background: var(--bg); padding: 56px 0 40px; text-align: center; border-top: 1px solid var(--border); }
-  .foot-logo { width: 120px; margin: 0 auto 22px; opacity: .8; }
-  .social { display: flex; gap: 22px; justify-content: center; margin-bottom: 26px; }
-  .social a { color: var(--muted); transition: color var(--transition); }
-  .social a:active { color: var(--gold); }
-  .social svg { width: 24px; height: 24px; }
-  .copyright { font-size: 11px; color: #333; letter-spacing: 1px; }
+  footer { background: var(--bg); padding: 64px 0 44px; text-align: center; border-top: 1px solid var(--border); }
+  .foot-logo { width: 104px; margin: 0 auto 26px; opacity: .75; filter: brightness(1.1); }
+  .social { display: flex; gap: 16px; justify-content: center; margin-bottom: 30px; }
+  .social a {
+    width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(201,169,98,.25);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); transition: color var(--transition), border-color var(--transition), transform var(--transition);
+  }
+  .social a:hover { color: var(--gold-lt); border-color: var(--gold); transform: translateY(-2px); }
+  .social svg { width: 17px; height: 17px; }
+  .copyright { font-size: 10px; color: #5a635c; letter-spacing: 2px; text-transform: uppercase; font-weight: 300; }
 
   /* ───── 响应式 ───── */
   @media (max-width: 760px) {
     .nav-links { display: none; }
     .nav-burger { display: flex; }
-    section { padding: 64px 0; }
-    .intro-grid { grid-template-columns: 1fr; gap: 30px; }
+    section { padding: 72px 0; }
+    .intro-grid { grid-template-columns: 1fr; gap: 34px; }
     .intro-photo { aspect-ratio: 16/10; }
-    .dish-grid { grid-template-columns: repeat(2, 1fr); }
+    .dish-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .svc-row { grid-template-columns: 1fr; }
     .loc-grid { grid-template-columns: 1fr; }
-    .event-card { grid-template-columns: 1fr; gap: 26px; }
+    .event-card { grid-template-columns: 1fr; gap: 30px; }
     .event-poster { max-width: 300px; margin: 0 auto; }
     .event-stores { max-width: none; }
-    .event-store { flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
+    .event-store { flex-direction: column; align-items: stretch; gap: 12px; text-align: center; }
     .es-links { justify-content: center; }
     .es-links a { flex: 1; text-align: center; }
   }
@@ -370,7 +453,7 @@
 <header class="hero" id="top">
   <img class="hero-logo" src="logo.png" alt="YIO Fish — Ristorante Giapponese">
   <div class="hero-line"></div>
-  <p class="hero-sub">SELEZIONA IL RISTORANTE</p>
+  <p class="hero-sub">Seleziona il ristorante</p>
 
   <div class="store-list">
     <a class="store-btn" href="carpi.html">YIO Fish CARPI<span class="city">Carpi · Modena</span></a>
@@ -379,8 +462,8 @@
   </div>
 
   <div class="scroll-cue" onclick="document.getElementById('intro').scrollIntoView()">
-    <span>SCOPRI</span>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6"/></svg>
+    <span>Scopri</span>
+    <div class="cue-line"></div>
   </div>
 </header>
 
@@ -405,7 +488,7 @@
 <section class="menu-showcase" id="piatti">
   <div class="wrap">
     <div class="reveal" style="text-align:center">
-      <p class="eyebrow">Le specialità</p>
+      <p class="eyebrow center">Le specialità</p>
       <h2 class="section-title">I nostri <strong>piatti</strong></h2>
       <div class="gold-rule" style="margin: 0 auto 28px"></div>
     </div>
@@ -427,7 +510,7 @@
 <section class="ambiance" id="ambiente">
   <div class="wrap">
     <div class="reveal" style="text-align:center">
-      <p class="eyebrow">L'atmosfera</p>
+      <p class="eyebrow center">L'atmosfera</p>
       <h2 class="section-title">Un ambiente <strong>accogliente</strong></h2>
       <div class="gold-rule" style="margin: 0 auto 28px"></div>
     </div>
@@ -452,7 +535,7 @@
 <section class="eventi" id="eventi">
   <div class="wrap">
     <div class="reveal" style="text-align:center">
-      <p class="eyebrow">Eventi speciali</p>
+      <p class="eyebrow center">Eventi speciali</p>
       <h2 class="section-title">Feste &amp; <strong>occasioni</strong></h2>
       <div class="gold-rule" style="margin: 0 auto 28px"></div>
     </div>
@@ -475,13 +558,13 @@
         </div>
       </div>
       <div class="event-info">
-        <h3>🎐 YIO Summer Fan 2026 · Già disponibile!</h3>
-        <p>L'estate ha il suo simbolo. Abbiamo creato un ventaglio esclusivo firmato <b>YIO FISH</b>, con struttura in bambù e carta tradizionale: leggero, pieghevole ed elegante, perfetto da portare sempre con te nelle giornate più calde. ☀️</p>
-        <p style="color:var(--gold-lt);font-weight:600;margin-bottom:16px">✨ Come riceverlo? Scegli una delle due opzioni:</p>
+        <h3>YIO Summer Fan 2026 · <em>Già disponibile</em></h3>
+        <p>L'estate ha il suo simbolo. Abbiamo creato un ventaglio esclusivo firmato <b>YIO FISH</b>, con struttura in bambù e carta tradizionale: leggero, pieghevole ed elegante, perfetto da portare sempre con te nelle giornate più calde.</p>
+        <p style="color:var(--gold-lt);font-weight:400;margin-bottom:16px;letter-spacing:.5px">Come riceverlo? Scegli una delle due opzioni:</p>
         <div class="event-reqs">
-          <div class="req"><span class="req-n">⭐</span><div><b>Accumula 8 YIO Punti</b> — Registrati su yio.it (🎁 +2 punti gratis subito) e accumula i punti con le tue consumazioni!</div></div>
-          <div class="req"><span class="req-n">👥</span><div><b>Vieni a cena in 2 persone</b> — e ricevi subito il tuo YIO Summer Fan 2026 alla cassa! 🥢</div></div>
-          <div class="req"><span class="req-n">📸</span><div><b>Bonus · +10 YIO Punti</b> — Condividi una foto o una Story con il tuo ventaglio e tagga il tuo ristorante! Le foto più belle finiranno sul nostro profilo. 💚
+          <div class="req"><span class="req-n">I</span><div><b>Accumula 8 YIO Punti</b> — Registrati su yio.it (🎁 +2 punti gratis subito) e accumula i punti con le tue consumazioni!</div></div>
+          <div class="req"><span class="req-n">II</span><div><b>Vieni a cena in 2 persone</b> — e ricevi subito il tuo YIO Summer Fan 2026 alla cassa! 🥢</div></div>
+          <div class="req"><span class="req-n">III</span><div><b>Bonus · +10 YIO Punti</b> — Condividi una foto o una Story con il tuo ventaglio e tagga il tuo ristorante! Le foto più belle finiranno sul nostro profilo.
             <div class="req-ig">
               <a href="https://instagram.com/yio_fish_carpi" target="_blank">Carpi → @yio_fish_carpi</a>
               <a href="https://instagram.com/yio.fish_legnago" target="_blank">Legnago → @yio.fish_legnago</a>
@@ -489,7 +572,7 @@
             </div>
           </div></div>
         </div>
-        <p style="font-size:13px;color:var(--muted);margin-top:4px">⚠️ Le quantità sono limitate. Ti aspettiamo da YIO FISH!</p>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.5px">Le quantità sono limitate. Ti aspettiamo da YIO FISH!</p>
         <span class="event-soon">Già disponibile · Ritira alla cassa</span>
       </div>
     </div>
@@ -500,21 +583,33 @@
 <section class="services" id="servizi">
   <div class="wrap">
     <div class="reveal" style="text-align:center">
-      <p class="eyebrow">Come ordinare</p>
+      <p class="eyebrow center">Come ordinare</p>
       <h2 class="section-title">Tre modi per <strong>gustarci</strong></h2>
       <div class="gold-rule" style="margin: 0 auto 28px"></div>
     </div>
     <div class="svc-row reveal">
-      <div class="svc"><div class="ic">🍽️</div><h3>AL RISTORANTE</h3><p>Vieni a trovarci e ordina direttamente dal tuo tavolo con il QR.</p></div>
-      <div class="svc"><div class="ic">🥡</div><h3>ASPORTO</h3><p>Ordina e ritira in negozio quando preferisci.</p></div>
-      <div class="svc"><div class="ic">🛵</div><h3>CONSEGNA</h3><p>Ricevi i nostri piatti comodamente a casa tua.</p></div>
+      <div class="svc">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7"/><circle cx="12" cy="13" r="3.5"/><path d="M12 3v3M5.6 6.6l2 2M18.4 6.6l-2 2"/></svg></div>
+        <h3>Al ristorante</h3>
+        <p>Vieni a trovarci e ordina direttamente dal tuo tavolo con il QR.</p>
+      </div>
+      <div class="svc">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1.2 12.2a1 1 0 0 1-1 1.1H5.8a1 1 0 0 1-1-1.1L6 8z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg></div>
+        <h3>Asporto</h3>
+        <p>Ordina e ritira in negozio quando preferisci.</p>
+      </div>
+      <div class="svc">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M8 17.5h8M12 17.5l-2-6h3l2.5 6M13 6h2.5a2 2 0 0 1 2 2v2.5"/></svg></div>
+        <h3>Consegna</h3>
+        <p>Ricevi i nostri piatti comodamente a casa tua.</p>
+      </div>
     </div>
     <div class="order-cta reveal">
-      <p class="ct-label">ORDINA DAL TUO RISTORANTE</p>
+      <p class="ct-label">Ordina dal tuo ristorante</p>
       <div class="order-btns">
-        <a href="carpi.html">CARPI</a>
-        <a href="legnago.html">LEGNAGO</a>
-        <a href="imola.html">IMOLA</a>
+        <a href="carpi.html">Carpi</a>
+        <a href="legnago.html">Legnago</a>
+        <a href="imola.html">Imola</a>
       </div>
     </div>
   </div>
@@ -524,30 +619,30 @@
 <section class="contact" id="contatti">
   <div class="wrap">
     <div class="reveal" style="text-align:center">
-      <p class="eyebrow">Dove siamo</p>
+      <p class="eyebrow center">Dove siamo</p>
       <h2 class="section-title">I nostri <strong>ristoranti</strong></h2>
       <div class="gold-rule" style="margin: 0 auto 28px"></div>
     </div>
     <div class="loc-grid reveal">
       <div class="loc">
         <h3>CARPI</h3>
-        <div class="row"><span class="k">📍</span><span>Viale dell'Industria, 19<br>41012 Carpi (MO)</span></div>
-        <div class="row"><span class="k">📞</span><a href="tel:+393391406020">339 140 6020</a></div>
-        <div class="row"><span class="k">🕒</span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>Viale dell'Industria, 19<br>41012 Carpi (MO)</span></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16.5v2.6a2 2 0 0 1-2.2 2A19 19 0 0 1 2.9 5.2 2 2 0 0 1 4.9 3h2.6a1.5 1.5 0 0 1 1.5 1.3l.7 3.4a1.5 1.5 0 0 1-.6 1.5L7.6 10.4a16 16 0 0 0 6 6l1.2-1.5a1.5 1.5 0 0 1 1.5-.6l3.4.7a1.5 1.5 0 0 1 1.3 1.5z"/></svg></span><a href="tel:+393391406020">339 140 6020</a></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
         <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=YIO+Fish+Restaurant+-+Sushi+Carpi" target="_blank">Indicazioni →</a>
       </div>
       <div class="loc">
         <h3>LEGNAGO</h3>
-        <div class="row"><span class="k">📍</span><span>Viale Europa, 20<br>37045 Legnago (VR)</span></div>
-        <div class="row"><span class="k">📞</span><a href="tel:+393773476774">377 347 6774</a></div>
-        <div class="row"><span class="k">🕒</span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>Viale Europa, 20<br>37045 Legnago (VR)</span></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16.5v2.6a2 2 0 0 1-2.2 2A19 19 0 0 1 2.9 5.2 2 2 0 0 1 4.9 3h2.6a1.5 1.5 0 0 1 1.5 1.3l.7 3.4a1.5 1.5 0 0 1-.6 1.5L7.6 10.4a16 16 0 0 0 6 6l1.2-1.5a1.5 1.5 0 0 1 1.5-.6l3.4.7a1.5 1.5 0 0 1 1.3 1.5z"/></svg></span><a href="tel:+393773476774">377 347 6774</a></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
         <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=Yio+Fish+Legnago+Viale+Europa+20" target="_blank">Indicazioni →</a>
       </div>
       <div class="loc">
         <h3>IMOLA</h3>
-        <div class="row"><span class="k">📍</span><span>Via Giuseppe Fanin, 21<br>40026 Imola (BO)</span></div>
-        <div class="row"><span class="k">📞</span><a href="tel:+393336189620">333 618 9620</a></div>
-        <div class="row"><span class="k">🕒</span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>Via Giuseppe Fanin, 21<br>40026 Imola (BO)</span></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16.5v2.6a2 2 0 0 1-2.2 2A19 19 0 0 1 2.9 5.2 2 2 0 0 1 4.9 3h2.6a1.5 1.5 0 0 1 1.5 1.3l.7 3.4a1.5 1.5 0 0 1-.6 1.5L7.6 10.4a16 16 0 0 0 6 6l1.2-1.5a1.5 1.5 0 0 1 1.5-.6l3.4.7a1.5 1.5 0 0 1 1.3 1.5z"/></svg></span><a href="tel:+393336189620">333 618 9620</a></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
         <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=Via+Giuseppe+Fanin+21+Imola+BO" target="_blank">Indicazioni →</a>
       </div>
     </div>
