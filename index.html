@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<!-- YIO index · Summer Fan 2026 disponibile · agg. 2026-07-19 · quiet-luxury restyle -->
+<!-- YIO index · Summer Fan 2026 disponibile · agg. 2026-07-19 · quiet-luxury restyle · svc-card ?mode= deep-link -->
   <title>YIO Fish · Ristorante Giapponese</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
@@ -347,15 +347,24 @@
   .services { background: var(--bg); }
   .svc-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin: 18px 0 56px; }
   .svc {
-    padding: 40px 26px 36px; border-radius: var(--radius); border: 1px solid var(--border);
+    display: block; cursor: pointer;
+    padding: 40px 26px 30px; border-radius: var(--radius); border: 1px solid var(--border);
     background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-    text-align: center; transition: border-color var(--transition), transform var(--transition);
+    text-align: center; transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
   }
-  .svc:hover { border-color: rgba(201,169,98,.4); transform: translateY(-3px); }
-  .svc .ic { margin-bottom: 20px; color: var(--gold); display: flex; justify-content: center; }
+  .svc:hover { border-color: rgba(201,169,98,.45); transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+  .svc .ic { margin-bottom: 20px; color: var(--gold); display: flex; justify-content: center; transition: transform var(--transition); }
+  .svc:hover .ic { transform: translateY(-2px); }
   .svc .ic svg { width: 34px; height: 34px; stroke-width: 1.1; }
   .svc h3 { font-size: 12px; letter-spacing: 3px; color: var(--gold-lt); margin-bottom: 12px; font-weight: 400; text-transform: uppercase; }
   .svc p { font-size: 13px; line-height: 1.75; color: var(--muted); font-weight: 300; }
+  .svc .go {
+    display: inline-block; margin-top: 18px; font-size: 10px; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--gold); opacity: 0; transform: translateY(4px);
+    transition: opacity var(--transition), transform var(--transition);
+  }
+  .svc:hover .go, .svc:active .go { opacity: 1; transform: none; }
+  @media (hover: none) { .svc .go { opacity: .85; transform: none; } }
   .order-cta { text-align: center; }
   .order-cta .ct-label { font-size: 10px; letter-spacing: 4px; color: var(--muted); margin-bottom: 22px; text-transform: uppercase; }
   .order-btns { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
@@ -588,21 +597,24 @@
       <div class="gold-rule" style="margin: 0 auto 28px"></div>
     </div>
     <div class="svc-row reveal">
-      <div class="svc">
+      <a class="svc" href="#top" data-mode="tavolo" aria-label="Al ristorante — scegli il ristorante">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7"/><circle cx="12" cy="13" r="3.5"/><path d="M12 3v3M5.6 6.6l2 2M18.4 6.6l-2 2"/></svg></div>
         <h3>Al ristorante</h3>
         <p>Vieni a trovarci e ordina direttamente dal tuo tavolo con il QR.</p>
-      </div>
-      <div class="svc">
+        <span class="go">Scegli il ristorante →</span>
+      </a>
+      <a class="svc" href="#top" data-mode="asporto" aria-label="Asporto — scegli il ristorante">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1.2 12.2a1 1 0 0 1-1 1.1H5.8a1 1 0 0 1-1-1.1L6 8z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg></div>
         <h3>Asporto</h3>
         <p>Ordina e ritira in negozio quando preferisci.</p>
-      </div>
-      <div class="svc">
+        <span class="go">Scegli il ristorante →</span>
+      </a>
+      <a class="svc" href="#top" data-mode="consegna" aria-label="Consegna — scegli il ristorante">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M8 17.5h8M12 17.5l-2-6h3l2.5 6M13 6h2.5a2 2 0 0 1 2 2v2.5"/></svg></div>
         <h3>Consegna</h3>
         <p>Ricevi i nostri piatti comodamente a casa tua.</p>
-      </div>
+        <span class="go">Scegli il ristorante →</span>
+      </a>
     </div>
     <div class="order-cta reveal">
       <p class="ct-label">Ordina dal tuo ristorante</p>
@@ -673,6 +685,18 @@
   document.querySelectorAll('.store-btn, .order-btns a').forEach(function(btn){
     btn.addEventListener('click', function(){
       try { sessionStorage.setItem('yio_route_v1', btn.getAttribute('href')); } catch(e){}
+    }, { passive: true });
+  });
+
+  // 服务卡：把选中的服务方式带到店链接上（?mode=asporto/consegna），
+  // 店页面加载时识别参数自动进入对应模式；堂食(tavolo)不带参数=默认首页
+  document.querySelectorAll('.svc').forEach(function(card){
+    card.addEventListener('click', function(){
+      var mode = card.getAttribute('data-mode') || '';
+      document.querySelectorAll('.store-btn, .order-btns a').forEach(function(btn){
+        var base = btn.getAttribute('href').split('?')[0];
+        btn.setAttribute('href', (mode === 'asporto' || mode === 'consegna') ? base + '?mode=' + mode : base);
+      });
     }, { passive: true });
   });
 
