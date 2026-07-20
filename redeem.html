@@ -129,6 +129,13 @@ input:focus{border-color:var(--gold)}
             <div class="menu-desc">Ordini d'asporto in attesa di conferma punti</div>
           </div>
         </div>
+        <div class="menu-item" onclick="showStep('pinreq');loadPinReqs();">
+          <span class="menu-icon">🔐</span>
+          <div>
+            <div class="menu-label">RICHIESTE PIN <span id="pinreq-badge" style="display:none;background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;vertical-align:2px"></span></div>
+            <div class="menu-desc">Clienti in attesa di conferma primo PIN</div>
+          </div>
+        </div>
         <div class="menu-item" onclick="showStep('resetpin')">
           <span class="menu-icon">🔑</span>
           <div>
@@ -320,6 +327,21 @@ input:focus{border-color:var(--gold)}
     </div>
   </div>
 
+  <!-- STEP: pinreq (PIN 首设确认，方案B) -->
+  <div id="step-pinreq" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">🔐 Richieste primo PIN</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Il cliente ha già punti e sta impostando il primo PIN. Conferma <b>solo se è presente in cassa</b>: il PIN scelto dal cliente diventerà attivo subito.</div>
+      <div id="pinreq-toast"></div>
+      <div id="pinreq-err"></div>
+      <div id="pinreq-list">Caricamento...</div>
+      <button class="btn btn-ghost" style="margin-top:12px" onclick="loadPinReqs()">🔄 Aggiorna</button>
+    </div>
+  </div>
+
 
   <!-- STEP: scan (加积分扫码) -->
   <div id="step-scan" style="display:none">
@@ -454,7 +476,7 @@ async function undoLastOp() {
   } catch (e) { alert('❌ Errore: ' + e.message); }
 }
 
-var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','riscatta-choose','addpunti-choose','resetpin','resetpin-success'];
+var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','pinreq','riscatta-choose','addpunti-choose','resetpin','resetpin-success'];
 
 // 页面加载时自动填入已保存凭证
 window.addEventListener('load', function() {
@@ -465,7 +487,9 @@ function showStep(step) {
   // 离开扫码页时停止摄像头
   if (step !== 'scan') stopScan();
   if (step !== 'redeem-scan') stopRedeemScan();
-  if (step === 'menu') { try { renderUndoBanner(); } catch (e) {} }
+  if (step === 'menu') { try { renderUndoBanner(); } catch (e) {} try { updatePinBadge(); } catch (e) {} }
+  if (step === 'pinreq') { _pinreqTimer = setInterval(function(){ try { loadPinReqs(true); } catch(e){} }, 10000); }
+  else if (_pinreqTimer) { clearInterval(_pinreqTimer); _pinreqTimer = null; }
   ALL_STEPS.forEach(function(s){
     var el = document.getElementById('step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
@@ -730,6 +754,92 @@ async function loadPending() {
     showErr('pending-err', e.message);
     if (box) box.innerHTML = '';
   }
+}
+
+// ───── PIN 首设确认（方案B，v5.32.5 Worker）─────
+let _pinreqTimer = null;
+
+async function loadPinReqs(silent) {
+  var list = document.getElementById('pinreq-list');
+  showErr('pinreq-err', '');
+  if (!silent) list.innerHTML = 'Caricamento...';
+  try {
+    const res = await fetch(WORKER_URL + '/loyalty/pin/pending-list?restaurant_id=' + _store, {
+      headers: {'Authorization':'Bearer ' + _token}
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      if (!silent) list.innerHTML = '<div style="color:#c0392b;font-size:13px">Errore caricamento</div>';
+      return;
+    }
+    const reqs = data.requests || [];
+    if (!reqs.length) {
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Nessuna richiesta in attesa ✓</div>';
+      return;
+    }
+    list.innerHTML = reqs.map(function(r) {
+      const mins = Math.max(0, Math.round((Date.now() - new Date(r.created_at).getTime()) / 60000));
+      return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        + '<div>'
+        + '<div style="font-weight:500;font-size:15px">📱 ' + escHtml(r.phone) + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + (mins < 1 ? 'adesso' : mins + ' min fa') + '</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:8px">'
+        + '<button class="btn btn-green" style="width:auto;padding:8px 14px;font-size:12px" onclick="decidePinReq(\'' + r.id + '\',\'confirm\',this)">✓ Conferma</button>'
+        + '<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px" onclick="decidePinReq(\'' + r.id + '\',\'reject\',this)">✕</button>'
+        + '</div></div></div>';
+    }).join('');
+  } catch (e) {
+    if (!silent) list.innerHTML = '<div style="color:#c0392b;font-size:13px">Errore di rete</div>';
+  }
+}
+
+async function decidePinReq(id, action, btn) {
+  if (action === 'reject' && !confirm('Rifiutare questa richiesta PIN?')) return;
+  btn.disabled = true;
+  var toast = document.getElementById('pinreq-toast');
+  toast.innerHTML = ''; showErr('pinreq-err', '');
+  try {
+    const res = await fetch(WORKER_URL + '/loyalty/pin/pending-' + action, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
+      body: JSON.stringify({request_id: id})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      toast.innerHTML = '<div style="background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.35);color:#7bd88f;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px">'
+        + (action === 'confirm' ? '✅ PIN attivato per ' + escHtml(data.phone || '') : '✕ Richiesta rifiutata') + '</div>';
+      loadPinReqs(true);
+      updatePinBadge();
+    } else {
+      showErr('pinreq-err', escHtml(data.error || ('Errore ' + res.status)));
+      btn.disabled = false;
+      loadPinReqs(true);
+    }
+  } catch (e) {
+    showErr('pinreq-err', 'Errore di rete');
+    btn.disabled = false;
+  }
+}
+
+// 菜单页角标：有待确认 PIN 请求时显示数量
+async function updatePinBadge() {
+  var badge = document.getElementById('pinreq-badge');
+  if (!badge || !_token) return;
+  try {
+    const res = await fetch(WORKER_URL + '/loyalty/pin/pending-list?restaurant_id=' + _store, {
+      headers: {'Authorization':'Bearer ' + _token}
+    });
+    const data = await res.json().catch(() => ({}));
+    const n = (data && data.ok && data.requests) ? data.requests.length : 0;
+    badge.style.display = n > 0 ? '' : 'none';
+    badge.textContent = n;
+  } catch (e) {}
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 async function confirmPending(id, action, btn) {
