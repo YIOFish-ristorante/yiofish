@@ -571,6 +571,50 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
   /* 加减按钮在窄卡里缩小 */
   .qctrl { transform: scale(.92); transform-origin: right center; }
 }
+
+  /* ─── YIO AI 悬浮助手（v1.65.2，店页面版：底栏上方、层级低于结账遮罩） ─── */
+  .yai-fab { position: fixed; right: 16px; bottom: 88px; z-index: 800; width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(160deg, var(--gold-lt), var(--gold) 55%, var(--gold-dk)); border: 1px solid rgba(255,255,255,.35);
+    color: #0c0b09; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 30px rgba(191,164,111,.35); transition: transform .25s; }
+  .yai-fab:hover { transform: translateY(-3px) scale(1.05); }
+  .yai-fab svg { width: 24px; height: 24px; }
+  .yai-fab .yai-dot { position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; border-radius: 50%; background: #c0392b; border: 2px solid var(--bg2); display: none; }
+  .yai-panel { position: fixed; right: 16px; bottom: 152px; z-index: 800; width: min(92vw, 380px); height: min(66vh, 540px);
+    background: rgba(12,11,9,.97); border: 1px solid rgba(191,164,111,.25); border-radius: 8px; backdrop-filter: blur(14px);
+    display: none; flex-direction: column; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+  .yai-panel.open { display: flex; }
+  .yai-head { padding: 14px 16px; border-bottom: 1px solid rgba(191,164,111,.25); display: flex; align-items: center; gap: 10px; }
+  .yai-head .yai-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(160deg, var(--gold-lt), var(--gold-dk));
+    display: flex; align-items: center; justify-content: center; color: #0c0b09; flex: none; }
+  .yai-head .yai-avatar svg { width: 18px; height: 18px; }
+  .yai-head .yai-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; letter-spacing: .06em; color: var(--gold-lt); }
+  .yai-head .yai-sub { font-size: 11px; color: rgba(255,255,255,.45); letter-spacing: .12em; text-transform: uppercase; }
+  .yai-head .yai-close { margin-left: auto; background: none; border: none; color: rgba(255,255,255,.5); cursor: pointer; padding: 4px; }
+  .yai-head .yai-close:hover { color: var(--gold-lt); }
+  .yai-msgs { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .yai-msg { max-width: 86%; padding: 10px 13px; border-radius: 4px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+  .yai-msg.bot { align-self: flex-start; background: rgba(191,164,111,.08); border: 1px solid rgba(191,164,111,.25); color: rgba(255,255,255,.88); border-left: 2px solid var(--gold); }
+  .yai-msg.user { align-self: flex-end; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #fff; }
+  .yai-actions { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; max-width: 92%; }
+  .yai-actions a { display: inline-block; padding: 7px 12px; font-size: 12px; letter-spacing: .05em; color: var(--gold-lt);
+    border: 1px solid var(--gold); border-radius: 3px; text-decoration: none; background: transparent; transition: background .2s, color .2s; }
+  .yai-actions a:hover { background: var(--gold); color: #0c0b09; }
+  .yai-typing { align-self: flex-start; color: rgba(255,255,255,.4); font-size: 12px; letter-spacing: .2em; padding: 2px 6px; display: none; }
+  .yai-chips { display: flex; gap: 6px; padding: 8px 12px; flex-wrap: wrap; border-top: 1px solid rgba(191,164,111,.12); }
+  .yai-chips button { background: none; border: 1px solid rgba(191,164,111,.4); color: rgba(255,255,255,.7); font-size: 12px;
+    padding: 6px 11px; border-radius: 20px; cursor: pointer; transition: all .2s; font-family: inherit; }
+  .yai-chips button:hover { border-color: var(--gold); color: var(--gold-lt); }
+  .yai-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid rgba(191,164,111,.25); }
+  .yai-input input { flex: 1; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); border-radius: 3px;
+    color: #fff; padding: 10px 12px; font-size: 14px; font-family: inherit; outline: none; }
+  .yai-input input:focus { border-color: var(--gold); }
+  .yai-input button { background: linear-gradient(160deg, var(--gold-lt), var(--gold-dk)); border: none; border-radius: 3px;
+    color: #0c0b09; padding: 0 16px; cursor: pointer; font-size: 15px; }
+  @media (max-width: 480px) {
+    .yai-panel { right: 10px; left: 10px; width: auto; bottom: 148px; height: min(64vh, 520px); }
+    .yai-fab { right: 14px; bottom: 84px; }
+  }
 </style>
 
   <!-- yio-error-log -->
@@ -4593,6 +4637,117 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('res-date').min = romeTodayStr();
   loadAll();
 });
+</script>
+
+<!-- ─── YIO AI 悬浮助手（v1.65.2，门店专属：restaurant_id=imola） ─── -->
+<button class="yai-fab" id="yaiFab" aria-label="YIO AI">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
+  <span class="yai-dot" id="yaiDot"></span>
+</button>
+<div class="yai-panel" id="yaiPanel" role="dialog" aria-label="YIO AI">
+  <div class="yai-head">
+    <div class="yai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></div>
+    <div>
+      <div class="yai-title">YIO AI</div>
+      <div class="yai-sub" id="yaiSub">Assistente virtuale</div>
+    </div>
+    <button class="yai-close" id="yaiClose" aria-label="Chiudi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="yai-msgs" id="yaiMsgs"></div>
+  <div class="yai-typing" id="yaiTyping">···</div>
+  <div class="yai-chips" id="yaiChips"></div>
+  <div class="yai-input">
+    <input id="yaiInput" type="text" autocomplete="off">
+    <button id="yaiSend" aria-label="Invia">→</button>
+  </div>
+</div>
+<script>
+(function(){
+  var YAI_RID = 'imola';
+  var YAI_API = 'https://yio.it/api/ai/chat';
+  var fab = document.getElementById('yaiFab'), panel = document.getElementById('yaiPanel'),
+      msgs = document.getElementById('yaiMsgs'), typing = document.getElementById('yaiTyping'),
+      chips = document.getElementById('yaiChips'), input = document.getElementById('yaiInput'),
+      sendBtn = document.getElementById('yaiSend'), closeBtn = document.getElementById('yaiClose'),
+      sub = document.getElementById('yaiSub');
+  var navLang = (navigator.language || 'it').toLowerCase();
+  var lang = navLang.indexOf('zh') === 0 ? 'zh' : navLang.indexOf('en') === 0 ? 'en' : 'it';
+  var T = {
+    sub:      { it: 'Assistente virtuale', en: 'Virtual assistant', zh: '智能助手' },
+    hello:    { it: 'Ciao! Sono YIO AI ✨ Posso consigliarti i piatti di questo menu, controllare i tuoi punti fedeltà, aiutarti a prenotare o a ordinare. Cosa posso fare per te?',
+                en: 'Hi! I\'m YIO AI ✨ I can recommend dishes from this menu, check your loyalty points, help you book or order. How can I help?',
+                zh: '您好！我是 YIO AI ✨ 可以推荐本店菜品、查询会员积分、帮您订位或下单。有什么可以帮您的？' },
+    placeholder: { it: 'Scrivi qui...', en: 'Type here...', zh: '输入消息...' },
+    err:      { it: 'Ops, connessione assente. Riprova tra poco.', en: 'Oops, connection problem. Try again shortly.', zh: '抱歉，网络异常，请稍后再试。' },
+    chips:    { it: [['🍣 Consigliami', 'Cosa mi consigli di buono?'], ['⭐ I miei punti', 'Quanti punti fedeltà ho?'], ['📅 Prenota', 'Vorrei prenotare un tavolo'], ['🚚 Ordina', 'Vorrei ordinare']],
+                en: [['🍣 Recommend', 'What do you recommend?'], ['⭐ My points', 'How many loyalty points do I have?'], ['📅 Book', 'I\'d like to book a table'], ['🚚 Order', 'I\'d like to order']],
+                zh: [['🍣 推荐菜品', '有什么好吃的推荐？'], ['⭐ 查询积分', '我有多少会员积分？'], ['📅 订位', '我想订位'], ['🚚 下单', '我想下单']] }
+  };
+  function t(k){ return T[k][lang]; }
+  var history = [], opened = false;
+  function addMsg(role, text, actions){
+    var div = document.createElement('div');
+    div.className = 'yai-msg ' + role;
+    div.textContent = text;
+    msgs.appendChild(div);
+    if (actions && actions.length){
+      var box = document.createElement('div');
+      box.className = 'yai-actions';
+      actions.forEach(function(a){
+        var link = document.createElement('a');
+        link.href = a.url; link.textContent = a.label;
+        if (a.url.indexOf('http') === 0 || a.url.indexOf('tel:') === 0) link.target = '_blank';
+        box.appendChild(link);
+      });
+      msgs.appendChild(box);
+    }
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  function renderChips(){
+    chips.innerHTML = '';
+    t('chips').forEach(function(c){
+      var b = document.createElement('button');
+      b.textContent = c[0];
+      b.onclick = function(){ send(c[1]); };
+      chips.appendChild(b);
+    });
+  }
+  function open(){
+    panel.classList.add('open');
+    document.getElementById('yaiDot').style.display = 'none';
+    if (!opened){ opened = true; addMsg('bot', t('hello')); renderChips(); }
+    setTimeout(function(){ input.focus(); }, 150);
+  }
+  function send(text){
+    text = (text || '').trim();
+    if (!text) return;
+    addMsg('user', text);
+    history.push({ role: 'user', text: text });
+    input.value = '';
+    typing.style.display = 'block';
+    msgs.scrollTop = msgs.scrollHeight;
+    fetch(YAI_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, restaurant_id: YAI_RID, history: history.slice(-6) })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      typing.style.display = 'none';
+      var reply = d.reply || t('err');
+      addMsg('bot', reply, d.actions);
+      history.push({ role: 'bot', text: reply });
+    }).catch(function(){
+      typing.style.display = 'none';
+      addMsg('bot', t('err'));
+    });
+  }
+  sub.textContent = t('sub');
+  input.placeholder = t('placeholder');
+  fab.addEventListener('click', function(){ panel.classList.contains('open') ? panel.classList.remove('open') : open(); });
+  closeBtn.addEventListener('click', function(){ panel.classList.remove('open'); });
+  sendBtn.addEventListener('click', function(){ send(input.value); });
+  input.addEventListener('keydown', function(e){ if (e.key === 'Enter') send(input.value); });
+  setTimeout(function(){ if (!opened) document.getElementById('yaiDot').style.display = 'block'; }, 4000);
+})();
 </script>
 </body>
 </html>
