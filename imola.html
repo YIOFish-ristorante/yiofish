@@ -4633,8 +4633,13 @@ function applyExtrasFromUrl() {
     var q = new URLSearchParams(window.location.search);
     var cat = q.get('cat');
     var pren = q.get('prenota');
+    var punti = q.get('punti');
     if (pren === '1') {
       setTimeout(function(){ openModal('reservationModal'); }, 400);
+    }
+    // v1.65.4: ?punti=1 自动打开会员积分弹窗（YIO AI 积分/奖品回答直达）
+    if (punti === '1') {
+      setTimeout(function(){ openModal('loyaltyModal'); }, 400);
     }
     if (cat) {
       var menusOrder = ['pranzo', 'cena', 'speciale', 'dessert', 'bevande', 'asporto'];
@@ -4653,7 +4658,7 @@ function applyExtrasFromUrl() {
       }
     }
     // 清参数：有 mode 时交给 applyModeFromUrl 统一清；否则这里清
-    if (!q.get('mode') && (pren === '1' || cat)) {
+    if (!q.get('mode') && (pren === '1' || punti === '1' || cat)) {
       history.replaceState(null, '', window.location.pathname + window.location.hash);
     }
   } catch(e) {}
