@@ -1400,6 +1400,7 @@ async function loadAll() {
       }
     } catch(e) {}
     loadMenu();
+    applyExtrasFromUrl(); // v1.65.3: ?cat= / ?prenota=1 直达（先于 mode，避免参数被清）
     applyModeFromUrl(); // v1.65.1: ?mode=asporto|consegna 直达外卖模式（官网服务卡跳转）
     // 每30秒检查营业状态和新发布（页面隐藏时暂停，回前台立即补查一次）
     setInterval(function(){
@@ -4624,6 +4625,40 @@ function sendReservation() {
 // v1.65.1: 支持 ?mode=asporto|consegna 直达（官网 yio.it 服务卡跳转）。
 // 复用 chooseTakeaway 完整流程：外卖开关防御 + 模式纠正 + UI 更新 + 打开外卖菜单。
 // 应用后清掉参数——用户之后手动切换/刷新不受残留参数影响。
+
+// v1.65.3: ?cat=<分类id> 直达分类 · ?prenota=1 自动打开预订弹窗（YIO AI 深度链接）
+// 注意：必须先于 applyModeFromUrl 调用（它会清掉 URL 参数）
+function applyExtrasFromUrl() {
+  try {
+    var q = new URLSearchParams(window.location.search);
+    var cat = q.get('cat');
+    var pren = q.get('prenota');
+    if (pren === '1') {
+      setTimeout(function(){ openModal('reservationModal'); }, 400);
+    }
+    if (cat) {
+      var menusOrder = ['pranzo', 'cena', 'speciale', 'dessert', 'bevande', 'asporto'];
+      var targetMenu = null;
+      for (var i = 0; i < menusOrder.length; i++) {
+        var mid = menusOrder[i];
+        var found = ALL_ITEMS.some(function(it) {
+          return String(it.category) === String(cat) && it.menus[mid] && it.menus[mid].on;
+        });
+        if (found) { targetMenu = mid; break; }
+      }
+      if (targetMenu) {
+        if (targetMenu === 'asporto') chooseTakeaway(order_mode === 'consegna' ? 'consegna' : 'asporto');
+        else openMenuView(targetMenu);
+        setTimeout(function(){ jumpToCategory(String(cat)); }, 150);
+      }
+    }
+    // 清参数：有 mode 时交给 applyModeFromUrl 统一清；否则这里清
+    if (!q.get('mode') && (pren === '1' || cat)) {
+      history.replaceState(null, '', window.location.pathname + window.location.hash);
+    }
+  } catch(e) {}
+}
+
 function applyModeFromUrl() {
   try {
     var mode = new URLSearchParams(window.location.search).get('mode');
