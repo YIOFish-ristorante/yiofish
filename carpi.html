@@ -664,7 +664,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.65.1 · 2026-07-19</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.65.5 · 2026-07-25</span></div>
 </div>
 </div>
 
@@ -1085,13 +1085,14 @@ function sbFetch(path, opts) {
 }
 
 // 带超时 + 重试的 GET（用 Promise.race 实现超时，对网络抖动更稳健）
-async function sbFetchJSON(path, retries) {
+async function sbFetchJSON(path, retries, timeoutMs) {
   retries = (retries == null) ? 2 : retries;
+  timeoutMs = timeoutMs || 15000;
   for (var attempt = 0; attempt <= retries; attempt++) {
     try {
       var fetchPromise = fetch(WORKER_URL + '/public/rest/v1/' + path);
       var timeoutPromise = new Promise(function(_, reject){
-        setTimeout(function(){ reject(new Error('timeout')); }, 15000);
+        setTimeout(function(){ reject(new Error('timeout')); }, timeoutMs);
       });
       var res = await Promise.race([fetchPromise, timeoutPromise]);
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1328,13 +1329,26 @@ function mergeDishes(dishes) {
   rebuildItemIndex();
 }
 
+// v1.65.5: 加载失败全屏重试界面（不再静默显示空菜单）
+function showLoadError() {
+  if (document.getElementById('load-error-overlay')) return;
+  var el = document.createElement('div');
+  el.id = 'load-error-overlay';
+  el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0c0b09;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;color:#fff';
+  el.innerHTML = '<div style="font-size:44px;margin-bottom:14px">📶</div>'
+    + '<div style="font-family:Cormorant Garamond,serif;font-size:26px;color:var(--gold-lt);margin-bottom:8px">Caricamento non riuscito</div>'
+    + '<div style="font-size:14px;color:rgba(255,255,255,.55);line-height:1.6;margin-bottom:24px">Connessione lenta o instabile.<br>Controlla la rete e riprova.</div>'
+    + '<button onclick="location.reload()" style="padding:13px 40px;border:1px solid var(--gold);background:transparent;color:var(--gold-lt);font-size:15px;letter-spacing:.1em;border-radius:4px;cursor:pointer">RIPROVA</button>';
+  document.body.appendChild(el);
+}
+
 async function loadAll() {
   try {
     // 串行加载（逐个请求 + 超时重试，避免 WebView 并发限制 / Worker 限流导致 Failed to fetch）
     var rData = await sbFetchJSON('restaurants?id=eq.' + RESTAURANT_ID + '&select=*');
     var sData = await sbFetchJSON('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*');
     var CATS_ = await sbFetchJSON('categories?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order');
-    var dishes = await sbFetchJSON('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000');
+    var dishes = await sbFetchJSON('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000', 3, 30000); // v1.65.5: 大请求 30s 超时 + 3 次重试
     var mcData = await sbFetchJSON('menu_configs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*');
     var mclData = await sbFetchJSON('menu_cat_limits?restaurant_id=eq.' + RESTAURANT_ID + '&select=*');
     if (rData[0]) R = rData[0];
@@ -1418,6 +1432,8 @@ async function loadAll() {
     document.getElementById('loading-overlay').style.display = 'none';
     console.error('Errore caricamento:', e);
     loadMenu();
+    // v1.65.5: 数据不完整时给出可见的重试入口（WebView 弱网静默失败修复）
+    if (!ALL_ITEMS.length) showLoadError();
   }
 }
 
@@ -2011,7 +2027,12 @@ function renderMenuItems(items) {
   });
 
   if (!main.children.length) {
-    main.innerHTML = '<div class="nores"><div style="font-size:40px;margin-bottom:12px">🔍</div><h3>Nessun piatto disponibile</h3></div>';
+    // v1.65.5: 数据没加载出来 ≠ 餐厅没菜，给重试入口
+    if (!ALL_ITEMS.length) {
+      main.innerHTML = '<div class="nores"><div style="font-size:40px;margin-bottom:12px">📶</div><h3>Caricamento non riuscito</h3><p style="color:rgba(255,255,255,.5);font-size:13px;margin:6px 0 0">Controlla la connessione</p><button onclick="location.reload()" style="margin-top:16px;padding:10px 30px;border:1px solid var(--gold);background:transparent;color:var(--gold-lt);border-radius:4px;font-size:14px;cursor:pointer">RIPROVA</button></div>';
+    } else {
+      main.innerHTML = '<div class="nores"><div style="font-size:40px;margin-bottom:12px">🔍</div><h3>Nessun piatto disponibile</h3></div>';
+    }
     return;
   }
 
