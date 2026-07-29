@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>YIO Fish · Lotteria</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070d0a;--card:#0d1611;--gold:#c9a962;--gold-lt:#e8d5a3;--gold-dk:#8a7238;
+  --text:#f0ead9;--muted:rgba(240,234,217,.55);--line:rgba(201,169,98,.3);
+  --green:#2e8b57;--red:#c0392b;
+}
+body{background:radial-gradient(120% 90% at 50% 0%, #0e1a13 0%, var(--bg) 60%);color:var(--text);
+  font-family:'Noto Sans SC',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 16px 60px}
+.top{width:100%;max-width:430px;display:flex;align-items:center;justify-content:space-between;padding:18px 4px 6px}
+.brand{font-family:'Cormorant Garamond',serif;font-size:22px;letter-spacing:5px;color:var(--gold-lt)}
+.brand span{display:block;font-family:'Noto Sans SC';font-size:10px;letter-spacing:3px;color:var(--muted);margin-top:2px}
+.langs{display:flex;gap:6px}
+.langs button{background:none;border:1px solid var(--line);color:var(--muted);font-size:11px;padding:4px 8px;border-radius:3px;cursor:pointer}
+.langs button.on{color:var(--gold-lt);border-color:var(--gold)}
+.wrap{width:100%;max-width:430px;margin-top:14px}
+h1{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:30px;text-align:center;color:var(--gold-lt);letter-spacing:.06em;line-height:1.2}
+.sub{text-align:center;color:var(--muted);font-size:13px;margin-top:8px;line-height:1.6}
+.card{background:linear-gradient(170deg,#0d1611,#070d0a);border:1px solid var(--gold);border-radius:8px;padding:26px 22px;margin-top:22px}
+.step{display:none}
+.step.on{display:block;animation:fade .4s}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+label.fl{display:block;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+input[type=tel]{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:4px;background:rgba(0,0,0,.3);
+  color:var(--text);font-size:17px;letter-spacing:1px;outline:none;font-family:inherit}
+input[type=tel]:focus{border-color:var(--gold)}
+.consent{display:flex;gap:10px;align-items:flex-start;margin:16px 0 4px;font-size:13px;color:var(--muted);line-height:1.5}
+.consent input{margin-top:3px;accent-color:var(--gold);width:16px;height:16px;flex:none}
+.consent a{color:var(--gold-lt)}
+.rules{display:none;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:4px;padding:12px 14px;
+  font-size:12px;color:var(--muted);line-height:1.7;margin-top:10px;max-height:150px;overflow-y:auto;white-space:pre-wrap}
+.rules.on{display:block}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:4px;font-size:14px;letter-spacing:.15em;
+  text-transform:uppercase;font-family:inherit;cursor:pointer;transition:all .2s;margin-top:16px}
+.btn-gold{background:linear-gradient(160deg,var(--gold-lt),var(--gold-dk));color:#0a0f0c;font-weight:500}
+.btn-gold:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.btn-ghost:hover{color:var(--gold-lt);border-color:var(--gold)}
+.msg{border-radius:4px;padding:12px 14px;font-size:13px;line-height:1.6;margin-top:14px;display:none}
+.msg.on{display:block}
+.msg-err{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.4);color:#e8a49c}
+.msg-info{background:rgba(201,169,98,.1);border:1px solid var(--line);color:var(--gold-lt)}
+/* 等待批准 */
+.wait{text-align:center;padding:10px 0}
+.wait .pulse{width:64px;height:64px;border:2px solid var(--gold);border-radius:50%;margin:0 auto 18px;
+  display:flex;align-items:center;justify-content:center;font-size:26px;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(201,169,98,.35)}50%{box-shadow:0 0 0 14px rgba(201,169,98,0)}}
+.wait p{color:var(--muted);font-size:14px;line-height:1.8}
+.wait strong{color:var(--gold-lt)}
+/* 转盘 */
+.wheel-box{position:relative;width:300px;height:300px;margin:10px auto 0}
+.wheel-box canvas{width:100%;height:100%}
+.pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:3;
+  width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:22px solid var(--gold-lt);
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;
+  width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#1d2b22,#0a120d);
+  border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;
+  font-family:'Cormorant Garamond',serif;color:var(--gold-lt);font-size:12px;letter-spacing:1px;text-align:center}
+/* 结果 */
+.result{text-align:center;padding:8px 0}
+.result .r-prize{font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--gold-lt);margin:12px 0 4px;line-height:1.25}
+.result .r-code{font-size:38px;letter-spacing:10px;color:var(--text);font-weight:500;margin:16px 0 6px;
+  border:1px dashed var(--gold);border-radius:6px;padding:12px 0}
+.result .r-note{font-size:13px;color:var(--muted);line-height:1.7}
+.result .r-emoji{font-size:44px}
+/* 我的中奖 */
+.win-item{border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-top:12px}
+.win-item .w-prize{color:var(--gold-lt);font-size:15px}
+.win-item .w-code{font-size:22px;letter-spacing:6px;margin:6px 0}
+.win-item .w-meta{font-size:12px;color:var(--muted)}
+.win-item .w-badge{display:inline-block;font-size:10px;letter-spacing:.1em;padding:2px 8px;border-radius:10px;margin-left:8px;text-transform:uppercase}
+.b-active{background:rgba(46,139,87,.2);color:#7fd6a4;border:1px solid rgba(46,139,87,.5)}
+.b-used{background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--line)}
+.b-expired{background:rgba(192,57,43,.15);color:#e8a49c;border:1px solid rgba(192,57,43,.4)}
+.foot{margin-top:34px;text-align:center;font-size:11px;color:rgba(240,234,217,.3);letter-spacing:2px}
+.links{display:flex;gap:10px;margin-top:14px}
+.links .btn{margin-top:0}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand">YIO FISH<span id="storeName">LOTTERIA</span></div>
+  <div class="langs">
+    <button data-l="it" onclick="setLang('it')">IT</button>
+    <button data-l="en" onclick="setLang('en')">EN</button>
+    <button data-l="zh" onclick="setLang('zh')">中</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1 id="tTitle"></h1>
+  <p class="sub" id="tSub"></p>
+
+  <!-- 非活动日 -->
+  <div class="card step" id="stepDayOff">
+    <div class="result"><div class="r-emoji">📅</div>
+      <div class="r-prize" id="tDayOff"></div>
+      <p class="r-note" id="tDayOffNote"></p>
+    </div>
+  </div>
+
+  <!-- 活动未开 -->
+  <div class="card step" id="stepClosed">
+    <div class="result"><div class="r-emoji">🎡</div>
+      <div class="r-prize" id="tClosed"></div>
+      <p class="r-note" id="tClosedNote"></p>
+    </div>
+  </div>
+
+  <!-- ① 手机号 + 同意 -->
+  <div class="card step" id="stepForm">
+    <label class="fl" id="tTable"></label>
+    <input type="text" id="inTable" inputmode="numeric" maxlength="10" placeholder="12" style="width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:4px;background:rgba(0,0,0,.3);color:var(--text);font-size:17px;letter-spacing:1px;outline:none;font-family:inherit;margin-bottom:14px">
+    <label class="fl" id="tPhone"></label>
+    <input type="tel" id="inPhone" inputmode="tel" autocomplete="tel" placeholder="333 123 4567">
+    <div class="consent">
+      <input type="checkbox" id="inAgree">
+      <div><span id="tAgree"></span> <a href="javascript:void(0)" id="lnkRules"></a>
+        <div class="rules" id="boxRules"></div>
+      </div>
+    </div>
+    <button class="btn btn-gold" id="btnRequest" onclick="doRequest()"></button>
+    <button class="btn btn-ghost" id="btnMyWins2" onclick="loadMyWins()"></button>
+    <div class="msg msg-err" id="formErr"></div>
+    <div class="msg msg-info" id="formInfo"></div>
+  </div>
+
+  <!-- ② 等待店员批准 -->
+  <div class="card step" id="stepWait">
+    <div class="wait">
+      <div class="pulse">⏳</div>
+      <p id="tWait"></p>
+    </div>
+    <button class="btn btn-ghost" onclick="resetAll()"></button>
+  </div>
+
+  <!-- ③ 转盘 -->
+  <div class="card step" id="stepWheel">
+    <div class="wheel-box">
+      <div class="pointer"></div>
+      <canvas id="cv" width="600" height="600"></canvas>
+      <div class="hub">YIO<br>FISH</div>
+    </div>
+    <button class="btn btn-gold" id="btnSpin" onclick="doSpin()"></button>
+    <p class="sub" id="tSpinNote" style="margin-top:12px"></p>
+  </div>
+
+  <!-- ④ 结果 -->
+  <div class="card step" id="stepResult">
+    <div class="result">
+      <div class="r-emoji" id="rEmoji"></div>
+      <div class="r-prize" id="rPrize"></div>
+      <div class="r-code" id="rCode" style="display:none"></div>
+      <p class="r-note" id="rNote"></p>
+    </div>
+    <div class="links">
+      <button class="btn btn-ghost" id="btnMyWins"></button>
+    </div>
+  </div>
+
+  <!-- ⑤ 我的中奖 -->
+  <div class="card step" id="stepWins">
+    <div id="winsList"></div>
+    <button class="btn btn-ghost" onclick="showStep('stepForm')" id="btnBack"></button>
+  </div>
+</div>
+
+<div class="foot">YIO FISH · LOTTERIA · v1.1</div>
+
+<script>
+var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
+var RID = new URLSearchParams(location.search).get('r') || 'carpi';
+var STORE_NAMES = { carpi: 'YIO Fish CARPI', legnago: 'YIO Fish LEGNAGO', imola: 'YIO Fish IMOLA' };
+
+var I18N = {
+  it: {
+    title: 'Ruota della Fortuna', sub: 'Un giro gratis al giorno · Solo per clienti registrati',
+    table: 'Numero del tavolo', phone: 'Il tuo numero di telefono', agree: 'Ho letto e accetto il regolamento', rulesLink: '(leggi)',
+    dayOff: 'Oggi niente ruota!', dayOffNote: 'La lotteria è attiva solo in alcuni giorni della settimana. Torna a trovarci!',
+    errTable: 'Inserisci il numero del tavolo', errTableFull: 'Questo tavolo ha già esaurito i giri disponibili. Rivolgiti al personale.',
+    errDayOff: 'Oggi la lotteria non è attiva.',
+    rulesDefault: 'Un giro gratuito al giorno per numero registrato. Il giro deve essere autorizzato dal personale. I premi del giorno vanno mostrati alla cassa prima del pagamento; i premi a scadenza vanno riscattati entro la data indicata. I premi non sono convertibili in denaro.',
+    request: 'Richiedi il giro', wait: 'Mostra questa schermata al personale.<br><strong>Attendi l\'autorizzazione…</strong>',
+    cancel: 'Annulla', spin: 'GIRA!', spinNote: 'Tocca GIRA e scopri il tuo premio',
+    winTitle: 'Complimenti!', winCode: 'Mostra questo codice alla cassa',
+    winToday: 'Premio valido SOLO OGGI · mostralo alla cassa prima di pagare',
+    winUntil: 'Valido fino al {d} · mostralo alla cassa alla prossima visita',
+    loseTitle: 'Non questa volta!', loseNote: 'Torna a trovarci domani per un altro giro',
+    myWins: 'I miei premi', back: 'Indietro', noWins: 'Nessun premio trovato per questo numero.',
+    closed: 'Nessuna lotteria attiva', closedNote: 'Seguici su Instagram per i prossimi eventi!',
+    errPhone: 'Inserisci un numero di telefono valido', errAgree: 'Devi accettare il regolamento',
+    errNotReg: 'Numero non registrato. Registrati dal menu fedeltà del sito e riprova!',
+    errToday: 'Hai già giocato oggi. Torna domani!',
+    errRejected: 'Richiesta non autorizzata. Rivolgiti al personale.',
+    errExpired: 'Tempo scaduto. Richiedi di nuovo.',
+    errGeneric: 'Errore, riprova tra poco',
+    status_active: 'Valido', status_used: 'Utilizzato', status_expired: 'Scaduto',
+    wonOn: 'Vinto il', approved: 'Autorizzato! Prepara la ruota…'
+  },
+  en: {
+    title: 'Wheel of Fortune', sub: 'One free spin a day · Registered customers only',
+    table: 'Table number', phone: 'Your phone number', agree: 'I have read and accept the rules', rulesLink: '(read)',
+    dayOff: 'No wheel today!', dayOffNote: 'The lottery runs only on selected days of the week. See you soon!',
+    errTable: 'Please enter your table number', errTableFull: 'This table has used all its spins. Please ask our staff.',
+    errDayOff: 'The lottery is not active today.',
+    rulesDefault: 'One free spin per day per registered number. The spin must be approved by our staff. Same-day prizes must be shown at the till before payment; expiring prizes must be redeemed by the date shown. Prizes cannot be exchanged for cash.',
+    request: 'Request a spin', wait: 'Show this screen to our staff.<br><strong>Waiting for approval…</strong>',
+    cancel: 'Cancel', spin: 'SPIN!', spinNote: 'Tap SPIN and discover your prize',
+    winTitle: 'Congratulations!', winCode: 'Show this code at the till',
+    winToday: 'Valid TODAY ONLY · show it at the till before paying',
+    winUntil: 'Valid until {d} · show it at the till on your next visit',
+    loseTitle: 'Not this time!', loseNote: 'Come back tomorrow for another spin',
+    myWins: 'My prizes', back: 'Back', noWins: 'No prizes found for this number.',
+    closed: 'No active lottery', closedNote: 'Follow us on Instagram for upcoming events!',
+    errPhone: 'Please enter a valid phone number', errAgree: 'You must accept the rules',
+    errNotReg: 'Number not registered. Join our loyalty program on the website and try again!',
+    errToday: 'You already played today. Come back tomorrow!',
+    errRejected: 'Request not approved. Please ask our staff.',
+    errExpired: 'Time expired. Please request again.',
+    errGeneric: 'Error, please try again shortly',
+    status_active: 'Valid', status_used: 'Used', status_expired: 'Expired',
+    wonOn: 'Won on', approved: 'Approved! Get the wheel ready…'
+  },
+  zh: {
+    title: '幸运转盘', sub: '每天一次免费抽奖 · 仅限注册会员',
+    table: '桌号', phone: '您的手机号码', agree: '我已阅读并同意活动规则', rulesLink: '（查看）',
+    dayOff: '今天没有转盘活动！', dayOffNote: '抽奖活动只在每周固定几天进行，欢迎改天再来！',
+    errTable: '请输入桌号', errTableFull: '这张桌子今天的抽奖名额已用完，请与店员联系。',
+    errDayOff: '今天不是活动日。',
+    rulesDefault: '每个注册号码每天可免费抽奖一次，抽奖须经店员现场确认。当天有效的奖品请在结账前出示；限期奖品请在标注日期前到店兑换。奖品不可兑换现金。',
+    request: '申请抽奖', wait: '请向店员出示此页面。<br><strong>等待店员确认…</strong>',
+    cancel: '取消', spin: '开始！', spinNote: '点击开始，看看你的运气',
+    winTitle: '恭喜中奖！', winCode: '结账时出示此码',
+    winToday: '仅限今天有效 · 结账前请出示',
+    winUntil: '有效期至 {d} · 下次到店结账时出示',
+    loseTitle: '差一点点！', loseNote: '明天再来试一次吧',
+    myWins: '我的奖品', back: '返回', noWins: '这个号码暂无中奖记录。',
+    closed: '暂无抽奖活动', closedNote: '关注我们的 Instagram，活动不错过！',
+    errPhone: '请输入有效的手机号码', errAgree: '请先勾选同意活动规则',
+    errNotReg: '该号码尚未注册会员，请先在网站会员区注册。',
+    errToday: '今天已经抽过啦，明天再来！',
+    errRejected: '申请未通过，请与店员联系。',
+    errExpired: '已超时，请重新申请。',
+    errGeneric: '出错了，请稍后再试',
+    status_active: '有效', status_used: '已使用', status_expired: '已过期',
+    wonOn: '中奖日期', approved: '已确认！转盘准备就绪…'
+  }
+};
+
+var LANG = (navigator.language || 'it').toLowerCase();
+LANG = LANG.startsWith('zh') ? 'zh' : LANG.startsWith('en') ? 'en' : 'it';
+function T(k){ return (I18N[LANG] && I18N[LANG][k]) || I18N.it[k] || k; }
+
+var CFG = null;          // 活动配置
+var REQ_ID = null;       // 当前请求
+var POLL = null;
+var SPUN = false;
+
+function $(id){ return document.getElementById(id); }
+function showStep(id){
+  document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('on'); });
+  $(id).classList.add('on');
+}
+function showErr(id, txt){ var e=$(id); e.textContent=txt; e.classList.add('on'); }
+function hideErr(id){ $(id).classList.remove('on'); }
+
+function setLang(l){
+  LANG = l; applyI18n();
+  if (CFG) drawWheel(); // 重画（未中奖标签随语言）
+}
+function applyI18n(){
+  document.querySelectorAll('.langs button').forEach(function(b){ b.classList.toggle('on', b.dataset.l===LANG); });
+  $('tTitle').textContent = T('title');
+  $('tSub').textContent = T('sub');
+  $('tTable').textContent = T('table');
+  $('tPhone').textContent = T('phone');
+  $('tDayOff').textContent = T('dayOff');
+  $('tDayOffNote').textContent = T('dayOffNote');
+  $('tAgree').textContent = T('agree');
+  $('lnkRules').textContent = T('rulesLink');
+  $('btnRequest').textContent = T('request');
+  $('tWait').innerHTML = T('wait');
+  document.querySelector('#stepWait .btn-ghost').textContent = T('cancel');
+  $('btnSpin').textContent = T('spin');
+  $('tSpinNote').textContent = T('spinNote');
+  $('btnMyWins').textContent = T('myWins');
+  $('btnMyWins2').textContent = T('myWins');
+  $('btnBack').textContent = T('back');
+  $('tClosed').textContent = T('closed');
+  $('tClosedNote').textContent = T('closedNote');
+  $('storeName').textContent = STORE_NAMES[RID] ? STORE_NAMES[RID].toUpperCase() : 'LOTTERIA';
+  if (CFG) $('boxRules').textContent = (CFG.rules && CFG.rules[LANG]) || CFG.rules.it || T('rulesDefault');
+}
+$('lnkRules').onclick = function(){ $('boxRules').classList.toggle('on'); };
+
+async function api(path, opts){
+  var res = await fetch(WORKER_URL + path, opts);
+  var data = null;
+  try { data = await res.json(); } catch(e){}
+  return { status: res.status, data: data || {} };
+}
+
+// ── 初始化：读配置 + 恢复未完成状态 ──
+async function init(){
+  applyI18n();
+  var r = await api('/public/lottery/config?restaurant_id=' + encodeURIComponent(RID));
+  if (!r.data.enabled){ showStep('stepClosed'); return; }
+  if (r.data.today_on === false){ showStep('stepDayOff'); return; }
+  CFG = r.data;
+  $('boxRules').textContent = (CFG.rules && CFG.rules[LANG]) || CFG.rules.it || T('rulesDefault');
+  // 恢复：上次申请的请求还在进行中？
+  var saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem('yioLot') || 'null'); } catch(e){}
+  if (saved && saved.rid === RID && saved.requestId){
+    REQ_ID = saved.requestId;
+    var st = await api('/public/lottery/status?id=' + encodeURIComponent(REQ_ID));
+    if (st.data.status === 'pending'){ startPolling(); showStep('stepWait'); return; }
+    if (st.data.status === 'approved'){ prepareWheel(); return; }
+    sessionStorage.removeItem('yioLot'); REQ_ID = null;
+  }
+  showStep('stepForm');
+  drawWheel(); // 预画
+}
+
+// ── ① 申请 ──
+async function doRequest(){
+  hideErr('formErr'); hideErr('formInfo');
+  var tableNo = $('inTable').value.trim();
+  if (!tableNo){ showErr('formErr', T('errTable')); return; }
+  var phone = $('inPhone').value.replace(/\s+/g, '');
+  if (!/^\+?\d{9,13}$/.test(phone)){ showErr('formErr', T('errPhone')); return; }
+  if (!$('inAgree').checked){ showErr('formErr', T('errAgree')); return; }
+  $('btnRequest').disabled = true;
+  var r = await api('/public/lottery/request', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ restaurant_id: RID, phone: phone, table_no: tableNo, agreed: true })
+  });
+  $('btnRequest').disabled = false;
+  var d = r.data;
+  if (d.ok){
+    REQ_ID = d.request_id;
+    sessionStorage.setItem('yioLot', JSON.stringify({ rid: RID, requestId: REQ_ID, phone: phone, table: tableNo }));
+    if (d.status === 'approved'){ prepareWheel(); return; }
+    startPolling(); showStep('stepWait'); return;
+  }
+  if (d.code === 'not_registered') showErr('formErr', T('errNotReg'));
+  else if (d.code === 'already_today') showErr('formErr', T('errToday'));
+  else if (d.code === 'table_full') showErr('formErr', T('errTableFull'));
+  else if (d.code === 'day_off') showErr('formErr', T('errDayOff'));
+  else showErr('formErr', d.error || T('errGeneric'));
+}
+
+// ── ② 轮询批准 ──
+function startPolling(){
+  stopPolling();
+  POLL = setInterval(async function(){
+    if (!REQ_ID) return;
+    var r = await api('/public/lottery/status?id=' + encodeURIComponent(REQ_ID));
+    var s = r.data.status;
+    if (s === 'approved'){ stopPolling(); prepareWheel(); }
+    else if (s === 'rejected'){ stopPolling(); backToForm(T('errRejected')); }
+    else if (s === 'expired'){ stopPolling(); backToForm(T('errExpired')); }
+  }, 3000);
+}
+function stopPolling(){ if (POLL){ clearInterval(POLL); POLL = null; } }
+function backToForm(msg){
+  sessionStorage.removeItem('yioLot'); REQ_ID = null;
+  showStep('stepForm'); showErr('formErr', msg);
+}
+function resetAll(){ stopPolling(); sessionStorage.removeItem('yioLot'); REQ_ID = null; SPUN = false; showStep('stepForm'); }
+
+// ── ③ 转盘 ──
+function wheelSegs(){
+  var segs = (CFG && CFG.segments ? CFG.segments : []).map(function(p){ return { name: p.name, color: p.color, prize: true }; });
+  if (!CFG || CFG.can_lose || segs.length === 0){
+    segs.push({ name: (CFG && CFG.lose_label) || T('loseTitle'), color: '#1a2620', prize: false });
+  }
+  if (segs.length === 1){ // 单格也成轮：加一个未中格仅作视觉
+    segs.push({ name: (CFG && CFG.lose_label) || '·', color: '#1a2620', prize: false });
+  }
+  return segs;
+}
+function drawWheel(rot){
+  var cv = $('cv'), ctx = cv.getContext('2d');
+  var segs = wheelSegs(), n = segs.length;
+  var R = 300, cx = 300, cy = 300;
+  ctx.clearRect(0, 0, 600, 600);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot || 0);
+  var arc = Math.PI * 2 / n;
+  for (var i = 0; i < n; i++){
+    var a0 = i * arc - Math.PI / 2 - arc / 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, R - 6, a0, a0 + arc);
+    ctx.closePath();
+    ctx.fillStyle = segs[i].prize ? segs[i].color : '#111a15';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(201,169,98,.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // 文字
+    ctx.save();
+    ctx.rotate(a0 + arc / 2);
+    ctx.textAlign = 'right';
+    var label = segs[i].name;
+    if (label.length > 14) label = label.slice(0, 13) + '…';
+    ctx.font = (segs[i].prize ? '600 24px' : '300 22px') + " 'Noto Sans SC', sans-serif";
+    ctx.fillStyle = segs[i].prize ? '#0a0f0c' : 'rgba(240,234,217,.5)';
+    ctx.fillText(label, R - 26, 8);
+    ctx.restore();
+  }
+  // 外圈
+  ctx.beginPath(); ctx.arc(0, 0, R - 3, 0, Math.PI * 2);
+  ctx.strokeStyle = '#c9a962'; ctx.lineWidth = 5; ctx.stroke();
+  ctx.restore();
+}
+function prepareWheel(){
+  showStep('stepWheel');
+  drawWheel();
+  $('btnSpin').disabled = false;
+  $('tSpinNote').textContent = T('approved');
+  setTimeout(function(){ if (!SPUN) $('tSpinNote').textContent = T('spinNote'); }, 2500);
+}
+// 旋转动画：从 0 转到目标角度（指针在正上方）
+function spinTo(segIndex, segCount, done){
+  var arc = 360 / segCount;
+  // 目标格中心需停在正上方（-90°）：目标旋转角 = -(segIndex*arc)
+  var target = 360 * 6 - segIndex * arc; // 多转6圈
+  var dur = 5200, t0 = performance.now();
+  function frame(t){
+    var p = Math.min(1, (t - t0) / dur);
+    var ease = 1 - Math.pow(1 - p, 4); // easeOutQuart
+    drawWheel((target * ease) * Math.PI / 180);
+    if (p < 1) requestAnimationFrame(frame);
+    else done();
+  }
+  requestAnimationFrame(frame);
+}
+
+// ── 抽奖：服务器先定结果，转盘只是演出 ──
+async function doSpin(){
+  if (SPUN || !REQ_ID) return;
+  SPUN = true;
+  $('btnSpin').disabled = true;
+  var r = await api('/public/lottery/spin', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ request_id: REQ_ID })
+  });
+  var d = r.data;
+  if (!d.ok){
+    SPUN = false; $('btnSpin').disabled = false;
+    if (d.code === 'expired') backToForm(T('errExpired'));
+    else if (d.code === 'already_today') backToForm(T('errToday'));
+    else $('tSpinNote').textContent = d.error || T('errGeneric');
+    return;
+  }
+  sessionStorage.removeItem('yioLot');
+  var segs = wheelSegs();
+  var idx = 0;
+  if (d.result === 'win'){
+    idx = segs.findIndex(function(s){ return s.prize && s.name === d.prize_name; });
+    if (idx < 0) idx = 0;
+  } else {
+    idx = segs.findIndex(function(s){ return !s.prize; });
+    if (idx < 0) idx = segs.length - 1;
+  }
+  spinTo(idx, segs.length, function(){ showResult(d); });
+}
+
+// ── ④ 结果 ──
+function showResult(d){
+  if (d.result === 'win'){
+    $('rEmoji').textContent = '🎉';
+    $('rPrize').textContent = T('winTitle') + ' — ' + d.prize_name;
+    $('rCode').style.display = 'block';
+    $('rCode').textContent = d.code;
+    $('rNote').innerHTML = (d.same_day ? T('winToday') : T('winUntil').replace('{d}', d.expires_day))
+      + '<br>' + T('winCode');
+  } else {
+    $('rEmoji').textContent = '😌';
+    $('rPrize').textContent = T('loseTitle');
+    $('rCode').style.display = 'none';
+    $('rNote').textContent = T('loseNote');
+  }
+  $('btnMyWins').onclick = loadMyWins;
+  showStep('stepResult');
+}
+
+// ── ⑤ 我的中奖 ──
+async function loadMyWins(){
+  var saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem('yioLot') || 'null'); } catch(e){}
+  var phone = (saved && saved.phone) || $('inPhone').value.replace(/\s+/g, '');
+  if (!phone){ showStep('stepForm'); return; }
+  var r = await api('/public/lottery/wins?restaurant_id=' + encodeURIComponent(RID) + '&phone=' + encodeURIComponent(phone));
+  var list = $('winsList');
+  var wins = r.data.wins || [];
+  if (!wins.length){
+    list.innerHTML = '<p class="sub">' + T('noWins') + '</p>';
+  } else {
+    list.innerHTML = wins.map(function(w){
+      var badge = w.status === 'active' ? 'b-active' : w.status === 'used' ? 'b-used' : 'b-expired';
+      var btxt = w.status === 'active' ? T('status_active') : w.status === 'used' ? T('status_used') : T('status_expired');
+      return '<div class="win-item"><div class="w-prize">' + esc(w.prize_name)
+        + '<span class="w-badge ' + badge + '">' + btxt + '</span></div>'
+        + '<div class="w-code">' + esc(w.code) + '</div>'
+        + '<div class="w-meta">' + T('wonOn') + ' ' + w.won_day + ' · ⏳ ' + w.expires_day + '</div></div>';
+    }).join('');
+  }
+  showStep('stepWins');
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
+
+init();
+</script>
+</body>
+</html>

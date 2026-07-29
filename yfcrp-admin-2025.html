@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.46.1</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.47.1</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.46.1</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.47.1</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -374,6 +374,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     </button>
     <button class="s-btn" id="nav-loyalty" onclick="showPage('loyalty')" style="display:none;">
       <span class="s-ico">⭐</span>Fedeltà
+    </button>
+    <button class="s-btn" id="nav-lottery" onclick="showPage('lottery')" style="display:none;">
+      <span class="s-ico">🎡</span>Lotteria
     </button>
   </aside>
   <main class="content" id="content"></main>
@@ -640,7 +643,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.46.1</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.47.1</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1157,6 +1160,8 @@ function applyPermissions(myPerms) {
   // v5.42.0: 积分纠错默认关闭，只有超管显式授权(true)才给 store_admin 显示 Fedeltà 页
   var _loyBtn = document.getElementById('nav-loyalty');
   if (_loyBtn) _loyBtn.style.display = (myPerms['loyalty_correction'] === true) ? '' : 'none';
+  var _lotBtn = document.getElementById('nav-lottery');
+  if (_lotBtn) _lotBtn.style.display = (CURRENT_ROLE === 'super' || myPerms['loyalty_correction'] === true) ? '' : 'none';
   // 保存权限供settings渲染后使用
   window._myPerms = myPerms;
 
@@ -1368,7 +1373,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.46.1</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.47.1</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1378,6 +1383,9 @@ async function switchStore(storeId) {
   }
   if (_page === 'loyalty' && typeof renderLoyaltyPage === 'function') {
     renderLoyaltyPage();
+  }
+  if (_page === 'lottery' && typeof renderLotteryPage === 'function') {
+    renderLotteryPage();
   }
   toast('✅ 已切换到 ' + (store ? store.name : storeId));
 }
@@ -1718,6 +1726,14 @@ function showPage(p){
     var nbl = document.getElementById('nav-loyalty');
     if (nbl) nbl.classList.add('active');
     renderLoyaltyPage();
+    return;
+  }
+  if (p === 'lottery') {
+    _page = 'lottery';
+    document.querySelectorAll('.s-btn').forEach(function(b){ b.classList.remove('active'); });
+    var nblt = document.getElementById('nav-lottery');
+    if (nblt) nblt.classList.add('active');
+    renderLotteryPage();
     return;
   }
   _page = p;
@@ -4894,5 +4910,354 @@ function exportLoyaltyList() {
 }
 
 
+
+
+// ============================================================
+// 🎡 Lotteria 抽奖管理（v5.47.1）
+// 店员：待批准队列（批准/拒绝）+ 中奖核销；店长/超管：奖项与活动配置
+// ============================================================
+var _lotPoll = null;
+
+async function _lotFetch(path, opts) {
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+  opts = opts || {};
+  opts.headers = Object.assign({ 'Authorization': 'Bearer ' + token }, opts.headers || {});
+  opts.cache = 'no-store';
+  var res = await fetch(WORKER_URL + path, opts);
+  var data = null;
+  try { data = await res.json(); } catch(e) {}
+  return { status: res.status, ok: res.ok, data: data || {} };
+}
+
+function renderLotteryPage() {
+  stopLotteryPoll();
+  var content = document.getElementById('content');
+  if (!content) return;
+  content.innerHTML = '<div style="padding:0;">'
+    + '<div class="page-head"><div><h1>🎡 Lotteria 抽奖</h1><p>客人扫码申请 → 现场批准 → 转盘抽奖 → 中奖码核销</p></div></div>'
+
+    // ① 待批准队列
+    + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+        + '<div style="font-size:14px;font-weight:600">⏳ Richieste in attesa <span id="lot-req-cnt" style="color:var(--gold)"></span></div>'
+        + '<label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px"><input type="checkbox" id="lot-auto" checked onchange="toggleLotteryPoll()"> auto-refresh 10s</label>'
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-bottom:12px">Approva solo clienti realmente presenti al tavolo. Dopo l\'approvazione il cliente ha 15 minuti per girare. Ogni tavolo: max 2 numeri ogni 4 ore.</div>'
+      + '<div id="lot-req-list">Caricamento...</div>'
+      + '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;gap:8px;align-items:center">'
+        + '<input type="text" id="lot-reset-table" placeholder="N. tavolo" maxlength="10" style="width:90px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)">'
+        + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="lotResetTable()">🔄 Reset tavolo（换台）</button>'
+        + '<span style="font-size:11px;color:var(--muted)">换台后重置该桌 4 小时内的抽奖名额</span>'
+      + '</div>'
+    + '</div>'
+
+    // ② 中奖核销
+    + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
+      + '<div style="font-size:14px;font-weight:600;margin-bottom:12px">✅ Riscatta premio（结账时输入客人中奖码）</div>'
+      + '<div style="display:flex;gap:8px">'
+        + '<input type="text" id="lot-code" placeholder="Codice a 6 cifre..." maxlength="6" style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:16px;letter-spacing:4px;text-transform:uppercase;background:var(--surface)" onkeydown="if(event.key===String.fromCharCode(13))lotLookupWin()">'
+        + '<button class="btn btn-gold" onclick="lotLookupWin()">Cerca</button>'
+      + '</div>'
+      + '<div id="lot-lookup-result" style="margin-top:12px"></div>'
+    + '</div>'
+
+    // ③ 奖项配置
+    + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+        + '<div style="font-size:14px;font-weight:600">🎁 Premi della ruota</div>'
+        + '<button class="btn btn-gold btn-sm" onclick="lotOpenPrizeForm()">+ Aggiungi</button>'
+      + '</div>'
+      + '<div id="lot-prizes-list">Caricamento...</div>'
+      + '<div id="lot-prize-form"></div>'
+    + '</div>'
+
+    // ④ 活动设置
+    + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
+      + '<div style="font-size:14px;font-weight:600;margin-bottom:14px">⚙️ Impostazioni lotteria</div>'
+      + '<div id="lot-settings-box">Caricamento...</div>'
+    + '</div>'
+
+    // ⑤ 中奖记录
+    + '<div class="card" style="padding:18px 22px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+        + '<div style="font-size:14px;font-weight:600">📋 Registro vincite</div>'
+        + '<div style="display:flex;gap:6px">'
+          + '<select id="lot-wins-filter" onchange="loadLotteryWins()" style="padding:5px 8px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface)">'
+            + '<option value="">Tutti</option><option value="active">Validi</option><option value="used">Utilizzati</option><option value="expired">Scaduti</option>'
+          + '</select>'
+          + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="loadLotteryWins()">🔄</button>'
+        + '</div>'
+      + '</div>'
+      + '<div id="lot-wins-list">Caricamento...</div>'
+    + '</div>'
+  + '</div>';
+  loadLotteryRequests();
+  loadLotteryPrizes();
+  loadLotterySettings();
+  loadLotteryWins();
+  toggleLotteryPoll();
+}
+
+function toggleLotteryPoll() {
+  stopLotteryPoll();
+  var cb = document.getElementById('lot-auto');
+  if (cb && cb.checked) _lotPoll = setInterval(loadLotteryRequests, 10000);
+}
+function stopLotteryPoll() { if (_lotPoll) { clearInterval(_lotPoll); _lotPoll = null; } }
+
+// ── 待批准队列 ──
+async function loadLotteryRequests() {
+  var box = document.getElementById('lot-req-list');
+  if (!box) return;
+  var qs = (CURRENT_ROLE === 'super') ? ('?restaurant_id=' + encodeURIComponent(RESTAURANT_ID)) : ('?restaurant_id=' + encodeURIComponent(RESTAURANT_ID));
+  var r = await _lotFetch('/lottery/requests' + qs);
+  if (!r.ok) { box.innerHTML = '<div style="color:#c0392b;font-size:12px">' + _lyEsc(r.data.error || 'Errore') + '</div>'; return; }
+  var rows = r.data.requests || [];
+  var cnt = document.getElementById('lot-req-cnt');
+  if (cnt) cnt.textContent = rows.length ? '(' + rows.length + ')' : '';
+  if (!rows.length) { box.innerHTML = '<div style="color:var(--muted);font-size:12px">Nessuna richiesta in attesa.</div>'; return; }
+  box.innerHTML = rows.map(function(q) {
+    var time = new Date(q.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    var tav = q.table_no ? '<span style="display:inline-block;background:#b8902e;color:#fff;font-size:12px;font-weight:600;border-radius:4px;padding:2px 9px;margin-right:8px">🪑 ' + _lyEsc(q.table_no) + '</span>' : '';
+    if (q.status === 'approved') {
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border)">'
+        + '<div style="flex:1">' + tav + '<strong>' + _lyEsc(q.phone) + '</strong> <span style="font-size:11px;color:var(--muted)">' + time + '</span></div>'
+        + '<span style="font-size:11px;color:#27ae60">✓ approvato · in attesa del giro</span></div>';
+    }
+    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--border)">'
+      + '<div style="flex:1">' + tav + '<strong>' + _lyEsc(q.phone) + '</strong> <span style="font-size:11px;color:var(--muted)">' + time + '</span></div>'
+      + '<button class="btn btn-gold btn-sm" onclick="lotDecide(\'' + q.id + '\',\'approve\')">✓ Approva</button>'
+      + '<button class="btn btn-sm" style="border:1px solid #c0392b;color:#c0392b" onclick="lotDecide(\'' + q.id + '\',\'reject\')">✕</button>'
+      + '</div>';
+  }).join('');
+}
+async function lotDecide(id, action) {
+  var r = await _lotFetch('/lottery/requests/' + action, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ request_id: id })
+  });
+  if (r.ok) toast(action === 'approve' ? '✅ Approvato — il cliente può girare (15 min)' : '✅ Rifiutato');
+  else toast('❌ ' + (r.data.error || 'Errore'));
+  loadLotteryRequests();
+}
+
+async function lotResetTable() {
+  var t = (document.getElementById('lot-reset-table').value || '').trim();
+  if (!t) { toast('❌ Inserisci il numero del tavolo'); return; }
+  if (!confirm('Resettare i giri del tavolo ' + t + '?（换台后新客人可重新抽，已发奖品不受影响）')) return;
+  var r = await _lotFetch('/lottery/tables/reset', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ restaurant_id: RESTAURANT_ID, table_no: t })
+  });
+  if (r.ok) { toast('✅ Tavolo ' + t + ' resettato (' + (r.data.cleared || 0) + ' richieste annullate)'); document.getElementById('lot-reset-table').value = ''; }
+  else toast('❌ ' + (r.data.error || 'Errore'));
+  loadLotteryRequests();
+}
+
+// ── 中奖核销 ──
+async function lotLookupWin() {
+  var code = (document.getElementById('lot-code').value || '').trim().toUpperCase();
+  var box = document.getElementById('lot-lookup-result');
+  if (!code) return;
+  var r = await _lotFetch('/lottery/wins/lookup', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: code, restaurant_id: RESTAURANT_ID })
+  });
+  if (!r.ok) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">❌ ' + _lyEsc(r.data.error || 'Non trovato') + '</div>'; return; }
+  var w = r.data.win;
+  var statusMap = { active: ['✅ VALIDO', '#27ae60'], used: ['⛔ GIÀ UTILIZZATO', '#c0392b'], expired: ['⛔ SCADUTO', '#c0392b'] };
+  var st = statusMap[w.status] || [w.status, '#7a7060'];
+  box.innerHTML = '<div style="border:1px solid var(--border2);border-radius:var(--r);padding:14px 16px;background:var(--surface)">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<div><div style="font-size:16px;font-weight:600">🎁 ' + _lyEsc(w.prize_name) + '</div>'
+        + '<div style="font-size:12px;color:var(--muted);margin-top:4px">' + _lyEsc(w.phone) + ' · vinto il ' + w.won_day + ' · valido fino al ' + w.expires_day + '</div></div>'
+      + '<div style="color:' + st[1] + ';font-size:13px;font-weight:600">' + st[0] + '</div>'
+    + '</div>'
+    + (w.status === 'active'
+      ? '<button class="btn btn-gold" style="margin-top:12px" onclick="lotRedeemWin(\'' + w.id + '\')">✓ Conferma riscatto（客人已出示，账单手动减）</button>'
+      : '')
+  + '</div>';
+}
+async function lotRedeemWin(id) {
+  if (!confirm('Confermare il riscatto di questo premio?')) return;
+  var r = await _lotFetch('/lottery/wins/redeem', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ win_id: id })
+  });
+  if (r.ok) { toast('✅ Premio riscattato'); document.getElementById('lot-lookup-result').innerHTML = ''; document.getElementById('lot-code').value = ''; }
+  else toast('❌ ' + (r.data.error || 'Errore'));
+  loadLotteryWins();
+}
+
+// ── 奖项配置 ──
+async function loadLotteryPrizes() {
+  var box = document.getElementById('lot-prizes-list');
+  if (!box) return;
+  var r = await _lotFetch('/lottery/prizes?restaurant_id=' + encodeURIComponent(RESTAURANT_ID));
+  if (!r.ok) { box.innerHTML = '<div style="color:#c0392b;font-size:12px">' + _lyEsc(r.data.error || 'Errore') + '</div>'; return; }
+  var rows = r.data.prizes || [];
+  if (!rows.length) { box.innerHTML = '<div style="color:var(--muted);font-size:12px">Nessun premio configurato. Aggiungi il primo!</div>'; return; }
+  box.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    + '<tr style="color:var(--muted);font-size:11px;text-align:left">'
+    + '<th style="padding:6px 4px">Colore</th><th>Nome</th><th>份数(已发/总)</th><th>权重</th><th>有效期</th><th>状态</th><th></th></tr>'
+    + rows.map(function(p) {
+      var out = (p.used_count || 0) >= (p.total_count || 0);
+      return '<tr style="border-top:1px solid var(--border)">'
+        + '<td style="padding:8px 4px"><span style="display:inline-block;width:16px;height:16px;border-radius:3px;background:' + _lyEsc(p.color) + '"></span></td>'
+        + '<td style="font-weight:500">' + _lyEsc(p.name) + '</td>'
+        + '<td>' + (p.used_count || 0) + ' / ' + p.total_count + (out ? ' <span style="color:#c0392b;font-size:10px">ESURITO</span>' : '') + '</td>'
+        + '<td>' + p.weight + '</td>'
+        + '<td>' + (p.validity_days === 0 ? '<span style="color:#b8902e">当天</span>' : p.validity_days + ' 天') + '</td>'
+        + '<td>' + (p.is_active ? '<span style="color:#27ae60">ON</span>' : '<span style="color:var(--muted)">OFF</span>') + '</td>'
+        + '<td style="white-space:nowrap">'
+          + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="lotOpenPrizeForm(\'' + p.id + '\')">✏️</button> '
+          + (p.is_active ? '<button class="btn btn-sm" style="border:1px solid #c0392b;color:#c0392b" onclick="lotDeletePrize(\'' + p.id + '\')">停用</button>' : '')
+        + '</td></tr>';
+    }).join('') + '</table>';
+  window._lotPrizes = rows;
+}
+function lotOpenPrizeForm(id) {
+  var p = id ? (window._lotPrizes || []).find(function(x){ return x.id === id; }) : null;
+  var box = document.getElementById('lot-prize-form');
+  box.innerHTML = '<div style="border:1px solid var(--gold);border-radius:var(--r);padding:16px;margin-top:14px;background:var(--surface)">'
+    + '<div style="font-size:13px;font-weight:600;margin-bottom:12px">' + (p ? '✏️ Modifica premio' : '➕ Nuovo premio') + '</div>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'
+      + '<div style="flex:2;min-width:180px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">名称（例：1° Premio — Ventaglio）*</div>'
+        + '<input id="lp-name" value="' + (p ? _lyEsc(p.name) : '') + '" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">总份数*</div>'
+        + '<input id="lp-total" type="number" min="0" value="' + (p ? p.total_count : '') + '" style="width:80px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">权重*</div>'
+        + '<input id="lp-weight" type="number" min="0" step="0.1" value="' + (p ? p.weight : '') + '" style="width:80px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">有效期天数（0=仅当天）</div>'
+        + '<input id="lp-valid" type="number" min="0" value="' + (p ? p.validity_days : 0) + '" style="width:90px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">颜色</div>'
+        + '<input id="lp-color" type="color" value="' + (p ? p.color : '#c9a962') + '" style="width:44px;height:34px;padding:2px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">排序</div>'
+        + '<input id="lp-sort" type="number" value="' + (p ? p.sort_order : 0) + '" style="width:60px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<label style="font-size:12px;display:flex;align-items:center;gap:6px;padding-bottom:8px"><input type="checkbox" id="lp-active" ' + (!p || p.is_active ? 'checked' : '') + '> 启用</label>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">权重是相对值：各奖项权重 ÷ 总权重 = 中奖率。例：大奖1份权重1、小奖权重20 → 大奖约 1/(1+20+未中奖权重)。</div>'
+    + '<div style="display:flex;gap:8px;margin-top:12px">'
+      + '<button class="btn btn-gold btn-sm" onclick="lotSavePrize(\'' + (p ? p.id : '') + '\')">💾 Salva</button>'
+      + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="document.getElementById(\'lot-prize-form\').innerHTML=\'\'">Annulla</button>'
+    + '</div>'
+  + '</div>';
+  window.scrollTo({ top: box.offsetTop - 80, behavior: 'smooth' });
+}
+async function lotSavePrize(id) {
+  var body = {
+    restaurant_id: RESTAURANT_ID,
+    name: document.getElementById('lp-name').value,
+    total_count: document.getElementById('lp-total').value,
+    weight: document.getElementById('lp-weight').value,
+    validity_days: document.getElementById('lp-valid').value,
+    color: document.getElementById('lp-color').value,
+    sort_order: document.getElementById('lp-sort').value,
+    is_active: document.getElementById('lp-active').checked
+  };
+  if (id) body.id = id;
+  var r = await _lotFetch('/lottery/prizes/save', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  if (r.ok) { toast('✅ Salvato'); document.getElementById('lot-prize-form').innerHTML = ''; loadLotteryPrizes(); }
+  else toast('❌ ' + (r.data.error || 'Errore'));
+}
+async function lotDeletePrize(id) {
+  if (!confirm('停用该奖项？已发出的奖品仍可核销。')) return;
+  var r = await _lotFetch('/lottery/prizes/delete', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id })
+  });
+  if (r.ok) { toast('✅ 已停用'); loadLotteryPrizes(); }
+  else toast('❌ ' + (r.data.error || 'Errore'));
+}
+
+// ── 活动设置 ──
+async function loadLotterySettings() {
+  var box = document.getElementById('lot-settings-box');
+  if (!box) return;
+  var r = await _lotFetch('/lottery/settings?restaurant_id=' + encodeURIComponent(RESTAURANT_ID));
+  var s = r.data.settings || {};
+  box.innerHTML = ''
+    + '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">'
+      + '<label style="position:relative;display:inline-block;width:46px;height:24px;cursor:pointer" onclick="event.preventDefault();var c=document.getElementById(\'ls-enabled\');c.checked=!c.checked">'
+        + '<input type="checkbox" id="ls-enabled" ' + (s.enabled ? 'checked' : '') + ' style="opacity:0;width:0;height:0">'
+        + '<span style="position:absolute;inset:0;border-radius:24px;transition:.3s;background:' + (s.enabled ? '#b8902e' : '#ccc') + '" id="ls-track"></span>'
+      + '</label>'
+      + '<div><div style="font-size:14px;font-weight:600">Lotteria: <span id="ls-state">' + (s.enabled ? 'ATTIVA' : 'OFF') + '</span></div>'
+      + '<div style="font-size:11px;color:var(--muted)">OFF = 客人打开转盘页显示"暂无活动"</div></div>'
+    + '</div>'
+    + '<div style="margin-bottom:14px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">活动星期（全不勾 = 每天）</div>'
+      + '<div id="ls-days" style="display:flex;gap:8px;flex-wrap:wrap">'
+      + ['1|Lun 周一','2|Mar 周二','3|Mer 周三','4|Gio 周四','5|Ven 周五','6|Sab 周六','7|Dom 周日'].map(function(d) {
+          var parts = d.split('|');
+          return '<label style="display:flex;align-items:center;gap:4px;font-size:12px;border:1px solid var(--border2);border-radius:var(--r);padding:5px 9px;cursor:pointer"><input type="checkbox" class="ls-day" value="' + parts[0] + '">' + parts[1] + '</label>';
+        }).join('')
+      + '</div></div>'
+    + '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">未中奖权重（0=人人有奖）</div>'
+        + '<input id="ls-lose" type="number" min="0" step="1" value="' + (s.lose_weight || 0) + '" style="width:100px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">未中奖文案</div>'
+        + '<input id="ls-loselabel" value="' + _lyEsc(s.lose_label || 'Ritenta!') + '" style="width:140px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">活动规则（客人勾选同意的文案）</div>'
+    + '<textarea id="ls-rules-it" placeholder="Italiano..." style="width:100%;height:70px;padding:8px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);margin-bottom:6px">' + _lyEsc(s.rules_it || '') + '</textarea>'
+    + '<textarea id="ls-rules-en" placeholder="English (vuoto = usa IT)..." style="width:100%;height:56px;padding:8px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);margin-bottom:6px">' + _lyEsc(s.rules_en || '') + '</textarea>'
+    + '<textarea id="ls-rules-zh" placeholder="中文（留空 = 用意大利语）..." style="width:100%;height:56px;padding:8px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface)"></textarea>'
+    + '<button class="btn btn-gold btn-sm" style="margin-top:10px" onclick="lotSaveSettings()">💾 Salva impostazioni</button>';
+  document.getElementById('ls-rules-zh').value = s.rules_zh || '';
+  var daySet = {};
+  String(s.active_days || '').split(',').forEach(function(d){ daySet[d.trim()] = true; });
+  document.querySelectorAll('.ls-day').forEach(function(cb){ cb.checked = !!daySet[cb.value]; });
+  var tr = document.getElementById('ls-track'), cb = document.getElementById('ls-enabled');
+  cb.addEventListener('change', function(){
+    tr.style.background = cb.checked ? '#b8902e' : '#ccc';
+    document.getElementById('ls-state').textContent = cb.checked ? 'ATTIVA' : 'OFF';
+  });
+}
+async function lotSaveSettings() {
+  var days = [];
+  document.querySelectorAll('.ls-day:checked').forEach(function(cb){ days.push(parseInt(cb.value)); });
+  var body = {
+    restaurant_id: RESTAURANT_ID,
+    enabled: document.getElementById('ls-enabled').checked,
+    active_days: days,
+    lose_weight: document.getElementById('ls-lose').value,
+    lose_label: document.getElementById('ls-loselabel').value,
+    rules_it: document.getElementById('ls-rules-it').value,
+    rules_en: document.getElementById('ls-rules-en').value,
+    rules_zh: document.getElementById('ls-rules-zh').value
+  };
+  var r = await _lotFetch('/lottery/settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  if (r.ok) toast('✅ Impostazioni salvate');
+  else toast('❌ ' + (r.data.error || 'Errore'));
+}
+
+// ── 中奖记录 ──
+async function loadLotteryWins() {
+  var box = document.getElementById('lot-wins-list');
+  if (!box) return;
+  var st = document.getElementById('lot-wins-filter');
+  var qs = '?restaurant_id=' + encodeURIComponent(RESTAURANT_ID) + (st && st.value ? '&status=' + st.value : '');
+  var r = await _lotFetch('/lottery/wins/list' + qs);
+  if (!r.ok) { box.innerHTML = '<div style="color:#c0392b;font-size:12px">' + _lyEsc(r.data.error || 'Errore') + '</div>'; return; }
+  var rows = r.data.wins || [];
+  if (!rows.length) { box.innerHTML = '<div style="color:var(--muted);font-size:12px">Nessuna vincita.</div>'; return; }
+  var badge = { active: ['✅', '#27ae60'], used: ['☑️', '#7a7060'], expired: ['⛔', '#c0392b'] };
+  box.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    + '<tr style="color:var(--muted);font-size:11px;text-align:left"><th style="padding:6px 4px">码</th><th>奖品</th><th>客人</th><th>中奖日</th><th>有效期至</th><th>状态</th></tr>'
+    + rows.map(function(w) {
+      var b = badge[w.status] || ['', '#7a7060'];
+      return '<tr style="border-top:1px solid var(--border)">'
+        + '<td style="padding:8px 4px;letter-spacing:2px;font-weight:600">' + _lyEsc(w.code) + '</td>'
+        + '<td>' + _lyEsc(w.prize_name) + '</td>'
+        + '<td style="font-size:12px">' + _lyEsc(w.phone) + '</td>'
+        + '<td style="font-size:12px">' + w.won_day + '</td>'
+        + '<td style="font-size:12px">' + w.expires_day + '</td>'
+        + '<td style="color:' + b[1] + ';font-size:12px">' + b[0] + ' ' + w.status + (w.used_by ? '<br><span style="font-size:10px;color:var(--muted)">' + _lyEsc(w.used_by) + '</span>' : '') + '</td>'
+        + '</tr>';
+    }).join('') + '</table>';
+}
 
 </script>
