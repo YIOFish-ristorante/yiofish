@@ -136,6 +136,13 @@ input:focus{border-color:var(--gold)}
             <div class="menu-desc">Clienti in attesa di conferma primo PIN</div>
           </div>
         </div>
+        <div class="menu-item" onclick="showStep('lottery');loadLotteryReqs();">
+          <span class="menu-icon">🎡</span>
+          <div>
+            <div class="menu-label">LOTTERIA <span id="lottery-badge" style="display:none;background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;vertical-align:2px"></span></div>
+            <div class="menu-desc">Approva i giri della ruota e riscatta i premi</div>
+          </div>
+        </div>
         <div class="menu-item" onclick="showStep('resetpin')">
           <span class="menu-icon">🔑</span>
           <div>
@@ -327,6 +334,34 @@ input:focus{border-color:var(--gold)}
     </div>
   </div>
 
+  <!-- STEP: lottery (抽奖确认 + 中奖核销) -->
+  <div id="step-lottery" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">🎡 Lotteria — richieste</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Approva <b>solo clienti presenti al tavolo</b>. Dopo l'approvazione il cliente ha 15 minuti per girare. Ogni tavolo: max 2 numeri ogni 4 ore.</div>
+      <div id="lottery-toast"></div>
+      <div id="lottery-err"></div>
+      <div id="lottery-list">Caricamento...</div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+        <button class="btn btn-ghost" style="margin-top:0" onclick="loadLotteryReqs()">🔄 Aggiorna</button>
+        <input type="text" id="lottery-reset-table" placeholder="N. tavolo" maxlength="10" style="width:90px;padding:9px 12px;margin-bottom:0;font-size:14px">
+        <button class="btn btn-ghost" style="margin-top:0;width:auto" onclick="lotteryResetTable()">🔄 Reset tavolo</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>✅ Riscatta premio lotteria</h2>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Il cliente mostra il codice a 6 caratteri dalla pagina della ruota. Verifica e conferma: lo sconto/premio lo applichi tu in cassa.</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="lottery-code" placeholder="Codice..." maxlength="6" style="flex:1;letter-spacing:4px;text-transform:uppercase;margin-bottom:0" onkeydown="if(event.key===String.fromCharCode(13))lotteryLookupWin()">
+        <button class="btn btn-gold" style="width:auto" onclick="lotteryLookupWin()">Cerca</button>
+      </div>
+      <div id="lottery-lookup" style="margin-top:12px"></div>
+    </div>
+  </div>
+
   <!-- STEP: pinreq (PIN 首设确认，方案B) -->
   <div id="step-pinreq" style="display:none">
     <div class="card">
@@ -476,7 +511,7 @@ async function undoLastOp() {
   } catch (e) { alert('❌ Errore: ' + e.message); }
 }
 
-var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','pinreq','riscatta-choose','addpunti-choose','resetpin','resetpin-success'];
+var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','pinreq','lottery','riscatta-choose','addpunti-choose','resetpin','resetpin-success'];
 
 // 页面加载时自动填入已保存凭证
 window.addEventListener('load', function() {
@@ -487,9 +522,11 @@ function showStep(step) {
   // 离开扫码页时停止摄像头
   if (step !== 'scan') stopScan();
   if (step !== 'redeem-scan') stopRedeemScan();
-  if (step === 'menu') { try { renderUndoBanner(); } catch (e) {} try { updatePinBadge(); } catch (e) {} }
+  if (step === 'menu') { try { renderUndoBanner(); } catch (e) {} try { updatePinBadge(); } catch (e) {} try { updateLotteryBadge(); } catch (e) {} }
   if (step === 'pinreq') { _pinreqTimer = setInterval(function(){ try { loadPinReqs(true); } catch(e){} }, 10000); }
   else if (_pinreqTimer) { clearInterval(_pinreqTimer); _pinreqTimer = null; }
+  if (step === 'lottery') { _lotteryTimer = setInterval(function(){ try { loadLotteryReqs(true); } catch(e){} }, 10000); }
+  else if (_lotteryTimer) { clearInterval(_lotteryTimer); _lotteryTimer = null; }
   ALL_STEPS.forEach(function(s){
     var el = document.getElementById('step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
@@ -835,6 +872,165 @@ async function updatePinBadge() {
     const n = (data && data.ok && data.requests) ? data.requests.length : 0;
     badge.style.display = n > 0 ? '' : 'none';
     badge.textContent = n;
+  } catch (e) {}
+}
+
+
+// ───── 🎡 抽奖确认 + 中奖核销（v5.34.1 Worker）─────
+let _lotteryTimer = null;
+
+async function loadLotteryReqs(silent) {
+  var list = document.getElementById('lottery-list');
+  showErr('lottery-err', '');
+  if (!silent) list.innerHTML = 'Caricamento...';
+  try {
+    const res = await fetch(WORKER_URL + '/lottery/requests?restaurant_id=' + encodeURIComponent(_store), {
+      headers: {'Authorization':'Bearer ' + _token}
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      if (!silent) list.innerHTML = '<div style="color:#c0392b;font-size:13px">' + escHtml(data.error || 'Errore caricamento') + '</div>';
+      return;
+    }
+    const reqs = data.requests || [];
+    if (!reqs.length) {
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Nessuna richiesta in attesa ✓</div>';
+      return;
+    }
+    list.innerHTML = reqs.map(function(r) {
+      const mins = Math.max(0, Math.round((Date.now() - new Date(r.created_at).getTime()) / 60000));
+      const tav = r.table_no ? '<span style="display:inline-block;background:var(--gold);color:#fff;font-size:12px;font-weight:600;border-radius:5px;padding:2px 9px;margin-right:8px">🪑 ' + escHtml(r.table_no) + '</span>' : '';
+      if (r.status === 'approved') {
+        return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px">'
+          + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+          + '<div><div style="font-weight:500;font-size:15px">' + tav + '📱 ' + escHtml(r.phone) + '</div>'
+          + '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + (mins < 1 ? 'adesso' : mins + ' min fa') + '</div></div>'
+          + '<span style="font-size:12px;color:var(--green)">✓ approvato · in attesa del giro</span>'
+          + '</div></div>';
+      }
+      return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        + '<div><div style="font-weight:500;font-size:15px">' + tav + '📱 ' + escHtml(r.phone) + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + (mins < 1 ? 'adesso' : mins + ' min fa') + '</div></div>'
+        + '<div style="display:flex;gap:8px">'
+        + '<button class="btn btn-green" style="width:auto;padding:8px 14px;font-size:12px" onclick="decideLotteryReq(\'' + r.id + '\',\'approve\',this)">✓ Approva</button>'
+        + '<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px" onclick="decideLotteryReq(\'' + r.id + '\',\'reject\',this)">✕</button>'
+        + '</div></div></div>';
+    }).join('');
+  } catch (e) {
+    if (!silent) list.innerHTML = '<div style="color:#c0392b;font-size:13px">Errore di rete</div>';
+  }
+}
+
+async function decideLotteryReq(id, action, btn) {
+  if (action === 'reject' && !confirm('Rifiutare questa richiesta?')) return;
+  btn.disabled = true;
+  var toast = document.getElementById('lottery-toast');
+  toast.innerHTML = ''; showErr('lottery-err', '');
+  try {
+    const res = await fetch(WORKER_URL + '/lottery/requests/' + action, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
+      body: JSON.stringify({request_id: id})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      toast.innerHTML = '<div style="background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.35);color:#7bd88f;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px">'
+        + (action === 'approve' ? '✅ Approvato — il cliente può girare (15 min)' : '✕ Richiesta rifiutata') + '</div>';
+      loadLotteryReqs(true);
+      updateLotteryBadge();
+    } else {
+      showErr('lottery-err', escHtml(data.error || ('Errore ' + res.status)));
+      btn.disabled = false;
+      loadLotteryReqs(true);
+    }
+  } catch (e) {
+    showErr('lottery-err', 'Errore di rete');
+    btn.disabled = false;
+  }
+}
+
+async function lotteryResetTable() {
+  var t = (document.getElementById('lottery-reset-table').value || '').trim();
+  if (!t) { showErr('lottery-err', 'Inserisci il numero del tavolo'); return; }
+  if (!confirm('Resettare i giri del tavolo ' + t + '? I premi già vinti restano validi.')) return;
+  try {
+    const res = await fetch(WORKER_URL + '/lottery/tables/reset', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
+      body: JSON.stringify({restaurant_id: _store, table_no: t})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      document.getElementById('lottery-toast').innerHTML = '<div style="background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.35);color:#7bd88f;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px">✅ Tavolo ' + escHtml(t) + ' resettato (' + (data.cleared || 0) + ' richieste)</div>';
+      document.getElementById('lottery-reset-table').value = '';
+    } else {
+      showErr('lottery-err', escHtml(data.error || 'Errore'));
+    }
+    loadLotteryReqs(true);
+  } catch (e) { showErr('lottery-err', 'Errore di rete'); }
+}
+
+async function lotteryLookupWin() {
+  var code = (document.getElementById('lottery-code').value || '').trim().toUpperCase();
+  var box = document.getElementById('lottery-lookup');
+  if (!code) return;
+  box.innerHTML = 'Caricamento...';
+  try {
+    const res = await fetch(WORKER_URL + '/lottery/wins/lookup', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
+      body: JSON.stringify({code: code, restaurant_id: _store})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">❌ ' + escHtml(data.error || 'Codice non trovato') + '</div>'; return; }
+    var w = data.win;
+    var statusMap = { active: ['✅ VALIDO', 'var(--green)'], used: ['⛔ GIÀ UTILIZZATO', '#c0392b'], expired: ['⛔ SCADUTO', '#c0392b'] };
+    var st = statusMap[w.status] || [w.status, 'var(--muted)'];
+    box.innerHTML = '<div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        + '<div><div style="font-size:16px;font-weight:600">🎁 ' + escHtml(w.prize_name) + '</div>'
+          + '<div style="font-size:12px;color:var(--muted);margin-top:4px">' + escHtml(w.phone) + ' · vinto il ' + w.won_day + ' · valido fino al ' + w.expires_day + '</div></div>'
+        + '<div style="color:' + st[1] + ';font-size:13px;font-weight:600">' + st[0] + '</div>'
+      + '</div>'
+      + (w.status === 'active'
+        ? '<button class="btn btn-green" style="margin-top:12px" onclick="lotteryRedeemWin(\'' + w.id + '\')">✓ Conferma riscatto</button>'
+        : '')
+    + '</div>';
+  } catch (e) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">Errore di rete</div>'; }
+}
+
+async function lotteryRedeemWin(id) {
+  if (!confirm('Confermare il riscatto di questo premio?')) return;
+  try {
+    const res = await fetch(WORKER_URL + '/lottery/wins/redeem', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
+      body: JSON.stringify({win_id: id})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      document.getElementById('lottery-lookup').innerHTML = '<div style="background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.35);color:#7bd88f;border-radius:8px;padding:12px 14px;font-size:14px">✅ Premio riscattato: ' + escHtml(data.prize_name || '') + '</div>';
+      document.getElementById('lottery-code').value = '';
+    } else {
+      showErr('lottery-err', escHtml(data.error || 'Errore'));
+      lotteryLookupWin();
+    }
+  } catch (e) { showErr('lottery-err', 'Errore di rete'); }
+}
+
+// 菜单角标：有待批准抽奖时显示数量
+async function updateLotteryBadge() {
+  var badge = document.getElementById('lottery-badge');
+  if (!badge || !_token) return;
+  try {
+    const res = await fetch(WORKER_URL + '/lottery/requests?restaurant_id=' + encodeURIComponent(_store), {
+      headers: {'Authorization':'Bearer ' + _token}
+    });
+    const data = await res.json().catch(() => ({}));
+    const reqs = (data && data.ok && data.requests) ? data.requests.filter(function(q){ return q.status === 'pending'; }) : [];
+    badge.style.display = reqs.length > 0 ? '' : 'none';
+    badge.textContent = reqs.length;
   } catch (e) {}
 }
 
