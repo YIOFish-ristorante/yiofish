@@ -189,7 +189,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.2</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.3</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -432,8 +432,15 @@ function backToForm(msg){
 function resetAll(){ stopPolling(); sessionStorage.removeItem('yioLot'); REQ_ID = null; SPUN = false; showStep('stepForm'); }
 
 // ── ③ 转盘 ──
+// YIO 品牌色系转盘配色（金/米/苔绿/浅木/豆绿/象牙），按格子顺序交替；
+// 后台若给某奖项单独设置了非默认色，则优先用后台色
+var LOT_PALETTE = ['#c9a962', '#e8d5a3', '#9db89a', '#d9c089', '#b8cfa8', '#e3d9c2'];
 function wheelSegs(){
-  var segs = (CFG && CFG.segments ? CFG.segments : []).map(function(p){ return { name: p.name, color: p.color, prize: true }; });
+  var segs = (CFG && CFG.segments ? CFG.segments : []).map(function(p, i){
+    var c = p.color;
+    if (!c || c.toLowerCase() === '#c9a962') c = LOT_PALETTE[i % LOT_PALETTE.length]; // 默认金=跟随品牌自动配色
+    return { name: p.name, color: c, prize: true };
+  });
   if (!CFG || CFG.can_lose || segs.length === 0){
     segs.push({ name: (CFG && CFG.lose_label) || T('loseTitle'), color: '#1a2620', prize: false });
   }
