@@ -475,6 +475,52 @@
     .yai-panel { right: 10px; left: 10px; width: auto; bottom: 78px; height: min(72vh, 560px); }
     .yai-fab { right: 14px; bottom: 14px; }
   }
+
+  /* ─── 活动弹窗（PROMO POPUP）─── */
+  .promo-ov { position: fixed; inset: 0; z-index: 1150; background: rgba(3,6,5,.72); backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity .4s; }
+  .promo-ov.open { display: flex; opacity: 1; }
+  .promo-card { position: relative; width: min(92vw, 420px); max-height: 88vh; overflow-y: auto; background: linear-gradient(170deg, #0d1611, #070d0a);
+    border: 1px solid var(--gold); border-radius: 8px; box-shadow: 0 30px 80px rgba(0,0,0,.6);
+    transform: translateY(24px) scale(.97); transition: transform .45s cubic-bezier(.22,1,.36,1); }
+  .promo-ov.open .promo-card { transform: none; }
+  .promo-close { position: absolute; top: 10px; right: 10px; z-index: 3; width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(3,8,6,.65); border: 1px solid rgba(201,169,98,.5); color: var(--gold-lt); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+  .promo-close:hover { background: var(--gold); color: #0a0f0c; }
+  .promo-poster { position: relative; aspect-ratio: 70/99; overflow: hidden; cursor: pointer; border-bottom: 1px solid rgba(201,169,98,.25); }
+  .promo-poster img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s; }
+  .promo-poster:hover img { transform: scale(1.04); }
+  .promo-poster .promo-tap { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(3,8,6,.65); border: 1px solid rgba(201,169,98,.5); color: var(--gold-lt); font-size: 11px;
+    letter-spacing: .18em; text-transform: uppercase; padding: 6px 14px; border-radius: 20px; backdrop-filter: blur(6px); white-space: nowrap; }
+  .promo-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid rgba(201,169,98,.4); background: rgba(3,8,6,.55); color: var(--gold-lt); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+  .promo-nav.prev { left: 10px; } .promo-nav.next { right: 10px; }
+  .promo-body { padding: 20px 24px 24px; text-align: center; }
+  .promo-eyebrow { font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+  .promo-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--gold-lt); letter-spacing: .04em; line-height: 1.25; }
+  .promo-detail { display: none; text-align: left; margin-top: 16px; font-size: 14px; line-height: 1.65; color: rgba(255,255,255,.8); }
+  .promo-card.expanded .promo-detail { display: block; }
+  .promo-card.expanded .promo-poster { aspect-ratio: auto; max-height: 40vh; }
+  .promo-detail p { margin-bottom: 12px; }
+  .promo-detail .preq { display: flex; gap: 12px; margin-bottom: 12px; }
+  .promo-detail .preq-n { flex: none; width: 26px; height: 26px; border: 1px solid var(--gold); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: var(--gold-lt); font-size: 12px; font-family: 'Cormorant Garamond', serif; }
+  .promo-detail .preq-ig { margin-top: 6px; font-size: 13px; }
+  .promo-detail .preq-ig a { color: var(--gold-lt); text-decoration: none; display: block; padding: 2px 0; }
+  .promo-cta { display: flex; gap: 10px; margin-top: 18px; }
+  .promo-cta a { flex: 1; text-align: center; padding: 12px 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    text-decoration: none; border-radius: 3px; transition: all .25s; }
+  .promo-cta .cta-book { border: 1px solid var(--gold); color: var(--gold-lt); }
+  .promo-cta .cta-book:hover { background: var(--gold); color: #0a0f0c; }
+  .promo-cta .cta-points { background: linear-gradient(160deg, var(--gold-lt), var(--gold-dk)); color: #0a0f0c; border: 1px solid transparent; }
+  .promo-cta .cta-points:hover { filter: brightness(1.1); }
+  @media (max-width: 480px) {
+    .promo-ov { padding: 0; align-items: flex-end; }
+    .promo-card { width: 100%; max-height: 92vh; border-radius: 12px 12px 0 0; border-left: none; border-right: none; border-bottom: none; }
+  }
 </style>
 </head>
 <body>
@@ -969,6 +1015,100 @@
   input.addEventListener('keydown', function(e){ if (e.key === 'Enter') send(input.value); });
   // 首次访问 4 秒后亮红点提示
   setTimeout(function(){ if (!opened) document.getElementById('yaiDot').style.display = 'block'; }, 4000);
+})();
+</script>
+
+<!-- ─── 活动弹窗（PROMO POPUP）─── -->
+<div class="promo-ov" id="promoOv" role="dialog" aria-modal="true" aria-label="Evento speciale">
+  <div class="promo-card" id="promoCard">
+    <button class="promo-close" id="promoClose" aria-label="Chiudi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="promo-poster" id="promoPoster">
+      <img id="promoImg" src="foto/eventi/eventi-1.webp" alt="YIO Summer Fan 2026">
+      <button class="promo-nav prev" id="promoPrev" aria-label="Precedente">‹</button>
+      <button class="promo-nav next" id="promoNext" aria-label="Successiva">›</button>
+      <span class="promo-tap" id="promoTap">Tocca per i dettagli</span>
+    </div>
+    <div class="promo-body">
+      <div class="promo-eyebrow">Evento speciale</div>
+      <div class="promo-title">YIO Summer Fan 2026</div>
+      <div class="promo-detail" id="promoDetail">
+        <p>L'estate ha il suo simbolo. Un ventaglio esclusivo firmato <b style="color:var(--gold-lt)">YIO FISH</b>, in bambù e carta tradizionale: leggero, pieghevole ed elegante.</p>
+        <p style="color:var(--gold-lt);letter-spacing:.5px;margin-bottom:14px">Come riceverlo?</p>
+        <div class="preq"><span class="preq-n">I</span><div><b>Accumula 8 YIO Punti</b> — Registrati su yio.it (🎁 +2 punti gratis subito) e accumula i punti con le tue consumazioni!</div></div>
+        <div class="preq"><span class="preq-n">II</span><div><b>Vieni a cena in 2 persone</b> — e ricevi subito il tuo YIO Summer Fan 2026 alla cassa! 🥢</div></div>
+        <div class="preq"><span class="preq-n">III</span><div><b>Bonus · +10 YIO Punti</b> — Condividi una Story con il ventaglio e tagga il tuo ristorante!
+          <div class="preq-ig">
+            <a href="https://instagram.com/yio_fish_carpi" target="_blank">Carpi → @yio_fish_carpi</a>
+            <a href="https://instagram.com/yio.fish_legnago" target="_blank">Legnago → @yio.fish_legnago</a>
+            <a href="https://instagram.com/yio_fish_imola" target="_blank">Imola → @yio_fish_imola</a>
+          </div>
+        </div></div>
+        <p style="font-size:12px;color:var(--muted)">Quantità limitate. Ti aspettiamo da YIO FISH!</p>
+        <div class="promo-cta">
+          <a class="cta-book" href="#contatti" id="promoBook">Prenota un tavolo</a>
+          <a class="cta-points" href="carpi.html?punti=1" id="promoPoints">⭐ I miei punti</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+/* ═══════════════════ 活动弹窗配置区 ═══════════════════
+   enabled : true = 开启活动弹窗 / false = 关闭（没活动时改这里）
+   delayMs : 打开网站后多少毫秒弹出（默认 2500 = 2.5 秒）
+   images  : 海报图片列表（换活动时改这里）
+   记忆    : 客人关闭后，本次会话不再弹出（sessionStorage）
+══════════════════════════════════════════════════════ */
+var PROMO_CONFIG = {
+  enabled: true,
+  delayMs: 2500,
+  images: [
+    'foto/eventi/eventi-1.webp', 'foto/eventi/eventi-2.webp',
+    'foto/eventi/eventi-3.webp', 'foto/eventi/eventi-4.webp',
+    'foto/eventi/eventi-5.webp', 'foto/eventi/eventi-6.webp',
+    'foto/eventi/eventi-7.webp', 'foto/eventi/eventi-8.webp'
+  ]
+};
+(function(){
+  if (!PROMO_CONFIG.enabled) return;
+  var ov = document.getElementById('promoOv'), card = document.getElementById('promoCard'),
+      img = document.getElementById('promoImg'), tap = document.getElementById('promoTap'),
+      fab = document.getElementById('yaiFab');
+  var idx = 0, opened = false;
+  // 预加载有效图片（404 的剔除）
+  var valid = [];
+  PROMO_CONFIG.images.forEach(function(u){
+    var im = new Image();
+    im.onload = function(){ valid.push(u); if (valid.length === 1 && !opened) img.src = valid[0]; };
+    im.src = u;
+  });
+  function show(n){
+    if (!valid.length) return;
+    idx = (n + valid.length) % valid.length;
+    img.src = valid[idx];
+  }
+  function open(){
+    if (opened || sessionStorage.getItem('yioPromoClosed')) return;
+    opened = true;
+    ov.classList.add('open');
+    if (fab) fab.style.display = 'none'; // 弹窗期间 AI 按钮让位
+  }
+  function close(){
+    ov.classList.remove('open');
+    sessionStorage.setItem('yioPromoClosed', '1');
+    if (fab) fab.style.display = '';
+  }
+  document.getElementById('promoPrev').addEventListener('click', function(e){ e.stopPropagation(); show(idx - 1); });
+  document.getElementById('promoNext').addEventListener('click', function(e){ e.stopPropagation(); show(idx + 1); });
+  document.getElementById('promoPoster').addEventListener('click', function(){
+    card.classList.add('expanded');
+    tap.style.display = 'none';
+  });
+  document.getElementById('promoClose').addEventListener('click', close);
+  ov.addEventListener('click', function(e){ if (e.target === ov) close(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && ov.classList.contains('open')) close(); });
+  document.getElementById('promoBook').addEventListener('click', close);
+  setTimeout(open, PROMO_CONFIG.delayMs);
 })();
 </script>
 </body>
