@@ -133,6 +133,22 @@ input[type=tel]:focus{border-color:var(--gold)}
     <div class="msg msg-info" id="formInfo"></div>
   </div>
 
+  <!-- ①b 快速注册（未注册号码）-->
+  <div class="card step" id="stepRegister">
+    <div class="result" style="padding-bottom:6px">
+      <div class="r-emoji">🎁</div>
+      <div class="r-prize" id="tRegTitle" style="font-size:24px"></div>
+      <p class="r-note" id="tRegNote"></p>
+    </div>
+    <label class="fl" id="tRegPhone"></label>
+    <input type="tel" id="regPhone" inputmode="tel" readonly style="width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:4px;background:rgba(255,255,255,.05);color:var(--muted);font-size:17px;letter-spacing:1px;outline:none;font-family:inherit;margin-bottom:14px">
+    <label class="fl" id="tRegName"></label>
+    <input type="text" id="regName" maxlength="50" style="width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:4px;background:rgba(0,0,0,.3);color:var(--text);font-size:17px;outline:none;font-family:inherit">
+    <button class="btn btn-gold" id="btnRegister" onclick="doRegister()"></button>
+    <button class="btn btn-ghost" onclick="showStep('stepForm')" id="btnRegBack"></button>
+    <div class="msg msg-err" id="regErr"></div>
+  </div>
+
   <!-- ② 等待店员批准 -->
   <div class="card step" id="stepWait">
     <div class="wait">
@@ -173,7 +189,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.1</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.2</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -196,6 +212,8 @@ var I18N = {
     loseTitle: 'Non questa volta!', loseNote: 'Torna a trovarci domani per un altro giro',
     myWins: 'I miei premi', back: 'Indietro', noWins: 'Nessun premio trovato per questo numero.',
     closed: 'Nessuna lotteria attiva', closedNote: 'Seguici su Instagram per i prossimi eventi!',
+    regTitle: 'Registrati e gira!', regNote: 'Questo numero non è ancora registrato. Iscriviti gratis alla fedeltà YIO: punti benvenuto inclusi, e giri subito la ruota.',
+    regPhone: 'Numero (dal tuo tentativo)', regName: 'Nome (facoltativo)', register: 'Iscriviti e richiedi il giro', regBack: '← Torna indietro',
     errPhone: 'Inserisci un numero di telefono valido', errAgree: 'Devi accettare il regolamento',
     errNotReg: 'Numero non registrato. Registrati dal menu fedeltà del sito e riprova!',
     errToday: 'Hai già giocato oggi. Torna domani!',
@@ -220,6 +238,8 @@ var I18N = {
     loseTitle: 'Not this time!', loseNote: 'Come back tomorrow for another spin',
     myWins: 'My prizes', back: 'Back', noWins: 'No prizes found for this number.',
     closed: 'No active lottery', closedNote: 'Follow us on Instagram for upcoming events!',
+    regTitle: 'Register & spin!', regNote: 'This number is not registered yet. Join YIO loyalty for free — welcome points included — and spin right away.',
+    regPhone: 'Number (from your attempt)', regName: 'Name (optional)', register: 'Sign up & request a spin', regBack: '← Go back',
     errPhone: 'Please enter a valid phone number', errAgree: 'You must accept the rules',
     errNotReg: 'Number not registered. Join our loyalty program on the website and try again!',
     errToday: 'You already played today. Come back tomorrow!',
@@ -244,6 +264,8 @@ var I18N = {
     loseTitle: '差一点点！', loseNote: '明天再来试一次吧',
     myWins: '我的奖品', back: '返回', noWins: '这个号码暂无中奖记录。',
     closed: '暂无抽奖活动', closedNote: '关注我们的 Instagram，活动不错过！',
+    regTitle: '注册会员，马上抽奖！', regNote: '这个号码还不是会员。免费注册 YIO 会员（含注册赠积分），注册后立刻继续抽奖。',
+    regPhone: '号码（来自刚才的输入）', regName: '姓名（选填）', register: '注册并申请抽奖', regBack: '← 返回',
     errPhone: '请输入有效的手机号码', errAgree: '请先勾选同意活动规则',
     errNotReg: '该号码尚未注册会员，请先在网站会员区注册。',
     errToday: '今天已经抽过啦，明天再来！',
@@ -294,6 +316,12 @@ function applyI18n(){
   $('btnMyWins').textContent = T('myWins');
   $('btnMyWins2').textContent = T('myWins');
   $('btnBack').textContent = T('back');
+  $('tRegTitle').textContent = T('regTitle');
+  $('tRegNote').textContent = T('regNote');
+  $('tRegPhone').textContent = T('regPhone');
+  $('tRegName').textContent = T('regName');
+  $('btnRegister').textContent = T('register');
+  $('btnRegBack').textContent = T('regBack');
   $('tClosed').textContent = T('closed');
   $('tClosedNote').textContent = T('closedNote');
   $('storeName').textContent = STORE_NAMES[RID] ? STORE_NAMES[RID].toUpperCase() : 'LOTTERIA';
@@ -351,11 +379,37 @@ async function doRequest(){
     if (d.status === 'approved'){ prepareWheel(); return; }
     startPolling(); showStep('stepWait'); return;
   }
-  if (d.code === 'not_registered') showErr('formErr', T('errNotReg'));
+  if (d.code === 'not_registered') { goRegister(phone); return; }
   else if (d.code === 'already_today') showErr('formErr', T('errToday'));
   else if (d.code === 'table_full') showErr('formErr', T('errTableFull'));
   else if (d.code === 'day_off') showErr('formErr', T('errDayOff'));
   else showErr('formErr', d.error || T('errGeneric'));
+}
+
+// ── ①b 快速注册 → 自动继续申请 ──
+function goRegister(phone){
+  $('regPhone').value = phone;
+  hideErr('regErr');
+  showStep('stepRegister');
+}
+async function doRegister(){
+  hideErr('regErr');
+  var phone = $('regPhone').value.replace(/\s+/g, '');
+  var name = $('regName').value.trim();
+  $('btnRegister').disabled = true;
+  var r = await api('/loyalty/identify', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: phone, name: name })
+  });
+  $('btnRegister').disabled = false;
+  if (r.data && (r.data.customer || r.data.isNew !== undefined)){
+    // 注册成功（或恰好已注册）→ 回到表单自动重发申请
+    $('inPhone').value = phone;
+    showStep('stepForm');
+    doRequest();
+    return;
+  }
+  showErr('regErr', (r.data && r.data.error) || T('errGeneric'));
 }
 
 // ── ② 轮询批准 ──
