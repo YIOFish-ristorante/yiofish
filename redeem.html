@@ -122,6 +122,13 @@ input:focus{border-color:var(--gold)}
             <div class="menu-desc">Aggiungi punti al cliente (QR o numero)</div>
           </div>
         </div>
+        <div class="menu-item" onclick="showStep('lottery');loadLotteryReqs();loadLotteryActiveWins();">
+          <span class="menu-icon">🎡</span>
+          <div>
+            <div class="menu-label">LOTTERIA <span id="lottery-badge" style="display:none;background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;vertical-align:2px"></span></div>
+            <div class="menu-desc">Approva i giri della ruota e riscatta i premi</div>
+          </div>
+        </div>
         <div class="menu-item" onclick="showStep('pending');loadPending();">
           <span class="menu-icon">📦</span>
           <div>
@@ -134,13 +141,6 @@ input:focus{border-color:var(--gold)}
           <div>
             <div class="menu-label">RICHIESTE PIN <span id="pinreq-badge" style="display:none;background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;vertical-align:2px"></span></div>
             <div class="menu-desc">Clienti in attesa di conferma primo PIN</div>
-          </div>
-        </div>
-        <div class="menu-item" onclick="showStep('lottery');loadLotteryReqs();">
-          <span class="menu-icon">🎡</span>
-          <div>
-            <div class="menu-label">LOTTERIA <span id="lottery-badge" style="display:none;background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;vertical-align:2px"></span></div>
-            <div class="menu-desc">Approva i giri della ruota e riscatta i premi</div>
           </div>
         </div>
         <div class="menu-item" onclick="showStep('resetpin')">
@@ -352,8 +352,16 @@ input:focus{border-color:var(--gold)}
       </div>
     </div>
     <div class="card">
-      <h2>✅ Riscatta premio lotteria</h2>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Il cliente mostra il codice a 6 caratteri dalla pagina della ruota. Verifica e conferma: lo sconto/premio lo applichi tu in cassa.</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="margin:0">🎁 Premi attivi</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="loadLotteryActiveWins()">🔄</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Vincite ancora da riscattare: il cliente dice il premio (o il telefono), tu tocchi ✓ per confermare.</div>
+      <div id="lottery-active-list">Caricamento...</div>
+    </div>
+    <div class="card">
+      <h2>🔍 Cerca per codice</h2>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Se preferisci, il cliente mostra il codice a 6 caratteri dalla pagina della ruota.</div>
       <div style="display:flex;gap:8px">
         <input type="text" id="lottery-code" placeholder="Codice..." maxlength="6" style="flex:1;letter-spacing:4px;text-transform:uppercase;margin-bottom:0" onkeydown="if(event.key===String.fromCharCode(13))lotteryLookupWin()">
         <button class="btn btn-gold" style="width:auto" onclick="lotteryLookupWin()">Cerca</button>
@@ -971,6 +979,38 @@ async function lotteryResetTable() {
   } catch (e) { showErr('lottery-err', 'Errore di rete'); }
 }
 
+
+// 有效中奖列表：客人报奖品/手机号，店员点 ✓ 一键核销
+async function loadLotteryActiveWins() {
+  var box = document.getElementById('lottery-active-list');
+  if (!box || !_token) return;
+  box.innerHTML = 'Caricamento...';
+  try {
+    const res = await fetch(WORKER_URL + '/lottery/wins/list?restaurant_id=' + encodeURIComponent(_store) + '&status=active', {
+      headers: {'Authorization':'Bearer ' + _token}
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">' + escHtml(data.error || 'Errore') + '</div>'; return; }
+    const wins = data.wins || [];
+    if (!wins.length) { box.innerHTML = '<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px">Nessun premio attivo ✓</div>'; return; }
+    box.innerHTML = wins.map(function(w) {
+      const sameDay = w.won_day === w.expires_day;
+      return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        + '<div>'
+        + '<div style="font-weight:500;font-size:15px">🎁 ' + escHtml(w.prize_name)
+          + (sameDay ? ' <span style="font-size:10px;background:rgba(192,57,43,.15);color:#c0392b;border-radius:8px;padding:1px 7px;vertical-align:2px">SOLO OGGI</span>' : '')
+          + '</div>'
+        + '<div style="font-size:12px;color:var(--muted);margin-top:3px">📱 ' + escHtml(w.phone)
+          + ' · <span style="letter-spacing:2px">' + escHtml(w.code) + '</span>'
+          + (sameDay ? '' : ' · fino al ' + w.expires_day) + '</div>'
+        + '</div>'
+        + '<button class="btn btn-green" style="width:auto;padding:8px 14px;font-size:12px" onclick="lotteryRedeemWin(\'' + w.code + '\',\'' + escHtml(w.prize_name) + '\',this)">✓ Riscatta</button>'
+        + '</div></div>';
+    }).join('');
+  } catch (e) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">Errore di rete</div>'; }
+}
+
 async function lotteryLookupWin() {
   var code = (document.getElementById('lottery-code').value || '').trim().toUpperCase();
   var box = document.getElementById('lottery-lookup');
@@ -994,29 +1034,43 @@ async function lotteryLookupWin() {
         + '<div style="color:' + st[1] + ';font-size:13px;font-weight:600">' + st[0] + '</div>'
       + '</div>'
       + (w.status === 'active'
-        ? '<button class="btn btn-green" style="margin-top:12px" onclick="lotteryRedeemWin(\'' + w.id + '\')">✓ Conferma riscatto</button>'
+        ? '<button class="btn btn-green" style="margin-top:12px" onclick="lotteryRedeemWin(\'' + w.code + '\',\'' + escHtml(w.prize_name) + '\',this)">✓ Conferma riscatto</button>'
         : '')
     + '</div>';
   } catch (e) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">Errore di rete</div>'; }
 }
 
-async function lotteryRedeemWin(id) {
-  if (!confirm('Confermare il riscatto di questo premio?')) return;
+async function lotteryRedeemWin(codeOrId, prizeName, btn) {
+  if (!confirm('Confermare il riscatto di "' + (prizeName || 'questo premio') + '"?')) return;
+  if (btn) btn.disabled = true;
+  showErr('lottery-err', '');
   try {
+    // 先按码查出 win_id（lookup 同时校验本店归属和有效期）
+    const lr = await fetch(WORKER_URL + '/lottery/wins/lookup', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
+      body: JSON.stringify({code: String(codeOrId).toUpperCase(), restaurant_id: _store})
+    });
+    const ld = await lr.json().catch(() => ({}));
+    if (!lr.ok || !ld.ok) { showErr('lottery-err', escHtml(ld.error || 'Codice non trovato')); if (btn) btn.disabled = false; return; }
+    if (ld.win.status !== 'active') { showErr('lottery-err', 'Premio non più valido (' + ld.win.status + ')'); loadLotteryActiveWins(); return; }
     const res = await fetch(WORKER_URL + '/lottery/wins/redeem', {
       method: 'POST',
       headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
-      body: JSON.stringify({win_id: id})
+      body: JSON.stringify({win_id: ld.win.id})
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.ok) {
-      document.getElementById('lottery-lookup').innerHTML = '<div style="background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.35);color:#7bd88f;border-radius:8px;padding:12px 14px;font-size:14px">✅ Premio riscattato: ' + escHtml(data.prize_name || '') + '</div>';
+      document.getElementById('lottery-toast').innerHTML = '<div style="background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.35);color:#7bd88f;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px">✅ Riscattato: ' + escHtml(data.prize_name || prizeName || '') + '</div>';
+      document.getElementById('lottery-lookup').innerHTML = '';
       document.getElementById('lottery-code').value = '';
+      loadLotteryActiveWins();
     } else {
       showErr('lottery-err', escHtml(data.error || 'Errore'));
-      lotteryLookupWin();
+      if (btn) btn.disabled = false;
+      loadLotteryActiveWins();
     }
-  } catch (e) { showErr('lottery-err', 'Errore di rete'); }
+  } catch (e) { showErr('lottery-err', 'Errore di rete'); if (btn) btn.disabled = false; }
 }
 
 // 菜单角标：有待批准抽奖时显示数量
