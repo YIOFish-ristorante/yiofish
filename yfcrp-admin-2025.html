@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.47.3</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.48.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.47.3</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.48.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -643,7 +643,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.47.3</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.48.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1375,7 +1375,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.47.3</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.48.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -4915,7 +4915,7 @@ function exportLoyaltyList() {
 
 
 // ============================================================
-// 🎡 Lotteria 抽奖管理（v5.47.3）
+// 🎡 Lotteria 抽奖管理（v5.48.0）
 // 店员：待批准队列（批准/拒绝）+ 中奖核销；店长/超管：奖项与活动配置
 // ============================================================
 var _lotPoll = null;
@@ -5101,13 +5101,14 @@ async function loadLotteryPrizes() {
   if (!rows.length) { box.innerHTML = '<div style="color:var(--muted);font-size:12px">Nessun premio configurato. Aggiungi il primo!</div>'; return; }
   box.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
     + '<tr style="color:var(--muted);font-size:11px;text-align:left">'
-    + '<th style="padding:6px 4px">Colore</th><th>Nome</th><th>份数(已发/总)</th><th>权重</th><th>有效期</th><th>状态</th><th></th></tr>'
+    + '<th style="padding:6px 4px">Colore</th><th>Nome</th><th>份数(已发/总)</th><th>每日上限</th><th>权重</th><th>有效期</th><th>状态</th><th></th></tr>'
     + rows.map(function(p) {
       var out = (p.used_count || 0) >= (p.total_count || 0);
       return '<tr style="border-top:1px solid var(--border)">'
         + '<td style="padding:8px 4px"><span style="display:inline-block;width:16px;height:16px;border-radius:3px;background:' + _lyEsc(p.color) + '"></span></td>'
         + '<td style="font-weight:500">' + _lyEsc(p.name) + '</td>'
         + '<td>' + (p.used_count || 0) + ' / ' + p.total_count + (out ? ' <span style="color:#c0392b;font-size:10px">ESURITO</span>' : '') + '</td>'
+        + '<td>' + ((parseInt(p.daily_cap) || 0) > 0 ? '<span style="color:#b8902e">' + parseInt(p.daily_cap) + '/天</span>' : '<span style="color:var(--muted)">不限</span>') + '</td>'
         + '<td>' + p.weight + '</td>'
         + '<td>' + (p.validity_days === 0 ? '<span style="color:#b8902e">当天</span>' : p.validity_days + ' 天') + '</td>'
         + '<td>' + (p.is_active ? '<span style="color:#27ae60">ON</span>' : '<span style="color:var(--muted)">OFF</span>') + '</td>'
@@ -5128,6 +5129,8 @@ function lotOpenPrizeForm(id) {
         + '<input id="lp-name" value="' + (p ? _lyEsc(p.name) : '') + '" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">总份数*</div>'
         + '<input id="lp-total" type="number" min="0" value="' + (p ? p.total_count : '') + '" style="width:80px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">每日上限（0=不限）</div>'
+        + '<input id="lp-cap" type="number" min="0" value="' + (p ? (parseInt(p.daily_cap) || 0) : 0) + '" style="width:90px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">权重*</div>'
         + '<input id="lp-weight" type="number" min="0" step="0.1" value="' + (p ? p.weight : '') + '" style="width:80px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">有效期天数（0=仅当天）</div>'
@@ -5151,6 +5154,7 @@ async function lotSavePrize(id) {
     restaurant_id: RESTAURANT_ID,
     name: document.getElementById('lp-name').value,
     total_count: document.getElementById('lp-total').value,
+    daily_cap: document.getElementById('lp-cap').value,
     weight: document.getElementById('lp-weight').value,
     validity_days: document.getElementById('lp-valid').value,
     color: document.getElementById('lp-color').value,
