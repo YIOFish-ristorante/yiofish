@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- YIO index · Summer Fan 2026 disponibile · agg. 2026-07-19 · quiet-luxury restyle · svc-card ?mode= deep-link -->
+  <title>YIO Fish · Ristorante Giapponese</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="YIO Fish">
+<meta name="description" content="YIO Fish — Ristorante giapponese. Sushi, sashimi e cucina giapponese a Carpi, Legnago e Imola.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --gold: #c9a962;
+    --gold-lt: #e8d5a3;
+    --gold-dk: #8f7440;
+    --gold-dim: rgba(201,169,98,.10);
+    --bg: #050b08;
+    --bg2: #030806;
+    --surface: rgba(255,255,255,.018);
+    --border: rgba(201,169,98,.16);
+    --border2: rgba(255,255,255,.10);
+    --text: #f5f2ea;
+    --text2: #ddd6c6;
+    --muted: #7d8a7f;
+    --radius: 6px;
+    --serif: 'Cormorant Garamond', 'Times New Roman', serif;
+    --sans: 'Jost', -apple-system, BlinkMacSystemFont, sans-serif;
+    --transition: 0.3s cubic-bezier(.33,1,.68,1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
+  .hero { scroll-snap-align: start; scroll-snap-stop: always; }
+  .intro { scroll-snap-align: start; }
+  body {
+    background: var(--bg);
+    font-family: var(--sans);
+    font-weight: 300;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    position: relative;
+  }
+  ::selection { background: rgba(201,169,98,.28); color: #fff; }
+  ::-webkit-scrollbar { width: 9px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: rgba(201,169,98,.25); border-radius: 9px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(201,169,98,.45); }
+
+  /* 极淡暗纹理 + 一丝丝金色丝线质感 */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 40; pointer-events: none;
+    background-image:
+      radial-gradient(circle at 20% 12%, rgba(201,169,98,.045), transparent 44%),
+      radial-gradient(circle at 82% 74%, rgba(201,169,98,.035), transparent 48%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    opacity: .9;
+  }
+  /* 缓慢流动的金色光泽 */
+  body::after {
+    content: ''; position: fixed; inset: 0; z-index: 41; pointer-events: none;
+    background: linear-gradient(118deg, transparent 30%, rgba(232,213,163,.045) 48%, transparent 62%);
+    background-size: 300% 300%;
+    animation: shimmer 16s ease-in-out infinite;
+  }
+  @keyframes shimmer { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+  @media (prefers-reduced-motion: reduce) { body::after { animation: none; } }
+  body > * { position: relative; z-index: 1; }
+
+  /* ───── 顶部导航 ───── */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 28px; height: 62px;
+    background: rgba(5,11,8,.58); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(201,169,98,.12);
+    opacity: 0; transform: translateY(-100%); transition: opacity .45s ease, transform .45s ease;
+    pointer-events: none;
+  }
+  .topnav.show { opacity: 1; transform: none; pointer-events: auto; }
+  .nav-logo img { height: 27px; width: auto; filter: brightness(1.1); }
+  .nav-logo { color: var(--gold); font-weight: 400; letter-spacing: 3px; font-size: 14px; }
+  .nav-links { display: flex; gap: 34px; }
+  .nav-links a {
+    font-size: 11px; letter-spacing: 2.5px; color: var(--text2); text-transform: uppercase;
+    font-weight: 300; transition: color var(--transition); position: relative; padding: 4px 0;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 1px;
+    background: var(--gold); transform: scaleX(0); transform-origin: right;
+    transition: transform .38s cubic-bezier(.33,1,.68,1);
+  }
+  .nav-links a:hover { color: var(--gold-lt); }
+  .nav-links a:hover::after { transform: scaleX(1); transform-origin: left; }
+  .nav-burger { display: none; flex-direction: column; gap: 6px; background: none; border: none; cursor: pointer; padding: 6px; }
+  .nav-burger span { width: 22px; height: 1px; background: var(--gold); transition: transform var(--transition), opacity var(--transition); }
+  .nav-burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-burger.open span:nth-child(2) { opacity: 0; }
+  .nav-burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .nav-drawer {
+    position: fixed; top: 62px; left: 0; right: 0; z-index: 49;
+    background: rgba(4,9,7,.96); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(201,169,98,.12);
+    display: flex; flex-direction: column; padding: 10px 28px 22px;
+    transform: translateY(-130%); transition: transform .4s cubic-bezier(.33,1,.68,1); pointer-events: none;
+  }
+  .nav-drawer.open { transform: none; pointer-events: auto; }
+  .nav-drawer a {
+    padding: 15px 0; font-size: 13px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--text2); border-bottom: 1px solid rgba(255,255,255,.05); font-weight: 300;
+  }
+  .nav-drawer a:last-child { border-bottom: none; }
+  img { display: block; max-width: 100%; }
+  a { text-decoration: none; color: inherit; }
+
+  /* ───── 通用 ───── */
+  .wrap { width: 92%; max-width: 1100px; margin: 0 auto; }
+  .eyebrow {
+    font-size: 10px; letter-spacing: 5px; color: var(--gold);
+    text-transform: uppercase; margin-bottom: 20px; font-weight: 400;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .eyebrow::before { content: ''; width: 26px; height: 1px; background: var(--gold); opacity: .5; flex-shrink: 0; }
+  .eyebrow.center { justify-content: center; }
+  .eyebrow.center::after { content: ''; width: 26px; height: 1px; background: var(--gold); opacity: .5; flex-shrink: 0; }
+  .section-title {
+    font-family: var(--serif);
+    font-size: clamp(30px, 6.5vw, 48px); font-weight: 300;
+    letter-spacing: .5px; line-height: 1.18; margin-bottom: 24px;
+  }
+  .section-title strong {
+    font-weight: 400; font-style: italic;
+    background: linear-gradient(120deg, #e8d5a3 10%, #c9a962 55%, #a5854a 90%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .gold-rule { display: none; }
+  .lead { font-size: 15.5px; line-height: 1.95; color: var(--text2); max-width: 620px; font-weight: 300; }
+
+  section { padding: 104px 0; position: relative; scroll-margin-top: 62px; }
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .9s cubic-bezier(.33,1,.68,1), transform .9s cubic-bezier(.33,1,.68,1); }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+
+  /* ───── ① HERO ───── */
+  .hero {
+    min-height: 100svh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 40px 20px 64px; position: relative;
+    background:
+      radial-gradient(110% 70% at 50% 0%, rgba(201,169,98,.06), transparent 56%),
+      linear-gradient(180deg, #060d09 0%, #030806 100%);
+  }
+  .hero-logo {
+    width: min(40vw, 168px); margin: 0 auto 20px; filter: brightness(1.12) drop-shadow(0 0 26px rgba(201,169,98,.14));
+    animation: heroIn 1.6s cubic-bezier(.33,1,.68,1);
+  }
+  @keyframes heroIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .hero-line {
+    width: 1px; height: 44px; margin: 4px auto 26px;
+    background: linear-gradient(180deg, transparent, var(--gold), transparent); opacity: .55;
+    animation: heroIn 1.6s .25s cubic-bezier(.33,1,.68,1) backwards;
+  }
+  .hero-sub {
+    font-size: 10px; letter-spacing: 6.5px; color: var(--muted); margin-bottom: 46px;
+    font-weight: 300; text-transform: uppercase; padding-left: 6.5px;
+    animation: heroIn 1.6s .45s cubic-bezier(.33,1,.68,1) backwards;
+  }
+
+  .store-list { width: min(86vw, 318px); display: flex; flex-direction: column; gap: 26px; animation: heroIn 1.6s .6s cubic-bezier(.33,1,.68,1) backwards; }
+  .store-btn {
+    position: relative; overflow: hidden; z-index: 0;
+    padding: 11px 24px; border-radius: 2px; border: 1px solid rgba(201,169,98,.38);
+    background: transparent;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: color var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    font-family: var(--sans); font-size: 13px; font-weight: 400; letter-spacing: 3.5px; color: var(--gold-lt);
+  }
+  .store-btn::before {
+    content: ''; position: absolute; inset: 0; z-index: -1;
+    background: linear-gradient(120deg, #e8d5a3, #c9a962 60%, #b3904c);
+    transform: translateY(101%); transition: transform .42s cubic-bezier(.33,1,.68,1);
+  }
+  .store-btn:hover::before, .store-btn:active::before { transform: translateY(0); }
+  .store-btn:hover, .store-btn:active { border-color: var(--gold); color: #1a1408; box-shadow: 0 8px 30px rgba(201,169,98,.16); }
+  .store-btn:hover .city, .store-btn:active .city { color: rgba(26,20,8,.68); }
+  .store-btn:active { transform: scale(.985); }
+  /* ── 🎡 幸运转盘入口（没活动时整段删除即可）── */
+  .lot-band { width: min(86vw, 318px); margin-top: 34px; border: 1px dashed rgba(201,169,98,.5); border-radius: 4px;
+    padding: 14px 16px 12px; text-align: center; animation: heroIn 1.6s .9s cubic-bezier(.33,1,.68,1) backwards; }
+  .lot-band .lot-title { font-size: 11px; letter-spacing: 3px; color: var(--gold-lt); text-transform: uppercase; }
+  .lot-band .lot-sub { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
+  .lot-band .lot-links { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+  .lot-band .lot-links a { font-size: 10px; letter-spacing: 2px; color: var(--gold); text-decoration: none;
+    border: 1px solid rgba(201,169,98,.4); border-radius: 3px; padding: 5px 12px; transition: all .25s; }
+  .lot-band .lot-links a:hover, .lot-band .lot-links a:active { background: var(--gold); color: #1a1408; }
+  .store-btn .city { display:block; font-size:9px; letter-spacing:2.5px; color:var(--muted); font-weight:300; margin-top:2px; transition: color var(--transition); text-transform: uppercase; }
+
+  .scroll-cue {
+    position: absolute; bottom: 26px; right: 28px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    color: var(--gold); opacity: .75; cursor: pointer;
+  }
+  .scroll-cue span { font-size: 8px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; writing-mode: vertical-rl; }
+  .scroll-cue .cue-line { width: 1px; height: 46px; background: linear-gradient(180deg, var(--gold), transparent); overflow: hidden; position: relative; }
+  .scroll-cue .cue-line::after {
+    content: ''; position: absolute; left: 0; top: -50%; width: 100%; height: 50%;
+    background: linear-gradient(180deg, transparent, #fff); animation: cueDrop 2.2s cubic-bezier(.65,0,.35,1) infinite;
+  }
+  @keyframes cueDrop { to { top: 110%; } }
+  @media (prefers-reduced-motion: reduce) { .scroll-cue .cue-line::after { animation: none; } }
+
+  /* ───── ② 介绍 ───── */
+  .intro { background: var(--bg2); }
+  .intro-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center; }
+  .intro-photo {
+    aspect-ratio: 4/5; border-radius: var(--radius); border: 1px solid var(--border);
+    background: linear-gradient(145deg, #071009, #020604); overflow: hidden;
+    display: flex; align-items: center; justify-content: center; color: var(--muted);
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35);
+  }
+  .intro-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* ───── ③ 菜品 ───── */
+  .menu-showcase { background: var(--bg); }
+  .dish-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 18px; }
+  .dish {
+    aspect-ratio: 1; border-radius: 4px; overflow: hidden; position: relative;
+    background: linear-gradient(150deg, #071009, #020604); border: 1px solid var(--border);
+    display: flex; align-items: flex-end; padding: 16px;
+    transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+  }
+  .dish:hover { transform: translateY(-4px); border-color: rgba(201,169,98,.45); box-shadow: 0 16px 40px rgba(0,0,0,.4); }
+  .dish .ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:10px; letter-spacing:3px; text-transform: uppercase; z-index:0; }
+  .dish.has-img .ph { display:none; }
+  .dish .dish-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; transition: transform .7s cubic-bezier(.33,1,.68,1); }
+  .dish:hover .dish-img { transform: scale(1.06); }
+  .dish .name { position: relative; font-family: var(--serif); font-size: 17px; font-weight: 400; font-style: italic; color: var(--text); letter-spacing: .5px; z-index:2; text-shadow: 0 1px 8px rgba(0,0,0,.8); }
+
+  /* ───── ④ 环境（轮播）───── */
+  .ambiance { background: var(--bg2); }
+  .carousel { position: relative; margin-top: 18px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: linear-gradient(150deg,#071009,#020604); box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+  .carousel-track { display: flex; transition: transform .6s cubic-bezier(.33,1,.68,1); }
+  .slide { min-width: 100%; aspect-ratio: 16/9; position: relative; }
+  .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slide-ph::after { content: attr(data-ph); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
+  .slide-ph { aspect-ratio: 16/9; }
+  .carousel-btn {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px;
+    border-radius: 50%; border: 1px solid rgba(201,169,98,.35); background: rgba(3,8,6,.5);
+    color: var(--gold-lt); font-size: 22px; line-height: 1; cursor: pointer; backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center; transition: border-color var(--transition), background var(--transition);
+    font-weight: 300;
+  }
+  .carousel-btn:hover { border-color: var(--gold); background: rgba(201,169,98,.14); }
+  .carousel-btn.prev { left: 16px; }
+  .carousel-btn.next { right: 16px; }
+  .carousel-dots { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+  .carousel-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; transition: background var(--transition), width var(--transition); }
+  .carousel-dots .dot.active { background: var(--gold); width: 20px; border-radius: 3px; }
+
+  /* ───── ⑤ 特别活动 ───── */
+  .eventi { background: var(--bg2); }
+  .event-card {
+    display: grid; grid-template-columns: 0.85fr 1fr; gap: 48px; align-items: center;
+    margin-top: 18px;
+  }
+  .event-poster {
+    border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
+    aspect-ratio: 70/99; background: linear-gradient(150deg,#071009,#020604); position: relative;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35);
+  }
+  .ev-carousel, .ev-track, .ev-slide { height: 100%; }
+  .ev-carousel { position: relative; }
+  .ev-track { display: flex; transition: transform .6s cubic-bezier(.33,1,.68,1); }
+  .ev-slide { min-width: 100%; position: relative; }
+  .ev-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ev-ph::after { content: attr(data-ph); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 10px; letter-spacing: 3px; text-transform: uppercase; }
+  .ev-btn {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid rgba(201,169,98,.35); background: rgba(3,8,6,.5); color: var(--gold-lt); font-size: 20px; line-height: 1;
+    cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center;
+    font-weight: 300;
+  }
+  .ev-btn.prev { left: 12px; } .ev-btn.next { right: 12px; }
+  .ev-dots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
+  .ev-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; transition: background var(--transition), width var(--transition); }
+  .ev-dots .dot.active { background: var(--gold); width: 18px; border-radius: 3px; }
+  .event-info h3 { font-family: var(--serif); font-size: clamp(26px, 5vw, 34px); font-weight: 400; color: var(--gold-lt); letter-spacing: .5px; margin-bottom: 18px; }
+  .event-info h3 em { font-style: italic; }
+  .event-info p { font-size: 14.5px; line-height: 1.9; color: var(--text2); margin-bottom: 26px; max-width: 460px; font-weight: 300; }
+  .event-soon {
+    display: inline-block; padding: 11px 26px; border-radius: 2px;
+    border: 1px solid rgba(201,169,98,.4); background: transparent;
+    color: var(--gold-lt); font-size: 11px; font-weight: 400; letter-spacing: 3.5px; text-transform: uppercase;
+  }
+  /* 倒计时 */
+  .countdown {
+    display: flex; align-items: flex-end; gap: 20px; margin: 4px 0 24px; flex-wrap: wrap;
+  }
+  .cd-days-wrap { display: flex; align-items: baseline; gap: 12px; }
+  .cd-num {
+    font-family: var(--serif); font-size: clamp(60px, 14vw, 92px); font-weight: 300; line-height: 1; color: var(--gold-lt);
+    letter-spacing: -1px;
+  }
+  .cd-label { font-size: 11px; letter-spacing: 3px; color: var(--text2); text-transform: uppercase; font-weight: 300; }
+  .cd-hms {
+    display: flex; align-items: center; gap: 3px; padding-bottom: 10px;
+    font-size: 18px; font-weight: 300; color: var(--gold); letter-spacing: 1px;
+    font-variant-numeric: tabular-nums; opacity: .9;
+  }
+  .cd-hms i { font-style: normal; color: var(--text2); margin: 0 2px; }
+  .cd-hms span { min-width: 28px; text-align: center; }
+  /* 活动条件 */
+  .event-reqs { display: flex; flex-direction: column; gap: 16px; margin: 24px 0; max-width: 480px; }
+  .req { display: flex; gap: 14px; align-items: flex-start; font-size: 14px; line-height: 1.75; color: var(--text2); font-weight: 300; }
+  .req b { color: var(--gold-lt); font-weight: 500; }
+  .req-n {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+    background: transparent; border: 1px solid rgba(201,169,98,.45); color: var(--gold-lt);
+    font-family: var(--serif); font-size: 14px; font-weight: 400; font-style: italic;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .req-ig { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .req-ig a { font-size: 12.5px; letter-spacing: .5px; color: var(--gold-lt); border-bottom: 1px solid rgba(201,169,98,.3); padding-bottom: 2px; width: fit-content; transition: border-color var(--transition); }
+  .req-ig a:hover { border-bottom-color: var(--gold-lt); }
+  .event-stores { display: flex; flex-direction: column; gap: 12px; max-width: 420px; }
+  .event-store {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 13px 18px; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--surface); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  }
+  .event-store .es-name { font-size: 11px; font-weight: 400; letter-spacing: 3px; color: var(--gold); flex-shrink: 0; }
+  .es-links { display: flex; gap: 8px; }
+  .es-links a {
+    padding: 9px 14px; border-radius: 2px; border: 1px solid rgba(201,169,98,.35);
+    background: transparent; color: var(--gold-lt); font-weight: 400; letter-spacing: 1.5px; font-size: 11px;
+    white-space: nowrap; transition: background var(--transition), border-color var(--transition), transform var(--transition);
+    text-transform: uppercase;
+  }
+  .es-links a:hover { background: var(--gold-dim); border-color: var(--gold); }
+  .es-links a:active { transform: scale(.97); }
+
+  /* ───── ⑥ 服务方式 ───── */
+  .services { background: var(--bg); }
+  .svc-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin: 18px 0 56px; }
+  .svc {
+    display: block; cursor: pointer;
+    padding: 40px 26px 30px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    text-align: center; transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+  }
+  .svc:hover { border-color: rgba(201,169,98,.45); transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+  .svc .ic { margin-bottom: 20px; color: var(--gold); display: flex; justify-content: center; transition: transform var(--transition); }
+  .svc:hover .ic { transform: translateY(-2px); }
+  .svc .ic svg { width: 34px; height: 34px; stroke-width: 1.1; }
+  .svc h3 { font-size: 12px; letter-spacing: 3px; color: var(--gold-lt); margin-bottom: 12px; font-weight: 400; text-transform: uppercase; }
+  .svc p { font-size: 13px; line-height: 1.75; color: var(--muted); font-weight: 300; }
+  .svc .go {
+    display: inline-block; margin-top: 18px; font-size: 10px; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--gold); opacity: 0; transform: translateY(4px);
+    transition: opacity var(--transition), transform var(--transition);
+  }
+  .svc:hover .go, .svc:active .go { opacity: 1; transform: none; }
+  @media (hover: none) { .svc .go { opacity: .85; transform: none; } }
+  .order-cta { text-align: center; }
+  .order-cta .ct-label { font-size: 10px; letter-spacing: 4px; color: var(--muted); margin-bottom: 22px; text-transform: uppercase; }
+  .order-btns { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+  .order-btns a {
+    position: relative; overflow: hidden; z-index: 0;
+    padding: 16px 34px; border-radius: 2px; border: 1px solid rgba(201,169,98,.4);
+    background: transparent; color: var(--gold-lt); font-weight: 400; letter-spacing: 3px; font-size: 12px;
+    transition: color var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    text-transform: uppercase;
+  }
+  .order-btns a::before {
+    content: ''; position: absolute; inset: 0; z-index: -1;
+    background: linear-gradient(120deg, #e8d5a3, #c9a962 60%, #b3904c);
+    transform: translateY(101%); transition: transform .42s cubic-bezier(.33,1,.68,1);
+  }
+  .order-btns a:hover::before { transform: translateY(0); }
+  .order-btns a:hover { color: #1a1408; border-color: var(--gold); box-shadow: 0 8px 30px rgba(201,169,98,.16); }
+  .order-btns a:active { transform: scale(.97); }
+
+  /* ───── ⑥ 联系 ───── */
+  .contact { background: var(--bg2); }
+  .loc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 18px; }
+  .loc {
+    padding: 34px 28px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--surface); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    transition: border-color var(--transition);
+  }
+  .loc:hover { border-color: rgba(201,169,98,.35); }
+  .loc h3 { font-size: 13px; letter-spacing: 4px; color: var(--gold); margin-bottom: 22px; font-weight: 400; }
+  .loc h3::after { content: ''; display: block; width: 22px; height: 1px; background: var(--gold); opacity: .5; margin-top: 12px; }
+  .loc .row { display: flex; gap: 12px; font-size: 13.5px; line-height: 1.7; color: var(--text2); margin-bottom: 14px; font-weight: 300; }
+  .loc .row .k { color: var(--gold); flex-shrink: 0; width: 15px; display: flex; padding-top: 2px; }
+  .loc .row .k svg { width: 14px; height: 14px; stroke-width: 1.3; }
+  .loc a.maplink { display: inline-block; margin-top: 8px; font-size: 11px; letter-spacing: 2px; color: var(--gold); border-bottom: 1px solid rgba(201,169,98,.35); padding-bottom: 3px; text-transform: uppercase; transition: border-color var(--transition), color var(--transition); }
+  .loc a.maplink:hover { color: var(--gold-lt); border-color: var(--gold-lt); }
+
+  /* ───── ⑦ 页脚 ───── */
+  footer { background: var(--bg); padding: 64px 0 44px; text-align: center; border-top: 1px solid var(--border); }
+  .foot-logo { width: 104px; margin: 0 auto 26px; opacity: .75; filter: brightness(1.1); }
+  .social { display: flex; gap: 16px; justify-content: center; margin-bottom: 30px; }
+  .social a {
+    width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(201,169,98,.25);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); transition: color var(--transition), border-color var(--transition), transform var(--transition);
+  }
+  .social a:hover { color: var(--gold-lt); border-color: var(--gold); transform: translateY(-2px); }
+  .social svg { width: 17px; height: 17px; }
+  .copyright { font-size: 10px; color: #5a635c; letter-spacing: 2px; text-transform: uppercase; font-weight: 300; }
+
+  /* ───── 响应式 ───── */
+  @media (max-width: 760px) {
+    .nav-links { display: none; }
+    .nav-burger { display: flex; }
+    section { padding: 72px 0; }
+    .intro-grid { grid-template-columns: 1fr; gap: 34px; }
+    .intro-photo { aspect-ratio: 16/10; }
+    .dish-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .svc-row { grid-template-columns: 1fr; }
+    .loc-grid { grid-template-columns: 1fr; }
+    .event-card { grid-template-columns: 1fr; gap: 30px; }
+    .event-poster { max-width: 300px; margin: 0 auto; }
+    .event-stores { max-width: none; }
+    .event-store { flex-direction: column; align-items: stretch; gap: 12px; text-align: center; }
+    .es-links { justify-content: center; }
+    .es-links a { flex: 1; text-align: center; }
+  }
+
+  /* ─── YIO AI 悬浮助手 ─── */
+  .yai-fab { position: fixed; right: 20px; bottom: 20px; z-index: 1200; width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(160deg, var(--gold-lt), var(--gold) 55%, var(--gold-dk)); border: 1px solid rgba(255,255,255,.35);
+    color: #0a0f0c; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 30px rgba(201,169,98,.35); transition: transform .25s; }
+  .yai-fab:hover { transform: translateY(-3px) scale(1.05); }
+  .yai-fab svg { width: 26px; height: 26px; }
+  .yai-fab .yai-dot { position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; border-radius: 50%; background: #c0392b; border: 2px solid var(--bg2); display: none; }
+  .yai-panel { position: fixed; right: 20px; bottom: 88px; z-index: 1200; width: min(92vw, 380px); height: min(70vh, 560px);
+    background: rgba(8,14,11,.96); border: 1px solid var(--border); border-radius: 8px; backdrop-filter: blur(14px);
+    display: none; flex-direction: column; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+  .yai-panel.open { display: flex; }
+  .yai-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .yai-head .yai-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(160deg, var(--gold-lt), var(--gold-dk));
+    display: flex; align-items: center; justify-content: center; color: #0a0f0c; flex: none; }
+  .yai-head .yai-avatar svg { width: 18px; height: 18px; }
+  .yai-head .yai-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; letter-spacing: .06em; color: var(--gold-lt); }
+  .yai-head .yai-sub { font-size: 11px; color: rgba(255,255,255,.45); letter-spacing: .12em; text-transform: uppercase; }
+  .yai-head .yai-close { margin-left: auto; background: none; border: none; color: rgba(255,255,255,.5); cursor: pointer; padding: 4px; }
+  .yai-head .yai-close:hover { color: var(--gold-lt); }
+  .yai-msgs { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .yai-msg { max-width: 86%; padding: 10px 13px; border-radius: 4px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+  .yai-msg.bot { align-self: flex-start; background: rgba(201,169,98,.08); border: 1px solid var(--border); color: rgba(255,255,255,.88); border-left: 2px solid var(--gold); }
+  .yai-msg.user { align-self: flex-end; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #fff; }
+  .yai-actions { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; max-width: 92%; }
+  .yai-actions a { display: inline-block; padding: 7px 12px; font-size: 12px; letter-spacing: .05em; color: var(--gold-lt);
+    border: 1px solid var(--gold); border-radius: 3px; text-decoration: none; background: transparent; transition: background .2s, color .2s; }
+  .yai-actions a:hover { background: var(--gold); color: #0a0f0c; }
+  .yai-typing { align-self: flex-start; color: rgba(255,255,255,.4); font-size: 12px; letter-spacing: .2em; padding: 2px 6px; display: none; }
+  .yai-chips { display: flex; gap: 6px; padding: 8px 12px; flex-wrap: wrap; border-top: 1px solid rgba(201,169,98,.1); }
+  .yai-chips button { background: none; border: 1px solid rgba(201,169,98,.35); color: rgba(255,255,255,.7); font-size: 12px;
+    padding: 6px 11px; border-radius: 20px; cursor: pointer; transition: all .2s; font-family: inherit; }
+  .yai-chips button:hover { border-color: var(--gold); color: var(--gold-lt); }
+  .yai-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+  .yai-input input { flex: 1; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); border-radius: 3px;
+    color: #fff; padding: 10px 12px; font-size: 14px; font-family: inherit; outline: none; }
+  .yai-input input:focus { border-color: var(--gold); }
+  .yai-input button { background: linear-gradient(160deg, var(--gold-lt), var(--gold-dk)); border: none; border-radius: 3px;
+    color: #0a0f0c; padding: 0 16px; cursor: pointer; font-size: 15px; }
+  @media (max-width: 480px) {
+    .yai-panel { right: 10px; left: 10px; width: auto; bottom: 78px; height: min(72vh, 560px); }
+    .yai-fab { right: 14px; bottom: 14px; }
+  }
+
+  /* ─── 活动弹窗（PROMO POPUP）─── */
+  .promo-ov { position: fixed; inset: 0; z-index: 1150; background: rgba(3,6,5,.5); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity .4s; }
+  .promo-ov.open { display: flex; opacity: 1; }
+  .promo-card { position: relative; width: min(86vw, 330px); max-height: 76vh; overflow-y: auto; background: linear-gradient(170deg, #0d1611, #070d0a);
+    border: 1px solid var(--gold); border-radius: 8px; box-shadow: 0 30px 80px rgba(0,0,0,.6);
+    transform: translateY(24px) scale(.97); transition: transform .45s cubic-bezier(.22,1,.36,1); }
+  .promo-ov.open .promo-card { transform: none; }
+  .promo-close { position: absolute; top: 10px; right: 10px; z-index: 3; width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(3,8,6,.65); border: 1px solid rgba(201,169,98,.5); color: var(--gold-lt); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+  .promo-close:hover { background: var(--gold); color: #0a0f0c; }
+  .promo-poster { position: relative; width: 100%; overflow: hidden; cursor: pointer; border-bottom: 1px solid rgba(201,169,98,.25); }
+  .promo-poster img { width: 100%; height: auto; max-height: 52vh; object-fit: contain; display: block; margin: 0 auto; transition: transform .6s; }
+  .promo-poster:hover img { transform: scale(1.04); }
+  .promo-poster .promo-tap { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(3,8,6,.65); border: 1px solid rgba(201,169,98,.5); color: var(--gold-lt); font-size: 11px;
+    letter-spacing: .18em; text-transform: uppercase; padding: 6px 14px; border-radius: 20px; backdrop-filter: blur(6px); white-space: nowrap; }
+  .promo-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid rgba(201,169,98,.4); background: rgba(3,8,6,.55); color: var(--gold-lt); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+  .promo-nav.prev { left: 10px; } .promo-nav.next { right: 10px; }
+  .promo-body { padding: 20px 24px 24px; text-align: center; }
+  .promo-eyebrow { font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+  .promo-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--gold-lt); letter-spacing: .04em; line-height: 1.25; }
+  .promo-detail { display: none; text-align: left; margin-top: 16px; font-size: 14px; line-height: 1.65; color: rgba(255,255,255,.8); }
+  .promo-card.expanded .promo-detail { display: block; }
+  .promo-card.expanded .promo-poster img { max-height: 26vh; }
+  .promo-detail p { margin-bottom: 12px; }
+  .promo-detail .preq { display: flex; gap: 12px; margin-bottom: 12px; }
+  .promo-detail .preq-n { flex: none; width: 26px; height: 26px; border: 1px solid var(--gold); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: var(--gold-lt); font-size: 12px; font-family: 'Cormorant Garamond', serif; }
+  .promo-detail .preq-ig { margin-top: 6px; font-size: 13px; }
+  .promo-detail .preq-ig a { color: var(--gold-lt); text-decoration: none; display: block; padding: 2px 0; }
+  .promo-cta { display: flex; gap: 10px; margin-top: 18px; }
+  .promo-cta a { flex: 1; text-align: center; padding: 12px 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    text-decoration: none; border-radius: 3px; transition: all .25s; }
+  .promo-cta .cta-book { border: 1px solid var(--gold); color: var(--gold-lt); }
+  .promo-cta .cta-book:hover { background: var(--gold); color: #0a0f0c; }
+  .promo-cta .cta-points { background: linear-gradient(160deg, var(--gold-lt), var(--gold-dk)); color: #0a0f0c; border: 1px solid transparent; }
+  .promo-cta .cta-points:hover { filter: brightness(1.1); }
+  @media (max-width: 480px) {
+    .promo-ov { padding: 16px; align-items: center; }
+    .promo-card { width: 100%; max-height: 74vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部导航（滚动到第二屏后淡入） -->
+<nav class="topnav" id="topnav">
+  <a href="#top" class="nav-logo">
+    <img src="logo.png" alt="YIO Fish" onerror="this.style.display='none';this.parentNode.textContent='YIO Fish';">
+  </a>
+  <div class="nav-links">
+    <a href="#piatti">Piatti</a>
+    <a href="#ambiente">Ambiente</a>
+    <a href="#eventi">Eventi</a>
+    <a href="#contatti">Contatti</a>
+  </div>
+  <button class="nav-burger" id="navBurger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="nav-drawer" id="navDrawer">
+  <a href="#piatti">Piatti</a>
+  <a href="#ambiente">Ambiente</a>
+  <a href="#eventi">Eventi</a>
+  <a href="#servizi">Come ordinare</a>
+  <a href="#contatti">Contatti</a>
+</div>
+
+<!-- ① HERO -->
+<header class="hero" id="top">
+  <img class="hero-logo" src="logo.png" alt="YIO Fish — Ristorante Giapponese">
+  <div class="hero-line"></div>
+  <p class="hero-sub">Seleziona il ristorante</p>
+
+  <div class="store-list">
+    <a class="store-btn" href="carpi.html">YIO Fish CARPI<span class="city">Carpi · Modena</span></a>
+    <a class="store-btn" href="legnago.html">YIO Fish LEGNAGO<span class="city">Legnago · Verona</span></a>
+    <a class="store-btn" href="imola.html">YIO Fish IMOLA<span class="city">Imola · Bologna</span></a>
+  </div>
+
+  <!-- 🎡 幸运转盘入口（没活动时整段删除即可）-->
+  <div class="lot-band">
+    <div class="lot-title">🎡 Ruota della Fortuna</div>
+    <div class="lot-sub">Un giro gratis al giorno · Solo al tavolo</div>
+    <div class="lot-links">
+      <a href="lottery.html?r=carpi">CARPI</a>
+      <a href="lottery.html?r=legnago">LEGNAGO</a>
+      <a href="lottery.html?r=imola">IMOLA</a>
+    </div>
+  </div>
+
+  <div class="scroll-cue" onclick="document.getElementById('intro').scrollIntoView()">
+    <span>Scopri</span>
+    <div class="cue-line"></div>
+  </div>
+</header>
+
+<!-- ② 介绍 -->
+<section class="intro" id="intro">
+  <div class="wrap intro-grid">
+    <div class="reveal">
+      <p class="eyebrow">La nostra cucina</p>
+      <h2 class="section-title">Sapori del <strong>Giappone</strong>, freschezza ogni giorno</h2>
+      <div class="gold-rule"></div>
+      <p class="lead">
+        Da oltre quindici anni dedichiamo la nostra vita a un'unica arte: l'autentica cucina giapponese. Un percorso che, da quasi quattro anni, ha trovato casa in YIO Fish. Ogni piatto è il risultato di un profondo rispetto per il tempo e per la materia prima: dalla scelta meticolosa degli ingredienti alla precisione millimetrica del taglio. Non offriamo solo una cena, ma un dialogo silenzioso tra la maestria dello chef e il palato dell'ospite. Benvenuti dove il tempo si trasforma in sapore.
+      </p>
+    </div>
+    <div class="reveal intro-photo">
+      <img src="foto/chef.webp" alt="YIO Fish — il nostro chef" onerror="this.style.display='none';this.parentNode.textContent='FOTO · Chef / Bancone sushi';">
+    </div>
+  </div>
+</section>
+
+<!-- ③ 菜品 -->
+<section class="menu-showcase" id="piatti">
+  <div class="wrap">
+    <div class="reveal" style="text-align:center">
+      <p class="eyebrow center">Le specialità</p>
+      <h2 class="section-title">I nostri <strong>piatti</strong></h2>
+      <div class="gold-rule" style="margin: 0 auto 28px"></div>
+    </div>
+    <div class="dish-grid reveal">
+      <div class="dish"><img src="foto/piatti/misto.webp" alt="Sushi Misto" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Sushi Misto</span></div>
+      <div class="dish"><img src="foto/piatti/sashimi.webp" alt="Sashimi" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Sashimi</span></div>
+      <div class="dish"><img src="foto/piatti/uramaki.webp" alt="Uramaki Special" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Uramaki Special</span></div>
+      <div class="dish"><img src="foto/piatti/nigiri.webp" alt="Nigiri" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Nigiri</span></div>
+      <div class="dish"><img src="foto/piatti/tempura.webp" alt="Tempura" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Tempura</span></div>
+      <div class="dish"><img src="foto/piatti/ramen.webp" alt="Ramen" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Ramen</span></div>
+      <div class="dish"><img src="foto/piatti/tartare.webp" alt="Tartare" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Tartare</span></div>
+      <div class="dish"><img src="foto/piatti/hosomaki.webp" alt="Hosomaki" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Hosomaki</span></div>
+      <div class="dish"><img src="foto/piatti/dessert.webp" alt="Dolce" class="dish-img" onerror="this.remove();" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Dolce</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ④ 环境 -->
+<section class="ambiance" id="ambiente">
+  <div class="wrap">
+    <div class="reveal" style="text-align:center">
+      <p class="eyebrow center">L'atmosfera</p>
+      <h2 class="section-title">Un ambiente <strong>accogliente</strong></h2>
+      <div class="gold-rule" style="margin: 0 auto 28px"></div>
+    </div>
+    <div class="carousel reveal" id="amb-carousel">
+      <div class="carousel-track" id="amb-track">
+        <div class="slide"><img src="foto/ambiente/ambiente1.webp" alt="Ambiente 1" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente2.webp" alt="Ambiente 2" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente3.webp" alt="Ambiente 3" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente4.webp" alt="Ambiente 4" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente5.webp" alt="Ambiente 5" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente6.webp" alt="Ambiente 6" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+        <div class="slide"><img src="foto/ambiente/ambiente7.webp" alt="Ambiente 7" onerror="this.closest('.slide').classList.add('slide-ph');this.remove();" data-ph="Ambiente"></div>
+      </div>
+      <button class="carousel-btn prev" onclick="ambGo(-1)" aria-label="Precedente">‹</button>
+      <button class="carousel-btn next" onclick="ambGo(1)" aria-label="Successiva">›</button>
+      <div class="carousel-dots" id="amb-dots"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑤ 特别活动 -->
+<section class="eventi" id="eventi">
+  <div class="wrap">
+    <div class="reveal" style="text-align:center">
+      <p class="eyebrow center">Eventi speciali</p>
+      <h2 class="section-title">Feste &amp; <strong>occasioni</strong></h2>
+      <div class="gold-rule" style="margin: 0 auto 28px"></div>
+    </div>
+    <div class="event-card reveal">
+      <div class="event-poster">
+        <div class="ev-carousel" id="ev-carousel">
+          <div class="ev-track" id="ev-track">
+            <div class="ev-slide"><img src="foto/eventi/eventi-1.webp" alt="Evento YIO Fish 1" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-2.webp" alt="Evento YIO Fish 2" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-3.webp" alt="Evento YIO Fish 3" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-4.webp" alt="Evento YIO Fish 4" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-5.webp" alt="Evento YIO Fish 5" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-6.webp" alt="Evento YIO Fish 6" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-7.webp" alt="Evento YIO Fish 7" onerror="this.closest('.ev-slide').remove();"></div>
+            <div class="ev-slide"><img src="foto/eventi/eventi-8.webp" alt="Evento YIO Fish 8" onerror="this.closest('.ev-slide').remove();"></div>
+          </div>
+          <button class="ev-btn prev" onclick="evGo(-1)" aria-label="Precedente">‹</button>
+          <button class="ev-btn next" onclick="evGo(1)" aria-label="Successiva">›</button>
+          <div class="ev-dots" id="ev-dots"></div>
+        </div>
+      </div>
+      <div class="event-info">
+        <h3>YIO Summer Fan 2026 · <em>Già disponibile</em></h3>
+        <p>L'estate ha il suo simbolo. Abbiamo creato un ventaglio esclusivo firmato <b>YIO FISH</b>, con struttura in bambù e carta tradizionale: leggero, pieghevole ed elegante, perfetto da portare sempre con te nelle giornate più calde.</p>
+        <p style="color:var(--gold-lt);font-weight:400;margin-bottom:16px;letter-spacing:.5px">Come riceverlo? Scegli una delle due opzioni:</p>
+        <div class="event-reqs">
+          <div class="req"><span class="req-n">I</span><div><b>Accumula 8 YIO Punti</b> — Registrati su yio.it (🎁 +2 punti gratis subito) e accumula i punti con le tue consumazioni!</div></div>
+          <div class="req"><span class="req-n">II</span><div><b>Vieni a cena in 2 persone</b> — e ricevi subito il tuo YIO Summer Fan 2026 alla cassa! 🥢</div></div>
+          <div class="req"><span class="req-n">III</span><div><b>Bonus · +10 YIO Punti</b> — Condividi una foto o una Story con il tuo ventaglio e tagga il tuo ristorante! Le foto più belle finiranno sul nostro profilo.
+            <div class="req-ig">
+              <a href="https://instagram.com/yio_fish_carpi" target="_blank">Carpi → @yio_fish_carpi</a>
+              <a href="https://instagram.com/yio.fish_legnago" target="_blank">Legnago → @yio.fish_legnago</a>
+              <a href="https://instagram.com/yio_fish_imola" target="_blank">Imola → @yio_fish_imola</a>
+            </div>
+          </div></div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.5px">Le quantità sono limitate. Ti aspettiamo da YIO FISH!</p>
+        <span class="event-soon">Già disponibile · Ritira alla cassa</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑥ 服务方式 -->
+<section class="services" id="servizi">
+  <div class="wrap">
+    <div class="reveal" style="text-align:center">
+      <p class="eyebrow center">Come ordinare</p>
+      <h2 class="section-title">Tre modi per <strong>gustarci</strong></h2>
+      <div class="gold-rule" style="margin: 0 auto 28px"></div>
+    </div>
+    <div class="svc-row reveal">
+      <a class="svc" href="#top" data-mode="tavolo" aria-label="Al ristorante — scegli il ristorante">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7"/><circle cx="12" cy="13" r="3.5"/><path d="M12 3v3M5.6 6.6l2 2M18.4 6.6l-2 2"/></svg></div>
+        <h3>Al ristorante</h3>
+        <p>Vieni a trovarci e ordina direttamente dal tuo tavolo con il QR.</p>
+        <span class="go">Scegli il ristorante →</span>
+      </a>
+      <a class="svc" href="#top" data-mode="asporto" aria-label="Asporto — scegli il ristorante">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1.2 12.2a1 1 0 0 1-1 1.1H5.8a1 1 0 0 1-1-1.1L6 8z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg></div>
+        <h3>Asporto</h3>
+        <p>Ordina e ritira in negozio quando preferisci.</p>
+        <span class="go">Scegli il ristorante →</span>
+      </a>
+      <a class="svc" href="#top" data-mode="consegna" aria-label="Consegna — scegli il ristorante">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M8 17.5h8M12 17.5l-2-6h3l2.5 6M13 6h2.5a2 2 0 0 1 2 2v2.5"/></svg></div>
+        <h3>Consegna</h3>
+        <p>Ricevi i nostri piatti comodamente a casa tua.</p>
+        <span class="go">Scegli il ristorante →</span>
+      </a>
+    </div>
+    <div class="order-cta reveal">
+      <p class="ct-label">Ordina dal tuo ristorante</p>
+      <div class="order-btns">
+        <a href="carpi.html">Carpi</a>
+        <a href="legnago.html">Legnago</a>
+        <a href="imola.html">Imola</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑦ 联系 -->
+<section class="contact" id="contatti">
+  <div class="wrap">
+    <div class="reveal" style="text-align:center">
+      <p class="eyebrow center">Dove siamo</p>
+      <h2 class="section-title">I nostri <strong>ristoranti</strong></h2>
+      <div class="gold-rule" style="margin: 0 auto 28px"></div>
+    </div>
+    <div class="loc-grid reveal">
+      <div class="loc">
+        <h3>CARPI</h3>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>Viale dell'Industria, 19<br>41012 Carpi (MO)</span></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16.5v2.6a2 2 0 0 1-2.2 2A19 19 0 0 1 2.9 5.2 2 2 0 0 1 4.9 3h2.6a1.5 1.5 0 0 1 1.5 1.3l.7 3.4a1.5 1.5 0 0 1-.6 1.5L7.6 10.4a16 16 0 0 0 6 6l1.2-1.5a1.5 1.5 0 0 1 1.5-.6l3.4.7a1.5 1.5 0 0 1 1.3 1.5z"/></svg></span><a href="tel:+393391406020">339 140 6020</a></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
+        <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=YIO+Fish+Restaurant+-+Sushi+Carpi" target="_blank">Indicazioni →</a>
+      </div>
+      <div class="loc">
+        <h3>LEGNAGO</h3>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>Viale Europa, 20<br>37045 Legnago (VR)</span></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16.5v2.6a2 2 0 0 1-2.2 2A19 19 0 0 1 2.9 5.2 2 2 0 0 1 4.9 3h2.6a1.5 1.5 0 0 1 1.5 1.3l.7 3.4a1.5 1.5 0 0 1-.6 1.5L7.6 10.4a16 16 0 0 0 6 6l1.2-1.5a1.5 1.5 0 0 1 1.5-.6l3.4.7a1.5 1.5 0 0 1 1.3 1.5z"/></svg></span><a href="tel:+393773476774">377 347 6774</a></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
+        <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=Yio+Fish+Legnago+Viale+Europa+20" target="_blank">Indicazioni →</a>
+      </div>
+      <div class="loc">
+        <h3>IMOLA</h3>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>Via Giuseppe Fanin, 21<br>40026 Imola (BO)</span></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16.5v2.6a2 2 0 0 1-2.2 2A19 19 0 0 1 2.9 5.2 2 2 0 0 1 4.9 3h2.6a1.5 1.5 0 0 1 1.5 1.3l.7 3.4a1.5 1.5 0 0 1-.6 1.5L7.6 10.4a16 16 0 0 0 6 6l1.2-1.5a1.5 1.5 0 0 1 1.5-.6l3.4.7a1.5 1.5 0 0 1 1.3 1.5z"/></svg></span><a href="tel:+393336189620">333 618 9620</a></div>
+        <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
+        <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=Via+Giuseppe+Fanin+21+Imola+BO" target="_blank">Indicazioni →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑧ 页脚 -->
+<footer>
+  <img class="foot-logo" src="logo.png" alt="YIO Fish">
+  <div class="social">
+    <a href="#" aria-label="Instagram" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+    <a href="#" aria-label="Facebook" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 9h3V6h-3c-1.7 0-3 1.3-3 3v2H9v3h2v7h3v-7h2.5l.5-3H14V9z"/></svg></a>
+  </div>
+  <p class="copyright">© <span id="yr"></span> YIO Fish · Ristorante Giapponese</p>
+</footer>
+
+<script>
+  // 年份
+  document.getElementById('yr').textContent = new Date().getFullYear();
+
+  // 滚动淡入
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+
+  // 记住手动选店（沿用原会话缓存键，进店页后体验一致）
+  document.querySelectorAll('.store-btn, .order-btns a').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      try { sessionStorage.setItem('yio_route_v1', btn.getAttribute('href')); } catch(e){}
+    }, { passive: true });
+  });
+
+  // 服务卡：把选中的服务方式带到店链接上（?mode=asporto/consegna），
+  // 店页面加载时识别参数自动进入对应模式；堂食(tavolo)不带参数=默认首页
+  document.querySelectorAll('.svc').forEach(function(card){
+    card.addEventListener('click', function(){
+      var mode = card.getAttribute('data-mode') || '';
+      document.querySelectorAll('.store-btn, .order-btns a').forEach(function(btn){
+        var base = btn.getAttribute('href').split('?')[0];
+        btn.setAttribute('href', (mode === 'asporto' || mode === 'consegna') ? base + '?mode=' + mode : base);
+      });
+    }, { passive: true });
+  });
+
+  // ───── 顶部导航：滚过第一屏后淡入 ─────
+  (function(){
+    var nav = document.getElementById('topnav');
+    var hero = document.getElementById('top');
+    var burger = document.getElementById('navBurger');
+    var drawer = document.getElementById('navDrawer');
+    if (!nav || !hero) return;
+    // 用 IntersectionObserver 监测 hero 是否还在视野
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { nav.classList.remove('show'); closeDrawer(); }
+        else { nav.classList.add('show'); }
+      });
+    }, { threshold: 0.35 });
+    io.observe(hero);
+    // 汉堡开关
+    function closeDrawer(){ if(drawer)drawer.classList.remove('open'); if(burger)burger.classList.remove('open'); }
+    if (burger) burger.addEventListener('click', function(){
+      drawer.classList.toggle('open'); burger.classList.toggle('open');
+    });
+    // 点抽屉链接后关闭
+    if (drawer) drawer.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', closeDrawer); });
+  })();
+
+  (function(){
+    var track = document.getElementById('amb-track');
+    var dotsBox = document.getElementById('amb-dots');
+    var carousel = document.getElementById('amb-carousel');
+    if (!track || !carousel) return;
+    var slides = Array.prototype.slice.call(track.children);
+    var n = slides.length;
+    if (n <= 1) { // 只有0或1张，隐藏控件
+      var pv=carousel.querySelector('.prev'), nx=carousel.querySelector('.next');
+      if(pv)pv.style.display='none'; if(nx)nx.style.display='none';
+      return;
+    }
+    var idx = 0, timer = null;
+    // 圆点
+    for (var i=0;i<n;i++){
+      var d=document.createElement('div'); d.className='dot'+(i===0?' active':'');
+      (function(k){ d.onclick=function(){ go(k); restart(); }; })(i);
+      dotsBox.appendChild(d);
+    }
+    var dots = Array.prototype.slice.call(dotsBox.children);
+    function render(){
+      track.style.transform='translateX(-'+(idx*100)+'%)';
+      dots.forEach(function(dt,k){ dt.classList.toggle('active',k===idx); });
+    }
+    function go(k){ idx=(k+n)%n; render(); }
+    window.ambGo=function(step){ go(idx+step); restart(); };
+    function restart(){ if(timer)clearInterval(timer); timer=setInterval(function(){ go(idx+1); }, 4000); }
+    // 触摸滑动
+    var sx=0;
+    track.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+    track.addEventListener('touchend',function(e){
+      var dx=e.changedTouches[0].clientX-sx;
+      if(Math.abs(dx)>40){ go(idx+(dx<0?1:-1)); restart(); }
+    },{passive:true});
+    render(); restart();
+  })();
+
+  // ───── 活动轮播（自适应：自动检测有几张图，1张静态，多张轮播）─────
+  (function(){
+    var track = document.getElementById('ev-track');
+    var dotsBox = document.getElementById('ev-dots');
+    var carousel = document.getElementById('ev-carousel');
+    if (!track || !carousel) return;
+    var pv=carousel.querySelector('.prev'), nx=carousel.querySelector('.next');
+
+    // 等所有预留图片加载完（成功或失败），失败的 slide 会被 onerror 移除
+    function waitImages(cb){
+      var imgs = Array.prototype.slice.call(track.querySelectorAll('img'));
+      if (!imgs.length) { cb(); return; }
+      var pending = imgs.length;
+      function done(){ pending--; if(pending<=0) cb(); }
+      imgs.forEach(function(img){
+        if (img.complete) {
+          // 已完成：成功或已缓存的失败
+          if (img.naturalWidth === 0) { var sl=img.closest('.ev-slide'); if(sl) sl.remove(); }
+          done();
+        } else {
+          img.addEventListener('load', done, {once:true});
+          img.addEventListener('error', function(){ var sl=img.closest('.ev-slide'); if(sl) sl.remove(); done(); }, {once:true});
+        }
+      });
+    }
+
+    function initCarousel(){
+      var slides = track.querySelectorAll('.ev-slide');
+      var n = slides.length;
+      if (n === 0) { carousel.style.display='none'; return; } // 一张都没传
+      if (n === 1) { if(pv)pv.style.display='none'; if(nx)nx.style.display='none'; return; } // 单张不轮播
+
+      if(pv)pv.style.display='flex'; if(nx)nx.style.display='flex';
+      var idx=0, timer=null;
+      for (var i=0;i<n;i++){
+        var d=document.createElement('div'); d.className='dot'+(i===0?' active':'');
+        (function(k){ d.onclick=function(){ go(k); restart(); }; })(i);
+        dotsBox.appendChild(d);
+      }
+      var dots=Array.prototype.slice.call(dotsBox.children);
+      function render(){ track.style.transform='translateX(-'+(idx*100)+'%)'; dots.forEach(function(dt,k){ dt.classList.toggle('active',k===idx); }); }
+      function go(k){ idx=(k+n)%n; render(); }
+      window.evGo=function(step){ go(idx+step); restart(); };
+      function restart(){ if(timer)clearInterval(timer); timer=setInterval(function(){ go(idx+1); }, 5000); }
+      var sx=0;
+      track.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+      track.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40){ go(idx+(dx<0?1:-1)); restart(); } },{passive:true});
+      render(); restart();
+    }
+
+    waitImages(initCarousel);
+  })();
+</script>
+
+<!-- ─── YIO AI 悬浮助手 ─── -->
+<button class="yai-fab" id="yaiFab" aria-label="YIO AI">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
+  <span class="yai-dot" id="yaiDot"></span>
+</button>
+<div class="yai-panel" id="yaiPanel" role="dialog" aria-label="YIO AI">
+  <div class="yai-head">
+    <div class="yai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></div>
+    <div>
+      <div class="yai-title">YIO AI</div>
+      <div class="yai-sub" id="yaiSub">Assistente virtuale</div>
+    </div>
+    <button class="yai-close" id="yaiClose" aria-label="Chiudi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="yai-msgs" id="yaiMsgs"></div>
+  <div class="yai-typing" id="yaiTyping">···</div>
+  <div class="yai-chips" id="yaiChips"></div>
+  <div class="yai-input">
+    <input id="yaiInput" type="text" autocomplete="off">
+    <button id="yaiSend" aria-label="Invia">→</button>
+  </div>
+</div>
+<script>
+(function(){
+  var YAI_API = 'https://yio.it/api/ai/chat';
+  var fab = document.getElementById('yaiFab'), panel = document.getElementById('yaiPanel'),
+      msgs = document.getElementById('yaiMsgs'), typing = document.getElementById('yaiTyping'),
+      chips = document.getElementById('yaiChips'), input = document.getElementById('yaiInput'),
+      sendBtn = document.getElementById('yaiSend'), closeBtn = document.getElementById('yaiClose'),
+      sub = document.getElementById('yaiSub');
+  // 界面语言：浏览器语言（zh / en / 其他默认 it）
+  var navLang = (navigator.language || 'it').toLowerCase();
+  var lang = navLang.indexOf('zh') === 0 ? 'zh' : navLang.indexOf('en') === 0 ? 'en' : 'it';
+  var T = {
+    sub:      { it: 'Assistente virtuale', en: 'Virtual assistant', zh: '智能助手' },
+    hello:    { it: 'Ciao! Sono YIO AI ✨ Posso consigliarti i piatti, controllare i tuoi punti fedeltà, aiutarti a prenotare o a ordinare. Cosa posso fare per te?',
+                en: 'Hi! I\'m YIO AI ✨ I can recommend dishes, check your loyalty points, help you book or order. How can I help?',
+                zh: '您好！我是 YIO AI ✨ 可以推荐菜品、查询会员积分、帮您订位或下单。有什么可以帮您的？' },
+    placeholder: { it: 'Scrivi qui...', en: 'Type here...', zh: '输入消息...' },
+    err:      { it: 'Ops, connessione assente. Riprova tra poco.', en: 'Oops, connection problem. Try again shortly.', zh: '抱歉，网络异常，请稍后再试。' },
+    chips:    { it: [['🍣 Consigliami', 'Cosa mi consigli di buono?'], ['⭐ I miei punti', 'Quanti punti fedeltà ho?'], ['📅 Prenota', 'Vorrei prenotare un tavolo'], ['🚚 Ordina', 'Vorrei ordinare']],
+                en: [['🍣 Recommend', 'What do you recommend?'], ['⭐ My points', 'How many loyalty points do I have?'], ['📅 Book', 'I\'d like to book a table'], ['🚚 Order', 'I\'d like to order']],
+                zh: [['🍣 推荐菜品', '有什么好吃的推荐？'], ['⭐ 查询积分', '我有多少会员积分？'], ['📅 订位', '我想订位'], ['🚚 下单', '我想下单']] }
+  };
+  function t(k){ return T[k][lang]; }
+  var history = [], opened = false;
+
+  function addMsg(role, text, actions){
+    var div = document.createElement('div');
+    div.className = 'yai-msg ' + role;
+    div.textContent = text;
+    msgs.appendChild(div);
+    if (actions && actions.length){
+      var box = document.createElement('div');
+      box.className = 'yai-actions';
+      actions.forEach(function(a){
+        var link = document.createElement('a');
+        link.href = a.url; link.textContent = a.label;
+        if (a.url.indexOf('http') === 0 || a.url.indexOf('tel:') === 0) link.target = '_blank';
+        box.appendChild(link);
+      });
+      msgs.appendChild(box);
+    }
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  function renderChips(){
+    chips.innerHTML = '';
+    t('chips').forEach(function(c){
+      var b = document.createElement('button');
+      b.textContent = c[0];
+      b.onclick = function(){ send(c[1]); };
+      chips.appendChild(b);
+    });
+  }
+  function open(){
+    panel.classList.add('open');
+    document.getElementById('yaiDot').style.display = 'none';
+    if (!opened){ opened = true; addMsg('bot', t('hello')); renderChips(); }
+    setTimeout(function(){ input.focus(); }, 150);
+  }
+  function send(text){
+    text = (text || '').trim();
+    if (!text) return;
+    addMsg('user', text);
+    history.push({ role: 'user', text: text });
+    input.value = '';
+    typing.style.display = 'block';
+    msgs.scrollTop = msgs.scrollHeight;
+    fetch(YAI_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, history: history.slice(-6) })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      typing.style.display = 'none';
+      var reply = d.reply || t('err');
+      addMsg('bot', reply, d.actions);
+      history.push({ role: 'bot', text: reply });
+    }).catch(function(){
+      typing.style.display = 'none';
+      addMsg('bot', t('err'));
+    });
+  }
+  sub.textContent = t('sub');
+  input.placeholder = t('placeholder');
+  fab.addEventListener('click', function(){ panel.classList.contains('open') ? panel.classList.remove('open') : open(); });
+  closeBtn.addEventListener('click', function(){ panel.classList.remove('open'); });
+  sendBtn.addEventListener('click', function(){ send(input.value); });
+  input.addEventListener('keydown', function(e){ if (e.key === 'Enter') send(input.value); });
+  // 首次访问 4 秒后亮红点提示
+  setTimeout(function(){ if (!opened) document.getElementById('yaiDot').style.display = 'block'; }, 4000);
+})();
+</script>
+
+<!-- ─── 活动弹窗（PROMO POPUP）─── -->
+<div class="promo-ov" id="promoOv" role="dialog" aria-modal="true" aria-label="Evento speciale">
+  <div class="promo-card" id="promoCard">
+    <button class="promo-close" id="promoClose" aria-label="Chiudi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="promo-poster" id="promoPoster">
+      <img id="promoImg" src="foto/eventi/eventi-1.webp" alt="YIO Summer Fan 2026">
+      <button class="promo-nav prev" id="promoPrev" aria-label="Precedente">‹</button>
+      <button class="promo-nav next" id="promoNext" aria-label="Successiva">›</button>
+      <span class="promo-tap" id="promoTap">Tocca per i dettagli</span>
+    </div>
+    <div class="promo-body">
+      <div class="promo-eyebrow">Evento speciale</div>
+      <div class="promo-title">YIO Summer Fan 2026</div>
+      <div class="promo-detail" id="promoDetail">
+        <p>L'estate ha il suo simbolo. Un ventaglio esclusivo firmato <b style="color:var(--gold-lt)">YIO FISH</b>, in bambù e carta tradizionale: leggero, pieghevole ed elegante.</p>
+        <p style="color:var(--gold-lt);letter-spacing:.5px;margin-bottom:14px">Come riceverlo?</p>
+        <div class="preq"><span class="preq-n">I</span><div><b>Accumula 8 YIO Punti</b> — Registrati su yio.it (🎁 +2 punti gratis subito) e accumula i punti con le tue consumazioni!</div></div>
+        <div class="preq"><span class="preq-n">II</span><div><b>Vieni a cena in 2 persone</b> — e ricevi subito il tuo YIO Summer Fan 2026 alla cassa! 🥢</div></div>
+        <div class="preq"><span class="preq-n">III</span><div><b>Bonus · +10 YIO Punti</b> — Condividi una Story con il ventaglio e tagga il tuo ristorante!
+          <div class="preq-ig">
+            <a href="https://instagram.com/yio_fish_carpi" target="_blank">Carpi → @yio_fish_carpi</a>
+            <a href="https://instagram.com/yio.fish_legnago" target="_blank">Legnago → @yio.fish_legnago</a>
+            <a href="https://instagram.com/yio_fish_imola" target="_blank">Imola → @yio_fish_imola</a>
+          </div>
+        </div></div>
+        <p style="font-size:12px;color:var(--muted)">Quantità limitate. Ti aspettiamo da YIO FISH!</p>
+        <div class="promo-cta">
+          <a class="cta-book" href="#contatti" id="promoBook">Prenota un tavolo</a>
+          <a class="cta-points" href="carpi.html?punti=1" id="promoPoints">⭐ I miei punti</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+/* ═══════════════════ 活动弹窗配置区 ═══════════════════
+   enabled : true = 开启活动弹窗 / false = 关闭（没活动时改这里）
+   delayMs : 打开网站后多少毫秒弹出（默认 2500 = 2.5 秒）
+   images  : 海报图片列表（换活动时改这里）
+   记忆    : 客人关闭后，本次会话不再弹出（sessionStorage）
+══════════════════════════════════════════════════════ */
+var PROMO_CONFIG = {
+  enabled: true,
+  delayMs: 2500,
+  images: [
+    'foto/eventi/eventi-1.webp', 'foto/eventi/eventi-2.webp',
+    'foto/eventi/eventi-3.webp', 'foto/eventi/eventi-4.webp',
+    'foto/eventi/eventi-5.webp', 'foto/eventi/eventi-6.webp',
+    'foto/eventi/eventi-7.webp', 'foto/eventi/eventi-8.webp'
+  ]
+};
+(function(){
+  if (!PROMO_CONFIG.enabled) return;
+  var ov = document.getElementById('promoOv'), card = document.getElementById('promoCard'),
+      img = document.getElementById('promoImg'), tap = document.getElementById('promoTap'),
+      fab = document.getElementById('yaiFab');
+  var idx = 0, opened = false;
+  // 预加载有效图片（404 的剔除）
+  var valid = [];
+  PROMO_CONFIG.images.forEach(function(u){
+    var im = new Image();
+    im.onload = function(){ valid.push(u); if (valid.length === 1 && !opened) img.src = valid[0]; };
+    im.src = u;
+  });
+  function show(n){
+    if (!valid.length) return;
+    idx = (n + valid.length) % valid.length;
+    img.src = valid[idx];
+  }
+  function open(){
+    if (opened || sessionStorage.getItem('yioPromoClosed')) return;
+    opened = true;
+    ov.classList.add('open');
+    if (fab) fab.style.display = 'none'; // 弹窗期间 AI 按钮让位
+  }
+  function close(){
+    ov.classList.remove('open');
+    sessionStorage.setItem('yioPromoClosed', '1');
+    if (fab) fab.style.display = '';
+  }
+  document.getElementById('promoPrev').addEventListener('click', function(e){ e.stopPropagation(); show(idx - 1); });
+  document.getElementById('promoNext').addEventListener('click', function(e){ e.stopPropagation(); show(idx + 1); });
+  document.getElementById('promoPoster').addEventListener('click', function(){
+    card.classList.add('expanded');
+    tap.style.display = 'none';
+  });
+  document.getElementById('promoClose').addEventListener('click', close);
+  ov.addEventListener('click', function(e){ if (e.target === ov) close(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && ov.classList.contains('open')) close(); });
+  document.getElementById('promoBook').addEventListener('click', close);
+  setTimeout(open, PROMO_CONFIG.delayMs);
+})();
+</script>
+</body>
+</html>
