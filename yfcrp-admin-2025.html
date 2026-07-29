@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.47.2</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.47.3</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.47.2</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.47.3</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -643,7 +643,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.47.2</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.47.3</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1375,7 +1375,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.47.2</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.47.3</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -4915,7 +4915,7 @@ function exportLoyaltyList() {
 
 
 // ============================================================
-// 🎡 Lotteria 抽奖管理（v5.47.2）
+// 🎡 Lotteria 抽奖管理（v5.47.3）
 // 店员：待批准队列（批准/拒绝）+ 中奖核销；店长/超管：奖项与活动配置
 // ============================================================
 var _lotPoll = null;
@@ -5181,9 +5181,10 @@ async function loadLotterySettings() {
   var s = r.data.settings || {};
   box.innerHTML = ''
     + '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">'
-      + '<label style="position:relative;display:inline-block;width:46px;height:24px;cursor:pointer" onclick="event.preventDefault();var c=document.getElementById(\'ls-enabled\');c.checked=!c.checked">'
+      + '<label style="position:relative;display:inline-block;width:46px;height:24px;cursor:pointer" onclick="event.preventDefault();var c=document.getElementById(\'ls-enabled\');c.checked=!c.checked;c.dispatchEvent(new Event(\'change\'))">'
         + '<input type="checkbox" id="ls-enabled" ' + (s.enabled ? 'checked' : '') + ' style="opacity:0;width:0;height:0">'
-        + '<span style="position:absolute;inset:0;border-radius:24px;transition:.3s;background:' + (s.enabled ? '#b8902e' : '#ccc') + '" id="ls-track"></span>'
+        + '<span style="position:absolute;inset:0;border-radius:24px;transition:.3s;background:' + (s.enabled ? '#b8902e' : '#ccc') + '" id="ls-track">'
+        + '<span id="ls-thumb" style="position:absolute;height:18px;width:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s;transform:translateX(' + (s.enabled ? '22px' : '0') + ')"></span></span>'
       + '</label>'
       + '<div><div style="font-size:14px;font-weight:600">Lotteria: <span id="ls-state">' + (s.enabled ? 'ATTIVA' : 'OFF') + '</span></div>'
       + '<div style="font-size:11px;color:var(--muted)">OFF = 客人打开转盘页显示"暂无活动"</div></div>'
@@ -5213,6 +5214,7 @@ async function loadLotterySettings() {
   var tr = document.getElementById('ls-track'), cb = document.getElementById('ls-enabled');
   cb.addEventListener('change', function(){
     tr.style.background = cb.checked ? '#b8902e' : '#ccc';
+    document.getElementById('ls-thumb').style.transform = 'translateX(' + (cb.checked ? '22px' : '0') + ')';
     document.getElementById('ls-state').textContent = cb.checked ? 'ATTIVA' : 'OFF';
   });
 }
