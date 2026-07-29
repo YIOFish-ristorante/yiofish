@@ -488,8 +488,8 @@
     background: rgba(3,8,6,.65); border: 1px solid rgba(201,169,98,.5); color: var(--gold-lt); cursor: pointer;
     display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
   .promo-close:hover { background: var(--gold); color: #0a0f0c; }
-  .promo-poster { position: relative; width: 100%; aspect-ratio: 70/88; max-height: 46vh; overflow: hidden; cursor: pointer; border-bottom: 1px solid rgba(201,169,98,.25); }
-  .promo-poster img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s; }
+  .promo-poster { position: relative; width: 100%; overflow: hidden; cursor: pointer; border-bottom: 1px solid rgba(201,169,98,.25); }
+  .promo-poster img { width: 100%; height: auto; max-height: 52vh; object-fit: contain; display: block; margin: 0 auto; transition: transform .6s; }
   .promo-poster:hover img { transform: scale(1.04); }
   .promo-poster .promo-tap { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
     background: rgba(3,8,6,.65); border: 1px solid rgba(201,169,98,.5); color: var(--gold-lt); font-size: 11px;
@@ -503,7 +503,7 @@
   .promo-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--gold-lt); letter-spacing: .04em; line-height: 1.25; }
   .promo-detail { display: none; text-align: left; margin-top: 16px; font-size: 14px; line-height: 1.65; color: rgba(255,255,255,.8); }
   .promo-card.expanded .promo-detail { display: block; }
-  .promo-card.expanded .promo-poster { aspect-ratio: auto; max-height: 32vh; }
+  .promo-card.expanded .promo-poster img { max-height: 26vh; }
   .promo-detail p { margin-bottom: 12px; }
   .promo-detail .preq { display: flex; gap: 12px; margin-bottom: 12px; }
   .promo-detail .preq-n { flex: none; width: 26px; height: 26px; border: 1px solid var(--gold); border-radius: 50%;
@@ -1060,7 +1060,7 @@
    记忆    : 客人关闭后，本次会话不再弹出（sessionStorage）
 ══════════════════════════════════════════════════════ */
 var PROMO_CONFIG = {
-  enabled: false,
+  enabled: true,
   delayMs: 2500,
   images: [
     'foto/eventi/eventi-1.webp', 'foto/eventi/eventi-2.webp',
