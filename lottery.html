@@ -193,7 +193,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.5.1</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.5.2</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -220,7 +220,7 @@ var I18N = {
     myWins: 'I miei premi', back: 'Indietro', noWins: 'Nessun premio trovato per questo numero.',
     closed: 'Nessuna lotteria attiva', closedNote: 'Seguici su Instagram per i prossimi eventi!',
     regTitle: 'Registrati e gira!', regNote: 'Questo numero non è ancora registrato. Iscriviti gratis alla fedeltà YIO: punti benvenuto inclusi, e giri subito la ruota.',
-    regPhone: 'Numero (dal tuo tentativo)', regName: 'Nome (facoltativo)', register: 'Iscriviti e richiedi il giro', regBack: '← Torna indietro',
+    regPhone: 'Numero (dal tuo tentativo)', regName: 'Nome (facoltativo)', register: 'Iscriviti e richiedi il giro', regBack: '← Torna indietro', regWorking: '⏳ Iscrizione in corso...',
     errPhone: 'Inserisci un numero di telefono valido', errAgree: 'Devi accettare il regolamento',
     errNotReg: 'Numero non registrato. Registrati dal menu fedeltà del sito e riprova!',
     errToday: 'Hai già giocato oggi. Torna domani!',
@@ -249,7 +249,7 @@ var I18N = {
     myWins: 'My prizes', back: 'Back', noWins: 'No prizes found for this number.',
     closed: 'No active lottery', closedNote: 'Follow us on Instagram for upcoming events!',
     regTitle: 'Register & spin!', regNote: 'This number is not registered yet. Join YIO loyalty for free — welcome points included — and spin right away.',
-    regPhone: 'Number (from your attempt)', regName: 'Name (optional)', register: 'Sign up & request a spin', regBack: '← Go back',
+    regPhone: 'Number (from your attempt)', regName: 'Name (optional)', register: 'Sign up & request a spin', regBack: '← Go back', regWorking: '⏳ Signing up...',
     errPhone: 'Please enter a valid phone number', errAgree: 'You must accept the rules',
     errNotReg: 'Number not registered. Join our loyalty program on the website and try again!',
     errToday: 'You already played today. Come back tomorrow!',
@@ -278,7 +278,7 @@ var I18N = {
     myWins: '我的奖品', back: '返回', noWins: '这个号码暂无中奖记录。',
     closed: '暂无抽奖活动', closedNote: '关注我们的 Instagram，活动不错过！',
     regTitle: '注册会员，马上抽奖！', regNote: '这个号码还不是会员。免费注册 YIO 会员（含注册赠积分），注册后立刻继续抽奖。',
-    regPhone: '号码（来自刚才的输入）', regName: '姓名（选填）', register: '注册并申请抽奖', regBack: '← 返回',
+    regPhone: '号码（来自刚才的输入）', regName: '姓名（选填）', register: '注册并申请抽奖', regBack: '← 返回', regWorking: '⏳ 注册中，请稍候...',
     errPhone: '请输入有效的手机号码', errAgree: '请先勾选同意活动规则',
     errNotReg: '该号码尚未注册会员，请先在网站会员区注册。',
     errToday: '今天已经抽过啦，明天再来！',
@@ -383,10 +383,17 @@ async function doRequest(){
   if (!/^\+?\d{9,13}$/.test(phone)){ showErr('formErr', T('errPhone')); return; }
   if (!$('inAgree').checked){ showErr('formErr', T('errAgree')); return; }
   $('btnRequest').disabled = true;
-  var r = await api('/public/lottery/request', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ restaurant_id: RID, phone: phone, table_no: tableNo, agreed: true })
-  });
+  var r;
+  try {
+    r = await api('/public/lottery/request', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurant_id: RID, phone: phone, table_no: tableNo, agreed: true })
+    });
+  } catch (e) {
+    $('btnRequest').disabled = false;
+    showErr('formErr', T('errGeneric'));
+    return;
+  }
   $('btnRequest').disabled = false;
   var d = r.data;
   if (d.ok){
@@ -420,12 +427,21 @@ async function doRegister(){
   hideErr('regErr');
   var phone = $('regPhone').value.replace(/\s+/g, '');
   var name = $('regName').value.trim();
-  $('btnRegister').disabled = true;
-  var r = await api('/loyalty/identify', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: phone, name: name })
-  });
-  $('btnRegister').disabled = false;
+  var btn = $('btnRegister'), label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = T('regWorking'); // v1.5.2 新会员注册要几秒，给明确反馈，避免以为按钮坏了
+  var r;
+  try {
+    r = await api('/loyalty/identify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone, name: name })
+    });
+  } catch (e) {
+    btn.disabled = false; btn.textContent = label;
+    showErr('regErr', T('errGeneric'));
+    return;
+  }
+  btn.disabled = false; btn.textContent = label;
   if (r.data && (r.data.customer || r.data.isNew !== undefined)){
     // 注册成功（或恰好已注册）→ 回到表单自动重发申请
     $('inPhone').value = phone;
@@ -537,10 +553,17 @@ async function doSpin(){
   if (SPUN || !REQ_ID) return;
   SPUN = true;
   $('btnSpin').disabled = true;
-  var r = await api('/public/lottery/spin', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ request_id: REQ_ID })
-  });
+  var r;
+  try {
+    r = await api('/public/lottery/spin', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request_id: REQ_ID })
+    });
+  } catch (e) {
+    SPUN = false; $('btnSpin').disabled = false;
+    $('tSpinNote').textContent = T('errGeneric');
+    return;
+  }
   var d = r.data;
   if (!d.ok){
     SPUN = false; $('btnSpin').disabled = false;
@@ -612,10 +635,18 @@ async function doRespin(){
   var tableNo = TABLE_NO || $('inTable').value.trim();
   if (!phone || !tableNo){ showStep('stepForm'); return; }
   $('btnRespin').disabled = true;
-  var r = await api('/public/lottery/request', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ restaurant_id: RID, phone: phone, table_no: tableNo, agreed: true, kind: 'paid' })
-  });
+  var r;
+  try {
+    r = await api('/public/lottery/request', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurant_id: RID, phone: phone, table_no: tableNo, agreed: true, kind: 'paid' })
+    });
+  } catch (e) {
+    $('btnRespin').disabled = false;
+    showErr('formErr', T('errGeneric'));
+    showStep('stepForm');
+    return;
+  }
   $('btnRespin').disabled = false;
   var d = r.data;
   if (d.ok){
