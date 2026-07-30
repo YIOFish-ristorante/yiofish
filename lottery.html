@@ -179,6 +179,8 @@ input[type=tel]:focus{border-color:var(--gold)}
       <p class="r-note" id="rNote"></p>
     </div>
     <div class="links">
+      <button class="btn btn-gold" id="btnAgain" style="display:none" onclick="goAgain()"></button>
+      <button class="btn btn-gold" id="btnRespin" style="display:none" onclick="doRespin()"></button>
       <button class="btn btn-ghost" id="btnMyWins"></button>
     </div>
   </div>
@@ -190,7 +192,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.4</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.5</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -209,6 +211,8 @@ var I18N = {
     cancel: 'Annulla', spin: 'GIRA!', spinNote: 'Tocca GIRA e scopri il tuo premio',
     winTitle: 'Complimenti!', winCode: 'Mostra questo codice alla cassa',
     winToday: 'Premio valido SOLO OGGI · mostralo alla cassa prima di pagare',
+    retryTitle: 'GIRA ANCORA!', retryNote: 'Fortuna! Hai vinto un giro gratis extra',
+    againBtn: '🎡 GIRA ANCORA', respinBtn: 'Un altro giro · +€{p}',
     winUntil: 'Valido fino al {d} · mostralo alla cassa alla prossima visita',
     winNext: '⏳ Utilizzabile dalla PROSSIMA VISITA (non oggi) · valido fino al {d}',
     loseTitle: 'Non questa volta!', loseNote: 'Torna a trovarci domani per un altro giro',
@@ -236,6 +240,8 @@ var I18N = {
     cancel: 'Cancel', spin: 'SPIN!', spinNote: 'Tap SPIN and discover your prize',
     winTitle: 'Congratulations!', winCode: 'Show this code at the till',
     winToday: 'Valid TODAY ONLY · show it at the till before paying',
+    retryTitle: 'SPIN AGAIN!', retryNote: 'Lucky! You won an extra free spin',
+    againBtn: '🎡 SPIN AGAIN', respinBtn: 'One more spin · +€{p}',
     winUntil: 'Valid until {d} · show it at the till on your next visit',
     winNext: '⏳ Usable from your NEXT VISIT (not today) · valid until {d}',
     loseTitle: 'Not this time!', loseNote: 'Come back tomorrow for another spin',
@@ -263,6 +269,8 @@ var I18N = {
     cancel: '取消', spin: '开始！', spinNote: '点击开始，看看你的运气',
     winTitle: '恭喜中奖！', winCode: '结账时出示此码',
     winToday: '仅限今天有效 · 结账前请出示',
+    retryTitle: '再来一次！', retryNote: '运气好！获得一次免费再抽机会',
+    againBtn: '🎡 再转一次', respinBtn: '再抽一次 · +{p}€',
     winUntil: '有效期至 {d} · 下次到店结账时出示',
     winNext: '⏳ 下次到店才能用（今天不行）· 有效期至 {d}',
     loseTitle: '差一点点！', loseNote: '明天再来试一次吧',
@@ -287,6 +295,7 @@ function T(k){ return (I18N[LANG] && I18N[LANG][k]) || I18N.it[k] || k; }
 
 var CFG = null;          // 活动配置
 var REQ_ID = null;       // 当前请求
+var PHONE = null, TABLE_NO = null; // v1.5 付费再抽用
 var POLL = null;
 var SPUN = false;
 
@@ -353,6 +362,7 @@ async function init(){
   try { saved = JSON.parse(sessionStorage.getItem('yioLot') || 'null'); } catch(e){}
   if (saved && saved.rid === RID && saved.requestId){
     REQ_ID = saved.requestId;
+    PHONE = saved.phone || null; TABLE_NO = saved.table || null;
     var st = await api('/public/lottery/status?id=' + encodeURIComponent(REQ_ID));
     if (st.data.status === 'pending'){ startPolling(); showStep('stepWait'); return; }
     if (st.data.status === 'approved'){ prepareWheel(); return; }
@@ -378,7 +388,7 @@ async function doRequest(){
   $('btnRequest').disabled = false;
   var d = r.data;
   if (d.ok){
-    REQ_ID = d.request_id;
+    REQ_ID = d.request_id; PHONE = phone; TABLE_NO = tableNo;
     sessionStorage.setItem('yioLot', JSON.stringify({ rid: RID, requestId: REQ_ID, phone: phone, table: tableNo }));
     if (d.status === 'approved'){ prepareWheel(); return; }
     startPolling(); showStep('stepWait'); return;
@@ -529,10 +539,10 @@ async function doSpin(){
     else $('tSpinNote').textContent = d.error || T('errGeneric');
     return;
   }
-  sessionStorage.removeItem('yioLot');
+  if (d.result !== 'retry') sessionStorage.removeItem('yioLot'); // retry: 请求仍有效，保留会话
   var segs = wheelSegs();
   var idx = 0;
-  if (d.result === 'win'){
+  if (d.result === 'win' || d.result === 'retry'){
     idx = segs.findIndex(function(s){ return s.prize && s.name === d.prize_name; });
     if (idx < 0) idx = 0;
   } else {
@@ -544,6 +554,18 @@ async function doSpin(){
 
 // ── ④ 结果 ──
 function showResult(d){
+  $('btnAgain').style.display = 'none';
+  $('btnRespin').style.display = 'none';
+  if (d.result === 'retry'){
+    $('rEmoji').textContent = '🎊';
+    $('rPrize').textContent = T('retryTitle');
+    $('rCode').style.display = 'none';
+    $('rNote').textContent = T('retryNote');
+    $('btnAgain').textContent = T('againBtn');
+    $('btnAgain').style.display = 'block';
+    showStep('stepResult');
+    return;
+  }
   if (d.result === 'win'){
     $('rEmoji').textContent = '🎉';
     $('rPrize').textContent = T('winTitle') + ' — ' + d.prize_name;
@@ -557,8 +579,43 @@ function showResult(d){
     $('rCode').style.display = 'none';
     $('rNote').textContent = T('loseNote');
   }
+  // 付费再抽入口（后台 paid_spin_price>0 才显示）
+  if (CFG && (parseInt(CFG.paid_spin_price) || 0) > 0){
+    $('btnRespin').textContent = T('respinBtn').replace('{p}', CFG.paid_spin_price);
+    $('btnRespin').style.display = 'block';
+  }
   $('btnMyWins').onclick = loadMyWins;
   showStep('stepResult');
+}
+
+// 再来一次：回到转盘原地再转（请求在服务器端仍是 approved）
+function goAgain(){
+  SPUN = false;
+  showStep('stepWheel');
+  $('btnSpin').disabled = false;
+  $('tSpinNote').textContent = T('retryNote');
+}
+
+// 付费再抽：+€N 再申请一次（店员确认收款后批准）
+async function doRespin(){
+  var phone = PHONE || $('inPhone').value.replace(/\s+/g, '');
+  var tableNo = TABLE_NO || $('inTable').value.trim();
+  if (!phone || !tableNo){ showStep('stepForm'); return; }
+  $('btnRespin').disabled = true;
+  var r = await api('/public/lottery/request', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ restaurant_id: RID, phone: phone, table_no: tableNo, agreed: true, kind: 'paid' })
+  });
+  $('btnRespin').disabled = false;
+  var d = r.data;
+  if (d.ok){
+    REQ_ID = d.request_id; SPUN = false;
+    sessionStorage.setItem('yioLot', JSON.stringify({ rid: RID, requestId: REQ_ID, phone: phone, table: tableNo }));
+    if (d.status === 'approved'){ prepareWheel(); return; }
+    startPolling(); showStep('stepWait'); return;
+  }
+  showErr('formErr', d.error || T('errGeneric'));
+  showStep('stepForm');
 }
 
 // ── ⑤ 我的中奖 ──

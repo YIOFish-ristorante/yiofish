@@ -908,18 +908,19 @@ async function loadLotteryReqs(silent) {
     list.innerHTML = reqs.map(function(r) {
       const mins = Math.max(0, Math.round((Date.now() - new Date(r.created_at).getTime()) / 60000));
       const tav = r.table_no ? '<span style="display:inline-block;background:var(--gold);color:#fff;font-size:12px;font-weight:600;border-radius:5px;padding:2px 9px;margin-right:8px">🪑 ' + escHtml(r.table_no) + '</span>' : '';
+      const paidTag = r.kind === 'paid' ? '<span style="display:inline-block;background:#2e8b57;color:#fff;font-size:12px;font-weight:600;border-radius:5px;padding:2px 9px;margin-right:8px">💶 GIRO A PAGAMENTO</span>' : '';
       if (r.status === 'approved') {
         return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px">'
           + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
-          + '<div><div style="font-weight:500;font-size:15px">' + tav + '📱 ' + escHtml(r.phone) + '</div>'
+          + '<div><div style="font-weight:500;font-size:15px">' + tav + paidTag + '📱 ' + escHtml(r.phone) + '</div>'
           + '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + (mins < 1 ? 'adesso' : mins + ' min fa') + '</div></div>'
           + '<span style="font-size:12px;color:var(--green)">✓ approvato · in attesa del giro</span>'
           + '</div></div>';
       }
       return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
-        + '<div><div style="font-weight:500;font-size:15px">' + tav + '📱 ' + escHtml(r.phone) + '</div>'
-        + '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + (mins < 1 ? 'adesso' : mins + ' min fa') + '</div></div>'
+        + '<div><div style="font-weight:500;font-size:15px">' + tav + paidTag + '📱 ' + escHtml(r.phone) + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + (mins < 1 ? 'adesso' : mins + ' min fa') + (r.kind === 'paid' ? ' · <span style="color:#2e8b57">确认已收款再批准</span>' : '') + '</div></div>'
         + '<div style="display:flex;gap:8px">'
         + '<button class="btn btn-green" style="width:auto;padding:8px 14px;font-size:12px" onclick="decideLotteryReq(\'' + r.id + '\',\'approve\',this)">✓ Approva</button>'
         + '<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px" onclick="decideLotteryReq(\'' + r.id + '\',\'reject\',this)">✕</button>'

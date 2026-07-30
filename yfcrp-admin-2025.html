@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.48.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.49.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.48.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.49.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -643,7 +643,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.48.0</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.49.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1375,7 +1375,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.48.0</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.49.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -4915,7 +4915,7 @@ function exportLoyaltyList() {
 
 
 // ============================================================
-// 🎡 Lotteria 抽奖管理（v5.48.0）
+// 🎡 Lotteria 抽奖管理（v5.49.0）
 // 店员：待批准队列（批准/拒绝）+ 中奖核销；店长/超管：奖项与活动配置
 // ============================================================
 var _lotPoll = null;
@@ -5106,7 +5106,7 @@ async function loadLotteryPrizes() {
       var out = (p.used_count || 0) >= (p.total_count || 0);
       return '<tr style="border-top:1px solid var(--border)">'
         + '<td style="padding:8px 4px"><span style="display:inline-block;width:16px;height:16px;border-radius:3px;background:' + _lyEsc(p.color) + '"></span></td>'
-        + '<td style="font-weight:500">' + _lyEsc(p.name) + '</td>'
+        + '<td style="font-weight:500">' + _lyEsc(p.name) + (p.is_retry ? ' <span style="font-size:10px;background:rgba(201,169,98,.18);color:var(--gold-lt);border-radius:8px;padding:1px 7px;vertical-align:2px">再来一次</span>' : '') + '</td>'
         + '<td>' + (p.used_count || 0) + ' / ' + p.total_count + (out ? ' <span style="color:#c0392b;font-size:10px">ESURITO</span>' : '') + '</td>'
         + '<td>' + ((parseInt(p.daily_cap) || 0) > 0 ? '<span style="color:#b8902e">' + parseInt(p.daily_cap) + '/天</span>' : '<span style="color:var(--muted)">不限</span>') + '</td>'
         + '<td>' + p.weight + '</td>'
@@ -5135,13 +5135,14 @@ function lotOpenPrizeForm(id) {
         + '<input id="lp-weight" type="number" min="0" step="0.1" value="' + (p ? p.weight : '') + '" style="width:80px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">有效期天数（0=仅当天）</div>'
         + '<input id="lp-valid" type="number" min="0" value="' + (p ? p.validity_days : 0) + '" style="width:90px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
-      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">颜色</div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">颜色（默认金=自动品牌配色）</div>'
         + '<input id="lp-color" type="color" value="' + (p ? p.color : '#c9a962') + '" style="width:44px;height:34px;padding:2px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">排序</div>'
         + '<input id="lp-sort" type="number" value="' + (p ? p.sort_order : 0) + '" style="width:60px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<label style="font-size:12px;display:flex;align-items:center;gap:6px;padding-bottom:8px"><input type="checkbox" id="lp-active" ' + (!p || p.is_active ? 'checked' : '') + '> 启用</label>'
+      + '<label style="font-size:12px;display:flex;align-items:center;gap:6px;padding-bottom:8px;color:var(--gold-lt)"><input type="checkbox" id="lp-retry" ' + (p && p.is_retry ? 'checked' : '') + '> 🔄 再来一次</label>'
     + '</div>'
-    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">权重是相对值：各奖项权重 ÷ 总权重 = 中奖率。例：大奖1份权重1、小奖权重20 → 大奖约 1/(1+20+未中奖权重)。</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">权重是相对值：各奖项权重 ÷ 总权重 = 中奖率。例：大奖1份权重1、小奖权重20 → 大奖约 1/(1+20+未中奖权重)。勾了「再来一次」的奖：抽中不出实物、客人原地再转一次，不占库存也不受每日上限限制。</div>'
     + '<div style="display:flex;gap:8px;margin-top:12px">'
       + '<button class="btn btn-gold btn-sm" onclick="lotSavePrize(\'' + (p ? p.id : '') + '\')">💾 Salva</button>'
       + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="document.getElementById(\'lot-prize-form\').innerHTML=\'\'">Annulla</button>'
@@ -5155,6 +5156,7 @@ async function lotSavePrize(id) {
     name: document.getElementById('lp-name').value,
     total_count: document.getElementById('lp-total').value,
     daily_cap: document.getElementById('lp-cap').value,
+    is_retry: document.getElementById('lp-retry').checked,
     weight: document.getElementById('lp-weight').value,
     validity_days: document.getElementById('lp-valid').value,
     color: document.getElementById('lp-color').value,
@@ -5205,7 +5207,10 @@ async function loadLotterySettings() {
         + '<input id="ls-lose" type="number" min="0" step="1" value="' + (s.lose_weight || 0) + '" style="width:100px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">未中奖文案</div>'
         + '<input id="ls-loselabel" value="' + _lyEsc(s.lose_label || 'Ritenta!') + '" style="width:140px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">付费再抽价格 €（0=关闭）</div>'
+        + '<input id="ls-paid" type="number" min="0" step="1" value="' + (parseInt(s.paid_spin_price) || 0) + '" style="width:110px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
     + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-bottom:14px">付费再抽：客人用完当天免费机会后，可 +€N 再抽一次；店员在 redeem 页收到钱后逐笔批准，付费次数不限。</div>'
     + '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">活动规则（客人勾选同意的文案）</div>'
     + '<textarea id="ls-rules-it" placeholder="Italiano..." style="width:100%;height:70px;padding:8px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);margin-bottom:6px">' + _lyEsc(s.rules_it || '') + '</textarea>'
     + '<textarea id="ls-rules-en" placeholder="English (vuoto = usa IT)..." style="width:100%;height:56px;padding:8px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);margin-bottom:6px">' + _lyEsc(s.rules_en || '') + '</textarea>'
@@ -5231,6 +5236,7 @@ async function lotSaveSettings() {
     active_days: days,
     lose_weight: document.getElementById('ls-lose').value,
     lose_label: document.getElementById('ls-loselabel').value,
+    paid_spin_price: document.getElementById('ls-paid').value,
     rules_it: document.getElementById('ls-rules-it').value,
     rules_en: document.getElementById('ls-rules-en').value,
     rules_zh: document.getElementById('ls-rules-zh').value
