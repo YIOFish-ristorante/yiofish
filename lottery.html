@@ -78,6 +78,7 @@ input[type=tel]:focus{border-color:var(--gold)}
 .win-item .w-meta{font-size:12px;color:var(--muted)}
 .win-item .w-badge{display:inline-block;font-size:10px;letter-spacing:.1em;padding:2px 8px;border-radius:10px;margin-left:8px;text-transform:uppercase}
 .b-active{background:rgba(46,139,87,.2);color:#7fd6a4;border:1px solid rgba(46,139,87,.5)}
+.b-later{background:rgba(201,169,98,.12);color:var(--gold-lt);border:1px solid rgba(201,169,98,.4)}
 .b-used{background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--line)}
 .b-expired{background:rgba(192,57,43,.15);color:#e8a49c;border:1px solid rgba(192,57,43,.4)}
 .foot{margin-top:34px;text-align:center;font-size:11px;color:rgba(240,234,217,.3);letter-spacing:2px}
@@ -189,7 +190,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.3</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.4</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -209,6 +210,7 @@ var I18N = {
     winTitle: 'Complimenti!', winCode: 'Mostra questo codice alla cassa',
     winToday: 'Premio valido SOLO OGGI · mostralo alla cassa prima di pagare',
     winUntil: 'Valido fino al {d} · mostralo alla cassa alla prossima visita',
+    winNext: '⏳ Utilizzabile dalla PROSSIMA VISITA (non oggi) · valido fino al {d}',
     loseTitle: 'Non questa volta!', loseNote: 'Torna a trovarci domani per un altro giro',
     myWins: 'I miei premi', back: 'Indietro', noWins: 'Nessun premio trovato per questo numero.',
     closed: 'Nessuna lotteria attiva', closedNote: 'Seguici su Instagram per i prossimi eventi!',
@@ -220,7 +222,7 @@ var I18N = {
     errRejected: 'Richiesta non autorizzata. Rivolgiti al personale.',
     errExpired: 'Tempo scaduto. Richiedi di nuovo.',
     errGeneric: 'Errore, riprova tra poco',
-    status_active: 'Valido', status_used: 'Utilizzato', status_expired: 'Scaduto',
+    status_active: 'Valido', status_used: 'Utilizzato', status_expired: 'Scaduto', status_later: 'Prossima visita',
     wonOn: 'Vinto il', approved: 'Autorizzato! Prepara la ruota…'
   },
   en: {
@@ -235,6 +237,7 @@ var I18N = {
     winTitle: 'Congratulations!', winCode: 'Show this code at the till',
     winToday: 'Valid TODAY ONLY · show it at the till before paying',
     winUntil: 'Valid until {d} · show it at the till on your next visit',
+    winNext: '⏳ Usable from your NEXT VISIT (not today) · valid until {d}',
     loseTitle: 'Not this time!', loseNote: 'Come back tomorrow for another spin',
     myWins: 'My prizes', back: 'Back', noWins: 'No prizes found for this number.',
     closed: 'No active lottery', closedNote: 'Follow us on Instagram for upcoming events!',
@@ -246,7 +249,7 @@ var I18N = {
     errRejected: 'Request not approved. Please ask our staff.',
     errExpired: 'Time expired. Please request again.',
     errGeneric: 'Error, please try again shortly',
-    status_active: 'Valid', status_used: 'Used', status_expired: 'Expired',
+    status_active: 'Valid', status_used: 'Used', status_expired: 'Expired', status_later: 'Next visit',
     wonOn: 'Won on', approved: 'Approved! Get the wheel ready…'
   },
   zh: {
@@ -261,6 +264,7 @@ var I18N = {
     winTitle: '恭喜中奖！', winCode: '结账时出示此码',
     winToday: '仅限今天有效 · 结账前请出示',
     winUntil: '有效期至 {d} · 下次到店结账时出示',
+    winNext: '⏳ 下次到店才能用（今天不行）· 有效期至 {d}',
     loseTitle: '差一点点！', loseNote: '明天再来试一次吧',
     myWins: '我的奖品', back: '返回', noWins: '这个号码暂无中奖记录。',
     closed: '暂无抽奖活动', closedNote: '关注我们的 Instagram，活动不错过！',
@@ -272,7 +276,7 @@ var I18N = {
     errRejected: '申请未通过，请与店员联系。',
     errExpired: '已超时，请重新申请。',
     errGeneric: '出错了，请稍后再试',
-    status_active: '有效', status_used: '已使用', status_expired: '已过期',
+    status_active: '有效', status_used: '已使用', status_expired: '已过期', status_later: '下次可用',
     wonOn: '中奖日期', approved: '已确认！转盘准备就绪…'
   }
 };
@@ -545,7 +549,7 @@ function showResult(d){
     $('rPrize').textContent = T('winTitle') + ' — ' + d.prize_name;
     $('rCode').style.display = 'block';
     $('rCode').textContent = d.code;
-    $('rNote').innerHTML = (d.same_day ? T('winToday') : T('winUntil').replace('{d}', d.expires_day))
+    $('rNote').innerHTML = (d.same_day ? T('winToday') : (d.next_visit ? T('winNext') : T('winUntil')).replace('{d}', d.expires_day))
       + '<br>' + T('winCode');
   } else {
     $('rEmoji').textContent = '😌';
@@ -570,8 +574,9 @@ async function loadMyWins(){
     list.innerHTML = '<p class="sub">' + T('noWins') + '</p>';
   } else {
     list.innerHTML = wins.map(function(w){
-      var badge = w.status === 'active' ? 'b-active' : w.status === 'used' ? 'b-used' : 'b-expired';
-      var btxt = w.status === 'active' ? T('status_active') : w.status === 'used' ? T('status_used') : T('status_expired');
+      var later = w.status === 'active' && w.usable === false;
+      var badge = later ? 'b-later' : w.status === 'active' ? 'b-active' : w.status === 'used' ? 'b-used' : 'b-expired';
+      var btxt = later ? T('status_later') : w.status === 'active' ? T('status_active') : w.status === 'used' ? T('status_used') : T('status_expired');
       return '<div class="win-item"><div class="w-prize">' + esc(w.prize_name)
         + '<span class="w-badge ' + badge + '">' + btxt + '</span></div>'
         + '<div class="w-code">' + esc(w.code) + '</div>'

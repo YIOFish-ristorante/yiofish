@@ -995,17 +995,21 @@ async function loadLotteryActiveWins() {
     if (!wins.length) { box.innerHTML = '<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px">Nessun premio attivo ✓</div>'; return; }
     box.innerHTML = wins.map(function(w) {
       const sameDay = w.won_day === w.expires_day;
+      const notYet = w.usable === false; // 回头奖中奖未满 6 小时
       return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
         + '<div>'
         + '<div style="font-weight:500;font-size:15px">🎁 ' + escHtml(w.prize_name)
           + (sameDay ? ' <span style="font-size:10px;background:rgba(192,57,43,.15);color:#c0392b;border-radius:8px;padding:1px 7px;vertical-align:2px">SOLO OGGI</span>' : '')
+          + (notYet ? ' <span style="font-size:10px;background:rgba(201,169,98,.15);color:var(--gold-lt);border-radius:8px;padding:1px 7px;vertical-align:2px">PROSSIMA VISITA</span>' : '')
           + '</div>'
         + '<div style="font-size:12px;color:var(--muted);margin-top:3px">📱 ' + escHtml(w.phone)
           + ' · <span style="letter-spacing:2px">' + escHtml(w.code) + '</span>'
           + (sameDay ? '' : ' · fino al ' + w.expires_day) + '</div>'
         + '</div>'
-        + '<button class="btn btn-green" style="width:auto;padding:8px 14px;font-size:12px" onclick="lotteryRedeemWin(\'' + w.code + '\',\'' + escHtml(w.prize_name) + '\',this)">✓ Riscatta</button>'
+        + (notYet
+          ? '<button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;opacity:.55" disabled>⏳ Da domani</button>'
+          : '<button class="btn btn-green" style="width:auto;padding:8px 14px;font-size:12px" onclick="lotteryRedeemWin(\'' + w.code + '\',\'' + escHtml(w.prize_name) + '\',this)">✓ Riscatta</button>')
         + '</div></div>';
     }).join('');
   } catch (e) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">Errore di rete</div>'; }
@@ -1025,15 +1029,16 @@ async function lotteryLookupWin() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">❌ ' + escHtml(data.error || 'Codice non trovato') + '</div>'; return; }
     var w = data.win;
+    var notYet = w.status === 'active' && w.usable === false;
     var statusMap = { active: ['✅ VALIDO', 'var(--green)'], used: ['⛔ GIÀ UTILIZZATO', '#c0392b'], expired: ['⛔ SCADUTO', '#c0392b'] };
-    var st = statusMap[w.status] || [w.status, 'var(--muted)'];
+    var st = notYet ? ['⏳ PROSSIMA VISITA · non oggi', 'var(--gold-lt)'] : (statusMap[w.status] || [w.status, 'var(--muted)']);
     box.innerHTML = '<div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
         + '<div><div style="font-size:16px;font-weight:600">🎁 ' + escHtml(w.prize_name) + '</div>'
           + '<div style="font-size:12px;color:var(--muted);margin-top:4px">' + escHtml(w.phone) + ' · vinto il ' + w.won_day + ' · valido fino al ' + w.expires_day + '</div></div>'
         + '<div style="color:' + st[1] + ';font-size:13px;font-weight:600">' + st[0] + '</div>'
       + '</div>'
-      + (w.status === 'active'
+      + (w.status === 'active' && !notYet
         ? '<button class="btn btn-green" style="margin-top:12px" onclick="lotteryRedeemWin(\'' + w.code + '\',\'' + escHtml(w.prize_name) + '\',this)">✓ Conferma riscatto</button>'
         : '')
     + '</div>';
@@ -1054,6 +1059,7 @@ async function lotteryRedeemWin(codeOrId, prizeName, btn) {
     const ld = await lr.json().catch(() => ({}));
     if (!lr.ok || !ld.ok) { showErr('lottery-err', escHtml(ld.error || 'Codice non trovato')); if (btn) btn.disabled = false; return; }
     if (ld.win.status !== 'active') { showErr('lottery-err', 'Premio non più valido (' + ld.win.status + ')'); loadLotteryActiveWins(); return; }
+    if (ld.win.usable === false) { showErr('lottery-err', '⏳ Premio utilizzabile dalla prossima visita (non oggi)'); if (btn) btn.disabled = false; loadLotteryActiveWins(); return; }
     const res = await fetch(WORKER_URL + '/lottery/wins/redeem', {
       method: 'POST',
       headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
