@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.49.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.50.0</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.49.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.50.0</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -643,7 +643,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.49.0</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.50.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1375,7 +1375,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.49.0</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.50.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -4243,9 +4243,10 @@ async function renderLoyaltyPage() {
     + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
       + '<div style="font-size:14px;font-weight:600;margin-bottom:12px">🔍 Cerca cliente</div>'
       + '<div style="display:flex;gap:8px">'
-        + '<input type="tel" id="ly-search" placeholder="Numero di telefono..." style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)" onkeydown="if(event.key==String.fromCharCode(13))searchLoyaltyCustomer()">'
+        + '<input type="tel" id="ly-search" placeholder="Telefono... bastano anche le ultime cifre" style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)" onkeydown="if(event.key==String.fromCharCode(13))searchLoyaltyCustomer()">'
         + '<button class="btn btn-gold" onclick="searchLoyaltyCustomer()">Cerca</button>'
       + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-top:8px">v5.50.0: riconosce +39 / 0039 / numero breve — trova anche i duplicati dello stesso cliente.</div>'
     + '</div>'
 
     // ── 会员详情区（默认空）──
@@ -4424,12 +4425,10 @@ async function saveLoyaltySettings() {
   } catch(e) { toast('❌ ' + e.message); }
 }
 
-async function searchLoyaltyCustomer() {
-  var phone = (document.getElementById('ly-search').value || '').trim().replace(/\s+/g, '');
-  if (!phone) { toast('⚠️ Inserisci un numero di telefono'); return; }
+// v5.50.0: 搜出多个候选（同一人重复建档）时点选其一查看
+async function lyLoadCustomerByPhone(phone) {
   var detail = document.getElementById('ly-customer-detail');
   if (detail) detail.innerHTML = '<div style="padding:12px;color:var(--muted)">⏳ Ricerca...</div>';
-
   try {
     var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
     var res = await fetch(WORKER_URL + '/loyalty/customer?phone=' + encodeURIComponent(phone), {
@@ -4438,13 +4437,32 @@ async function searchLoyaltyCustomer() {
     });
     var data = await res.json();
     if (!res.ok) { toast('❌ ' + (data.error || 'Errore')); return; }
-    if (!data.customer) {
-      if (detail) detail.innerHTML = '<div class="card" style="padding:16px;margin-bottom:20px;color:var(--muted);text-align:center">Nessun cliente trovato con questo numero</div>';
+    if (data.customer) {
+      _loyaltyCustomer = data.customer;
+      renderCustomerDetail(data.customer, data.transactions || []);
       return;
     }
-    _loyaltyCustomer = data.customer;
-    renderCustomerDetail(data.customer, data.transactions || []);
+    if (data.candidates && data.candidates.length) {
+      if (detail) detail.innerHTML = '<div class="card" style="padding:16px;margin-bottom:20px">'
+        + '<div style="font-size:13px;font-weight:600;margin-bottom:10px">⚠️ Trovati ' + data.candidates.length + ' profili — possibile duplicato, scegli quello giusto:</div>'
+        + data.candidates.map(function(c) {
+            return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--border2);border-radius:8px;padding:10px 14px;margin-bottom:8px;cursor:pointer" onclick="lyLoadCustomerByPhone(\'' + String(c.phone).replace(/'/g, '') + '\')">'
+              + '<div><div style="font-size:14px;font-weight:500">📱 ' + _lyEsc(c.phone) + (c.name ? ' · ' + _lyEsc(c.name) : '') + '</div>'
+              + '<div style="font-size:11px;color:var(--muted);margin-top:2px">dal ' + new Date(c.created_at).toLocaleDateString('it-IT') + '</div></div>'
+              + '<div style="font-size:16px;font-weight:600;color:var(--gold)">' + (c.total_points || 0) + ' pt</div>'
+              + '</div>';
+          }).join('')
+        + '</div>';
+      return;
+    }
+    if (detail) detail.innerHTML = '<div class="card" style="padding:16px;margin-bottom:20px;color:var(--muted);text-align:center">Nessun cliente trovato con questo numero</div>';
   } catch(e) { toast('❌ ' + e.message); }
+}
+
+async function searchLoyaltyCustomer() {
+  var phone = (document.getElementById('ly-search').value || '').trim().replace(/\s+/g, '');
+  if (!phone) { toast('⚠️ Inserisci un numero di telefono'); return; }
+  lyLoadCustomerByPhone(phone);
 }
 
 function renderCustomerDetail(customer, transactions) {
@@ -4915,7 +4933,7 @@ function exportLoyaltyList() {
 
 
 // ============================================================
-// 🎡 Lotteria 抽奖管理（v5.49.0）
+// 🎡 Lotteria 抽奖管理（v5.50.0）
 // 店员：待批准队列（批准/拒绝）+ 中奖核销；店长/超管：奖项与活动配置
 // ============================================================
 var _lotPoll = null;
