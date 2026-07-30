@@ -130,6 +130,7 @@ input[type=tel]:focus{border-color:var(--gold)}
     </div>
     <button class="btn btn-gold" id="btnRequest" onclick="doRequest()"></button>
     <button class="btn btn-ghost" id="btnMyWins2" onclick="loadMyWins()"></button>
+    <button class="btn btn-gold" id="btnPaidForm" style="display:none;margin-top:12px" onclick="doRespin()"></button>
     <div class="msg msg-err" id="formErr"></div>
     <div class="msg msg-info" id="formInfo"></div>
   </div>
@@ -192,7 +193,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.5</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.5.1</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -375,6 +376,7 @@ async function init(){
 // ── ① 申请 ──
 async function doRequest(){
   hideErr('formErr'); hideErr('formInfo');
+  $('btnPaidForm').style.display = 'none';
   var tableNo = $('inTable').value.trim();
   if (!tableNo){ showErr('formErr', T('errTable')); return; }
   var phone = $('inPhone').value.replace(/\s+/g, '');
@@ -394,7 +396,15 @@ async function doRequest(){
     startPolling(); showStep('stepWait'); return;
   }
   if (d.code === 'not_registered') { goRegister(phone); return; }
-  else if (d.code === 'already_today') showErr('formErr', T('errToday'));
+  else if (d.code === 'already_today'){
+    showErr('formErr', T('errToday'));
+    // v1.5.1 免费机会已用 → 给出付费再抽入口
+    if (CFG && (parseInt(CFG.paid_spin_price) || 0) > 0){
+      PHONE = phone; TABLE_NO = tableNo;
+      $('btnPaidForm').textContent = T('respinBtn').replace('{p}', CFG.paid_spin_price);
+      $('btnPaidForm').style.display = 'block';
+    }
+  }
   else if (d.code === 'table_full') showErr('formErr', T('errTableFull'));
   else if (d.code === 'day_off') showErr('formErr', T('errDayOff'));
   else showErr('formErr', d.error || T('errGeneric'));
