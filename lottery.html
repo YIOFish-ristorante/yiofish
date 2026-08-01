@@ -244,7 +244,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.9.0</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.9.1</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -265,8 +265,7 @@ var I18N = {
     vToday:'Valido solo oggi', vNext:'Dalla prossima visita \u00b7 entro il {d}', vUntil:'Valido entro il {d}',
     tillPay:'Mostra questo codice alla cassa prima di pagare.',
     tillNextV:'Mostra questo codice alla cassa alla tua prossima visita.',
-    houseSmall:'Offre la casa \ud83c\udf79', houseMid:'Offre la casa \ud83e\udd42',
-    houseBig:'Una serata che ti offriamo noi \ud83c\udf40',
+    
     shareBtn:'\ud83d\udcf2 Condividi', shareCap:'Ho vinto da YIO Fish', segOff:'GIÀ USCITO',
     winTitle: 'Complimenti!', winCode: 'Mostra questo codice alla cassa',
     winToday: 'Premio valido SOLO OGGI · mostralo alla cassa prima di pagare',
@@ -301,8 +300,7 @@ var I18N = {
     vToday:'Valid today only', vNext:'From your next visit \u00b7 by {d}', vUntil:'Valid until {d}',
     tillPay:'Show this code at the till before paying.',
     tillNextV:'Show this code at the till on your next visit.',
-    houseSmall:'On the house \ud83c\udf79', houseMid:'On the house \ud83e\udd42',
-    houseBig:'An evening on us \ud83c\udf40',
+    
     shareBtn:'\ud83d\udcf2 Share', shareCap:'I won at YIO Fish', segOff:'GONE TODAY',
     winTitle: 'Congratulations!', winCode: 'Show this code at the till',
     winToday: 'Valid TODAY ONLY · show it at the till before paying',
@@ -338,8 +336,7 @@ var I18N = {
     vUntil:'\u6709\u6548\u671f\u81f3 {d}',
     tillPay:'\u7ed3\u8d26\u524d\u8bf7\u5411\u5e97\u5458\u51fa\u793a\u6b64\u7801\u3002',
     tillNextV:'\u4e0b\u6b21\u5230\u5e97\u7ed3\u8d26\u65f6\u51fa\u793a\u6b64\u7801\u3002',
-    houseSmall:'\u672c\u5e97\u8bf7\u5ba2 \ud83c\udf79', houseMid:'\u672c\u5e97\u8bf7\u5ba2 \ud83e\udd42',
-    houseBig:'\u8fd9\u4e00\u9910\u6211\u4eec\u8bf7 \ud83c\udf40',
+    
     shareBtn:'\ud83d\udcf2 \u5206\u4eab', shareCap:'\u6211\u5728 YIO Fish \u4e2d\u5956\u4e86', segOff:'\u4eca\u65e5\u5df2\u51fa',
     winTitle: '恭喜中奖！', winCode: '结账时出示此码',
     winToday: '仅限今天有效 · 结账前请出示',
@@ -719,7 +716,7 @@ function esc2(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){
 
 function cardHTML(d){
   var tier = tierOf(d.prize_name), big = (tier==='big');
-  var house = big ? T('houseBig') : (tier==='mid' ? T('houseMid') : T('houseSmall'));
+  // v1.9.1 去掉"Offre la casa"一行：避免客人误会整单由店里请客
   var vcls = d.same_day ? 'v-today' : 'v-next';
   var vtxt = d.same_day ? T('vToday')
            : (d.next_visit ? T('vNext') : T('vUntil')).replace('{d}', d.expires_day||'');
@@ -735,7 +732,6 @@ function cardHTML(d){
    +(big?'<div class="ribbon">'+T('ribbon')+'</div>':'')
    +'<div class="kicker">'+T('winKicker')+'</div>'
    +'<div class="prizename'+longName+'">'+esc2(d.prize_name)+'</div>'
-   +'<div class="housenote">'+house+'</div>'
    +'<div class="codewrap"><div class="codelabel">'+T('codeLabel')+'</div>'
    +'<div class="code">'+digits+'</div></div>'
    +'<div class="vbadge '+vcls+'">'+esc2(vtxt)+'</div>'
@@ -823,19 +819,18 @@ function shareImage(d){
   var fs=(d.prize_name||'').length>20?72:88;
   x.font='600 '+fs+'px "Cormorant Garamond", serif';
   _wrap(x,d.prize_name,W/2,740,W-220,fs*1.16);
-  x.fillStyle='rgba(240,234,217,.62)'; x.font='300 30px "Noto Sans SC", sans-serif';
-  x.fillText(big?T('houseBig'):(tier==='mid'?T('houseMid'):T('houseSmall')),W/2,985);
-  _line(x,W/2,1050,110);
+  // v1.9.1 分享图同步去掉"本店请客"行，下方元素上移
+  _line(x,W/2,990,110);
   x.fillStyle='rgba(240,234,217,.45)'; x.font='300 22px "Noto Sans SC", sans-serif';
-  x.fillText(_sp(T('codeLabel').toUpperCase(),5),W/2,1120);
+  x.fillText(_sp(T('codeLabel').toUpperCase(),5),W/2,1060);
   var code=(d.code||'').toString().replace(/\s/g,''), n=code.length, bw=88, gap=14;
   var tot=n*bw+(n-1)*gap, sx=(W-tot)/2;
   for(var i=0;i<n;i++){
     var bx=sx+i*(bw+gap);
-    x.fillStyle='rgba(0,0,0,.4)'; _rr(x,bx,1160,bw,112,10); x.fill();
-    x.strokeStyle='rgba(201,169,98,.45)'; x.lineWidth=1.5; _rr(x,bx,1160,bw,112,10); x.stroke();
+    x.fillStyle='rgba(0,0,0,.4)'; _rr(x,bx,1100,bw,112,10); x.fill();
+    x.strokeStyle='rgba(201,169,98,.45)'; x.lineWidth=1.5; _rr(x,bx,1100,bw,112,10); x.stroke();
     x.fillStyle='#f0ead9'; x.font='500 56px "Noto Sans SC", sans-serif';
-    x.fillText(code[i],bx+bw/2,1236);
+    x.fillText(code[i],bx+bw/2,1176);
   }
   var vtxt=d.same_day?T('vToday'):(d.next_visit?T('vNext'):T('vUntil')).replace('{d}',d.expires_day||'');
   x.font='300 28px "Noto Sans SC", sans-serif';
