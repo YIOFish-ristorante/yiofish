@@ -244,7 +244,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.7.0</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.9.0</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -267,7 +267,7 @@ var I18N = {
     tillNextV:'Mostra questo codice alla cassa alla tua prossima visita.',
     houseSmall:'Offre la casa \ud83c\udf79', houseMid:'Offre la casa \ud83e\udd42',
     houseBig:'Una serata che ti offriamo noi \ud83c\udf40',
-    shareBtn:'\ud83d\udcf2 Condividi', shareCap:'Ho vinto da YIO Fish',
+    shareBtn:'\ud83d\udcf2 Condividi', shareCap:'Ho vinto da YIO Fish', segOff:'GIÀ USCITO',
     winTitle: 'Complimenti!', winCode: 'Mostra questo codice alla cassa',
     winToday: 'Premio valido SOLO OGGI · mostralo alla cassa prima di pagare',
     retryTitle: 'GIRA ANCORA!', retryNote: 'Fortuna! Hai vinto un giro gratis extra',
@@ -303,7 +303,7 @@ var I18N = {
     tillNextV:'Show this code at the till on your next visit.',
     houseSmall:'On the house \ud83c\udf79', houseMid:'On the house \ud83e\udd42',
     houseBig:'An evening on us \ud83c\udf40',
-    shareBtn:'\ud83d\udcf2 Share', shareCap:'I won at YIO Fish',
+    shareBtn:'\ud83d\udcf2 Share', shareCap:'I won at YIO Fish', segOff:'GONE TODAY',
     winTitle: 'Congratulations!', winCode: 'Show this code at the till',
     winToday: 'Valid TODAY ONLY · show it at the till before paying',
     retryTitle: 'SPIN AGAIN!', retryNote: 'Lucky! You won an extra free spin',
@@ -340,7 +340,7 @@ var I18N = {
     tillNextV:'\u4e0b\u6b21\u5230\u5e97\u7ed3\u8d26\u65f6\u51fa\u793a\u6b64\u7801\u3002',
     houseSmall:'\u672c\u5e97\u8bf7\u5ba2 \ud83c\udf79', houseMid:'\u672c\u5e97\u8bf7\u5ba2 \ud83e\udd42',
     houseBig:'\u8fd9\u4e00\u9910\u6211\u4eec\u8bf7 \ud83c\udf40',
-    shareBtn:'\ud83d\udcf2 \u5206\u4eab', shareCap:'\u6211\u5728 YIO Fish \u4e2d\u5956\u4e86',
+    shareBtn:'\ud83d\udcf2 \u5206\u4eab', shareCap:'\u6211\u5728 YIO Fish \u4e2d\u5956\u4e86', segOff:'\u4eca\u65e5\u5df2\u51fa',
     winTitle: '恭喜中奖！', winCode: '结账时出示此码',
     winToday: '仅限今天有效 · 结账前请出示',
     retryTitle: '再来一次！', retryNote: '运气好！获得一次免费再抽机会',
@@ -555,7 +555,7 @@ function wheelSegs(){
   var segs = (CFG && CFG.segments ? CFG.segments : []).map(function(p, i){
     var c = p.color;
     if (!c || c.toLowerCase() === '#c9a962') c = LOT_PALETTE[i % LOT_PALETTE.length]; // 默认金=跟随品牌自动配色
-    return { name: p.name, color: c, prize: true };
+    return { name: p.name, color: c, prize: true, off: !!p.off }; // v1.9.0 off=今日已出：灰显但转不到
   });
   if (!CFG || CFG.can_lose || segs.length === 0){
     segs.push({ name: (CFG && CFG.lose_label) || T('loseTitle'), color: '#1a2620', prize: false });
@@ -580,7 +580,7 @@ function drawWheel(rot){
     ctx.moveTo(0, 0);
     ctx.arc(0, 0, R - 6, a0, a0 + arc);
     ctx.closePath();
-    ctx.fillStyle = segs[i].prize ? segs[i].color : '#111a15';
+    ctx.fillStyle = segs[i].prize ? (segs[i].off ? '#26312b' : segs[i].color) : '#111a15'; // v1.9.0 今日已出格:深灰绿底
     ctx.fill();
     ctx.strokeStyle = 'rgba(201,169,98,.5)';
     ctx.lineWidth = 2;
@@ -592,8 +592,9 @@ function drawWheel(rot){
     var label = segs[i].name;
     if (label.length > 14) label = label.slice(0, 13) + '…';
     ctx.font = (segs[i].prize ? '600 24px' : '300 22px') + " 'Noto Sans SC', sans-serif";
-    ctx.fillStyle = segs[i].prize ? '#0a0f0c' : 'rgba(240,234,217,.5)';
-    ctx.fillText(label, R - 26, 8);
+    ctx.fillStyle = segs[i].off ? 'rgba(240,234,217,.5)' : (segs[i].prize ? '#0a0f0c' : 'rgba(240,234,217,.5)');
+    ctx.fillText(label, R - 26, segs[i].off ? -2 : 8);
+    if (segs[i].off){ ctx.font = "500 15px 'Noto Sans SC', sans-serif"; ctx.fillStyle = 'rgba(201,169,98,.9)'; ctx.fillText(T('segOff'), R - 26, 26); } // v1.9.0 今日已出小标签
     ctx.restore();
   }
   // 外圈
