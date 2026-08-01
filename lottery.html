@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>YIO Fish · Lotteria</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -84,9 +84,64 @@ input[type=tel]:focus{border-color:var(--gold)}
 .foot{margin-top:34px;text-align:center;font-size:11px;color:rgba(240,234,217,.3);letter-spacing:2px}
 .links{display:flex;gap:10px;margin-top:14px}
 .links .btn{margin-top:0}
+/* ══════════ v1.7 SCHERMATA PREMIO ══════════ */
+.prizecard{position:relative;overflow:hidden;border-radius:14px;padding:30px 24px 26px;text-align:center;
+  background:linear-gradient(168deg,#12201a 0%,#0c1611 45%,#070e0b 100%);border:1px solid var(--gold);
+  box-shadow:0 18px 50px rgba(0,0,0,.65), inset 0 1px 0 rgba(232,213,163,.18);
+  animation:cardIn .55s cubic-bezier(.2,.8,.3,1.1) both}
+@keyframes cardIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+.prizecard::after{content:'';position:absolute;top:-60%;left:-70%;width:60%;height:220%;pointer-events:none;
+  background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,246,214,.13),rgba(255,255,255,0));
+  transform:rotate(18deg);animation:sheen 1.5s ease-out .35s both}
+@keyframes sheen{to{left:130%}}
+.corner{position:absolute;width:22px;height:22px;border:1px solid rgba(201,169,98,.55)}
+.c-tl{top:10px;left:10px;border-right:0;border-bottom:0;border-radius:5px 0 0 0}
+.c-tr{top:10px;right:10px;border-left:0;border-bottom:0;border-radius:0 5px 0 0}
+.c-bl{bottom:10px;left:10px;border-right:0;border-top:0;border-radius:0 0 0 5px}
+.c-br{bottom:10px;right:10px;border-left:0;border-top:0;border-radius:0 0 5px 0}
+.crest{font-family:'Cormorant Garamond',serif;font-size:15px;letter-spacing:.42em;color:var(--gold);opacity:.9}
+.crest-sub{font-size:9px;letter-spacing:.34em;color:var(--muted);margin-top:3px}
+.pdivider{display:flex;align-items:center;justify-content:center;gap:9px;margin:15px 0 4px}
+.pdivider i{display:block;height:1px;width:52px;background:linear-gradient(90deg,rgba(201,169,98,0),rgba(201,169,98,.7))}
+.pdivider i:last-child{background:linear-gradient(90deg,rgba(201,169,98,.7),rgba(201,169,98,0))}
+.pdivider b{color:var(--gold);transform:rotate(45deg);display:block;width:5px;height:5px;
+  border:1px solid var(--gold);border-radius:1px}
+.kicker{font-size:10.5px;letter-spacing:.36em;text-transform:uppercase;color:var(--gold);margin-top:14px;opacity:.95}
+.prizename{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:34px;line-height:1.16;
+  color:var(--gold-lt);margin-top:10px;text-shadow:0 2px 22px rgba(201,169,98,.28)}
+.prizename.long{font-size:27px}
+.housenote{font-size:12.5px;color:var(--muted);margin-top:9px}
+.codewrap{margin-top:20px}
+.codelabel{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.code{display:inline-flex;gap:6px}
+.code span{width:38px;height:50px;display:flex;align-items:center;justify-content:center;
+  font-size:25px;font-weight:500;color:var(--text);background:rgba(0,0,0,.42);
+  border:1px solid var(--line);border-radius:6px;box-shadow:inset 0 1px 0 rgba(232,213,163,.1);
+  animation:digit .4s both}
+@keyframes digit{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+.vbadge{display:inline-flex;align-items:center;gap:6px;margin-top:18px;padding:7px 14px;border-radius:20px;
+  font-size:11.5px;line-height:1.3}
+.v-today{background:rgba(46,139,87,.16);border:1px solid rgba(46,139,87,.5);color:#8fdcae}
+.v-next{background:rgba(201,169,98,.12);border:1px solid var(--line);color:var(--gold-lt)}
+.tillnote{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6}
+.stamp{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;
+  font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(240,234,217,.34)}
+.stamp i{display:block;height:1px;width:26px;background:rgba(201,169,98,.3)}
+.prizecard.big{border-color:var(--gold-lt);
+  box-shadow:0 0 0 1px rgba(232,213,163,.25),0 22px 60px rgba(0,0,0,.7),0 0 70px rgba(201,169,98,.22);
+  animation:cardIn .55s cubic-bezier(.2,.8,.3,1.1) both, halo 3.2s ease-in-out 1s infinite}
+@keyframes halo{0%,100%{box-shadow:0 0 0 1px rgba(232,213,163,.25),0 22px 60px rgba(0,0,0,.7),0 0 70px rgba(201,169,98,.2)}
+  50%{box-shadow:0 0 0 1px rgba(232,213,163,.4),0 22px 60px rgba(0,0,0,.7),0 0 100px rgba(201,169,98,.36)}}
+.ribbon{display:inline-block;margin-top:2px;padding:5px 16px;border-radius:3px;
+  font-size:9.5px;letter-spacing:.32em;text-transform:uppercase;color:#0a0f0c;font-weight:500;
+  background:linear-gradient(160deg,var(--gold-lt),var(--gold-dk))}
+.prizecard.big .prizename{font-size:38px}
+.prizecard.big .prizename.long{font-size:29px}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:99}
 </style>
 </head>
 <body>
+<canvas id="fx"></canvas>
 <div class="top">
   <div class="brand">YIO FISH<span id="storeName">LOTTERIA</span></div>
   <div class="langs">
@@ -172,13 +227,9 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 
   <!-- ④ 结果 -->
-  <div class="card step" id="stepResult">
-    <div class="result">
-      <div class="r-emoji" id="rEmoji"></div>
-      <div class="r-prize" id="rPrize"></div>
-      <div class="r-code" id="rCode" style="display:none"></div>
-      <p class="r-note" id="rNote"></p>
-    </div>
+  <div class="step" id="stepResult">
+    <div id="resultSlot"></div>
+    <button class="btn btn-gold" id="btnShare" style="display:none" onclick="doShare()"></button>
     <div class="links">
       <button class="btn btn-gold" id="btnAgain" style="display:none" onclick="goAgain()"></button>
       <button class="btn btn-gold" id="btnRespin" style="display:none" onclick="doRespin()"></button>
@@ -193,7 +244,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.5.2</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.7.0</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -210,6 +261,13 @@ var I18N = {
     rulesDefault: 'Un giro gratuito al giorno per numero registrato. Il giro deve essere autorizzato dal personale. I premi del giorno vanno mostrati alla cassa prima del pagamento; i premi a scadenza vanno riscattati entro la data indicata. I premi non sono convertibili in denaro.',
     request: 'Richiedi il giro', wait: 'Mostra questa schermata al personale.<br><strong>Attendi l\'autorizzazione…</strong>',
     cancel: 'Annulla', spin: 'GIRA!', spinNote: 'Tocca GIRA e scopri il tuo premio',
+    winKicker:'Complimenti, hai vinto', ribbon:'\u2605 Gran premio \u2605', codeLabel:'Codice premio',
+    vToday:'Valido solo oggi', vNext:'Dalla prossima visita \u00b7 entro il {d}', vUntil:'Valido entro il {d}',
+    tillPay:'Mostra questo codice alla cassa prima di pagare.',
+    tillNextV:'Mostra questo codice alla cassa alla tua prossima visita.',
+    houseSmall:'Offre la casa \ud83c\udf79', houseMid:'Offre la casa \ud83e\udd42',
+    houseBig:'Una serata che ti offriamo noi \ud83c\udf40',
+    shareBtn:'\ud83d\udcf2 Condividi', shareCap:'Ho vinto da YIO Fish',
     winTitle: 'Complimenti!', winCode: 'Mostra questo codice alla cassa',
     winToday: 'Premio valido SOLO OGGI · mostralo alla cassa prima di pagare',
     retryTitle: 'GIRA ANCORA!', retryNote: 'Fortuna! Hai vinto un giro gratis extra',
@@ -239,6 +297,13 @@ var I18N = {
     rulesDefault: 'One free spin per day per registered number. The spin must be approved by our staff. Same-day prizes must be shown at the till before payment; expiring prizes must be redeemed by the date shown. Prizes cannot be exchanged for cash.',
     request: 'Request a spin', wait: 'Show this screen to our staff.<br><strong>Waiting for approval…</strong>',
     cancel: 'Cancel', spin: 'SPIN!', spinNote: 'Tap SPIN and discover your prize',
+    winKicker:'Congratulations, you won', ribbon:'\u2605 Grand prize \u2605', codeLabel:'Prize code',
+    vToday:'Valid today only', vNext:'From your next visit \u00b7 by {d}', vUntil:'Valid until {d}',
+    tillPay:'Show this code at the till before paying.',
+    tillNextV:'Show this code at the till on your next visit.',
+    houseSmall:'On the house \ud83c\udf79', houseMid:'On the house \ud83e\udd42',
+    houseBig:'An evening on us \ud83c\udf40',
+    shareBtn:'\ud83d\udcf2 Share', shareCap:'I won at YIO Fish',
     winTitle: 'Congratulations!', winCode: 'Show this code at the till',
     winToday: 'Valid TODAY ONLY · show it at the till before paying',
     retryTitle: 'SPIN AGAIN!', retryNote: 'Lucky! You won an extra free spin',
@@ -268,6 +333,14 @@ var I18N = {
     rulesDefault: '每个注册号码每天可免费抽奖一次，抽奖须经店员现场确认。当天有效的奖品请在结账前出示；限期奖品请在标注日期前到店兑换。奖品不可兑换现金。',
     request: '申请抽奖', wait: '请向店员出示此页面。<br><strong>等待店员确认…</strong>',
     cancel: '取消', spin: '开始！', spinNote: '点击开始，看看你的运气',
+    winKicker:'\u606d\u559c\u4e2d\u5956', ribbon:'\u2605 \u7279\u7b49\u5956 \u2605', codeLabel:'\u5956\u54c1\u7801',
+    vToday:'\u4ec5\u9650\u4eca\u5929\u6709\u6548', vNext:'\u4e0b\u6b21\u5230\u5e97\u53ef\u7528 \u00b7 {d} \u524d',
+    vUntil:'\u6709\u6548\u671f\u81f3 {d}',
+    tillPay:'\u7ed3\u8d26\u524d\u8bf7\u5411\u5e97\u5458\u51fa\u793a\u6b64\u7801\u3002',
+    tillNextV:'\u4e0b\u6b21\u5230\u5e97\u7ed3\u8d26\u65f6\u51fa\u793a\u6b64\u7801\u3002',
+    houseSmall:'\u672c\u5e97\u8bf7\u5ba2 \ud83c\udf79', houseMid:'\u672c\u5e97\u8bf7\u5ba2 \ud83e\udd42',
+    houseBig:'\u8fd9\u4e00\u9910\u6211\u4eec\u8bf7 \ud83c\udf40',
+    shareBtn:'\ud83d\udcf2 \u5206\u4eab', shareCap:'\u6211\u5728 YIO Fish \u4e2d\u5956\u4e86',
     winTitle: '恭喜中奖！', winCode: '结账时出示此码',
     winToday: '仅限今天有效 · 结账前请出示',
     retryTitle: '再来一次！', retryNote: '运气好！获得一次免费再抽机会',
@@ -533,15 +606,46 @@ function prepareWheel(){
   setTimeout(function(){ if (!SPUN) $('tSpinNote').textContent = T('spinNote'); }, 2500);
 }
 // 旋转动画：从 0 转到目标角度（指针在正上方）
+// ── v1.6.0 转盘嗒嗒声：Web Audio 现场合成，无需音频文件 ──
+var LOT_ACTX = null, LOT_TICKBUF = null;
+function lotAudioInit(){
+  if (LOT_ACTX){ if (LOT_ACTX.state === 'suspended'){ try{ LOT_ACTX.resume(); }catch(e){} } return; }
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    LOT_ACTX = new AC();
+    // 30ms 噪声 + 快速衰减包络 ≈ 真实拨片"嗒"声
+    var len = Math.floor(LOT_ACTX.sampleRate * 0.03);
+    LOT_TICKBUF = LOT_ACTX.createBuffer(1, len, LOT_ACTX.sampleRate);
+    var d = LOT_TICKBUF.getChannelData(0);
+    for (var i = 0; i < len; i++){
+      var t = i / len;
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 3.5);
+    }
+  } catch(e){ LOT_ACTX = null; LOT_TICKBUF = null; }
+}
+function lotTick(){
+  if (!LOT_ACTX || !LOT_TICKBUF) return;
+  try {
+    var s = LOT_ACTX.createBufferSource(); s.buffer = LOT_TICKBUF;
+    var g = LOT_ACTX.createGain(); g.gain.value = 0.22;
+    s.connect(g); g.connect(LOT_ACTX.destination); s.start();
+  } catch(e){}
+}
+
 function spinTo(segIndex, segCount, done){
   var arc = 360 / segCount;
   // 目标格中心需停在正上方（-90°）：目标旋转角 = -(segIndex*arc)
   var target = 360 * 6 - segIndex * arc; // 多转6圈
   var dur = 5200, t0 = performance.now();
+  var lastSeg = -1;
   function frame(t){
     var p = Math.min(1, (t - t0) / dur);
     var ease = 1 - Math.pow(1 - p, 4); // easeOutQuart
-    drawWheel((target * ease) * Math.PI / 180);
+    var deg = target * ease;
+    drawWheel(deg * Math.PI / 180);
+    // v1.6.0 指针每越过一格边界嗒一声（转速快时嗒声密、慢时稀，自然随减速）
+    var seg = Math.floor(deg / arc);
+    if (seg !== lastSeg){ if (lastSeg >= 0) lotTick(); lastSeg = seg; }
     if (p < 1) requestAnimationFrame(frame);
     else done();
   }
@@ -553,6 +657,7 @@ async function doSpin(){
   if (SPUN || !REQ_ID) return;
   SPUN = true;
   $('btnSpin').disabled = true;
+  lotAudioInit(); // v1.6.0 在点 GIRA 的手势里解锁音频(iOS/Safari 自动播放限制)
   var r;
   try {
     r = await api('/public/lottery/spin', {
@@ -585,39 +690,211 @@ async function doSpin(){
   spinTo(idx, segs.length, function(){ showResult(d); });
 }
 
-// ── ④ 结果 ──
+// ── ④ 结果（v1.7 重设计）──
+var LAST_WIN = null;
+
+// 奖品分级：按关键词判断，可自行增删
+var TIER_BIG = ['menu cena omaggio','menu pranzo omaggio','50%'];
+var TIER_MID = ['prosecco','vino','buoni sconto','buono','dessert','menu pranzo gratuito'];
+function tierOf(n){
+  var t = (n||'').toLowerCase();
+  for (var i=0;i<TIER_BIG.length;i++) if (t.indexOf(TIER_BIG[i])>=0) return 'big';
+  for (var j=0;j<TIER_MID.length;j++) if (t.indexOf(TIER_MID[j])>=0) return 'mid';
+  return 'small';
+}
+function storeLabel(){ return STORE_NAMES[RID] || 'YIO Fish'; }
+function todayStr(){
+  var d=new Date();
+  var m=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  if (LANG==='zh') return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+  if (LANG==='en') return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  return d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear();
+}
+function esc2(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+function cardHTML(d){
+  var tier = tierOf(d.prize_name), big = (tier==='big');
+  var house = big ? T('houseBig') : (tier==='mid' ? T('houseMid') : T('houseSmall'));
+  var vcls = d.same_day ? 'v-today' : 'v-next';
+  var vtxt = d.same_day ? T('vToday')
+           : (d.next_visit ? T('vNext') : T('vUntil')).replace('{d}', d.expires_day||'');
+  var till = d.same_day ? T('tillPay') : T('tillNextV');
+  var code = (d.code||'').toString().replace(/\s/g,'');
+  var digits = code.split('').map(function(ch,i){
+    return '<span style="animation-delay:'+(0.5+i*0.07)+'s">'+esc2(ch)+'</span>'; }).join('');
+  var longName = (d.prize_name||'').length > 22 ? ' long' : '';
+  return '<div class="prizecard'+(big?' big':'')+'">'
+   +'<i class="corner c-tl"></i><i class="corner c-tr"></i><i class="corner c-bl"></i><i class="corner c-br"></i>'
+   +'<div class="crest">YIO FISH</div><div class="crest-sub">JAPANESE FUSION</div>'
+   +'<div class="pdivider"><i></i><b></b><i></i></div>'
+   +(big?'<div class="ribbon">'+T('ribbon')+'</div>':'')
+   +'<div class="kicker">'+T('winKicker')+'</div>'
+   +'<div class="prizename'+longName+'">'+esc2(d.prize_name)+'</div>'
+   +'<div class="housenote">'+house+'</div>'
+   +'<div class="codewrap"><div class="codelabel">'+T('codeLabel')+'</div>'
+   +'<div class="code">'+digits+'</div></div>'
+   +'<div class="vbadge '+vcls+'">'+esc2(vtxt)+'</div>'
+   +'<div class="tillnote">'+till+'</div>'
+   +'<div class="stamp"><i></i>'+todayStr()+' · '+esc2(storeLabel())+'<i></i></div>'
+   +'</div>';
+}
+function softHTML(emoji,title,note){
+  return '<div class="card"><div class="result"><div class="r-emoji">'+emoji+'</div>'
+   +'<div class="r-prize">'+esc2(title)+'</div><p class="r-note">'+esc2(note)+'</p></div></div>';
+}
+
+// ── 彩带 ──
+var _fx=null,_fxc=null,_parts=[],_raf=null;
+function fxInit(){
+  if(_fx) return;
+  _fx=document.getElementById('fx'); if(!_fx) return;
+  _fxc=_fx.getContext('2d');
+  var r=function(){ _fx.width=innerWidth; _fx.height=innerHeight; };
+  addEventListener('resize',r); r();
+}
+function confetti(n){
+  fxInit(); if(!_fxc) return;
+  var cols=['#e8d5a3','#c9a962','#8a7238','#f0ead9','#2e8b57'];
+  for(var i=0;i<n;i++) _parts.push({
+    x:Math.random()*_fx.width, y:-20-Math.random()*_fx.height*.4,
+    w:4+Math.random()*5, h:7+Math.random()*9,
+    vy:1.6+Math.random()*2.6, vx:-1+Math.random()*2,
+    rot:Math.random()*6.28, vr:-.12+Math.random()*.24,
+    c:cols[(Math.random()*cols.length)|0], life:1 });
+  if(!_raf) _raf=requestAnimationFrame(fxTick);
+}
+function fxTick(){
+  _fxc.clearRect(0,0,_fx.width,_fx.height);
+  for(var i=_parts.length-1;i>=0;i--){
+    var p=_parts[i]; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.vy+=.012;
+    if(p.y>_fx.height*.62) p.life-=.014;
+    if(p.life<=0||p.y>_fx.height+40){ _parts.splice(i,1); continue; }
+    _fxc.save(); _fxc.translate(p.x,p.y); _fxc.rotate(p.rot);
+    _fxc.globalAlpha=Math.max(0,p.life); _fxc.fillStyle=p.c;
+    _fxc.fillRect(-p.w/2,-p.h/2,p.w,p.h); _fxc.restore();
+  }
+  if(_parts.length) _raf=requestAnimationFrame(fxTick);
+  else { _raf=null; _fxc.clearRect(0,0,_fx.width,_fx.height); }
+}
+
+// ── 分享图 1080×1920 ──
+function _rr(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r);
+  x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
+function _line(x,cx,y,w){ var g=x.createLinearGradient(cx-w,y,cx+w,y);
+  g.addColorStop(0,'rgba(201,169,98,0)'); g.addColorStop(.5,'rgba(201,169,98,.75)');
+  g.addColorStop(1,'rgba(201,169,98,0)'); x.strokeStyle=g; x.lineWidth=1;
+  x.beginPath(); x.moveTo(cx-w,y); x.lineTo(cx+w,y); x.stroke(); }
+function _sp(t,px){ return t.split('').join(String.fromCharCode(8202).repeat(Math.max(1,Math.round(px/3)))); }
+function _wrap(x,t,cx,y,max,lh){
+  var w=(t||'').split(' '), ln='', out=[];
+  for(var i=0;i<w.length;i++){ var q=ln?ln+' '+w[i]:w[i];
+    if(x.measureText(q).width>max&&ln){ out.push(ln); ln=w[i]; } else ln=q; }
+  if(ln) out.push(ln);
+  for(var j=0;j<out.length;j++) x.fillText(out[j],cx,y+j*lh);
+}
+function shareImage(d){
+  var W=1080,H=1920,c=document.createElement('canvas'); c.width=W; c.height=H;
+  var x=c.getContext('2d');
+  var g=x.createLinearGradient(0,0,W*.5,H);
+  g.addColorStop(0,'#0f1d16'); g.addColorStop(.45,'#0a1512'); g.addColorStop(1,'#050b09');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  var rg=x.createRadialGradient(W*.62,-120,60,W*.62,-120,900);
+  rg.addColorStop(0,'rgba(232,213,163,.22)'); rg.addColorStop(1,'rgba(232,213,163,0)');
+  x.fillStyle=rg; x.fillRect(0,0,W,H);
+  x.strokeStyle='rgba(201,169,98,.55)'; x.lineWidth=2; _rr(x,64,300,W-128,1320,22); x.stroke();
+  x.strokeStyle='rgba(201,169,98,.22)'; x.lineWidth=1; _rr(x,80,316,W-160,1288,16); x.stroke();
+  x.textAlign='center';
+  x.fillStyle='#c9a962'; x.font='400 40px "Cormorant Garamond", serif';
+  x.fillText(_sp('YIO FISH',10),W/2,420);
+  x.fillStyle='rgba(240,234,217,.5)'; x.font='300 20px "Noto Sans SC", sans-serif';
+  x.fillText(_sp('JAPANESE FUSION',6),W/2,462);
+  _line(x,W/2,520,150);
+  var tier=tierOf(d.prize_name), big=(tier==='big');
+  if(big){ x.fillStyle='#e8d5a3'; x.font='400 22px "Noto Sans SC", sans-serif';
+    x.fillText(_sp(T('ribbon').toUpperCase(),5),W/2,566); }
+  x.fillStyle='#c9a962'; x.font='400 26px "Noto Sans SC", sans-serif';
+  x.fillText(_sp(T('winKicker').toUpperCase(),7),W/2,620);
+  x.fillStyle='#e8d5a3';
+  var fs=(d.prize_name||'').length>20?72:88;
+  x.font='600 '+fs+'px "Cormorant Garamond", serif';
+  _wrap(x,d.prize_name,W/2,740,W-220,fs*1.16);
+  x.fillStyle='rgba(240,234,217,.62)'; x.font='300 30px "Noto Sans SC", sans-serif';
+  x.fillText(big?T('houseBig'):(tier==='mid'?T('houseMid'):T('houseSmall')),W/2,985);
+  _line(x,W/2,1050,110);
+  x.fillStyle='rgba(240,234,217,.45)'; x.font='300 22px "Noto Sans SC", sans-serif';
+  x.fillText(_sp(T('codeLabel').toUpperCase(),5),W/2,1120);
+  var code=(d.code||'').toString().replace(/\s/g,''), n=code.length, bw=88, gap=14;
+  var tot=n*bw+(n-1)*gap, sx=(W-tot)/2;
+  for(var i=0;i<n;i++){
+    var bx=sx+i*(bw+gap);
+    x.fillStyle='rgba(0,0,0,.4)'; _rr(x,bx,1160,bw,112,10); x.fill();
+    x.strokeStyle='rgba(201,169,98,.45)'; x.lineWidth=1.5; _rr(x,bx,1160,bw,112,10); x.stroke();
+    x.fillStyle='#f0ead9'; x.font='500 56px "Noto Sans SC", sans-serif';
+    x.fillText(code[i],bx+bw/2,1236);
+  }
+  var vtxt=d.same_day?T('vToday'):(d.next_visit?T('vNext'):T('vUntil')).replace('{d}',d.expires_day||'');
+  x.font='300 28px "Noto Sans SC", sans-serif';
+  var tw=x.measureText(vtxt).width+64;
+  x.fillStyle=d.same_day?'rgba(46,139,87,.18)':'rgba(201,169,98,.14)';
+  _rr(x,(W-tw)/2,1340,tw,66,33); x.fill();
+  x.strokeStyle=d.same_day?'rgba(46,139,87,.55)':'rgba(201,169,98,.45)'; x.lineWidth=1.5;
+  _rr(x,(W-tw)/2,1340,tw,66,33); x.stroke();
+  x.fillStyle=d.same_day?'#8fdcae':'#e8d5a3'; x.fillText(vtxt,W/2,1383);
+  _line(x,W/2,1470,110);
+  x.fillStyle='rgba(240,234,217,.42)'; x.font='300 24px "Noto Sans SC", sans-serif';
+  x.fillText(todayStr()+' · '+storeLabel(),W/2,1530);
+  return c;
+}
+async function doShare(){
+  if(!LAST_WIN) return;
+  try{
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+    var canvas=shareImage(LAST_WIN);
+    var blob=await new Promise(function(r){ canvas.toBlob(r,'image/png',.95); });
+    var file=new File([blob],'yio-fish-premio.png',{type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], text:T('shareCap')+' \ud83c\udfa1' });
+      return;
+    }
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='yio-fish-premio.png'; a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
+  }catch(e){}
+}
+
 function showResult(d){
-  $('btnAgain').style.display = 'none';
-  $('btnRespin').style.display = 'none';
+  $('btnAgain').style.display='none';
+  $('btnRespin').style.display='none';
+  $('btnShare').style.display='none';
+  var slot=$('resultSlot');
+  _parts.length=0;
+
   if (d.result === 'retry'){
-    $('rEmoji').textContent = '🎊';
-    $('rPrize').textContent = T('retryTitle');
-    $('rCode').style.display = 'none';
-    $('rNote').textContent = T('retryNote');
-    $('btnAgain').textContent = T('againBtn');
-    $('btnAgain').style.display = 'block';
+    LAST_WIN=null;
+    slot.innerHTML = softHTML('\ud83c\udf8a', T('retryTitle'), T('retryNote'));
+    $('btnAgain').textContent=T('againBtn');
+    $('btnAgain').style.display='block';
     showStep('stepResult');
     return;
   }
   if (d.result === 'win'){
-    $('rEmoji').textContent = '🎉';
-    $('rPrize').textContent = T('winTitle') + ' — ' + d.prize_name;
-    $('rCode').style.display = 'block';
-    $('rCode').textContent = d.code;
-    $('rNote').innerHTML = (d.same_day ? T('winToday') : (d.next_visit ? T('winNext') : T('winUntil')).replace('{d}', d.expires_day))
-      + '<br>' + T('winCode');
+    LAST_WIN=d;
+    slot.innerHTML = cardHTML(d);
+    $('btnShare').textContent=T('shareBtn');
+    $('btnShare').style.display='block';
+    var t=tierOf(d.prize_name);
+    if (t==='big') setTimeout(function(){ confetti(150); },420);
+    else if (t==='mid') setTimeout(function(){ confetti(46); },420);
   } else {
-    $('rEmoji').textContent = '😌';
-    $('rPrize').textContent = T('loseTitle');
-    $('rCode').style.display = 'none';
-    $('rNote').textContent = T('loseNote');
+    LAST_WIN=null;
+    slot.innerHTML = softHTML('\ud83d\ude0c', T('loseTitle'), T('loseNote'));
   }
-  // 付费再抽入口（后台 paid_spin_price>0 才显示）
-  if (CFG && (parseInt(CFG.paid_spin_price) || 0) > 0){
-    $('btnRespin').textContent = T('respinBtn').replace('{p}', CFG.paid_spin_price);
-    $('btnRespin').style.display = 'block';
+  if (CFG && (parseInt(CFG.paid_spin_price)||0) > 0){
+    $('btnRespin').textContent=T('respinBtn').replace('{p}',CFG.paid_spin_price);
+    $('btnRespin').style.display='block';
   }
-  $('btnMyWins').onclick = loadMyWins;
+  $('btnMyWins').onclick=loadMyWins;
   showStep('stepResult');
 }
 
