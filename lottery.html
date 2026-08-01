@@ -253,12 +253,12 @@ var STORE_NAMES = { carpi: 'YIO Fish CARPI', legnago: 'YIO Fish LEGNAGO', imola:
 
 var I18N = {
   it: {
-    title: 'Ruota della Fortuna', sub: 'Un giro gratis al giorno · Solo per clienti registrati',
+    title: 'Ruota della Fortuna', sub: '{p}€ a giro · Si vince sempre · Solo per clienti registrati',
     table: 'Numero del tavolo', phone: 'Il tuo numero di telefono', agree: 'Ho letto e accetto il regolamento', rulesLink: '(leggi)',
     dayOff: 'Oggi niente ruota!', dayOffNote: 'La lotteria è attiva solo in alcuni giorni della settimana. Torna a trovarci!',
     errTable: 'Inserisci il numero del tavolo', errTableFull: 'Questo tavolo ha già esaurito i giri disponibili. Rivolgiti al personale.',
     errDayOff: 'Oggi la lotteria non è attiva.',
-    rulesDefault: 'Un giro gratuito al giorno per numero registrato. Il giro deve essere autorizzato dal personale. I premi del giorno vanno mostrati alla cassa prima del pagamento; i premi a scadenza vanno riscattati entro la data indicata. I premi non sono convertibili in denaro.',
+    rulesDefault: 'Ogni giro costa {p}€ e deve essere autorizzato dal personale. Un giro al giorno per numero registrato. Si vince sempre: il premio minimo è una bibita. I premi del giorno vanno mostrati alla cassa prima del pagamento; i premi a scadenza vanno riscattati entro la data indicata. I premi non sono convertibili in denaro.',
     request: 'Richiedi il giro', wait: 'Mostra questa schermata al personale.<br><strong>Attendi l\'autorizzazione…</strong>',
     cancel: 'Annulla', spin: 'GIRA!', spinNote: 'Tocca GIRA e scopri il tuo premio',
     winKicker:'Complimenti, hai vinto', ribbon:'\u2605 Gran premio \u2605', codeLabel:'Codice premio',
@@ -289,12 +289,12 @@ var I18N = {
     wonOn: 'Vinto il', approved: 'Autorizzato! Prepara la ruota…'
   },
   en: {
-    title: 'Wheel of Fortune', sub: 'One free spin a day · Registered customers only',
+    title: 'Wheel of Fortune', sub: '€{p} per spin · You always win · Registered customers only',
     table: 'Table number', phone: 'Your phone number', agree: 'I have read and accept the rules', rulesLink: '(read)',
     dayOff: 'No wheel today!', dayOffNote: 'The lottery runs only on selected days of the week. See you soon!',
     errTable: 'Please enter your table number', errTableFull: 'This table has used all its spins. Please ask our staff.',
     errDayOff: 'The lottery is not active today.',
-    rulesDefault: 'One free spin per day per registered number. The spin must be approved by our staff. Same-day prizes must be shown at the till before payment; expiring prizes must be redeemed by the date shown. Prizes cannot be exchanged for cash.',
+    rulesDefault: 'Each spin costs €{p} and must be approved by our staff. One spin per day per registered number. You always win: the minimum prize is a soft drink. Same-day prizes must be shown at the till before payment; expiring prizes must be redeemed by the date shown. Prizes cannot be exchanged for cash.',
     request: 'Request a spin', wait: 'Show this screen to our staff.<br><strong>Waiting for approval…</strong>',
     cancel: 'Cancel', spin: 'SPIN!', spinNote: 'Tap SPIN and discover your prize',
     winKicker:'Congratulations, you won', ribbon:'\u2605 Grand prize \u2605', codeLabel:'Prize code',
@@ -325,12 +325,12 @@ var I18N = {
     wonOn: 'Won on', approved: 'Approved! Get the wheel ready…'
   },
   zh: {
-    title: '幸运转盘', sub: '每天一次免费抽奖 · 仅限注册会员',
+    title: '幸运转盘', sub: '每次{p}欧 · 100%中奖 · 仅限注册会员',
     table: '桌号', phone: '您的手机号码', agree: '我已阅读并同意活动规则', rulesLink: '（查看）',
     dayOff: '今天没有转盘活动！', dayOffNote: '抽奖活动只在每周固定几天进行，欢迎改天再来！',
     errTable: '请输入桌号', errTableFull: '这张桌子今天的抽奖名额已用完，请与店员联系。',
     errDayOff: '今天不是活动日。',
-    rulesDefault: '每个注册号码每天可免费抽奖一次，抽奖须经店员现场确认。当天有效的奖品请在结账前出示；限期奖品请在标注日期前到店兑换。奖品不可兑换现金。',
+    rulesDefault: '每次抽奖{p}欧，须经店员现场确认。每个注册号码每天可抽奖一次。100%中奖，最低保底一瓶饮料。当天有效的奖品请在结账前出示；限期奖品请在标注日期前到店兑换。奖品不可兑换现金。',
     request: '申请抽奖', wait: '请向店员出示此页面。<br><strong>等待店员确认…</strong>',
     cancel: '取消', spin: '开始！', spinNote: '点击开始，看看你的运气',
     winKicker:'\u606d\u559c\u4e2d\u5956', ribbon:'\u2605 \u7279\u7b49\u5956 \u2605', codeLabel:'\u5956\u54c1\u7801',
@@ -366,6 +366,9 @@ var I18N = {
 var LANG = (navigator.language || 'it').toLowerCase();
 LANG = LANG.startsWith('zh') ? 'zh' : LANG.startsWith('en') ? 'en' : 'it';
 function T(k){ return (I18N[LANG] && I18N[LANG][k]) || I18N.it[k] || k; }
+// 单次抽奖价格：优先取后台 spin_price，其次 paid_spin_price，都没有则默认 3
+function PRICE(){ return (CFG && (CFG.spin_price || CFG.paid_spin_price)) || 3; }
+function TP(k){ return T(k).replace(/\{p\}/g, PRICE()); }
 
 var CFG = null;          // 活动配置
 var REQ_ID = null;       // 当前请求
@@ -388,7 +391,7 @@ function setLang(l){
 function applyI18n(){
   document.querySelectorAll('.langs button').forEach(function(b){ b.classList.toggle('on', b.dataset.l===LANG); });
   $('tTitle').textContent = T('title');
-  $('tSub').textContent = T('sub');
+  $('tSub').textContent = TP('sub');
   $('tTable').textContent = T('table');
   $('tPhone').textContent = T('phone');
   $('tDayOff').textContent = T('dayOff');
@@ -412,7 +415,7 @@ function applyI18n(){
   $('tClosed').textContent = T('closed');
   $('tClosedNote').textContent = T('closedNote');
   $('storeName').textContent = STORE_NAMES[RID] ? STORE_NAMES[RID].toUpperCase() : 'LOTTERIA';
-  if (CFG) $('boxRules').textContent = (CFG.rules && CFG.rules[LANG]) || CFG.rules.it || T('rulesDefault');
+  if (CFG) $('boxRules').textContent = (CFG.rules && CFG.rules[LANG]) || CFG.rules.it || TP('rulesDefault');
 }
 $('lnkRules').onclick = function(){ $('boxRules').classList.toggle('on'); };
 
@@ -430,7 +433,7 @@ async function init(){
   if (!r.data.enabled){ showStep('stepClosed'); return; }
   if (r.data.today_on === false){ showStep('stepDayOff'); return; }
   CFG = r.data;
-  $('boxRules').textContent = (CFG.rules && CFG.rules[LANG]) || CFG.rules.it || T('rulesDefault');
+  $('boxRules').textContent = (CFG.rules && CFG.rules[LANG]) || CFG.rules.it || TP('rulesDefault');
   // 恢复：上次申请的请求还在进行中？
   var saved = null;
   try { saved = JSON.parse(sessionStorage.getItem('yioLot') || 'null'); } catch(e){}
