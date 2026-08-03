@@ -1006,6 +1006,7 @@ function lotteryWinRow(w, showVoid) {
       + badge
       + '</div>'
     + '<div style="font-size:12px;color:var(--muted);margin-top:3px">📱 ' + escHtml(w.phone)
+      + (w.table_no ? ' · 🪑 Tav. ' + escHtml(w.table_no) : '')
       + ' · <span style="letter-spacing:2px">' + escHtml(w.code) + '</span>'
       + (sameDay ? '' : ' · fino al ' + w.expires_day) + '</div>'
     + '</div>'
