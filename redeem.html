@@ -1091,6 +1091,20 @@ async function lotterySearchPhone(phone) {
   } catch (e) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">Errore di rete</div>'; }
 }
 
+// 当前餐期(罗马时间)：午餐 12:00-17:00 / 晚餐 19:00-次日02:00；空档返回 null(不过滤)
+function lotSessionRange(minOfDay) {
+  var romeNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
+  var m = (minOfDay === undefined) ? (romeNow.getHours() * 60 + romeNow.getMinutes()) : minOfDay;
+  function at(dayOffset, hh) {
+    var d = new Date(romeNow); d.setDate(d.getDate() + dayOffset); d.setHours(hh, 0, 0, 0);
+    return new Date(Date.now() - (romeNow.getTime() - d.getTime())); // 罗马本地时刻 → 真实时间戳
+  }
+  if (m >= 720 && m < 1020) return { label: 'pranzo', title: 'pranzo di oggi (12:00–17:00)', from: at(0, 12) };
+  if (m >= 1140) return { label: 'cena', title: 'cena di stasera (19:00–02:00)', from: at(0, 19) };
+  if (m < 120) return { label: 'cena', title: 'cena di stasera (19:00–02:00)', from: at(-1, 19) };
+  return null;
+}
+
 async function lotterySearchTable(table) {
   var box = document.getElementById('lottery-lookup');
   box.innerHTML = 'Caricamento...';
@@ -1100,8 +1114,10 @@ async function lotterySearchTable(table) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">❌ ' + escHtml(data.error || 'Errore') + '</div>'; return; }
-    const reqs = data.requests || [];
-    if (!reqs.length) { box.innerHTML = '<div style="color:var(--muted);font-size:13px">Nessuna richiesta oggi per 🪑 tavolo ' + escHtml(table) + '</div>'; return; }
+    var reqs = data.requests || [];
+    var sess = lotSessionRange(); // 当前餐期只显示本餐期的申请（当天快速核销）
+    if (sess) reqs = reqs.filter(function(r) { return r.created_at && new Date(r.created_at).getTime() >= sess.from.getTime(); });
+    if (!reqs.length) { box.innerHTML = '<div style="color:var(--muted);font-size:13px">Nessuna richiesta ' + (sess ? sess.title : 'oggi') + ' per 🪑 tavolo ' + escHtml(table) + '</div>'; return; }
     const stMap = { pending: ['⏳ in attesa', 'var(--gold-lt)'], approved: ['✓ approvato', 'var(--green)'], spun: ['🎡 ha girato', 'var(--green)'], rejected: ['✕ rifiutato', '#c0392b'], expired: ['⏱ scaduto', 'var(--muted)'] };
     // v3 桌号搜索同时带出该桌每个号码的中奖记录（可直接核销）
     const phones = [...new Set(reqs.map(function(r) { return r.phone; }))];
@@ -1112,10 +1128,13 @@ async function lotterySearchTable(table) {
           headers: {'Authorization':'Bearer ' + _token}
         });
         const wd = await wr.json().catch(() => ({}));
-        if (wd.ok) winsByPhone[ph] = wd.wins || [];
+        if (wd.ok) winsByPhone[ph] = (wd.wins || []).filter(function(w) {
+          // 桌号搜索=当前餐期快速核销：只显示本餐期抽中的奖；以前中的回头奖请用电话/中奖码搜
+          return !sess || !w.created_at || new Date(w.created_at).getTime() >= sess.from.getTime();
+        });
       } catch (e) {}
     }
-    box.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">🪑 Tavolo ' + escHtml(table) + ' — richieste e vincite di oggi</div>'
+    box.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">🪑 Tavolo ' + escHtml(table) + ' — ' + (sess ? sess.title : 'richieste e vincite di oggi') + '</div>'
       + reqs.map(function(r) {
         const st = stMap[r.status] || [r.status, 'var(--muted)'];
         let h = '<div style="border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px">'
