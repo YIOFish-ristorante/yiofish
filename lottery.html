@@ -244,7 +244,7 @@ input[type=tel]:focus{border-color:var(--gold)}
   </div>
 </div>
 
-<div class="foot">YIO FISH · LOTTERIA · v1.9.2</div>
+<div class="foot">YIO FISH · LOTTERIA · v1.9.3</div>
 
 <script>
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
@@ -262,7 +262,7 @@ var I18N = {
     request: 'Richiedi il giro', wait: 'Mostra questa schermata al personale.<br><strong>Attendi l\'autorizzazione…</strong>',
     cancel: 'Annulla', spin: 'GIRA!', spinNote: 'Tocca GIRA e scopri il tuo premio',
     winKicker:'Complimenti, hai vinto', ribbon:'\u2605 Gran premio \u2605', codeLabel:'Codice premio',
-    vToday:'Valido solo oggi', vNext:'Dalla prossima visita \u00b7 entro il {d}', vUntil:'Valido entro il {d}',
+    vToday:'Valido solo oggi', vTodayUntil:'Valido entro le {t}', vNext:'Dalla prossima visita \u00b7 entro il {d}', vUntil:'Valido entro il {d}',
     tillPay:'Mostra questo codice alla cassa prima di pagare.',
     tillNextV:'Mostra questo codice alla cassa alla tua prossima visita.',
     noteDrink:'Alla tua salute! \ud83e\udd42', noteFood:'Buon appetito!',
@@ -298,7 +298,7 @@ var I18N = {
     request: 'Request a spin', wait: 'Show this screen to our staff.<br><strong>Waiting for approval…</strong>',
     cancel: 'Cancel', spin: 'SPIN!', spinNote: 'Tap SPIN and discover your prize',
     winKicker:'Congratulations, you won', ribbon:'\u2605 Grand prize \u2605', codeLabel:'Prize code',
-    vToday:'Valid today only', vNext:'From your next visit \u00b7 by {d}', vUntil:'Valid until {d}',
+    vToday:'Valid today only', vTodayUntil:'Valid until {t} today', vNext:'From your next visit \u00b7 by {d}', vUntil:'Valid until {d}',
     tillPay:'Show this code at the till before paying.',
     tillNextV:'Show this code at the till on your next visit.',
     noteDrink:'Cheers! \ud83e\udd42', noteFood:'Enjoy!',
@@ -334,7 +334,7 @@ var I18N = {
     request: '申请抽奖', wait: '请向店员出示此页面。<br><strong>等待店员确认…</strong>',
     cancel: '取消', spin: '开始！', spinNote: '点击开始，看看你的运气',
     winKicker:'\u606d\u559c\u4e2d\u5956', ribbon:'\u2605 \u7279\u7b49\u5956 \u2605', codeLabel:'\u5956\u54c1\u7801',
-    vToday:'\u4ec5\u9650\u4eca\u5929\u6709\u6548', vNext:'\u4e0b\u6b21\u5230\u5e97\u53ef\u7528 \u00b7 {d} \u524d',
+    vToday:'\u4ec5\u9650\u4eca\u5929\u6709\u6548', vTodayUntil:'\u4eca\u5929 {t} \u524d\u6709\u6548', vNext:'\u4e0b\u6b21\u5230\u5e97\u53ef\u7528 \u00b7 {d} \u524d',
     vUntil:'\u6709\u6548\u671f\u81f3 {d}',
     tillPay:'\u7ed3\u8d26\u524d\u8bf7\u5411\u5e97\u5458\u51fa\u793a\u6b64\u7801\u3002',
     tillNextV:'\u4e0b\u6b21\u5230\u5e97\u7ed3\u8d26\u65f6\u51fa\u793a\u6b64\u7801\u3002',
@@ -731,7 +731,7 @@ function cardHTML(d){
   var tier = tierOf(d.prize_name), big = (tier==='big');
   var house = noteFor(d.prize_name);
   var vcls = d.same_day ? 'v-today' : 'v-next';
-  var vtxt = d.same_day ? T('vToday')
+  var vtxt = d.same_day ? (d.expires_time ? T('vTodayUntil').replace('{t}', d.expires_time) : T('vToday')) // v1.9.3 午餐奖 17:00 前
            : (d.next_visit ? T('vNext') : T('vUntil')).replace('{d}', d.expires_day||'');
   var till = d.same_day ? T('tillPay') : T('tillNextV');
   var code = (d.code||'').toString().replace(/\s/g,'');
@@ -848,7 +848,7 @@ function shareImage(d){
     x.fillStyle='#f0ead9'; x.font='500 56px "Noto Sans SC", sans-serif';
     x.fillText(code[i],bx+bw/2,1236);
   }
-  var vtxt=d.same_day?T('vToday'):(d.next_visit?T('vNext'):T('vUntil')).replace('{d}',d.expires_day||'');
+  var vtxt=d.same_day?(d.expires_time?T('vTodayUntil').replace('{t}',d.expires_time):T('vToday')):(d.next_visit?T('vNext'):T('vUntil')).replace('{d}',d.expires_day||''); // v1.9.3
   x.font='300 28px "Noto Sans SC", sans-serif';
   var tw=x.measureText(vtxt).width+64;
   x.fillStyle=d.same_day?'rgba(46,139,87,.18)':'rgba(201,169,98,.14)';
@@ -970,7 +970,7 @@ async function loadMyWins(){
       return '<div class="win-item"><div class="w-prize">' + esc(w.prize_name)
         + '<span class="w-badge ' + badge + '">' + btxt + '</span></div>'
         + '<div class="w-code">' + esc(w.code) + '</div>'
-        + '<div class="w-meta">' + T('wonOn') + ' ' + w.won_day + ' · ⏳ ' + w.expires_day + '</div></div>';
+        + '<div class="w-meta">' + T('wonOn') + ' ' + w.won_day + ' · ⏳ ' + w.expires_day + (w.expires_time ? ' ' + w.expires_time : '') + '</div></div>'; // v1.9.3
     }).join('');
   }
   showStep('stepWins');
