@@ -461,10 +461,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.4.0</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.4.1</div>
 
 <script>
-var APP_VERSION = 'v1.4.0';
+var APP_VERSION = 'v1.4.1';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -1047,6 +1047,7 @@ async function lotteryVoidWin(winId, prizeName, btn) {
     }
   } catch (e) { showErr('lottery-err', 'Errore di rete'); }
   loadLotteryActiveWins();
+  lotterySearchRefresh();
 }
 
 // v3 搜索模式：默认桌号（店员最常按桌查），可切中奖码/电话
@@ -1134,6 +1135,8 @@ async function lotterySearchTable(table) {
         });
       } catch (e) {}
     }
+    // 同一号码可能有多条申请（抽了多次）：中奖记录只在该号码第一张卡片下显示一次，避免重复
+    var winsShownFor = {};
     box.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">🪑 Tavolo ' + escHtml(table) + ' — ' + (sess ? sess.title : 'richieste e vincite di oggi') + '</div>'
       + reqs.map(function(r) {
         const st = stMap[r.status] || [r.status, 'var(--muted)'];
@@ -1141,7 +1144,8 @@ async function lotterySearchTable(table) {
           + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
           + '<div style="font-size:14px">' + (r.kind === 'paid' ? '💶 ' : '') + '📱 ' + escHtml(r.phone) + '</div>'
           + '<div style="font-size:12px;color:' + st[1] + '">' + st[0] + '</div></div>';
-        const ws = winsByPhone[r.phone] || [];
+        var ws = [];
+        if (!winsShownFor[r.phone]) { winsShownFor[r.phone] = true; ws = winsByPhone[r.phone] || []; }
         if (ws.length) h += '<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:8px">' + ws.map(function(w) { return lotteryWinRow(w, true); }).join('') + '</div>';
         return h + '</div>';
       }).join('');
@@ -1181,6 +1185,12 @@ async function lotteryLookupWin() {
   } catch (e) { box.innerHTML = '<div style="color:#c0392b;font-size:13px">Errore di rete</div>'; }
 }
 
+// 核销/作废后刷新当前搜索结果：保留搜索框内容（如桌号 38），方便连续核销同一桌的多笔
+function lotterySearchRefresh() {
+  var inp = document.getElementById('lottery-code');
+  if (inp && (inp.value || '').trim()) lotterySearch();
+}
+
 async function lotteryRedeemWin(codeOrId, prizeName, btn) {
   if (!confirm('Confermare il riscatto di "' + (prizeName || 'questo premio') + '"?')) return;
   if (btn) btn.disabled = true;
@@ -1194,8 +1204,8 @@ async function lotteryRedeemWin(codeOrId, prizeName, btn) {
     });
     const ld = await lr.json().catch(() => ({}));
     if (!lr.ok || !ld.ok) { showErr('lottery-err', escHtml(ld.error || 'Codice non trovato')); if (btn) btn.disabled = false; return; }
-    if (ld.win.status !== 'active') { showErr('lottery-err', 'Premio non più valido (' + ld.win.status + ')'); loadLotteryActiveWins(); return; }
-    if (ld.win.usable === false) { showErr('lottery-err', '⏳ Premio utilizzabile dalla prossima visita (non oggi)'); if (btn) btn.disabled = false; loadLotteryActiveWins(); return; }
+    if (ld.win.status !== 'active') { showErr('lottery-err', 'Premio non più valido (' + ld.win.status + ')'); loadLotteryActiveWins(); lotterySearchRefresh(); return; }
+    if (ld.win.usable === false) { showErr('lottery-err', '⏳ Premio utilizzabile dalla prossima visita (non oggi)'); if (btn) btn.disabled = false; loadLotteryActiveWins(); lotterySearchRefresh(); return; }
     const res = await fetch(WORKER_URL + '/lottery/wins/redeem', {
       method: 'POST',
       headers: {'Content-Type':'application/json', 'Authorization':'Bearer ' + _token},
@@ -1204,13 +1214,13 @@ async function lotteryRedeemWin(codeOrId, prizeName, btn) {
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.ok) {
       document.getElementById('lottery-toast').innerHTML = '<div style="background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.35);color:#7bd88f;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px">✅ Riscattato: ' + escHtml(data.prize_name || prizeName || '') + '</div>';
-      document.getElementById('lottery-lookup').innerHTML = '';
-      document.getElementById('lottery-code').value = '';
       loadLotteryActiveWins();
+      lotterySearchRefresh(); // 保留桌号并刷新列表，可接着核销下一笔
     } else {
       showErr('lottery-err', escHtml(data.error || 'Errore'));
       if (btn) btn.disabled = false;
       loadLotteryActiveWins();
+      lotterySearchRefresh();
     }
   } catch (e) { showErr('lottery-err', 'Errore di rete'); if (btn) btn.disabled = false; }
 }
@@ -1417,5 +1427,6 @@ async function doChangePassword() {
   }
 }
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
 </body>
 </html>
