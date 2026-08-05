@@ -4627,7 +4627,7 @@ function sendReservation() {
   if (!people || people < 1) { toast('⚠️ Inserisci il numero di persone'); peopleEl.focus(); return; }
   var p = date.split('-');
   var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
-  var msg = 'Prenotazione YIO Fish\n\nNome: '+name+'\nData: '+p[2]+'/'+p[1]+'/'+p[0]+'\nOrario: '+time+'\nPersone: '+people+(note ? '\nNote: '+note : '')+(phone ? '\nTelefono: '+phone : '');
+  var msg = '📅 *PRENOTAZIONE YIO FISH*\n\n👤 _Nome:_ *'+name+'*\n🗓️ _Data:_ *'+p[2]+'/'+p[1]+'/'+p[0]+'*\n⏰ _Orario:_ *'+time+'*\n👥 _Persone:_ *'+people+'*'+(note ? '\n📝 _Note:_ *'+note+'*' : '')+(phone ? '\n📞 _Telefono:_ *'+phone+'*' : '');
   window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
   closeModal('reservationModal');
   // 手机号可选：填了就静默注册/识别会员（积分系统）
@@ -4810,5 +4810,6 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function(){ if (!opened) document.getElementById('yaiDot').style.display = 'block'; }, 4000);
 })();
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
 </body>
 </html>
