@@ -4356,6 +4356,8 @@ async function lyLookup() {
   var phone = (document.getElementById('ly-phone').value||'').trim().replace(/\s+/g,'');
   var errEl = document.getElementById('ly-phone-err');
   if (!phone) { errEl.textContent = 'Inserisci il numero di telefono'; return; }
+  // A档校验：9-13位纯数字（可带+号），与后端 /loyalty/identify 一致
+  if (!/^\+?\d{9,13}$/.test(phone)) { errEl.textContent = 'Numero non valido: servono 9-13 cifre (es. 333 123 4567)'; return; }
   errEl.textContent = '';
 
   try {
@@ -4627,11 +4629,11 @@ function sendReservation() {
   if (!people || people < 1) { toast('⚠️ Inserisci il numero di persone'); peopleEl.focus(); return; }
   var p = date.split('-');
   var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
-  var msg = 'Prenotazione YIO Fish\n\nNome: '+name+'\nData: '+p[2]+'/'+p[1]+'/'+p[0]+'\nOrario: '+time+'\nPersone: '+people+(note ? '\nNote: '+note : '')+(phone ? '\nTelefono: '+phone : '');
+  var msg = '📅 *PRENOTAZIONE YIO FISH*\n\n👤 _Nome:_ *'+name+'*\n🗓️ _Data:_ *'+p[2]+'/'+p[1]+'/'+p[0]+'*\n⏰ _Orario:_ *'+time+'*\n👥 _Persone:_ *'+people+'*'+(note ? '\n📝 _Note:_ *'+note+'*' : '')+(phone ? '\n📞 _Telefono:_ *'+phone+'*' : '');
   window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
   closeModal('reservationModal');
-  // 手机号可选：填了就静默注册/识别会员（积分系统）
-  if (phone && SETTINGS.loyalty_enabled) {
+  // 手机号可选：填了就静默注册/识别会员（积分系统）；格式不符（A档 9-13位）直接跳过，避免假号建档
+  if (phone && SETTINGS.loyalty_enabled && /^\+?\d{9,13}$/.test(phone)) {
     fetch(WORKER_URL + '/loyalty/identify', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},

@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.49.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.53.1</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.49.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.53.1</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -643,7 +643,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.49.0</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.53.1</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1375,7 +1375,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.49.0</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.53.1</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -4243,9 +4243,10 @@ async function renderLoyaltyPage() {
     + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
       + '<div style="font-size:14px;font-weight:600;margin-bottom:12px">🔍 Cerca cliente</div>'
       + '<div style="display:flex;gap:8px">'
-        + '<input type="tel" id="ly-search" placeholder="Numero di telefono..." style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)" onkeydown="if(event.key==String.fromCharCode(13))searchLoyaltyCustomer()">'
+        + '<input type="tel" id="ly-search" placeholder="Telefono... bastano anche le ultime cifre" style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--surface)" onkeydown="if(event.key==String.fromCharCode(13))searchLoyaltyCustomer()">'
         + '<button class="btn btn-gold" onclick="searchLoyaltyCustomer()">Cerca</button>'
       + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-top:8px">v5.53.0: riconosce +39 / 0039 / numero breve — trova anche i duplicati dello stesso cliente.</div>'
     + '</div>'
 
     // ── 会员详情区（默认空）──
@@ -4424,12 +4425,10 @@ async function saveLoyaltySettings() {
   } catch(e) { toast('❌ ' + e.message); }
 }
 
-async function searchLoyaltyCustomer() {
-  var phone = (document.getElementById('ly-search').value || '').trim().replace(/\s+/g, '');
-  if (!phone) { toast('⚠️ Inserisci un numero di telefono'); return; }
+// v5.53.0: 搜出多个候选（同一人重复建档）时点选其一查看
+async function lyLoadCustomerByPhone(phone) {
   var detail = document.getElementById('ly-customer-detail');
   if (detail) detail.innerHTML = '<div style="padding:12px;color:var(--muted)">⏳ Ricerca...</div>';
-
   try {
     var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
     var res = await fetch(WORKER_URL + '/loyalty/customer?phone=' + encodeURIComponent(phone), {
@@ -4438,13 +4437,125 @@ async function searchLoyaltyCustomer() {
     });
     var data = await res.json();
     if (!res.ok) { toast('❌ ' + (data.error || 'Errore')); return; }
-    if (!data.customer) {
-      if (detail) detail.innerHTML = '<div class="card" style="padding:16px;margin-bottom:20px;color:var(--muted);text-align:center">Nessun cliente trovato con questo numero</div>';
+    if (data.customer) {
+      _loyaltyCustomer = data.customer;
+      renderCustomerDetail(data.customer, data.transactions || []);
       return;
     }
-    _loyaltyCustomer = data.customer;
-    renderCustomerDetail(data.customer, data.transactions || []);
+    if (data.candidates && data.candidates.length) {
+      _lyCandidates = data.candidates; // v5.53.0 供一键合并用
+      if (detail) detail.innerHTML = '<div class="card" style="padding:16px;margin-bottom:20px">'
+        + '<div style="font-size:13px;font-weight:600;margin-bottom:10px">⚠️ Trovati ' + data.candidates.length + ' profili — possibile duplicato. Tocca un profilo per vederlo, oppure <b>Unisci qui</b> per fondere gli altri in quello:</div>'
+        + data.candidates.map(function(c) {
+            return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--border2);border-radius:8px;padding:10px 14px;margin-bottom:8px;cursor:pointer" onclick="lyLoadCustomerByPhone(\'' + String(c.phone).replace(/'/g, '') + '\')">'
+              + '<div><div style="font-size:14px;font-weight:500">📱 ' + _lyEsc(c.phone) + (c.name ? ' · ' + _lyEsc(c.name) : '') + '</div>'
+              + '<div style="font-size:11px;color:var(--muted);margin-top:2px">dal ' + new Date(c.created_at).toLocaleDateString('it-IT') + '</div></div>'
+              + '<div style="display:flex;align-items:center;gap:10px">'
+              + '<div style="font-size:16px;font-weight:600;color:var(--gold)">' + (c.total_points || 0) + ' pt</div>'
+              + (data.candidates.length > 1 ? '<button class="btn btn-sm btn-gold" style="padding:4px 10px;font-size:11px" onclick="event.stopPropagation();lyMergeCandidates(\'' + String(c.id).replace(/'/g, '') + '\',this)">⇄ Unisci qui</button>' : '')
+              + '</div>'
+              + '</div>';
+          }).join('')
+        + '</div>';
+      return;
+    }
+    if (detail) detail.innerHTML = '<div class="card" style="padding:16px;margin-bottom:20px;color:var(--muted);text-align:center">Nessun cliente trovato con questo numero</div>';
   } catch(e) { toast('❌ ' + e.message); }
+}
+
+async function searchLoyaltyCustomer() {
+  var phone = (document.getElementById('ly-search').value || '').trim().replace(/\s+/g, '');
+  if (!phone) { toast('⚠️ Inserisci un numero di telefono'); return; }
+  lyLoadCustomerByPhone(phone);
+}
+
+// ── v5.53.0 一键合并重复会员 ──
+var _lyCandidates = null;
+
+// 候选列表里点「⇄ Unisci qui」：其余候选全部并入这一条
+async function lyMergeCandidates(toId, btn) {
+  var to = (_lyCandidates || []).find(function(c){ return String(c.id) === String(toId); });
+  var others = (_lyCandidates || []).filter(function(c){ return String(c.id) !== String(toId); });
+  if (!to || !others.length) return;
+  var msg = 'Unire tutto in ' + to.phone + ' (' + (to.total_points || 0) + ' pt)?\n\n'
+    + others.map(function(c){ return '• ' + c.phone + ' (' + (c.total_points || 0) + ' pt) → verrà eliminato'; }).join('\n');
+  if (!confirm(msg)) return;
+  if (btn) btn.disabled = true;
+  for (var i = 0; i < others.length; i++) {
+    var okMerge = await lyMergeOne(others[i].id, to.id);
+    if (!okMerge) { if (btn) btn.disabled = false; return; }
+  }
+  toast('✅ Unione completata in ' + to.phone);
+  _lyCandidates = null;
+  lyLoadCustomerByPhone(to.phone);
+}
+
+// 详情页「Unisci altro numero…」：手工输入要并入的号码
+async function lyMergeFromPrompt() {
+  if (!_loyaltyCustomer || !_loyaltyCustomer.id) { toast('⚠️ Prima cerca un cliente'); return; }
+  var input = prompt('Numero del profilo da unire in ' + _loyaltyCustomer.phone + '\n(punti e storico passeranno qui, quel profilo verrà eliminato):');
+  if (!input) return;
+  var phone = input.trim().replace(/\s+/g, '');
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/loyalty/customer?phone=' + encodeURIComponent(phone), {
+      headers: { 'Authorization': 'Bearer ' + token }, cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) { toast('❌ ' + (data.error || 'Errore')); return; }
+    if (!data.customer) {
+      toast(data.candidates ? '⚠️ Più profili trovati: cerca il numero e scegli dalla lista' : '⚠️ Nessun profilo con questo numero');
+      return;
+    }
+    if (String(data.customer.id) === String(_loyaltyCustomer.id)) { toast('⚠️ È lo stesso profilo'); return; }
+    if (!confirm('Unire ' + data.customer.phone + ' (' + (data.customer.total_points || 0) + ' pt) in '
+      + _loyaltyCustomer.phone + ' (' + (_loyaltyCustomer.total_points || 0) + ' pt)?\nIl profilo ' + data.customer.phone + ' verrà eliminato.')) return;
+    var okMerge = await lyMergeOne(data.customer.id, _loyaltyCustomer.id);
+    if (okMerge) { toast('✅ Unione completata'); lyLoadCustomerByPhone(_loyaltyCustomer.phone); }
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+// v5.54.0 删除会员档（假号清理；双确认，连带删流水，不可逆）
+async function lyDeleteCustomer() {
+  if (!_loyaltyCustomer || !_loyaltyCustomer.id) { toast('⚠️ Prima cerca un cliente'); return; }
+  var c = _loyaltyCustomer;
+  if (!confirm('Eliminare il profilo ' + c.phone + (c.name ? ' (' + c.name + ')' : '') + '?\n\n'
+    + 'Punti attuali: ' + (c.total_points || 0) + ' pt\n'
+    + 'Verranno eliminati anche TUTTE le transazioni collegate.\n'
+    + 'L\'operazione è IRREVERSIBILE.')) return;
+  if (!confirm('Confermi davvero? ' + c.phone + ' sarà eliminato definitivamente.')) return;
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/loyalty/customer/delete', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customer_id: c.id }),
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok || !data.ok) { toast('❌ ' + (data.error || 'Errore')); return; }
+    toast('✅ Profilo ' + data.deleted_phone + ' eliminato');
+    _loyaltyCustomer = null;
+    var detail = document.getElementById('ly-customer-detail');
+    if (detail) detail.innerHTML = '';
+    var inp = document.getElementById('ly-search');
+    if (inp) inp.value = '';
+    loadLoyaltyList(); // 刷新列表
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+async function lyMergeOne(fromId, toId) {
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
+    var res = await fetch(WORKER_URL + '/loyalty/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ from_id: fromId, to_id: toId })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) { toast('❌ ' + (data.error || 'Errore')); return false; }
+    return true;
+  } catch(e) { toast('❌ ' + e.message); return false; }
 }
 
 function renderCustomerDetail(customer, transactions) {
@@ -4462,6 +4573,7 @@ function renderCustomerDetail(customer, transactions) {
           'redeem': '🎁 Riscatto',
           'storno': '↩︎ Storno',
           'expire_deduct': '⏳ Scadenza punti',
+          'merge_in': '⇄ Unione duplicato',
           'signup_bonus': '🎉 Bonus benvenuto'
         }[tx.type] || tx.type;
         var d = new Date(tx.created_at);
@@ -4522,6 +4634,24 @@ function renderCustomerDetail(customer, transactions) {
             ? '<button class="btn btn-sm" style="background:#c0392b;color:#fff" onclick="resetLoyaltyPin()">Reset</button>'
             : '')
       + '</div>'
+    + '</div>'
+
+    // v5.53.0 合并重复档案
+    + '<div style="background:var(--bg);border-radius:var(--r);padding:14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+      + '<div>'
+        + '<div style="font-size:12px;font-weight:600">⇄ Unisci duplicato</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Fondi un altro profilo in questo: punti e storico passano qui, l\'altro viene eliminato.</div>'
+      + '</div>'
+      + '<button class="btn btn-sm" style="background:var(--surface);border:1px solid var(--border2)" onclick="lyMergeFromPrompt()">Unisci altro numero…</button>'
+    + '</div>'
+
+    // v5.54.0 删除档案（清理乱填的假号，连带流水，不可逆）
+    + '<div style="background:rgba(192,57,43,.06);border:1px solid rgba(192,57,43,.25);border-radius:var(--r);padding:14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+      + '<div>'
+        + '<div style="font-size:12px;font-weight:600;color:#c0392b">🗑 Elimina profilo</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Elimina il profilo e tutto lo storico punti. Per numeri inventati/errati. Irreversibile.</div>'
+      + '</div>'
+      + '<button class="btn btn-sm" style="background:#c0392b;color:#fff" onclick="lyDeleteCustomer()">Elimina…</button>'
     + '</div>'
 
     // 流水记录
@@ -4735,9 +4865,14 @@ async function toggleReward(id, isActive) {
 }
 
 var _lyListData = [];        // 当前加载的全部会员（供排序/导出）
+var _lyListTotal = 0;        // 数据库里的会员总数（不再受单页 limit 影响）
 var _lySortKey = 'total_points';  // 默认按积分
 var _lySortDir = 'desc';     // 默认降序
 var _lyStoreFilter = '';     // 主力店筛选：''=全部
+var _lyShowInvalidOnly = false; // v5.54.0 只显示无效号码（清理假号用）
+// A档号码规则：9-13位纯数字（可带+号）——与后端 /loyalty/identify 一致
+function lyPhoneValid(p) { return /^\+?\d{9,13}$/.test(String(p || '').trim().replace(/\s+/g, '')); }
+function lyToggleInvalidFilter() { _lyShowInvalidOnly = !_lyShowInvalidOnly; renderLoyaltyList(); }
 
 async function loadLoyaltyList() {
   var listEl = document.getElementById('ly-list');
@@ -4747,13 +4882,39 @@ async function loadLoyaltyList() {
   listEl.innerHTML = '⏳ Caricamento...';
   try {
     var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
-    var res = await fetch(WORKER_URL + '/loyalty/list?limit=1000&offset=0&with_stores=1', {
-      headers: { 'Authorization': 'Bearer ' + token },
-      cache: 'no-store'
-    });
-    var data = await res.json();
-    if (!res.ok) { listEl.innerHTML = '❌ ' + (data.error || 'Errore'); return; }
-    _lyListData = data.customers || [];
+    var pageSize = 1000;
+    var offset = 0;
+    var all = [];
+    var seen = {};
+    var total = 0;
+
+    // v5.53.1: 分页拉取全部会员，避免超过 1000 后被静默截断
+    for (var page = 0; page < 100; page++) {
+      var res = await fetch(WORKER_URL + '/loyalty/list?limit=' + pageSize + '&offset=' + offset + '&with_stores=1', {
+        headers: { 'Authorization': 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      var data = await res.json();
+      if (!res.ok) { listEl.innerHTML = '❌ ' + (data.error || 'Errore'); return; }
+
+      var batch = data.customers || [];
+      var apiTotal = parseInt(data.total, 10);
+      if (!isNaN(apiTotal) && apiTotal >= 0) total = apiTotal;
+
+      batch.forEach(function(c) {
+        var key = String(c.id || c.phone || '');
+        if (key && seen[key]) return;
+        if (key) seen[key] = true;
+        all.push(c);
+      });
+
+      offset += batch.length;
+      listEl.innerHTML = '⏳ Caricamento clienti... ' + all.length + (total ? ' / ' + total : '');
+      if (!batch.length || batch.length < pageSize || (total && all.length >= total)) break;
+    }
+
+    _lyListData = all;
+    _lyListTotal = total || all.length;
     if (!_lyListData.length) {
       listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Nessun cliente registrato</div>';
       return;
@@ -4791,9 +4952,11 @@ function renderLoyaltyList() {
 
   // 先按主力店筛选
   var filtered = _lyListData.filter(function(c) {
+    if (_lyShowInvalidOnly) return !lyPhoneValid(c.phone); // v5.54.0 无效号码专用视图
     if (!_lyStoreFilter) return true;
     return (c.main_store || '') === _lyStoreFilter;
   });
+  var invalidCount = _lyListData.filter(function(c){ return !lyPhoneValid(c.phone); }).length;
 
   // 排序
   var arr = filtered.slice();
@@ -4840,6 +5003,8 @@ function renderLoyaltyList() {
             + (_lyStoreFilter===rid?'background:var(--gold);color:#1a1510':'background:transparent;color:var(--muted)') + '">'
             + lyStoreName(rid) + ' (' + (counts[rid]||0) + ')</button>';
         }).join('')
+      + (invalidCount ? '<button onclick="lyToggleInvalidFilter()" style="'+_pill
+        + (_lyShowInvalidOnly?'background:#c0392b;color:#fff;border-color:#c0392b':'background:transparent;color:#c0392b;border-color:rgba(192,57,43,.4)') + '">⚠️ Numeri non validi (' + invalidCount + ')</button>' : '')
       + '</div>';
   }
 
@@ -4855,14 +5020,16 @@ function renderLoyaltyList() {
     + arr.map(function(c) {
         return '<tr style="border-bottom:1px solid var(--border);cursor:pointer" data-phone="'+_lyEsc(c.phone)+'" class="ly-row">'
           + '<td style="padding:8px 4px">' + (c.name ? _lyEsc(c.name) : '<span style="color:var(--muted)">—</span>') + '</td>'
-          + '<td style="padding:8px 4px;color:var(--muted)">' + _lyEsc(c.phone) + '</td>'
+          + '<td style="padding:8px 4px;color:var(--muted)">' + _lyEsc(c.phone)
+            + (lyPhoneValid(c.phone) ? '' : ' <span style="font-size:10px;background:rgba(192,57,43,.15);color:#c0392b;border:1px solid rgba(192,57,43,.35);border-radius:3px;padding:0 5px;vertical-align:1px">non valido</span>')
+          + '</td>'
           + '<td style="padding:8px 4px;font-size:12px">' + lyStoreName(c.main_store) + '</td>'
           + '<td style="padding:8px 4px;text-align:right;font-weight:600;color:#d4af37">' + c.total_points + '</td>'
           + '<td style="padding:8px 4px;text-align:right;color:var(--muted);font-size:11px">' + new Date(c.created_at).toLocaleDateString('it-IT') + '</td>'
         + '</tr>';
       }).join('')
     + '</tbody></table></div>'
-    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">Mostrati: ' + arr.length + ' / ' + _lyListData.length + ' clienti · Clicca su una riga per i dettagli</div>';
+    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">Mostrati: ' + arr.length + ' / ' + (_lyListTotal || _lyListData.length) + ' clienti · Clicca su una riga per i dettagli</div>';
 
   var listEl2 = document.getElementById('ly-list');
   if (listEl2) listEl2.onclick = function(e) {
@@ -4915,7 +5082,7 @@ function exportLoyaltyList() {
 
 
 // ============================================================
-// 🎡 Lotteria 抽奖管理（v5.49.0）
+// 🎡 Lotteria 抽奖管理（v5.53.0）
 // 店员：待批准队列（批准/拒绝）+ 中奖核销；店长/超管：奖项与活动配置
 // ============================================================
 var _lotPoll = null;
@@ -5109,8 +5276,8 @@ async function loadLotteryPrizes() {
         + '<td style="font-weight:500">' + _lyEsc(p.name) + (p.is_retry ? ' <span style="font-size:10px;background:rgba(201,169,98,.18);color:var(--gold-lt);border-radius:8px;padding:1px 7px;vertical-align:2px">再来一次</span>' : '') + '</td>'
         + '<td>' + (p.used_count || 0) + ' / ' + p.total_count + (out ? ' <span style="color:#c0392b;font-size:10px">ESURITO</span>' : '') + '</td>'
         + '<td>' + ((parseInt(p.daily_cap) || 0) > 0 ? '<span style="color:#b8902e">' + parseInt(p.daily_cap) + '/天</span>' : '<span style="color:var(--muted)">不限</span>') + '</td>'
-        + '<td>' + p.weight + '</td>'
-        + '<td>' + (p.validity_days === 0 ? '<span style="color:#b8902e">当天</span>' : p.validity_days + ' 天') + '</td>'
+        + '<td>' + p.weight + '<div style="font-size:10px;color:var(--muted);white-space:nowrap">☀️' + (p.weight_lunch == null ? p.weight : p.weight_lunch) + ' · 🌙' + (p.weight_dinner == null ? p.weight : p.weight_dinner) + '</div></td>'
+        + '<td>' + (p.valid_until ? '<span style="color:#b8902e">📅 ' + p.valid_until + '</span>' : (p.validity_days === 0 ? '<span style="color:#b8902e">当天</span>' : p.validity_days + ' 天')) + '</td>'
         + '<td>' + (p.is_active ? '<span style="color:#27ae60">ON</span>' : '<span style="color:var(--muted)">OFF</span>') + '</td>'
         + '<td style="white-space:nowrap">'
           + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="lotOpenPrizeForm(\'' + p.id + '\')">✏️</button> '
@@ -5133,8 +5300,14 @@ function lotOpenPrizeForm(id) {
         + '<input id="lp-cap" type="number" min="0" value="' + (p ? (parseInt(p.daily_cap) || 0) : 0) + '" style="width:90px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">权重*</div>'
         + '<input id="lp-weight" type="number" min="0" step="0.1" value="' + (p ? p.weight : '') + '" style="width:80px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">☀️ 午餐权重<span style="opacity:.6">(空=同左)</span></div>'
+        + '<input id="lp-weight-lunch" type="number" min="0" step="0.1" placeholder="' + (p ? p.weight : '') + '" value="' + (p && p.weight_lunch != null ? p.weight_lunch : '') + '" style="width:80px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">🌙 晚餐权重<span style="opacity:.6">(空=同左)</span></div>'
+        + '<input id="lp-weight-dinner" type="number" min="0" step="0.1" placeholder="' + (p ? p.weight : '') + '" value="' + (p && p.weight_dinner != null ? p.weight_dinner : '') + '" style="width:80px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">有效期天数（0=仅当天）</div>'
         + '<input id="lp-valid" type="number" min="0" value="' + (p ? p.validity_days : 0) + '" style="width:90px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">📅 统一到期日<span style="opacity:.6">(空=按天数)</span></div>'
+        + '<input id="lp-until" type="date" value="' + (p && p.valid_until ? p.valid_until : '') + '" style="width:150px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">颜色（默认金=自动品牌配色）</div>'
         + '<input id="lp-color" type="color" value="' + (p ? p.color : '#c9a962') + '" style="width:44px;height:34px;padding:2px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface)"></div>'
       + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">排序</div>'
@@ -5142,7 +5315,7 @@ function lotOpenPrizeForm(id) {
       + '<label style="font-size:12px;display:flex;align-items:center;gap:6px;padding-bottom:8px"><input type="checkbox" id="lp-active" ' + (!p || p.is_active ? 'checked' : '') + '> 启用</label>'
       + '<label style="font-size:12px;display:flex;align-items:center;gap:6px;padding-bottom:8px;color:var(--gold-lt)"><input type="checkbox" id="lp-retry" ' + (p && p.is_retry ? 'checked' : '') + '> 🔄 再来一次</label>'
     + '</div>'
-    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">权重是相对值：各奖项权重 ÷ 总权重 = 中奖率。例：大奖1份权重1、小奖权重20 → 大奖约 1/(1+20+未中奖权重)。勾了「再来一次」的奖：抽中不出实物、客人原地再转一次，不占库存也不受每日上限限制。</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">权重是相对值：各奖项权重 ÷ 总权重 = 中奖率。例：大奖1份权重1、小奖权重20 → 大奖约 1/(1+20+未中奖权重)。☀️/🌙 时段权重：午餐 12:00-15:00、晚餐 19:00-24:00 内分别生效，<b>留空=跟随基础权重，填 0=该时段不出这个奖</b>。例：大奖基础权重 1、午餐 0.3、晚餐 3 → 午餐难中、晚餐易中。📅 统一到期日：设了之后无论何时抽中都统一到这天（如 2026-09-30），替代"抽中日起 N 天"，也按回头奖处理（中 6 小时后可用）。勾了「再来一次」的奖：抽中不出实物、客人原地再转一次，不占库存也不受每日上限限制。</div>'
     + '<div style="display:flex;gap:8px;margin-top:12px">'
       + '<button class="btn btn-gold btn-sm" onclick="lotSavePrize(\'' + (p ? p.id : '') + '\')">💾 Salva</button>'
       + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="document.getElementById(\'lot-prize-form\').innerHTML=\'\'">Annulla</button>'
@@ -5158,7 +5331,10 @@ async function lotSavePrize(id) {
     daily_cap: document.getElementById('lp-cap').value,
     is_retry: document.getElementById('lp-retry').checked,
     weight: document.getElementById('lp-weight').value,
+    weight_lunch: document.getElementById('lp-weight-lunch').value,
+    weight_dinner: document.getElementById('lp-weight-dinner').value,
     validity_days: document.getElementById('lp-valid').value,
+    valid_until: document.getElementById('lp-until').value,
     color: document.getElementById('lp-color').value,
     sort_order: document.getElementById('lp-sort').value,
     is_active: document.getElementById('lp-active').checked
@@ -5167,7 +5343,12 @@ async function lotSavePrize(id) {
   var r = await _lotFetch('/lottery/prizes/save', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
   });
-  if (r.ok) { toast('✅ Salvato'); document.getElementById('lot-prize-form').innerHTML = ''; loadLotteryPrizes(); }
+  if (r.ok) {
+    toast(r.data && r.data.warn === 'window_weight_columns_missing'
+      ? '⚠️ 已保存，但时段权重/统一到期日没存上：请先在 Supabase 执行加列 SQL（weight_lunch / weight_dinner / valid_until）'
+      : '✅ Salvato');
+    document.getElementById('lot-prize-form').innerHTML = ''; loadLotteryPrizes();
+  }
   else toast('❌ ' + (r.data.error || 'Errore'));
 }
 async function lotDeletePrize(id) {
