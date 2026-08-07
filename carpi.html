@@ -4627,7 +4627,7 @@ function sendReservation() {
   if (!people || people < 1) { toast('⚠️ Inserisci il numero di persone'); peopleEl.focus(); return; }
   var p = date.split('-');
   var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
-  var msg = '📅 *PRENOTAZIONE YIO FISH*\n\n👤 _Nome:_ *'+name+'*\n🗓️ _Data:_ *'+p[2]+'/'+p[1]+'/'+p[0]+'*\n⏰ _Orario:_ *'+time+'*\n👥 _Persone:_ *'+people+'*'+(note ? '\n📝 _Note:_ *'+note+'*' : '')+(phone ? '\n📞 _Telefono:_ *'+phone+'*' : '');
+  var msg = 'Prenotazione YIO Fish\n\nNome: '+name+'\nData: '+p[2]+'/'+p[1]+'/'+p[0]+'\nOrario: '+time+'\nPersone: '+people+(note ? '\nNote: '+note : '')+(phone ? '\nTelefono: '+phone : '');
   window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
   closeModal('reservationModal');
   // 手机号可选：填了就静默注册/识别会员（积分系统）
