@@ -87,6 +87,7 @@ body {
   min-height: 16px;
 }
 .status.closed { color: var(--muted); }
+.status.pausa { color: var(--gold-lt); }
 .status.closing { color: var(--red); }
 .timer-banner {
   display: none;
@@ -1107,7 +1108,7 @@ async function sbFetchJSON(path, retries, timeoutMs) {
 // ════════════════════════════════════
 // 全局数据
 // ════════════════════════════════════
-var R = {name:"Yio Fish", subtitle:"Ristorante Giapponese · Legnago", phone:"377 347 6774", address:"Viale Europa 20 — Legnago (VR)", hours:"Lun–Dom: 12:00–15:00 / 17:00–23:30"};
+var R = {name:"Yio Fish", subtitle:"Ristorante Giapponese · Legnago", phone:"377 347 6774", address:"Viale Europa 20 — Legnago (VR)", hours:"Lun–Dom: 12:00–15:00 / 19:00–23:30"};
 var CATS = [];
 var ALL_ITEMS = [];
 var DISH_MENUS = [];
@@ -1520,8 +1521,8 @@ var CONFIG = {
   LOGO_CLICKS: 5,
   CLICK_TIMEOUT: 3000,
   WA_NUMBER: "393773476774",
-  LUNCH_START: 11*60, LUNCH_KITCHEN_CLOSE: 15*60, LUNCH_END: 16*60,
-  DINNER_START: 17*60, DINNER_KITCHEN_CLOSE: 23*60, DINNER_END: 23*60+59,
+  LUNCH_START: 12*60, LUNCH_KITCHEN_CLOSE: 14*60+55, LUNCH_END: 15*60,
+  DINNER_START: 19*60, DINNER_KITCHEN_CLOSE: 22*60+55, DINNER_END: 23*60,
   TIMER_WARNING_MINS: 25,
   // ── Consegna a domicilio ──
   RESTAURANT_LAT: 45.1928,        // Viale Europa 20, Legnago VR
@@ -1602,6 +1603,17 @@ function setTimerBanner(mins) {
     banner.style.display = "none";
   }
 }
+// 分钟数 → "HH:MM"（状态栏显示下次开门时间用）
+function min2hm(mins) {
+  var h = Math.floor(mins / 60), m = mins % 60;
+  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+}
+// 非营业时段的状态文案：午休不说 CHIUSO（客人会以为今天整天关门），改为"休息中 + 下次开门时间"
+function nextOpenStatus(t, C) {
+  if (t < C.LUNCH_START)  return { text: 'APRIAMO ALLE ' + min2hm(C.LUNCH_START), cls: 'pausa' };
+  if (t < C.DINNER_START) return { text: 'SIAMO IN PAUSA · RIAPRIAMO ALLE ' + min2hm(C.DINNER_START), cls: 'pausa' };
+  return { text: 'CHIUSO · RIAPRIAMO DOMANI ALLE ' + min2hm(C.LUNCH_START), cls: 'closed' };
+}
 function loadMenu() {
   if (isAdmin) {
     showMenuButtons(["btnBevande","btnPranzo","btnCena","btnSpecial","btnDessert"]);
@@ -1654,8 +1666,10 @@ function loadMenu() {
     }
     return;
   }
+  // 非营业时段：显示"休息中 + 下次开门时间"，不再笼统显示 CHIUSO
+  var st = nextOpenStatus(t, C);
   showMenuButtons([]);
-  setStatus("CHIUSO · RIAPRIAMO PRESTO","closed");
+  setStatus(st.text, st.cls);
 }
 
 // ════════════════════════════════════
@@ -4812,6 +4826,5 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function(){ if (!opened) document.getElementById('yaiDot').style.display = 'block'; }, 4000);
 })();
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
 </body>
 </html>
