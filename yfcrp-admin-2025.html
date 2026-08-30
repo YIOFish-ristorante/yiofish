@@ -3488,13 +3488,82 @@ function renderSettings(){
       +'<textarea id="announcement-input" style="width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--text2);outline:none;resize:none;height:80px;font-family:inherit;">'+(s.announcement||'')+'</textarea>'
       +'<button onclick="saveAnnouncement()" style="margin-top:8px;background:var(--gold);border:none;border-radius:var(--r);padding:8px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存公告</button>'
     +'</div>'
+    + siteSettingsCardHTML()
     +'<div class="card" style="padding:20px 22px">'
       +'<div class="s-label" style="padding:0 0 12px">菜单分类控制（勾选=显示）</div>'
       +menuConfigHTML
     +'</div>';
+  loadSiteSettings();   // v5.38.1: 异步填充"首页活动"卡片（仅超管有此卡）
   // 店铺管理员：根据权限隐藏不该显示的section
   if (CURRENT_ROLE === 'store_admin') {
     setTimeout(applySettingsSections, 50);
+  }
+}
+
+// ── v5.38.1: 首页活动（全店通用·site_settings 表，仅超管可见/可改）──
+function siteSettingsCardHTML() {
+  if (CURRENT_ROLE !== 'super') return '';
+  var inputStyle = 'width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--text2);outline:none;font-family:inherit;box-sizing:border-box;';
+  var taStyle = inputStyle + 'resize:vertical;height:90px;';
+  return '<div class="card" id="section-site-settings" style="padding:20px 22px;margin-bottom:16px">'
+    +'<div class="s-label" style="padding:0 0 12px">🏠 首页活动（全店通用）</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6;">控制 yio.it 首页的活动区块和弹窗海报。没活动时把开关关掉，首页对应内容立刻隐藏；文字留空 = 保持页面默认文案。海报图片仍然替换服务器上 foto/eventi/ 里的图片文件。</div>'
+    +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:6px 0 8px;letter-spacing:1px;">🖼️ 弹窗海报</div>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="ss-promo-enabled" style="width:16px;height:16px;accent-color:var(--gold);"> 显示弹窗（进首页约 2.5 秒后弹出）</label>'
+    +'<input id="ss-promo-eyebrow" placeholder="弹窗小标题，如：YIO Fish Estate 2026" style="'+inputStyle+'margin-bottom:8px;">'
+    +'<input id="ss-promo-title" placeholder="弹窗大标题，如：YIO Lucky Box · Vinci Sempre!" style="'+inputStyle+'margin-bottom:8px;">'
+    +'<textarea id="ss-promo-detail" placeholder="弹窗详情文字（点开海报后显示，支持换行）" style="'+taStyle+'"></textarea>'
+    +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:16px 0 8px;letter-spacing:1px;">🎉 活动区块（Eventi speciali）</div>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="ss-events-enabled" style="width:16px;height:16px;accent-color:var(--gold);"> 显示活动区块</label>'
+    +'<input id="ss-events-title" placeholder="活动标题，如：🌴 YIO Fish Estate 2026 · Vinci sempre!" style="'+inputStyle+'margin-bottom:8px;">'
+    +'<textarea id="ss-events-desc" placeholder="活动描述（支持换行）" style="'+taStyle+'"></textarea>'
+    +'<div id="ss-status" style="font-size:12px;color:var(--muted);margin-top:8px"></div>'
+    +'<button onclick="saveSiteSettings()" style="margin-top:8px;background:var(--gold);border:none;border-radius:var(--r);padding:10px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-weight:600;">💾 保存首页活动设置</button>'
+  +'</div>';
+}
+
+var _SITE_SETTINGS = null;
+async function loadSiteSettings() {
+  var card = document.getElementById('section-site-settings');
+  if (!card) return;  // 非超管没有这张卡
+  try {
+    var res = await sbFetch('site_settings?id=eq.homepage');
+    var rows = res.ok ? await res.json() : [];
+    var s = rows && rows[0];
+    if (!s) { $('ss-status').textContent = '⚠️ 未读取到设置（请先在 Supabase 建 site_settings 表）'; return; }
+    _SITE_SETTINGS = s;
+    $('ss-promo-enabled').checked = (s.promo_enabled !== false);
+    $('ss-events-enabled').checked = (s.events_enabled !== false);
+    $('ss-promo-eyebrow').value = s.promo_eyebrow || '';
+    $('ss-promo-title').value = s.promo_title || '';
+    $('ss-promo-detail').value = s.promo_detail || '';
+    $('ss-events-title').value = s.events_title || '';
+    $('ss-events-desc').value = s.events_desc || '';
+  } catch(e) { $('ss-status').textContent = '⚠️ 读取失败: ' + e.message; }
+}
+
+async function saveSiteSettings() {
+  try {
+    markDirty();
+    var res = await sbFetch('site_settings?id=eq.homepage', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        promo_enabled: $('ss-promo-enabled').checked,
+        events_enabled: $('ss-events-enabled').checked,
+        promo_eyebrow: $('ss-promo-eyebrow').value.trim(),
+        promo_title: $('ss-promo-title').value.trim(),
+        promo_detail: $('ss-promo-detail').value.trim(),
+        events_title: $('ss-events-title').value.trim(),
+        events_desc: $('ss-events-desc').value.trim(),
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) { var t = await res.text(); throw new Error(t || ('HTTP ' + res.status)); }
+    markSaved();
+    toast('✅ 首页活动设置已保存');
+  } catch(e) {
+    markSaved();
+    toast('❌ 保存失败: ' + e.message);
   }
 }
 
@@ -5455,4 +5524,4 @@ async function loadLotteryWins() {
     }).join('') + '</table>';
 }
 
-</script>
+</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>

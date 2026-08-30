@@ -677,8 +677,8 @@
         </div>
       </div>
       <div class="event-info">
-        <h3>🌴 YIO Fish Estate 2026 · <em>Vinci sempre!</em></h3>
-        <p>Solo da <b>YIO FISH</b>! Con soli <b>3€ in più</b> sul tuo Menù partecipi alla nostra <b>YIO Lucky Box</b>. 🎁 Ogni partecipante <b>vince sempre</b> — potresti trovare 🍣 Menu Omaggio, 🍾 Prosecco, 🍷 Vino, 🍺 Birra, 🍰 Dessert, 🍋 Sorbetto, 🥤 Bibita, 💸 Buoni Sconto e tanti altri premi!</p>
+        <h3 id="ev-title">🌴 YIO Fish Estate 2026 · <em>Vinci sempre!</em></h3>
+        <p id="ev-desc">Solo da <b>YIO FISH</b>! Con soli <b>3€ in più</b> sul tuo Menù partecipi alla nostra <b>YIO Lucky Box</b>. 🎁 Ogni partecipante <b>vince sempre</b> — potresti trovare 🍣 Menu Omaggio, 🍾 Prosecco, 🍷 Vino, 🍺 Birra, 🍰 Dessert, 🍋 Sorbetto, 🥤 Bibita, 💸 Buoni Sconto e tanti altri premi!</p>
         <p style="color:var(--gold-lt);font-weight:400;margin-bottom:16px;letter-spacing:.5px">Come funziona?</p>
         <div class="event-reqs">
           <div class="req"><span class="req-n">I</span><div><b>Aggiungi solo 3€</b> al tuo Menù e partecipa alla <b>YIO Lucky Box</b>.</div></div>
@@ -1046,11 +1046,13 @@
       <div class="promo-eyebrow">YIO Fish Estate 2026</div>
       <div class="promo-title">YIO Lucky Box · Vinci Sempre!</div>
       <div class="promo-detail" id="promoDetail">
+        <div id="promoDetailText">
         <p>Solo da <b style="color:var(--gold-lt)">YIO FISH</b>! Con soli <b style="color:var(--gold-lt)">3€ in più</b> sul tuo Menù partecipi alla nostra <b style="color:var(--gold-lt)">YIO Lucky Box</b>.</p>
         <p style="color:var(--gold-lt);letter-spacing:.5px;margin-bottom:14px">🎁 Ogni partecipante vince sempre! Potresti trovare:</p>
         <p style="line-height:2">🍣 Menu Omaggio · 🍾 Prosecco · 🍷 Vino · 🍺 Birra<br>🍰 Dessert · 🍋 Sorbetto · 🥤 Bibita<br>💸 Buoni Sconto · ⭐ e tanti altri premi!</p>
         <p style="font-size:13px;color:var(--muted)">📅 Dal Lunedì al Venerdì · fino al 31 Agosto 2026<br>Una partecipazione per persona.</p>
         <p style="font-size:12px;color:var(--muted)">Prova la fortuna… e vinci sempre! Ti aspettiamo da YIO FISH!</p>
+        </div>
         <div class="promo-cta">
           <a class="cta-book" href="#contatti" id="promoBook">Prenota un tavolo</a>
           <a class="cta-points" href="carpi.html?punti=1" id="promoPoints">⭐ I miei punti</a>
@@ -1059,6 +1061,42 @@
     </div>
   </div>
 </div>
+<script>
+/* ═══════════ 全站活动设置（后台可改，全店通用） ═══════════
+   读取 site_settings(id=homepage)：
+   · events_enabled=false → 隐藏"活动"区块和导航里的 Eventi 链接
+   · promo_enabled=false  → 不弹活动海报
+   · events_title / events_desc / promo_eyebrow / promo_title / promo_detail
+     非空 → 替换默认文案（纯文本，换行自动变 <br>）
+   读取失败/超时 → 保持页面默认（全部显示），不影响打开速度
+═══════════════════════════════════════════════════════ */
+var SITE_CFG = { promo_enabled: true };
+var SITE_CFG_PROMISE = (function(){
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function br(s){ return esc(s).replace(/\n/g,'<br>'); }
+  return fetch('https://yio.it/api/public/rest/v1/site_settings?id=eq.homepage', {cache:'no-store'})
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(rows){
+      var s = rows && rows[0];
+      if (!s) return;
+      SITE_CFG.promo_enabled = (s.promo_enabled !== false);
+      // ── 活动区块 ──
+      if (s.events_enabled === false) {
+        var sec = document.getElementById('eventi');
+        if (sec) sec.style.display = 'none';
+        document.querySelectorAll('a[href="#eventi"]').forEach(function(a){ a.style.display = 'none'; });
+      } else {
+        if (s.events_title) { var h = document.getElementById('ev-title'); if (h) h.textContent = s.events_title; }
+        if (s.events_desc)  { var d = document.getElementById('ev-desc');  if (d) d.innerHTML = br(s.events_desc); }
+      }
+      // ── 弹窗文案 ──
+      if (s.promo_eyebrow) { var pe = document.querySelector('.promo-eyebrow'); if (pe) pe.textContent = s.promo_eyebrow; }
+      if (s.promo_title)   { var pt = document.querySelector('.promo-title');   if (pt) pt.textContent = s.promo_title; }
+      if (s.promo_detail)  { var pd = document.getElementById('promoDetailText'); if (pd) pd.innerHTML = br(s.promo_detail); }
+    })
+    .catch(function(){ /* 网络失败：保持默认 */ });
+})();
+</script>
 <script>
 /* ═══════════════════ 活动弹窗配置区 ═══════════════════
    enabled : true = 开启活动弹窗 / false = 关闭（没活动时改这里）
@@ -1115,8 +1153,13 @@ var PROMO_CONFIG = {
   ov.addEventListener('click', function(e){ if (e.target === ov) close(); });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && ov.classList.contains('open')) close(); });
   document.getElementById('promoBook').addEventListener('click', close);
-  setTimeout(open, PROMO_CONFIG.delayMs);
+  // 等远程设置返回后再决定是否弹（后台关了就不弹；读取失败则按默认弹出）
+  SITE_CFG_PROMISE.then(function(){
+    if (SITE_CFG.promo_enabled === false) return;
+    setTimeout(open, PROMO_CONFIG.delayMs);
+  });
 })();
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
 </body>
 </html>
