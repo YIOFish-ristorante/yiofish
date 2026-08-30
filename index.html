@@ -569,8 +569,8 @@
     <a class="store-btn" href="imola.html">YIO Fish IMOLA<span class="city">Imola · Bologna</span></a>
   </div>
 
-  <!-- 🎡 幸运转盘入口（没活动时整段删除即可）-->
-  <div class="lot-band">
+  <!-- 🎡 幸运转盘入口（后台"首页活动"可整体开关）-->
+  <div class="lot-band" id="lot-band">
     <div class="lot-title">🎡 Ruota della Fortuna</div>
     <div class="lot-sub">Un giro 3€ · Si vince sempre · Solo al tavolo</div>
     <div class="lot-links">
@@ -1093,6 +1093,11 @@ var SITE_CFG_PROMISE = (function(){
       if (s.promo_eyebrow) { var pe = document.querySelector('.promo-eyebrow'); if (pe) pe.textContent = s.promo_eyebrow; }
       if (s.promo_title)   { var pt = document.querySelector('.promo-title');   if (pt) pt.textContent = s.promo_title; }
       if (s.promo_detail)  { var pd = document.getElementById('promoDetailText'); if (pd) pd.innerHTML = br(s.promo_detail); }
+      // ── 幸运转盘入口 ──
+      if (s.wheel_enabled === false) {
+        var lb = document.getElementById('lot-band');
+        if (lb) lb.style.display = 'none';
+      }
     })
     .catch(function(){ /* 网络失败：保持默认 */ });
 })();

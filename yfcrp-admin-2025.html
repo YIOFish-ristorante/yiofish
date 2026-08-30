@@ -3517,6 +3517,8 @@ function siteSettingsCardHTML() {
     +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="ss-events-enabled" style="width:16px;height:16px;accent-color:var(--gold);"> 显示活动区块</label>'
     +'<input id="ss-events-title" placeholder="活动标题，如：🌴 YIO Fish Estate 2026 · Vinci sempre!" style="'+inputStyle+'margin-bottom:8px;">'
     +'<textarea id="ss-events-desc" placeholder="活动描述（支持换行）" style="'+taStyle+'"></textarea>'
+    +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:16px 0 8px;letter-spacing:1px;">🎡 幸运转盘入口（Ruota della Fortuna）</div>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="ss-wheel-enabled" style="width:16px;height:16px;accent-color:var(--gold);"> 显示首页底部的转盘入口条</label>'
     +'<div id="ss-status" style="font-size:12px;color:var(--muted);margin-top:8px"></div>'
     +'<button onclick="saveSiteSettings()" style="margin-top:8px;background:var(--gold);border:none;border-radius:var(--r);padding:10px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-weight:600;">💾 保存首页活动设置</button>'
   +'</div>';
@@ -3534,6 +3536,7 @@ async function loadSiteSettings() {
     _SITE_SETTINGS = s;
     $('ss-promo-enabled').checked = (s.promo_enabled !== false);
     $('ss-events-enabled').checked = (s.events_enabled !== false);
+    $('ss-wheel-enabled').checked = (s.wheel_enabled !== false);
     $('ss-promo-eyebrow').value = s.promo_eyebrow || '';
     $('ss-promo-title').value = s.promo_title || '';
     $('ss-promo-detail').value = s.promo_detail || '';
@@ -3550,6 +3553,7 @@ async function saveSiteSettings() {
       body: JSON.stringify({
         promo_enabled: $('ss-promo-enabled').checked,
         events_enabled: $('ss-events-enabled').checked,
+        wheel_enabled: $('ss-wheel-enabled').checked,
         promo_eyebrow: $('ss-promo-eyebrow').value.trim(),
         promo_title: $('ss-promo-title').value.trim(),
         promo_detail: $('ss-promo-detail').value.trim(),
