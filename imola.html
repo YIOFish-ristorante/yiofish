@@ -57,7 +57,8 @@ body {
 /* ── 首页 ── */
 #home-view {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   align-items: center;
   min-height: 100vh;
 }
@@ -616,6 +617,44 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     .yai-panel { right: 10px; left: 10px; width: auto; bottom: 148px; height: min(64vh, 520px); }
     .yai-fab { right: 14px; bottom: 84px; }
   }
+/* ══════════ PORTALE v2 · 下滑内容区（2026-09-10）══════════ */
+.back-home { position: fixed; top: 14px; left: 14px; z-index: 60; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--border2); color: var(--gold); display: flex; align-items: center; justify-content: center;
+  font-size: 19px; line-height: 1; background: rgba(12,11,9,.6); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  transition: border-color .25s, color .25s; }
+.back-home:hover, .back-home:active { border-color: var(--gold); color: var(--gold-lt); }
+.branch-city { font-size: 12px; letter-spacing: 7px; color: var(--gold); text-transform: uppercase; margin: -10px 0 22px; font-weight: 400; }
+.scroll-hint { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 20px; color: var(--muted2); }
+.scroll-hint span { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; }
+.scroll-hint i { width: 1px; height: 30px; background: linear-gradient(180deg, var(--gold), transparent); }
+
+.branch-content { width: 100%; max-width: 640px; margin: 0 auto; padding: 30px 22px 70px; text-align: center; }
+.bsec { padding: 44px 0; border-top: 1px solid rgba(255,255,255,.06); }
+.bsec-eyebrow { font-size: 9.5px; letter-spacing: 5px; color: var(--gold); text-transform: uppercase; margin-bottom: 16px; font-weight: 400; }
+.bsec-title { font-family: "Cormorant Garamond", serif; font-size: clamp(26px, 6vw, 36px); font-weight: 300; letter-spacing: .5px; line-height: 1.2; margin-bottom: 22px; }
+.bsec-title em { font-style: italic; color: var(--gold-lt); }
+.bc-lead { font-size: 14px; line-height: 1.95; color: var(--text2); font-weight: 300; text-align: left; max-width: 560px; margin: 18px auto 0; }
+.bc-photo { aspect-ratio: 4/5; max-width: 380px; margin: 0 auto; border-radius: 6px; border: 1px solid var(--border); overflow: hidden; background: #0c0b09; }
+.bc-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.bc-carousel { position: relative; margin: 0 auto; max-width: 560px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); background: #0c0b09; }
+.bc-track { display: flex; transition: transform .6s cubic-bezier(.33,1,.68,1); }
+.bc-slide { min-width: 100%; aspect-ratio: 16/9; }
+.bc-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bc-dots { display: flex; justify-content: center; gap: 7px; padding: 12px 0 14px; }
+.bc-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.25); cursor: pointer; transition: .3s; }
+.bc-dots .dot.active { background: var(--gold); width: 18px; border-radius: 3px; }
+
+.bc-contact { max-width: 420px; margin: 0 auto; text-align: left; }
+.bc-row { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.75; color: var(--text2); margin-bottom: 14px; font-weight: 300; }
+.bc-row .k { color: var(--gold); flex: none; width: 16px; text-align: center; }
+.bc-row a { color: var(--text2); border-bottom: 1px solid rgba(191,164,111,.35); }
+.bc-map { display: inline-block; margin-top: 6px; font-size: 11px; letter-spacing: 2px; color: var(--gold); border: 1px solid rgba(191,164,111,.4); padding: 10px 18px; border-radius: 3px; text-transform: uppercase; transition: .25s; }
+.bc-map:hover, .bc-map:active { background: var(--gold); color: #0c0b09; }
+#bc-ev-title { font-family: "Cormorant Garamond", serif; font-size: 24px; color: var(--gold-lt); margin: 20px 0 10px; font-weight: 400; }
+#bc-ev-desc { font-size: 13.5px; line-height: 1.85; color: var(--text2); max-width: 480px; margin: 0 auto; font-weight: 300; }
+@media (max-width: 480px) { .branch-city { letter-spacing: 5px; } .bsec { padding: 36px 0; } }
+
 </style>
 
   <!-- yio-error-log -->
@@ -632,11 +671,13 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
 
 <!-- ══════════ 首页视图 ══════════ -->
 <div id="home-view">
+<a class="back-home" href="index.html" aria-label="Torna alla scelta del ristorante">←</a>
 <div class="container">
   <div class="logo-wrap" id="logoBtn">
     <img src="logo.png" alt="YIO Fish">
   </div>
   <div class="gold-line"></div>
+  <div class="branch-city">IMOLA</div>
   <div class="timer-banner" id="timerBanner">
     ⚠ ULTIMO ORDINE CUCINA: <span id="countdown">--</span> MINUTI
   </div>
@@ -665,8 +706,61 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </a>
   </div>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.65.5 · 2026-07-25</span></div>
+  <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.66.0 · 2026-09-10</span></div>
 </div>
+  <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
+  <div class="branch-content">
+    <section class="bsec" id="branch-intro">
+      <p class="bsec-eyebrow">La nostra cucina</p>
+      <h2 class="bsec-title">Sapori del <em>Giappone</em>,<br>freschezza ogni giorno</h2>
+      <div class="bc-photo"><img src="foto/chef.webp" alt="YIO Fish Imola — il nostro chef" loading="lazy" onerror="this.parentNode.style.display='none'"></div>
+      <p class="bc-lead">Autentica cucina giapponese nel cuore di Imola: sushi, sashimi e specialità preparati ogni giorno con materie prime fresche e selezionate. <!-- TODO Imola: 替换为专属介绍文案 --></p>
+    </section>
+
+    <section class="bsec" id="branch-ambiente">
+      <p class="bsec-eyebrow">L&#39;atmosfera</p>
+      <h2 class="bsec-title">Un ambiente <em>accogliente</em></h2>
+      <div class="bc-carousel"><div class="bc-track" id="bc-amb-track">
+        <div class="bc-slide"><img src="foto/ambiente/ambiente1.webp" alt="Ambiente 1" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/ambiente/ambiente2.webp" alt="Ambiente 2" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/ambiente/ambiente3.webp" alt="Ambiente 3" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/ambiente/ambiente4.webp" alt="Ambiente 4" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/ambiente/ambiente5.webp" alt="Ambiente 5" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/ambiente/ambiente6.webp" alt="Ambiente 6" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/ambiente/ambiente7.webp" alt="Ambiente 7" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+      </div><div class="bc-dots" id="bc-amb-dots"></div></div>
+    </section>
+
+    <!-- 活动区块：第 3/4 步接后台 site_settings 后按店配置显示 -->
+    <section class="bsec" id="branch-eventi" style="display:none">
+      <p class="bsec-eyebrow">Eventi speciali</p>
+      <h2 class="bsec-title">Feste &amp; <em>occasioni</em></h2>
+      <div class="bc-carousel"><div class="bc-track" id="bc-ev-track">
+        <div class="bc-slide"><img src="foto/eventi/eventi-1.webp" alt="Evento YIO Fish 1" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/eventi/eventi-2.webp" alt="Evento YIO Fish 2" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/eventi/eventi-3.webp" alt="Evento YIO Fish 3" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/eventi/eventi-4.webp" alt="Evento YIO Fish 4" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/eventi/eventi-5.webp" alt="Evento YIO Fish 5" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/eventi/eventi-6.webp" alt="Evento YIO Fish 6" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/eventi/eventi-7.webp" alt="Evento YIO Fish 7" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/eventi/eventi-8.webp" alt="Evento YIO Fish 8" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+      </div><div class="bc-dots" id="bc-ev-dots"></div></div>
+      <h3 id="bc-ev-title"></h3>
+      <p id="bc-ev-desc"></p>
+    </section>
+
+    <section class="bsec" id="branch-contatti">
+      <p class="bsec-eyebrow">Dove siamo</p>
+      <h2 class="bsec-title">Contatti &amp; <em>orari</em></h2>
+      <div class="bc-contact">
+        <div class="bc-row"><span class="k">◈</span><span>Via Giuseppe Fanin, 21<br>40026 Imola (BO)</span></div>
+        <div class="bc-row"><span class="k">☏</span><a href="tel:+393336189620">333 618 9620</a></div>
+        <div class="bc-row"><span class="k">◷</span><span>Pranzo 12:00 – 15:00<br>Cena 19:00 – 23:30</span></div>
+        <a class="bc-map" href="https://www.google.com/maps/dir/?api=1&destination=Via+Giuseppe+Fanin+21+Imola+BO" target="_blank" rel="noopener">Indicazioni stradali →</a>
+      </div>
+    </section>
+  </div>
 </div>
 
 <!-- ══════════ 菜单视图 ══════════ -->
@@ -4826,5 +4920,47 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function(){ if (!opened) document.getElementById('yaiDot').style.display = 'block'; }, 4000);
 })();
 </script>
+<script>
+
+/* ══════════ PORTALE v2 · 内容区轮播（2026-09-10）══════════ */
+function bcCarousel(trackId, dotsId, interval){
+  var track = document.getElementById(trackId);
+  var dotsBox = document.getElementById(dotsId);
+  if (!track) return;
+  function init(){
+    var slides = track.querySelectorAll('.bc-slide');
+    var n = slides.length;
+    if (!n) { var c = track.closest('.bc-carousel'); if (c) c.style.display = 'none'; return; }
+    if (n === 1) return;
+    var idx = 0, timer = null;
+    for (var i = 0; i < n; i++){
+      var d = document.createElement('div'); d.className = 'dot' + (i === 0 ? ' active' : '');
+      (function(k){ d.onclick = function(){ go(k); restart(); }; })(i);
+      dotsBox.appendChild(d);
+    }
+    var dots = Array.prototype.slice.call(dotsBox.children);
+    function render(){ track.style.transform = 'translateX(-' + (idx * 100) + '%)'; dots.forEach(function(dt,k){ dt.classList.toggle('active', k === idx); }); }
+    function go(k){ idx = (k + n) % n; render(); }
+    function restart(){ if (timer) clearInterval(timer); timer = setInterval(function(){ go(idx + 1); }, interval); }
+    var sx = 0;
+    track.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; }, {passive:true});
+    track.addEventListener('touchend', function(e){ var dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40){ go(idx + (dx < 0 ? 1 : -1)); restart(); } }, {passive:true});
+    render(); restart();
+  }
+  // 等图片加载完（失败 slide 被 onerror 移除）
+  var imgs = track.querySelectorAll('img'), pending = imgs.length;
+  if (!pending) { init(); return; }
+  imgs.forEach(function(img){
+    function done(){ pending--; if (pending <= 0) init(); }
+    if (img.complete) { if (img.naturalWidth === 0) { var sl = img.closest('.bc-slide'); if (sl) sl.remove(); } done(); }
+    else { img.addEventListener('load', done, {once:true}); img.addEventListener('error', function(){ var sl = img.closest('.bc-slide'); if (sl) sl.remove(); done(); }, {once:true}); }
+  });
+}
+document.addEventListener('DOMContentLoaded', function(){
+  bcCarousel('bc-amb-track', 'bc-amb-dots', 4000);
+  bcCarousel('bc-ev-track', 'bc-ev-dots', 5000);
+});
+</script>
+
 </body>
 </html>
