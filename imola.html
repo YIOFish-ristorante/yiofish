@@ -655,6 +655,47 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
 #bc-ev-desc { font-size: 13.5px; line-height: 1.85; color: var(--text2); max-width: 480px; margin: 0 auto; font-weight: 300; }
 @media (max-width: 480px) { .branch-city { letter-spacing: 5px; } .bsec { padding: 36px 0; } }
 
+/* ── 菜品九宫格 ── */
+.dish-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+.dish { aspect-ratio: 1; border-radius: 4px; overflow: hidden; position: relative; background: #0c0b09; border: 1px solid var(--border);
+  display: flex; align-items: flex-end; padding: 12px; transition: transform .3s, border-color .3s; }
+.dish:hover { transform: translateY(-3px); border-color: rgba(191,164,111,.45); }
+.dish .ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 9px; letter-spacing: 3px; text-transform: uppercase; }
+.dish.has-img .ph { display: none; }
+.dish .dish-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s; }
+.dish:hover .dish-img { transform: scale(1.06); }
+.dish .name { position: relative; font-family: "Cormorant Garamond", serif; font-size: 15px; font-weight: 400; font-style: italic; color: var(--text); z-index: 2; text-shadow: 0 1px 8px rgba(0,0,0,.8); }
+/* ── YIO 名称由来 ── */
+.bc-reqs { display: flex; flex-direction: column; gap: 16px; max-width: 520px; margin: 22px auto 0; text-align: left; }
+.bc-req { display: flex; gap: 14px; align-items: flex-start; font-size: 13.5px; line-height: 1.8; color: var(--text2); font-weight: 300; }
+.bc-req b { color: var(--gold-lt); font-weight: 500; }
+.bc-req .rn { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(191,164,111,.45); color: var(--gold-lt); font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 16px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+/* ── 服务方式卡 ── */
+.svc-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+.svc { display: block; cursor: pointer; padding: 30px 18px 24px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,.015); text-align: center; transition: border-color .3s, transform .3s; }
+.svc:hover { border-color: rgba(191,164,111,.45); transform: translateY(-3px); }
+.svc .ic { margin-bottom: 14px; color: var(--gold); display: flex; justify-content: center; }
+.svc .ic svg { width: 30px; height: 30px; stroke-width: 1.1; }
+.svc h3 { font-size: 11px; letter-spacing: 2.5px; color: var(--gold-lt); margin-bottom: 8px; font-weight: 400; text-transform: uppercase; }
+.svc p { font-size: 12px; line-height: 1.7; color: var(--muted2); font-weight: 300; }
+.svc .go { display: inline-block; margin-top: 12px; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
+/* ── 三店联系卡 ── */
+.loc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+.loc { padding: 24px 20px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,.015); text-align: left; transition: border-color .3s; }
+.loc:hover { border-color: rgba(191,164,111,.35); }
+.loc h3 { font-size: 12px; letter-spacing: 3px; color: var(--gold); margin-bottom: 16px; font-weight: 400; }
+.loc h3::after { content: ''; display: block; width: 20px; height: 1px; background: var(--gold); opacity: .5; margin-top: 10px; }
+.loc .row { display: flex; gap: 10px; font-size: 12.5px; line-height: 1.7; color: var(--text2); margin-bottom: 10px; font-weight: 300; }
+.loc .row .k { color: var(--gold); flex: none; width: 14px; display: flex; padding-top: 2px; }
+.loc .row .k svg { width: 13px; height: 13px; stroke-width: 1.3; }
+.loc a { color: var(--text2); }
+.loc a.maplink { display: inline-block; margin-top: 4px; font-size: 10px; letter-spacing: 1.5px; color: var(--gold); border-bottom: 1px solid rgba(191,164,111,.35); padding-bottom: 2px; text-transform: uppercase; }
+@media (max-width: 760px) {
+  .dish-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .svc-row { grid-template-columns: 1fr; }
+  .loc-grid { grid-template-columns: 1fr; }
+}
+
 </style>
 
   <!-- yio-error-log -->
@@ -718,6 +759,33 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <p class="bc-lead">Autentica cucina giapponese nel cuore di Imola: sushi, sashimi e specialità preparati ogni giorno con materie prime fresche e selezionate. <!-- TODO Imola: 替换为专属介绍文案 --></p>
     </section>
 
+    <section class="bsec" id="branch-yio">
+      <p class="bsec-eyebrow">Il nostro nome</p>
+      <h2 class="bsec-title">Cosa significa <em>YIO</em></h2>
+      <div class="bc-reqs">
+        <div class="bc-req"><span class="rn">Y</span><div><b>Young</b> — uno sguardo giovane, aperto e contemporaneo, capace di portare la cucina cinese e giapponese in ogni momento di convivialit&agrave;.</div></div>
+        <div class="bc-req"><span class="rn">I</span><div><b>Inspiration</b> — l&rsquo;ispirazione che nasce dalla cultura gastronomica orientale e dagli ingredienti di stagione, per creare piatti che rispettano la tradizione e sanno sempre sorprendere.</div></div>
+        <div class="bc-req"><span class="rn">O</span><div><b>Original</b> — la scelta di materie prime autentiche, gesti precisi e un gusto inconfondibile, quello di YIO.</div></div>
+      </div>
+      <p class="bc-lead" style="margin-top:24px"><b style="color:var(--gold-lt);font-weight:500">YIO FISH</b> non &egrave; soltanto un&rsquo;esperienza di menu all you can eat: &egrave; un invito a scoprire l&rsquo;incontro tra le culture della tavola cinese e giapponese. Pesce fresco, riso caldo e creativit&agrave; si uniscono per regalare a ogni ospite un viaggio ricco, genuino e pieno di piacere.</p>
+    </section>
+
+    <section class="bsec" id="branch-piatti">
+      <p class="bsec-eyebrow">Le specialit&agrave;</p>
+      <h2 class="bsec-title">I nostri <em>piatti</em></h2>
+      <div class="dish-grid">
+        <div class="dish"><img src="foto/piatti/misto.webp" alt="Sushi Misto" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Sushi Misto</span></div>
+        <div class="dish"><img src="foto/piatti/sashimi.webp" alt="Sashimi" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Sashimi</span></div>
+        <div class="dish"><img src="foto/piatti/uramaki.webp" alt="Uramaki Special" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Uramaki Special</span></div>
+        <div class="dish"><img src="foto/piatti/nigiri.webp" alt="Nigiri" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Nigiri</span></div>
+        <div class="dish"><img src="foto/piatti/tempura.webp" alt="Tempura" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Tempura</span></div>
+        <div class="dish"><img src="foto/piatti/ramen.webp" alt="Ramen" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Ramen</span></div>
+        <div class="dish"><img src="foto/piatti/tartare.webp" alt="Tartare" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Tartare</span></div>
+        <div class="dish"><img src="foto/piatti/hosomaki.webp" alt="Hosomaki" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Hosomaki</span></div>
+        <div class="dish"><img src="foto/piatti/dessert.webp" alt="Dolce" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Dolce</span></div>
+      </div>
+    </section>
+
     <section class="bsec" id="branch-ambiente">
       <p class="bsec-eyebrow">L&#39;atmosfera</p>
       <h2 class="bsec-title">Un ambiente <em>accogliente</em></h2>
@@ -750,14 +818,53 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <p id="bc-ev-desc"></p>
     </section>
 
+    <section class="bsec" id="branch-servizi">
+      <p class="bsec-eyebrow">Come ordinare</p>
+      <h2 class="bsec-title">Tre modi per <em>gustarci</em></h2>
+      <div class="svc-row">
+        <a class="svc" href="imola.html" aria-label="Al ristorante">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7"/><circle cx="12" cy="13" r="3.5"/><path d="M12 3v3M5.6 6.6l2 2M18.4 6.6l-2 2"/></svg></div><h3>Al ristorante</h3>
+          <p>Vieni a trovarci e ordina direttamente dal tuo tavolo con il QR.</p>
+          <span class="go">Vai alla pagina &rarr;</span>
+        </a>
+        <a class="svc" href="imola.html?mode=asporto" aria-label="Asporto">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1.2 12.2a1 1 0 0 1-1 1.1H5.8a1 1 0 0 1-1-1.1L6 8z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg></div><h3>Asporto</h3>
+          <p>Ordina e ritira in negozio quando preferisci.</p>
+          <span class="go">Ordina ora &rarr;</span>
+        </a>
+        <a class="svc" href="imola.html?mode=consegna" aria-label="Consegna">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M8 17.5h8M12 17.5l-2-6h3l2.5 6M13 6h2.5a2 2 0 0 1 2 2v2.5"/></svg></div><h3>Consegna</h3>
+          <p>Ricevi i nostri piatti comodamente a casa tua.</p>
+          <span class="go">Ordina ora &rarr;</span>
+        </a>
+      </div>
+    </section>
+
     <section class="bsec" id="branch-contatti">
       <p class="bsec-eyebrow">Dove siamo</p>
-      <h2 class="bsec-title">Contatti &amp; <em>orari</em></h2>
-      <div class="bc-contact">
-        <div class="bc-row"><span class="k">◈</span><span>Via Giuseppe Fanin, 21<br>40026 Imola (BO)</span></div>
-        <div class="bc-row"><span class="k">☏</span><a href="tel:+393336189620">333 618 9620</a></div>
-        <div class="bc-row"><span class="k">◷</span><span>Pranzo 12:00 – 15:00<br>Cena 19:00 – 23:30</span></div>
-        <a class="bc-map" href="https://www.google.com/maps/dir/?api=1&destination=Via+Giuseppe+Fanin+21+Imola+BO" target="_blank" rel="noopener">Indicazioni stradali →</a>
+      <h2 class="bsec-title">I nostri <em>ristoranti</em></h2>
+      <div class="loc-grid">
+        <div class="loc">
+          <h3>CARPI</h3>
+          <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>Viale dell&#39;Industria, 19<br>41012 Carpi (MO)</span></div>
+          <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16.5v2.6a2 2 0 0 1-2.2 2A19 19 0 0 1 2.9 5.2 2 2 0 0 1 4.9 3h2.6a1.5 1.5 0 0 1 1.5 1.3l.7 3.4a1.5 1.5 0 0 1-.6 1.5L7.6 10.4a16 16 0 0 0 6 6l1.2-1.5a1.5 1.5 0 0 1 1.5-.6l3.4.7a1.5 1.5 0 0 1 1.3 1.5z"/></svg></span><a href="tel:+393391406020">339 140 6020</a></div>
+          <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
+          <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=YIO+Fish+Restaurant+-+Sushi+Carpi&destination_place_id=ChIJZYFFEdiNf0cRrsH3-9a0o2M" target="_blank" rel="noopener">Indicazioni &rarr;</a>
+        </div>
+        <div class="loc">
+          <h3>LEGNAGO</h3>
+          <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>Viale Europa, 20<br>37045 Legnago (VR)</span></div>
+          <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16.5v2.6a2 2 0 0 1-2.2 2A19 19 0 0 1 2.9 5.2 2 2 0 0 1 4.9 3h2.6a1.5 1.5 0 0 1 1.5 1.3l.7 3.4a1.5 1.5 0 0 1-.6 1.5L7.6 10.4a16 16 0 0 0 6 6l1.2-1.5a1.5 1.5 0 0 1 1.5-.6l3.4.7a1.5 1.5 0 0 1 1.3 1.5z"/></svg></span><a href="tel:+393773476774">377 347 6774</a></div>
+          <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
+          <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=Yio+Fish+Legnago+Viale+Europa+20" target="_blank" rel="noopener">Indicazioni &rarr;</a>
+        </div>
+        <div class="loc">
+          <h3>IMOLA</h3>
+          <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>Via Giuseppe Fanin, 21<br>40026 Imola (BO)</span></div>
+          <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16.5v2.6a2 2 0 0 1-2.2 2A19 19 0 0 1 2.9 5.2 2 2 0 0 1 4.9 3h2.6a1.5 1.5 0 0 1 1.5 1.3l.7 3.4a1.5 1.5 0 0 1-.6 1.5L7.6 10.4a16 16 0 0 0 6 6l1.2-1.5a1.5 1.5 0 0 1 1.5-.6l3.4.7a1.5 1.5 0 0 1 1.3 1.5z"/></svg></span><a href="tel:+393336189620">333 618 9620</a></div>
+          <div class="row"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span>Pranzo 12:00-15:00<br>Cena 19:00-23:30</span></div>
+          <a class="maplink" href="https://www.google.com/maps/dir/?api=1&destination=Via+Giuseppe+Fanin+21+Imola+BO" target="_blank" rel="noopener">Indicazioni &rarr;</a>
+        </div>
       </div>
     </section>
   </div>
