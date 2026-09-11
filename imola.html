@@ -42,6 +42,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { overflow: hidden; width: 100%; height: 100%; }
 body {
+  scroll-snap-type: y proximity;
   min-height: 100vh;
   background: var(--bg);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "DM Sans", sans-serif;
@@ -62,6 +63,8 @@ body {
   align-items: center;
   min-height: 100vh;
 }
+.branch-hero { width: 100%; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px 20px 34px; position: relative; scroll-snap-align: start; }
+@media (max-height: 700px) { .branch-hero { justify-content: flex-start; } }
 .container {
   width: 92%;
   max-width: 420px;
@@ -628,7 +631,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
 .scroll-hint span { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; }
 .scroll-hint i { width: 1px; height: 30px; background: linear-gradient(180deg, var(--gold), transparent); }
 
-.branch-content { width: 100%; max-width: 640px; margin: 0 auto; padding: 30px 22px 70px; text-align: center; }
+.branch-content { scroll-snap-align: start; width: 100%; max-width: 640px; margin: 0 auto; padding: 30px 22px 70px; text-align: center; }
 .bsec { padding: 44px 0; border-top: 1px solid rgba(255,255,255,.06); }
 .bsec-eyebrow { font-size: 9.5px; letter-spacing: 5px; color: var(--gold); text-transform: uppercase; margin-bottom: 16px; font-weight: 400; }
 .bsec-title { font-family: "Cormorant Garamond", serif; font-size: clamp(26px, 6vw, 36px); font-weight: 300; letter-spacing: .5px; line-height: 1.2; margin-bottom: 22px; }
@@ -712,6 +715,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
 
 <!-- ══════════ 首页视图 ══════════ -->
 <div id="home-view">
+<div class="branch-hero">
 <a class="back-home" href="index.html" aria-label="Torna alla scelta del ristorante">←</a>
 <div class="container">
   <div class="logo-wrap" id="logoBtn">
@@ -749,6 +753,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
   <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.66.0 · 2026-09-10</span></div>
+</div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
   <div class="branch-content">
