@@ -873,17 +873,17 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <p class="bsec-eyebrow">Come ordinare</p>
       <h2 class="bsec-title">Tre modi per <em>gustarci</em></h2>
       <div class="svc-row">
-        <a class="svc" href="legnago.html" aria-label="Al ristorante">
+        <a class="svc" href="#" aria-label="Al ristorante" onclick="if(document.body.scrollTo){document.body.scrollTo({top:0,behavior:'smooth'});}else{document.body.scrollTop=0;}return false;">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7"/><circle cx="12" cy="13" r="3.5"/><path d="M12 3v3M5.6 6.6l2 2M18.4 6.6l-2 2"/></svg></div><h3>Al ristorante</h3>
           <p>Vieni a trovarci e ordina direttamente dal tuo tavolo con il QR.</p>
           <span class="go">Vai alla pagina &rarr;</span>
         </a>
-        <a class="svc" href="legnago.html?mode=asporto" aria-label="Asporto">
+        <a class="svc" href="#" aria-label="Asporto" onclick="chooseTakeaway('asporto');return false;">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1.2 12.2a1 1 0 0 1-1 1.1H5.8a1 1 0 0 1-1-1.1L6 8z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg></div><h3>Asporto</h3>
           <p>Ordina e ritira in negozio quando preferisci.</p>
           <span class="go">Ordina ora &rarr;</span>
         </a>
-        <a class="svc" href="legnago.html?mode=consegna" aria-label="Consegna">
+        <a class="svc" href="#" aria-label="Consegna" onclick="chooseTakeaway('consegna');return false;">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M8 17.5h8M12 17.5l-2-6h3l2.5 6M13 6h2.5a2 2 0 0 1 2 2v2.5"/></svg></div><h3>Consegna</h3>
           <p>Ricevi i nostri piatti comodamente a casa tua.</p>
           <span class="go">Ordina ora &rarr;</span>
