@@ -818,15 +818,15 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <p class="bsec-eyebrow">Le specialit&agrave;</p>
       <h2 class="bsec-title">I nostri <em>piatti</em></h2>
       <div class="dish-grid">
-        <div class="dish"><img src="foto/legnago/piatti/misto.webp" alt="Sushi Misto" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Sushi Misto</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/sashimi.webp" alt="Sashimi" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Sashimi</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/uramaki.webp" alt="Uramaki Special" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Uramaki Special</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/nigiri.webp" alt="Nigiri" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Nigiri</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/tempura.webp" alt="Tempura" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Tempura</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/ramen.webp" alt="Ramen" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Ramen</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/tartare.webp" alt="Tartare" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Tartare</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/hosomaki.webp" alt="Hosomaki" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Hosomaki</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/dessert.webp" alt="Dolce" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span><span class="name">Dolce</span></div>
+        <div class="dish"><img src="foto/legnago/piatti/misto.webp" alt="Sushi Misto" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
+        <div class="dish"><img src="foto/legnago/piatti/sashimi.webp" alt="Sashimi" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
+        <div class="dish"><img src="foto/legnago/piatti/uramaki.webp" alt="Uramaki Special" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
+        <div class="dish"><img src="foto/legnago/piatti/nigiri.webp" alt="Nigiri" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
+        <div class="dish"><img src="foto/legnago/piatti/tempura.webp" alt="Tempura" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
+        <div class="dish"><img src="foto/legnago/piatti/ramen.webp" alt="Ramen" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
+        <div class="dish"><img src="foto/legnago/piatti/tartare.webp" alt="Tartare" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
+        <div class="dish"><img src="foto/legnago/piatti/hosomaki.webp" alt="Hosomaki" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
+        <div class="dish"><img src="foto/legnago/piatti/dessert.webp" alt="Dolce" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
       </div>
     </section>
 
@@ -5221,6 +5221,43 @@ function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 
     fetch('/api/public/rest/v1/site_settings?id=eq.' + BR)
       .then(function(r){ return r.ok ? r.json() : []; })
       .then(function(rows){ if (rows && rows[0]) applyCfg(rows[0]); })
+      .catch(function(){});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
+  else load();
+})();
+</script>
+
+<script>
+
+/* ══════════ PORTALE v2 · 菜品九宫格：foto/<店>/piatti/list.json 清单驱动，文件名即菜名 ══════════ */
+(function(){
+  var BR = 'legnago';
+  function dishName(f){
+    var n = String(f).replace(/\.webp$/i, '').replace(/[-_]+/g, ' ').trim();
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  }
+  function load(){
+    fetch('foto/' + BR + '/piatti/list.json', {cache: 'no-cache'})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(list){
+        if (!Array.isArray(list) || !list.length) return;   // 无清单：保留页面默认九宫格
+        var grid = document.querySelector('#branch-piatti .dish-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        for (var i = 0; i < list.length; i++){
+          (function(f){
+            var d = document.createElement('div'); d.className = 'dish has-img';
+            var img = document.createElement('img');
+            img.src = 'foto/' + BR + '/piatti/' + encodeURI(String(f));
+            img.alt = dishName(f); img.loading = 'lazy'; img.className = 'dish-img';
+            img.onerror = function(){ d.remove(); };
+            var nm = document.createElement('span'); nm.className = 'name'; nm.textContent = dishName(f);
+            d.appendChild(img); d.appendChild(nm);
+            grid.appendChild(d);
+          })(list[i]);
+        }
+      })
       .catch(function(){});
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
