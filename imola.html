@@ -5234,8 +5234,7 @@ function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 
 (function(){
   var BR = 'imola';
   function dishName(f){
-    var n = String(f).replace(/\.webp$/i, '').replace(/[-_]+/g, ' ').trim();
-    return n.charAt(0).toUpperCase() + n.slice(1);
+    return String(f).replace(/\.webp$/i, '');   // 文件名原样显示，仅去扩展名
   }
   function load(){
     fetch('foto/' + BR + '/piatti/list.json', {cache: 'no-cache'})
