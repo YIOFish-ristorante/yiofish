@@ -849,22 +849,22 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <p class="bsec-eyebrow">Eventi speciali</p>
       <h2 class="bsec-title">Feste &amp; <em>occasioni</em></h2>
       <div class="bc-carousel"><div class="bc-track" id="bc-ev-track">
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-1.webp" alt="eventi1" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-2.webp" alt="eventi2" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-3.webp" alt="eventi3" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-4.webp" alt="eventi4" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-5.webp" alt="eventi5" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-6.webp" alt="eventi6" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-7.webp" alt="eventi7" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-8.webp" alt="eventi8" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-9.webp" alt="eventi9" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-10.webp" alt="eventi10" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-11.webp" alt="eventi11" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-12.webp" alt="eventi12" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-13.webp" alt="eventi13" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-14.webp" alt="eventi14" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-15.webp" alt="eventi15" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
-        <div class="bc-slide"><img src="foto/imola/eventi/eventi-16.webp" alt="eventi16" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>      </div><div class="bc-dots" id="bc-ev-dots"></div></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi1.webp" alt="eventi1" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi2.webp" alt="eventi2" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi3.webp" alt="eventi3" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi4.webp" alt="eventi4" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi5.webp" alt="eventi5" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi6.webp" alt="eventi6" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi7.webp" alt="eventi7" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi8.webp" alt="eventi8" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi9.webp" alt="eventi9" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi10.webp" alt="eventi10" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi11.webp" alt="eventi11" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi12.webp" alt="eventi12" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi13.webp" alt="eventi13" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi14.webp" alt="eventi14" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi15.webp" alt="eventi15" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>
+        <div class="bc-slide"><img src="foto/imola/eventi/eventi16.webp" alt="eventi16" loading="lazy" onerror="this.closest('.bc-slide').remove()"></div>      </div><div class="bc-dots" id="bc-ev-dots"></div></div>
       <h3 id="bc-ev-title"></h3>
       <p id="bc-ev-desc"></p>
     </section>
@@ -5079,39 +5079,47 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 <script>
-/* ══════════ PORTALE v2 · 内容区轮播（2026-09-11 重写：兼容性修复）══════════ */
+/* ══════════ PORTALE v2 · 内容区轮播（2026-09-11 二修：圆点随实际图片数自动校准）══════════ */
 function bcCarousel(trackId, dotsId, interval){
   var track = document.getElementById(trackId);
   var dotsBox = document.getElementById(dotsId);
   if (!track || !dotsBox) return;
-  var inited = false;
-  function init(){
-    if (inited) return;
-    var slides = track.querySelectorAll('.bc-slide');
-    var n = slides.length;
-    if (!n) { var c = track.closest('.bc-carousel'); if (c) c.style.display = 'none'; inited = true; return; }
-    inited = true;
+  var inited = false, idx = 0, timer = null;
+  // 同步实际幻灯片数量，数量变化时重建圆点（自动剔除加载失败的图片）
+  function sync(){
+    var n = track.querySelectorAll('.bc-slide').length;
+    if (n < 2) return n;
+    if (dotsBox.children.length !== n){
+      dotsBox.innerHTML = '';
+      for (var i = 0; i < n; i++){
+        var d = document.createElement('div');
+        (function(k){ d.onclick = function(){ idx = k; render(); restart(); }; })(i);
+        dotsBox.appendChild(d);
+      }
+      idx = 0;
+    }
+    return n;
+  }
+  function render(){
+    var n = sync();
     if (n < 2) return;
-    var idx = 0, timer = null;
-    function render(){
-      track.style.transform = 'translateX(-' + (idx * 100) + '%)';
-      var ds = dotsBox.children;
-      for (var i = 0; i < ds.length; i++) ds[i].className = 'dot' + (i === idx ? ' active' : '');
-    }
-    function go(k){ idx = ((k % n) + n) % n; render(); }
-    function restart(){ if (timer) clearInterval(timer); timer = setInterval(function(){ go(idx + 1); }, interval); }
-    for (var i = 0; i < n; i++){
-      var d = document.createElement('div');
-      d.className = 'dot' + (i === 0 ? ' active' : '');
-      (function(k){ d.onclick = function(){ go(k); restart(); }; })(i);
-      dotsBox.appendChild(d);
-    }
+    if (idx >= n) idx = idx % n;
+    track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+    var ds = dotsBox.children;
+    for (var i = 0; i < ds.length; i++) ds[i].className = 'dot' + (i === idx ? ' active' : '');
+  }
+  function go(k){ var n = sync(); if (n < 2) return; idx = ((k % n) + n) % n; render(); }
+  function restart(){ if (timer) clearInterval(timer); timer = setInterval(function(){ go(idx + 1); }, interval); }
+  function init(){
+    if (inited) { render(); return; }
+    inited = true;
+    if (sync() < 2) return;   // 0/1 张：不轮播（圆点也不显示）
     var sx = 0;
     track.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; }, {passive:true});
     track.addEventListener('touchend', function(e){ var dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40){ go(idx + (dx < 0 ? 1 : -1)); restart(); } }, {passive:true});
     render(); restart();
   }
-  // 触发一：图片全部落定（普通 for 循环，兼容无 NodeList.forEach 的 WebView）
+  // 触发一：图片全部落定（普通 for 循环，兼容旧 WebView）
   var imgs = track.getElementsByTagName('img'), pending = imgs.length;
   function done(){ pending--; if (pending <= 0) init(); }
   for (var i = 0; i < imgs.length; i++){
@@ -5123,7 +5131,7 @@ function bcCarousel(trackId, dotsId, interval){
       }
     })(imgs[i]);
   }
-  // 触发二：2.5 秒兜底（此时 404 的 slide 已被内联 onerror 移除，数量已稳定）
+  // 触发二：兜底（圆点自动校准，早晚初始化都安全）
   setTimeout(init, 2500);
   // 触发三：滚动到附近且图片已落定时立即初始化
   if ('IntersectionObserver' in window) {
