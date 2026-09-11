@@ -639,6 +639,18 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
 .msheet-btns { display: flex; flex-direction: column; gap: 10px; }
 .msheet-note { font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0 4px; line-height: 1.7; }
 
+/* ── 分店活动弹窗（PORTALE v2 · 2026-09-11）── */
+.promo-pop { position: fixed; inset: 0; z-index: 300; display: none; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); padding: 24px; }
+.promo-card { position: relative; width: 100%; max-width: 360px; background: #12110e; border: 1px solid rgba(191,164,111,.5);
+  border-radius: 10px; padding: 30px 24px 26px; text-align: center; animation: promoIn .35s ease; }
+@keyframes promoIn { from { transform: translateY(24px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.promo-x { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; }
+.promo-eyebrow { font-size: 9.5px; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-bottom: 14px; }
+.promo-card img { width: 100%; border-radius: 6px; margin-bottom: 16px; display: block; }
+.promo-title { font-family: "Cormorant Garamond", serif; font-size: 27px; font-weight: 300; line-height: 1.25; margin-bottom: 12px; }
+.promo-detail { font-size: 13px; line-height: 1.85; color: var(--text2); font-weight: 300; }
+
 /* ══════════ PORTALE v2 · 下滑内容区（2026-09-10）══════════ */
 .back-home { position: fixed; top: 14px; left: 14px; z-index: 60; width: 40px; height: 40px; border-radius: 50%;
   border: 1px solid var(--border2); color: var(--gold); display: flex; align-items: center; justify-content: center;
@@ -5160,6 +5172,60 @@ function openMenuSheet(){
 }
 function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 'none'; }
 
+</script>
+
+  <div class="promo-pop" id="promoPop" onclick="if(event.target===this)closePromo()">
+    <div class="promo-card">
+      <button class="promo-x" onclick="closePromo()" aria-label="Chiudi">&#10005;</button>
+      <div class="promo-eyebrow" id="promoEyebrow"></div>
+      <img id="promoImg" alt="" onerror="this.style.display='none'">
+      <div class="promo-title" id="promoTitle"></div>
+      <div class="promo-detail" id="promoDetail"></div>
+    </div>
+  </div>
+
+<script>
+
+/* ══════════ PORTALE v2 · 分店内容配置（site_settings 按店）══════════ */
+(function(){
+  var BR = 'imola';
+  function $(id){ return document.getElementById(id); }
+  function today(){ return new Date().toISOString().slice(0, 10); }
+  window.closePromo = function(){ var p = $('promoPop'); if (p) p.style.display = 'none'; };
+  function showPromo(cfg){
+    if (cfg.promo_eyebrow) $('promoEyebrow').textContent = cfg.promo_eyebrow;
+    if (cfg.promo_title) $('promoTitle').textContent = cfg.promo_title;
+    if (cfg.promo_detail) $('promoDetail').textContent = cfg.promo_detail;
+    var img = $('promoImg');
+    if (img) img.src = 'foto/' + BR + '/eventi/eventi1.webp';
+    var p = $('promoPop');
+    if (p) p.style.display = 'flex';
+    try { localStorage.setItem('yio_promo_' + BR, today()); } catch(e){}
+  }
+  function applyCfg(cfg){
+    if (cfg.events_enabled){
+      var ev = $('branch-eventi');
+      if (ev) ev.style.display = 'block';
+      var t = $('bc-ev-title'), d = $('bc-ev-desc');
+      if (t && cfg.events_title) t.textContent = cfg.events_title;
+      if (d && cfg.events_desc) d.textContent = cfg.events_desc;
+    }
+    if (cfg.promo_enabled){
+      var seen = null;
+      try { seen = localStorage.getItem('yio_promo_' + BR); } catch(e){}
+      if (seen === today()) return;
+      setTimeout(function(){ showPromo(cfg); }, 2500);
+    }
+  }
+  function load(){
+    fetch('/api/public/rest/v1/site_settings?id=eq.' + BR)
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(rows){ if (rows && rows[0]) applyCfg(rows[0]); })
+      .catch(function(){});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
+  else load();
+})();
 </script>
 
 </body>
