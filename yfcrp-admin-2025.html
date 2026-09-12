@@ -160,6 +160,22 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 .modal-foot{display:flex;justify-content:flex-end;gap:10px;
   margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
 
+/* ── v5.55.1 · 手机端弹窗适配 ── */
+@media (max-width: 640px){
+  .modal-bg{padding:0;align-items:flex-end;}
+  .modal-box{max-width:100%;width:100%;max-height:96vh;border-radius:14px 14px 0 0;
+    padding:18px 14px 22px;}
+  .fg{min-width:0;}
+  .mp-head{padding:8px 10px;}
+  .mp-row{flex-wrap:wrap;gap:6px 10px;padding:10px;}
+  .mp-row>label{flex:1 1 100%;}
+  .mp-price input[type=number]{width:80px;}
+  .mp-limit input{width:48px;}
+  .mp-sconto input{width:42px;}
+  .tag-grid{gap:4px;}
+  .t-chip{padding:3px 7px;font-size:9.5px;}
+}
+
 /* EXPORT */
 .ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:16px;}
 .ex-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;}
@@ -253,7 +269,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.55.0</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.55.1</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -309,7 +325,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.55.0</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.55.1</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -651,7 +667,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.0</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.1</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1383,7 +1399,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.0</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.1</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -5635,4 +5651,3 @@ async function loadLotteryWins() {
 }
 
 </script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
