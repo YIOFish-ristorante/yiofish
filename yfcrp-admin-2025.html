@@ -269,7 +269,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.55.1</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.55.2</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -325,7 +325,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.55.1</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.55.2</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -667,7 +667,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.1</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.2</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1399,7 +1399,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.1</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.2</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1529,7 +1529,7 @@ async function saveDishToDB(dish) {
     dish.dish_no = newDish[0].dish_no;
   } else {
     var patchDish = Object.assign({}, dbDish);
-    delete patchDish.dish_no;
+    if (String(dish.dish_no) === String(dish._origDishNo || '')) delete patchDish.dish_no;  // v5.55.2 · 编号变了才更新
     delete patchDish.restaurant_id;
     var res = await sbFetch('dishes_v2?id=eq.' + dish.id, {
       method: 'PATCH', body: JSON.stringify(patchDish)
@@ -1837,7 +1837,6 @@ function renderDishes(){
       +(CURRENT_ROLE==='super' ? '<button class="btn" style="color:#27ae60;border:1px solid rgba(39,174,96,.4)" onclick="openImportMenu()">📥 导入菜单</button>' : '')
       +'<button class="btn btn-gold" onclick="openAddDish()">＋ 添加菜品</button>'
       +'<button class="btn" onclick="cleanupDishImages()" title="删除本店已不存在菜品的照片">🧹 清理孤儿图</button>'
-      +'<button class="btn" onclick="migrateDishImages()" title="把 git 里的旧图批量搬到 Supabase">📦 迁移旧图</button>'
       +'</div>'
     +'</div>'
     +'<div class="card fbar" style="margin-bottom:14px">'
@@ -1894,7 +1893,7 @@ function openEditDish(id){
   _editDishNo = it.dish_no;  // 关键：保留原菜品号，编辑不动它
   $('dm-title').textContent = '编辑菜品';
   $('f-id').value = it.dish_no || '';
-  $('f-id').disabled = true;  // 编辑模式下菜品号锁定（保存逻辑也忽略此值）
+  // v5.55.2 · 编辑模式允许修改菜品号（保存时校验占用）
   $('f-name').value = it.name;
   $('f-desc').value = it.desc||'';
   $('f-image').value = it.image || ''; dishImgPreview(it.image || '');
@@ -1985,10 +1984,11 @@ async function saveDish(){
   });
   var customId = parseInt($('f-id').value) || null;
   if (!_editDishId && !customId) { toast('⚠️ 请手动填写菜品ID（编号）'); return; }
-  if (!_editDishId && customId && I.some(function(x){ return String(x.dish_no) === String(customId); })) { toast('⚠️ 菜品ID ' + customId + ' 已被占用'); return; }
+  if (customId && I.some(function(x){ return String(x.dish_no) === String(customId) && String(x.id) !== String(_editDishId || ''); })) { toast('⚠️ 菜品ID ' + customId + ' 已被占用'); return; }
   var dish = {
+    _origDishNo: _editDishNo,
     id: _editDishId || customId,
-    dish_no: _editDishNo || customId,  // 编辑用原号；新增用用户输入
+    dish_no: customId || _editDishNo,  // v5.55.2 · 编辑可改号（保存到DB时校验）；新增用输入
     category: $('f-cat').value,
     name: name,
     desc: $('f-desc').value.trim(),
@@ -5651,3 +5651,4 @@ async function loadLotteryWins() {
 }
 
 </script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
