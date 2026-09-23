@@ -791,7 +791,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.66.1 · 2026-09-23</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.67.0 · 2026-09-23</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -975,6 +975,16 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
   <div class="cft">
     <div class="csub"><span>Totale</span><span class="ctotal" id="cart-total">€ 0,00</span></div>
 
+    <!-- ══ v1.67.0 · 两步下单：第1步确认订单 ══ -->
+    <div id="cart-step-label" style="font-size:10px;letter-spacing:2px;color:var(--muted);margin:6px 0 8px;">PASSO 1 DI 2 · CONTROLLA L&#39;ORDINE</div>
+    <div id="step1-actions" style="display:flex;gap:8px;margin-bottom:8px;">
+      <button onclick="cartGoStep(2)" style="flex:1;background:#d4ab48;border:none;border-radius:var(--r);padding:12px 8px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-family:inherit;font-weight:600;">CONTINUA →</button>
+      <button onclick="clearActiveCart()" style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:var(--r);padding:12px 8px;font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;">Svuota</button>
+    </div>
+    <!-- 第2步：填写资料（dine / asporto 两个区域整体包进来） -->
+    <div id="step2-wrap" style="display:none;">
+    <button onclick="cartGoStep(1)" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:var(--r);padding:8px;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;margin-bottom:10px;">← INDIETRO</button>
+
     <!-- ── 堂食区域 ── -->
     <div id="dine-section" style="display:none">
       <!-- 桌号 + 人数 + MODIFICA 同一排 -->
@@ -1096,6 +1106,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
           style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:var(--r);padding:12px 8px;font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;">Svuota</button>
       </div>
     </div>
+    </div><!-- /step2-wrap (v1.67.0) -->
 
   </div>
 </div>
@@ -2014,8 +2025,20 @@ function boxPickItem(it) {
   if (!_boxMode) return;
   var g = boxGroupForItem(it);
   if (!g) { toast('⚠️ Questo piatto non è incluso nel ' + _boxMode.name); return; }
-  // 该组已选够 → 不能再加
-  if (g.picked.length >= g.count) { toast('⚠️ Hai già scelto ' + g.count + ' per "' + g.name + '"'); return; }
+  // 该组已选够 → 不能再加：提示"该组已完成"，并指引下一个未完成的组（v1.67.0）
+  if (g.picked.length >= g.count) {
+    var nextG = null;
+    for (var gi = 0; gi < _boxMode.groups.length; gi++) {
+      if (_boxMode.groups[gi].picked.length < _boxMode.groups[gi].count) { nextG = _boxMode.groups[gi]; break; }
+    }
+    if (nextG) {
+      var mancano = nextG.count - nextG.picked.length;
+      toast('\u2713 "' + g.name + '" completo \u2192 Ora scegli: ' + nextG.name + ' (ne mancano ' + mancano + ')');
+    } else {
+      toast('⚠️ Hai già scelto ' + g.count + ' per "' + g.name + '"');
+    }
+    return;
+  }
   g.picked.push({ id: it.id, name: it.name });
   updateItemUI(it.id);
   renderBoxModeBanner();
@@ -3294,7 +3317,7 @@ function renderCartBody() {
   if (sentKeys.length > 0) {
     var sep = document.createElement('div');
     sep.style.cssText = 'font-size:11px;color:var(--muted);letter-spacing:1px;padding:10px 0 6px;border-top:1px solid var(--border);margin-top:8px;';
-    sep.textContent = '✓ GIÀ INVIATI';
+    sep.innerHTML = '✓ GIÀ INVIATI &nbsp;<button onclick="restoreSentItems()" style="background:none;border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:2px 10px;font-size:10px;letter-spacing:1px;color:var(--gold);cursor:pointer;font-family:inherit;">↩︎ RIPRISTINA</button>';
     el.appendChild(sep);
     sentKeys.forEach(function(id) {
       var qty = sentCart[id];
@@ -3689,6 +3712,7 @@ function sendNotify() {
   updateCartUI();
   // 记录轮次
   recordRoundSent(tableNum);
+  cartGoStep(1, true);
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
@@ -4364,6 +4388,7 @@ function sendOrder() {
   saveCartToLS();
   ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
   updateCartUI();
+  cartGoStep(1, true);
   window.open('https://wa.me/' + CONFIG.WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
 }
 
@@ -4390,6 +4415,7 @@ function submitLoyaltyPending(phone, amount, summary) {
 function openCart() {
   renderCartBody();
   updateCartButtons();
+  cartGoStep(1, true);
   document.getElementById('cart-drawer').className = 'cdr on';
   document.getElementById('cart-overlay').className = 'cov on';
 }
@@ -5264,6 +5290,49 @@ function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
   else load();
 })();
+</script>
+
+<script>
+
+// ══════════ v1.67.0 · 两步下单 + 恢复已发送 ══════════
+function cartGoStep(step, silent){
+  var s1 = document.getElementById('step1-actions');
+  var s2 = document.getElementById('step2-wrap');
+  var lb = document.getElementById('cart-step-label');
+  if (!s1 || !s2) return;
+  if (step === 2 && cartCount() === 0) {
+    if (!silent) toast('⚠️ Aggiungi almeno un piatto al carrello');
+    return;
+  }
+  s1.style.display = (step === 1) ? 'flex' : 'none';
+  s2.style.display = (step === 2) ? 'block' : 'none';
+  if (lb) lb.textContent = (step === 1) ? "PASSO 1 DI 2 · CONTROLLA L'ORDINE" : 'PASSO 2 DI 2 · I TUOI DATI';
+}
+function clearActiveCart(){
+  if (isAsporto) { cart_asporto = {}; cart_boxes = []; }
+  else { cart_dine = {}; }
+  saveCartToLS();
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+  updateCartUI();
+  renderCartBody();
+  cartGoStep(1, true);
+  toast('🧺 Carrello svuotato');
+}
+function restoreSentItems(){
+  var sent = isAsporto ? cart_asporto_sent : cart_dine_sent;
+  var active = isAsporto ? cart_asporto : cart_dine;
+  var keys = Object.keys(sent);
+  if (!keys.length) return;
+  if (!confirm("Ripristinare i piatti già inviati?\n\nSe hai già inviato su WhatsApp, il ristorante potrebbe aver ricevuto l'ordine.")) return;
+  keys.forEach(function(k){ active[k] = (active[k] || 0) + sent[k]; });
+  if (isAsporto) { cart_asporto_sent = {}; } else { cart_dine_sent = {}; }
+  saveCartToLS();
+  ALL_ITEMS.forEach(function(it){ updateItemUI(it.id); });
+  updateCartUI();
+  renderCartBody();
+  cartGoStep(1, true);
+  toast('↩︎ Ordine ripristinato');
+}
 </script>
 
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
