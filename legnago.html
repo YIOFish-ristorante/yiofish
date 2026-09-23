@@ -791,7 +791,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yiofish.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.66.0 · 2026-09-10</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.66.1 · 2026-09-23</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -817,17 +817,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     <section class="bsec" id="branch-piatti">
       <p class="bsec-eyebrow">Le specialit&agrave;</p>
       <h2 class="bsec-title">I nostri <em>piatti</em></h2>
-      <div class="dish-grid">
-        <div class="dish"><img src="foto/legnago/piatti/misto.webp" alt="Sushi Misto" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/sashimi.webp" alt="Sashimi" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/uramaki.webp" alt="Uramaki Special" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/nigiri.webp" alt="Nigiri" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/tempura.webp" alt="Tempura" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/ramen.webp" alt="Ramen" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/tartare.webp" alt="Tartare" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/hosomaki.webp" alt="Hosomaki" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
-        <div class="dish"><img src="foto/legnago/piatti/dessert.webp" alt="Dolce" class="dish-img" loading="lazy" onerror="this.remove()" onload="this.closest('.dish').classList.add('has-img')"><span class="ph">FOTO</span></div>
-      </div>
+      <div class="dish-grid"></div>
     </section>
 
     <section class="bsec" id="branch-ambiente">
@@ -4251,13 +4241,24 @@ function sendOrder() {
     }
     // 7. 时间
     if (!orario) { toast("⚠️ Seleziona l'orario di consegna"); focusField('asporto-time'); return; }
-    // 7b. 外送时段校验：仅"今天"的订单要求当前处于可外送时段；
-    //     未来日期的预订单时段由排班表生成、天然合法（修复旧版误杀未来预订单）
+        // 7b. 所选时段有效性校验（v1.66.1 修复：不再要求"此刻处于配送窗口"，改校验顾客所选的时间）
     var dayOffsetChk = (dateEl && dateEl.value !== '') ? (parseInt(dateEl.value) || 0) : 0;
+    var dowAttrChk = (dateEl && dateEl.selectedIndex >= 0) ? dateEl.options[dateEl.selectedIndex].getAttribute('data-dow') : null;
+    var dowChk = (dowAttrChk != null) ? parseInt(dowAttrChk) : ((getRomeNow().day + dayOffsetChk) % 7);
+    var winChk = getConsegnaWindowsForDay(dowChk);
+    var slotMinChk = _hmToMin(orario);
+    var inWinChk = (winChk.lunch && slotMinChk >= winChk.lunch.startMin && slotMinChk <= winChk.lunch.endMin) ||
+                   (winChk.dinner && slotMinChk >= winChk.dinner.startMin && slotMinChk <= winChk.dinner.endMin);
+    if (!inWinChk) {
+      toast("⚠️ L'orario selezionato è fuori dagli orari di consegna di quel giorno");
+      focusField('asporto-time');
+      return;
+    }
     if (dayOffsetChk === 0) {
-      var cw = consegnaWindowNow();
-      if (!cw.open) {
-        toast('🚵 Consegna non disponibile ora. ' + cw.nextMsg);
+      var leadChk = 30; // 今天下单：备餐缓冲 30 分钟，所选时间必须晚于 现在+30分
+      if (slotMinChk < getRomeNow().minutes + leadChk) {
+        toast("⚠️ Per la consegna di oggi serve almeno " + leadChk + " minuti di preavviso: scegli un orario pi\u00f9 tardi");
+        focusField('asporto-time');
         return;
       }
     }
@@ -5240,7 +5241,8 @@ function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 
     fetch('foto/' + BR + '/piatti/list.json', {cache: 'no-cache'})
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(list){
-        if (!Array.isArray(list) || !list.length) return;   // 无清单：保留页面默认九宫格
+        var sec = document.getElementById('branch-piatti');
+        if (!Array.isArray(list) || !list.length) { if (sec) sec.style.display = 'none'; return; }   // 无清单：隐藏菜品板块
         var grid = document.querySelector('#branch-piatti .dish-grid');
         if (!grid) return;
         grid.innerHTML = '';
@@ -5257,12 +5259,13 @@ function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 
           })(list[i]);
         }
       })
-      .catch(function(){});
+      .catch(function(){ var sec = document.getElementById('branch-piatti'); if (sec) sec.style.display = 'none'; });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
   else load();
 })();
 </script>
 
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
