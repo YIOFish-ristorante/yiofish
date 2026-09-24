@@ -670,7 +670,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.1</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.2</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1407,7 +1407,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.1</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.2</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -4562,7 +4562,10 @@ async function renderLoyaltyPage() {
     + '<div class="card" style="padding:18px 22px;margin-bottom:20px">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
         + '<div style="font-size:14px;font-weight:600">📦 Punti asporto da confermare</div>'
-        + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="loadPendingPoints()">🔄 Aggiorna</button>'
+        + '<div style="display:flex;gap:6px">'
+          + '<button class="btn btn-sm" style="border:1px solid var(--border2)" onclick="loadPendingPoints()">🔄 Aggiorna</button>'
+          + '<button class="btn btn-sm" style="border:1px solid #c0392b;color:#c0392b" onclick="batchCancelPending()">✕ Annulla tutti</button>'
+        + '</div>'
       + '</div>'
       + '<div style="font-size:11px;color:var(--muted);margin-bottom:12px">Conferma per assegnare i punti, oppure annulla se l\'ordine non è stato ritirato.</div>'
       + '<div id="ly-pending-list">Caricamento...</div>'
@@ -5202,6 +5205,33 @@ var _lyShowInvalidOnly = false; // v5.54.0 只显示无效号码（清理假号�
 // A档号码规则：9-13位纯数字（可带+号）——与后端 /loyalty/identify 一致
 function lyPhoneValid(p) { return /^\+?\d{9,13}$/.test(String(p || '').trim().replace(/\s+/g, '')); }
 function lyToggleInvalidFilter() { _lyShowInvalidOnly = !_lyShowInvalidOnly; renderLoyaltyList(); }
+
+
+// v5.56.2 · 一键批量取消未确认积分
+async function batchCancelPending(){
+  if (!confirm('Annullare TUTTI gli ordini in attesa?\n\nQuesta operazione non può essere annullata.')) return;
+  var box = document.getElementById('ly-pending-list');
+  if (!box) return;
+  // 收集当前页面上所有待确认项的 id
+  var ids = [];
+  var list = box.querySelectorAll('button[onclick^="confirmPendingPoints("]');
+  list.forEach(function(btn){
+    var m = btn.getAttribute('onclick').match(/confirmPendingPoints\((\d+),/);
+    if (m && ids.indexOf(parseInt(m[1])) === -1) ids.push(parseInt(m[1]));
+  });
+  if (!ids.length) { toast('Nessun ordine in attesa'); return; }
+
+  box.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Annullamento in corso… ('+ids.length+' ordini)</div>';
+  var ok = 0, fail = 0;
+  for (var i = 0; i < ids.length; i++) {
+    try {
+      var res = await sbFetch('loyalty/pending/'+ids[i], { method: 'PATCH', body: JSON.stringify({action:'cancel'}), prefer: 'return=minimal' });
+      if (res.ok) ok++; else fail++;
+    } catch(e) { fail++; }
+  }
+  toast('✕ Annullati ' + ok + ' / ' + ids.length + (fail ? ' (' + fail + ' errori)' : ''));
+  loadPendingPoints();
+}
 
 async function loadLoyaltyList() {
   var listEl = document.getElementById('ly-list');
