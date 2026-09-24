@@ -670,7 +670,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.2</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.3</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1407,7 +1407,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.2</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.3</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -5207,7 +5207,7 @@ function lyPhoneValid(p) { return /^\+?\d{9,13}$/.test(String(p || '').trim().re
 function lyToggleInvalidFilter() { _lyShowInvalidOnly = !_lyShowInvalidOnly; renderLoyaltyList(); }
 
 
-// v5.56.2 · 一键批量取消未确认积分
+// v5.56.3 · 一键批量取消未确认积分
 async function batchCancelPending(){
   if (!confirm('Annullare TUTTI gli ordini in attesa?\n\nQuesta operazione non può essere annullata.')) return;
   var box = document.getElementById('ly-pending-list');
@@ -5222,10 +5222,16 @@ async function batchCancelPending(){
   if (!ids.length) { toast('Nessun ordine in attesa'); return; }
 
   box.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Annullamento in corso… ('+ids.length+' ordini)</div>';
+  var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN || '';
   var ok = 0, fail = 0;
   for (var i = 0; i < ids.length; i++) {
     try {
-      var res = await sbFetch('loyalty/pending/'+ids[i], { method: 'PATCH', body: JSON.stringify({action:'cancel'}), prefer: 'return=minimal' });
+      var res = await fetch(WORKER_URL + '/loyalty/pending/confirm', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({id: ids[i], action: 'cancel'}),
+        cache: 'no-store'
+      });
       if (res.ok) ok++; else fail++;
     } catch(e) { fail++; }
   }
