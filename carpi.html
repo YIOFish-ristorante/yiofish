@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.4 · 2026-09-24</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.5 · 2026-09-24</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -4958,35 +4958,32 @@ function sendReservation() {
   var msg = '📅 *PRENOTAZIONE YIO FISH*\n\n👤 _Nome:_ *'+name+'*\n🗓️ _Data:_ *'+p[2]+'/'+p[1]+'/'+p[0]+'*\n⏰ _Orario:_ *'+time+'*\n👥 _Persone:_ *'+people+'*'+(note ? '\n📝 _Note:_ *'+note+'*' : '')+(phone ? '\n📞 _Telefono:_ *'+phone+'*' : '');
   var waUrl = 'https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg);
   closeModal('reservationModal');
-  // v1.69.4: 先同步打开空白窗口（不被拦截），fetch 存库成功后再写入 URL
-  var waWin = window.open('', '_blank');
-  toast('💾 Salvataggio prenotazione...');
+  // v1.69.5: 简化逻辑 + 调试日志
+  console.log('[RES] fields:', {name, date, time, people, phone, note});
+  console.log('[RES] WORKER_URL:', WORKER_URL);
+  console.log('[RES] RESTAURANT_ID:', RESTAURANT_ID);
+  window.open(waUrl, '_blank');
+  var payload = JSON.stringify({
+    restaurant_id: RESTAURANT_ID,
+    name: name, phone: phone, date: date, time: time,
+    people: people, note: note
+  });
+  console.log('[RES] payload:', payload);
   fetch(WORKER_URL + '/reservation', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      restaurant_id: CONFIG.RESTAURANT_ID,
-      name: name, phone: phone, date: date, time: time,
-      people: people, note: note
-    })
+    body: payload
   }).then(function(res){
-    if (waWin) waWin.location = waUrl;
+    console.log('[RES] response status:', res.status);
     return res.json();
   }).then(function(data){
+    console.log('[RES] response data:', data);
     if (data.ok) toast('✅ Prenotazione salvata');
-    else toast('⚠️ Errore salvataggio: ' + (data.error || 'sconosciuto'));
+    else toast('⚠️ Errore: ' + (data.error || 'sconosciuto'));
   }).catch(function(err){
-    if (waWin) waWin.location = waUrl;
-    toast('⚠️ Salvataggio fallito, WhatsApp inviato');
+    console.error('[RES] fetch error:', err);
+    toast('⚠️ Salvataggio fallito: ' + (err.message || 'rete'));
   });
-  // 手机号可选：填了就静默注册/识别会员（积分系统）；格式不符（A档 9-13位）直接跳过，避免假号建档
-  if (phone && SETTINGS.loyalty_enabled && /^\+?\d{9,13}$/.test(phone)) {
-    fetch(WORKER_URL + '/loyalty/identify', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({phone: phone, name: name})
-    }).catch(function(){});
-  }
 }
 
 // ════════════════════════════════════
@@ -5337,7 +5334,7 @@ function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 
 <script>
 
 // ══════════ v1.68.0 · 菜单视图切换（紧凑/大字）══
-var VIEW_MODE_KEY = 'yio_view_mode_' + CONFIG.RESTAURANT_ID;
+var VIEW_MODE_KEY = 'yio_view_mode_' + RESTAURANT_ID;
 function initViewMode(){
   var mode = localStorage.getItem(VIEW_MODE_KEY) || 'compact';
   applyViewMode(mode, false);
