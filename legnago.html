@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.68.0 · 2026-09-23</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.0 · 2026-09-23</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -4966,6 +4966,16 @@ function sendReservation() {
       body: JSON.stringify({phone: phone, name: name})
     }).catch(function(){}); // 静默失败，不影响预约流程
   }
+  // v1.69.0: 预订同时存库（后台可查清单）——失败静默不影响 WhatsApp 发送
+  fetch(WORKER_URL + '/reservation', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      restaurant_id: CONFIG.RESTAURANT_ID,
+      name: name, phone: phone, date: date, time: time,
+      people: people, note: note
+    })
+  }).catch(function(){});
 }
 
 // ════════════════════════════════════

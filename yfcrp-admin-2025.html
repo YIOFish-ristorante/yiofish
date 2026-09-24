@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v4.3</title>
+<title>Yio Fish Admin v5.56.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -394,6 +394,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
     <button class="s-btn" id="nav-lottery" onclick="showPage('lottery')" style="display:none;">
       <span class="s-ico">🎡</span>Lotteria
     </button>
+    <button class="s-btn" id="nav-reservations" onclick="showPage('reservations')" style="display:none;">
+      <span class="s-ico">📅</span>PRENOTAZIONI
+    </button>
   </aside>
   <main class="content" id="content"></main>
 </div>
@@ -667,7 +670,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.2</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.0</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1188,6 +1191,9 @@ function applyPermissions(myPerms) {
   if (_loyBtn) _loyBtn.style.display = (myPerms['loyalty_correction'] === true) ? '' : 'none';
   var _lotBtn = document.getElementById('nav-lottery');
   if (_lotBtn) _lotBtn.style.display = (CURRENT_ROLE === 'super' || myPerms['loyalty_correction'] === true) ? '' : 'none';
+  // v5.56.0: 预订清单——super 始终可见，store_admin 默认可见（缺失=允许）
+  var _resBtn = document.getElementById('nav-reservations');
+  if (_resBtn) _resBtn.style.display = (CURRENT_ROLE === 'super' || myPerms['nav_reservations'] !== false) ? '' : 'none';
   // 保存权限供settings渲染后使用
   window._myPerms = myPerms;
 
@@ -1399,7 +1405,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.55.2</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.0</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1763,6 +1769,14 @@ function showPage(p){
     renderLotteryPage();
     return;
   }
+  if (p === 'reservations') {
+    _page = 'reservations';
+    document.querySelectorAll('.s-btn').forEach(function(b){ b.classList.remove('active'); });
+    var nbr = document.getElementById('nav-reservations');
+    if (nbr) nbr.classList.add('active');
+    renderReservationsPage();
+    return;
+  }
   _page = p;
   ['dishes','cats','restaurant','export','settings','tables'].forEach(function(x){
     var b = $('nav-'+x);
@@ -1780,6 +1794,124 @@ function render(){
   else if(_page==='export') renderExport();
   else if(_page==='settings') renderSettings();
   else if(_page==='tables') renderTables();
+  else if(_page==='reservations') renderReservationsPage();
+}
+
+
+// ════════════════════════════════════
+//  v5.56.0 · 预订清单页面
+// ════════════════════════════════════
+var _resDate = '';
+var _resStore = '';
+var _resData = [];
+
+function renderReservationsPage(){
+  if (!_resDate) {
+    var d = new Date();
+    _resDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  if (CURRENT_ROLE === 'store_admin' && RESTAURANT_ID) {
+    _resStore = RESTAURANT_ID;
+  } else if (!_resStore && STORES.length) {
+    _resStore = STORES[0].id;
+  }
+
+  var storeOpts = STORES.map(function(s){
+    return '<option value="'+_lyEsc(s.id)+'"'+(_resStore===s.id?' selected':'')+'>'+_lyEsc(s.name)+'</option>';
+  }).join('');
+
+  $('content').innerHTML =
+    '<div class="page-head">'
+      +'<div><h1>📅 PRENOTAZIONI</h1><p>按日期查看预订清单</p></div>'
+    +'</div>'
+    +'<div class="card fbar" style="margin-bottom:14px">'
+      +'<input type="date" id="res-date-input" value="'+_lyEsc(_resDate)+'" onchange="_resDate=this.value;loadReservations()">'
+      +(CURRENT_ROLE==='super' ? '<select id="res-store-select" onchange="_resStore=this.value;loadReservations()">'+storeOpts+'</select>' : '')
+      +'<button class="btn btn-gold" onclick="loadReservations()">🔄 刷新</button>'
+    +'</div>'
+    +'<div id="res-list"></div>';
+
+  loadReservations();
+}
+
+async function loadReservations(){
+  var listEl = document.getElementById('res-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="padding:48px;text-align:center;color:var(--muted)">加载中…</div>';
+
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN || '';
+    var url = WORKER_URL + '/reservations?date=' + encodeURIComponent(_resDate) + '&restaurant_id=' + encodeURIComponent(_resStore);
+    var res = await fetch(url, { headers: {'Authorization': 'Bearer ' + token} });
+    var data = await res.json();
+    if (!res.ok) {
+      listEl.innerHTML = '<div style="padding:48px;text-align:center;color:var(--red)">'+_lyEsc(data.error||'加载失败')+'</div>';
+      return;
+    }
+    _resData = Array.isArray(data) ? data : [];
+    renderResList();
+  } catch(e) {
+    listEl.innerHTML = '<div style="padding:48px;text-align:center;color:var(--red)">'+_lyEsc(e.message)+'</div>';
+  }
+}
+
+function renderResList(){
+  var listEl = document.getElementById('res-list');
+  if (!listEl) return;
+  if (!_resData.length) {
+    listEl.innerHTML = '<div style="padding:48px;text-align:center;color:var(--muted)">暂无预订</div>';
+    return;
+  }
+
+  var rows = _resData.map(function(r, i){
+    var statusColors = {
+      'pending': 'color:#b8902e;border-color:rgba(184,144,46,.4);',
+      'confirmed': 'color:#27ae60;border-color:rgba(39,174,96,.4);',
+      'cancelled': 'color:#c0392b;border-color:rgba(192,57,43,.4);'
+    };
+    var statusLabels = {'pending':'⏳ 待确认','confirmed':'✅ 已确认','cancelled':'❌ 已取消'};
+    var st = r.status || 'pending';
+    return '<div class="item-row">'
+      +'<div class="i-info" style="flex:1">'
+        +'<div class="i-name">'+_lyEsc(r.time)+' · '+_lyEsc(r.name)+' · '+r.people+'人</div>'
+        +'<div class="i-meta">'
+          +(r.phone ? '📞 '+_lyEsc(r.phone)+' · ' : '')
+          +(r.note ? '📝 '+_lyEsc(r.note) : '—')
+        +'</div>'
+      +'</div>'
+      +'<div class="i-actions">'
+        +'<select onchange="updateResStatus('+i+',this.value)" style="background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:12px;'+_lyEsc(statusColors[st]||'')+'">'
+          +'<option value="pending"'+(st==='pending'?' selected':'')+'>⏳ 待确认</option>'
+          +'<option value="confirmed"'+(st==='confirmed'?' selected':'')+'>✅ 已确认</option>'
+          +'<option value="cancelled"'+(st==='cancelled'?' selected':'')+'>❌ 已取消</option>'
+        +'</select>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+
+  listEl.innerHTML = '<div class="card" style="padding:0">'+rows+'</div>';
+}
+
+async function updateResStatus(idx, newStatus){
+  var r = _resData[idx];
+  if (!r || !r.id) return;
+  try {
+    var res = await sbFetch('reservations?id=eq.'+r.id, {
+      method: 'PATCH',
+      body: JSON.stringify({status: newStatus}),
+      prefer: 'return=minimal'
+    });
+    if (res.ok) {
+      _resData[idx].status = newStatus;
+      renderResList();
+      toast('✅ 状态已更新');
+    } else {
+      var data = await res.json();
+      toast('❌ '+_lyEsc(data.error||'更新失败'));
+    }
+  } catch(e) {
+    toast('❌ '+e.message);
+  }
 }
 
 // ════════════════════════════════════
@@ -5651,4 +5783,3 @@ async function loadLotteryWins() {
 }
 
 </script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
