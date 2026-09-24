@@ -670,7 +670,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.3</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.4</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1407,7 +1407,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.3</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.4</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1875,11 +1875,12 @@ function renderResList(){
     var st = r.status || 'pending';
     return '<div class="item-row">'
       +'<div class="i-info" style="flex:1">'
-        +'<div class="i-name">'+_lyEsc(r.time)+' · '+_lyEsc(r.name)+' · '+r.people+'人</div>'
-        +'<div class="i-meta">'
-          +(r.phone ? '📞 '+_lyEsc(r.phone)+' · ' : '')
-          +(r.note ? '📝 '+_lyEsc(r.note) : '—')
+        +'<div class="i-name" style="font-size:15px;font-weight:600">'+_lyEsc(r.name)+'</div>'
+        +'<div class="i-meta" style="margin-top:4px">'
+          +'🕐 '+_lyEsc(r.time)+' · '+r.people+'人'
+          +(r.phone ? ' · 📞 '+_lyEsc(r.phone) : '')
         +'</div>'
+        +(r.note ? '<div class="i-meta" style="margin-top:2px;color:var(--muted2)">📝 '+_lyEsc(r.note)+'</div>' : '')
       +'</div>'
       +'<div class="i-actions">'
         +'<select onchange="updateResStatus('+i+',this.value)" style="background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:12px;'+_lyEsc(statusColors[st]||'')+'">'
@@ -5821,3 +5822,4 @@ async function loadLotteryWins() {
 }
 
 </script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
