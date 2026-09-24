@@ -143,6 +143,13 @@ input:focus{border-color:var(--gold)}
             <div class="menu-desc">Clienti in attesa di conferma primo PIN</div>
           </div>
         </div>
+        <div class="menu-item" onclick="showStep('reservations');loadStaffReservations();">
+          <span class="menu-icon">📅</span>
+          <div>
+            <div class="menu-label">PRENOTAZIONI OGGI</div>
+            <div class="menu-desc">Visualizza le prenotazioni di oggi</div>
+          </div>
+        </div>
         <div class="menu-item" onclick="showStep('resetpin')">
           <span class="menu-icon">🔑</span>
           <div>
@@ -374,6 +381,19 @@ input:focus{border-color:var(--gold)}
     </div>
   </div>
 
+  <!-- STEP: reservations (今日预订) -->
+  <div id="step-reservations" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">📅 Prenotazioni di oggi</h2>
+        <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
+      </div>
+      <div id="res-err"></div>
+      <div id="res-list">Caricamento...</div>
+      <button class="btn btn-ghost" style="margin-top:12px" onclick="loadStaffReservations()">🔄 Aggiorna</button>
+    </div>
+  </div>
+
   <!-- STEP: pinreq (PIN 首设确认，方案B) -->
   <div id="step-pinreq" style="display:none">
     <div class="card">
@@ -461,7 +481,7 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v1.4.1</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.2</div>
 
 <script>
 var APP_VERSION = 'v1.4.1';
@@ -523,7 +543,7 @@ async function undoLastOp() {
   } catch (e) { alert('❌ Errore: ' + e.message); }
 }
 
-var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','pinreq','lottery','riscatta-choose','addpunti-choose','resetpin','resetpin-success'];
+var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','pinreq','lottery','riscatta-choose','addpunti-choose','reservations','resetpin','resetpin-success'];
 
 // 页面加载时自动填入已保存凭证
 window.addEventListener('load', function() {
@@ -539,6 +559,8 @@ function showStep(step) {
   else if (_pinreqTimer) { clearInterval(_pinreqTimer); _pinreqTimer = null; }
   if (step === 'lottery') { _lotteryTimer = setInterval(function(){ try { loadLotteryReqs(true); } catch(e){} }, 10000); try { lotSetSearchMode('table', true); } catch (e) {} }
   else if (_lotteryTimer) { clearInterval(_lotteryTimer); _lotteryTimer = null; }
+  if (step === 'reservations') { _resTimer = setInterval(function(){ try { loadStaffReservations(true); } catch(e){} }, 30000); }
+  else if (_resTimer) { clearInterval(_resTimer); _resTimer = null; }
   ALL_STEPS.forEach(function(s){
     var el = document.getElementById('step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
@@ -986,6 +1008,57 @@ async function lotteryResetTable() {
 
 
 // 有效中奖列表：客人报奖品/手机号，店员点 ✓ 一键核销
+// v3.2 · 今日预订查询（店员端）
+var _resData = [];
+var _resTimer = null;
+async function loadStaffReservations(silent){
+  var listEl = document.getElementById('res-list');
+  var errEl = document.getElementById('res-err');
+  if (!listEl) return;
+  if (!silent) listEl.innerHTML = 'Caricamento...';
+  if (errEl) errEl.innerHTML = '';
+  try {
+    var d = new Date();
+    var date = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    var res = await fetch(WORKER_URL + '/reservations?date=' + encodeURIComponent(date) + '&restaurant_id=' + encodeURIComponent(_store), {
+      headers: {'Authorization': 'Bearer ' + _token},
+      cache: 'no-store'
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      if (errEl) errEl.innerHTML = '<div class="msg msg-err">' + (data.error || 'Errore') + '</div>';
+      if (!silent) listEl.innerHTML = '';
+      return;
+    }
+    _resData = Array.isArray(data) ? data : [];
+    renderStaffResList();
+  } catch(e) {
+    if (errEl) errEl.innerHTML = '<div class="msg msg-err">' + e.message + '</div>';
+    if (!silent) listEl.innerHTML = '';
+  }
+}
+function renderStaffResList(){
+  var listEl = document.getElementById('res-list');
+  if (!listEl) return;
+  if (!_resData.length) {
+    listEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Nessuna prenotazione per oggi</div>';
+    return;
+  }
+  var statusMap = {'pending':'⏳','confirmed':'✅','cancelled':'❌'};
+  var rows = _resData.map(function(r){
+    return '<div style="border-bottom:1px solid rgba(0,0,0,.06);padding:12px 0">'
+      +'<div style="font-size:15px;font-weight:600">' + esc(r.name) + '</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-top:4px">'
+        +'🕐 ' + esc(r.time) + ' · ' + r.people + ' persone'
+        +(r.phone ? ' · 📞 ' + esc(r.phone) : '')
+        +' · ' + (statusMap[r.status] || '⏳')
+      +'</div>'
+      +(r.note ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">📝 ' + esc(r.note) + '</div>' : '')
+    +'</div>';
+  }).join('');
+  listEl.innerHTML = rows;
+}
+
 function escJs(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
 function lotteryWinRow(w, showVoid) {
   const sameDay = w.won_day === w.expires_day;
