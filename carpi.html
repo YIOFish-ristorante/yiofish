@@ -259,6 +259,25 @@ body {
 .catnav::-webkit-scrollbar { display: none; }
 .catnav-inner { display: inline-flex; flex: 1; overflow-x: auto; scrollbar-width: none; }
 .catnav-inner::-webkit-scrollbar { display: none; }
+/* ══ v1.68.0 · 菜单视图切换（紧凑/大字）══ */
+.view-toggle { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;
+  width:44px; height:var(--nav-h); background:var(--surface); color:var(--gold); border:none;
+  border-left:1px solid var(--border); cursor:pointer; font-size:18px; line-height:1;
+  transition:color .18s, background .18s; }
+.view-toggle:hover { background:rgba(212,171,72,.1); }
+/* 大字模式：单列大卡片 */
+.grid.grid-large { grid-template-columns:1fr; gap:14px; }
+.grid.grid-large .cimg { aspect-ratio:16/10; }
+.grid.grid-large .cbody { padding:16px; gap:8px; }
+.grid.grid-large .cname { font-size:20px; line-height:1.3; }
+.grid.grid-large .cdesc { font-size:15px; line-height:1.7; max-height:none; }
+.grid.grid-large .cprice { font-size:24px; }
+.grid.grid-large .cprice .sym { font-size:16px; }
+.grid.grid-large .add-btn { width:42px; height:42px; font-size:26px; }
+.grid.grid-large .qbtn { width:38px; height:42px; font-size:22px; }
+.grid.grid-large .qnum { font-size:16px; min-width:32px; }
+.grid.grid-large .tag { font-size:13px; padding:4px 10px; }
+
 /* ≡ 全部分类按钮（固定在最左，不随横滑） */
 .cat-all-btn {
   flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
@@ -791,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.67.0 · 2026-09-23</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.68.0 · 2026-09-23</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -935,6 +954,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
   <nav class="catnav">
     <button class="cat-all-btn" id="cat-all-btn" aria-label="Tutte le categorie" title="Tutte le categorie">☰</button>
     <div class="catnav-inner" id="catnav-inner"></div>
+    <button class="view-toggle" id="view-toggle" onclick="toggleViewMode()" title="Cambia visualizzazione">⊞</button>
   </nav>
   <div class="box-bar" id="box-bar" style="display:none"></div>
   <div class="box-mode-banner" id="box-mode-banner" style="display:none"></div>
@@ -2162,6 +2182,7 @@ function openMenuView(menuId) {
   // 切换视图
   document.getElementById('home-view').style.display = 'none';
   document.getElementById('menu-view').style.display = 'block';
+  initViewMode(); // v1.68.0
   window.scrollTo(0, 0);
 }
 
@@ -5294,6 +5315,44 @@ function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 
 
 <script>
 
+// ══════════ v1.68.0 · 菜单视图切换（紧凑/大字）══
+var VIEW_MODE_KEY = 'yio_view_mode_' + CONFIG.RESTAURANT_ID;
+function initViewMode(){
+  var mode = localStorage.getItem(VIEW_MODE_KEY) || 'compact';
+  applyViewMode(mode, false);
+}
+function toggleViewMode(){
+  var cur = localStorage.getItem(VIEW_MODE_KEY) || 'compact';
+  var next = (cur === 'compact') ? 'large' : 'compact';
+  applyViewMode(next, true);
+}
+function applyViewMode(mode, notify){
+  localStorage.setItem(VIEW_MODE_KEY, mode);
+  var btn = document.getElementById('view-toggle');
+  if (btn) btn.textContent = (mode === 'compact') ? '⊞' : '▣';
+  document.querySelectorAll('.grid').forEach(function(g){
+    if (mode === 'large') g.classList.add('grid-large');
+    else g.classList.remove('grid-large');
+  });
+  if (notify) toast((mode === 'compact') ? '⊞ Visualizzazione compatta' : '▣ Visualizzazione grande');
+}
+// 监听未来动态添加的 grid（MutationObserver）
+(function(){
+  var mo = new MutationObserver(function(muts){
+    var mode = localStorage.getItem(VIEW_MODE_KEY) || 'compact';
+    if (mode !== 'large') return;
+    muts.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if (n.nodeType === 1 && n.classList && n.classList.contains('grid')) n.classList.add('grid-large');
+        if (n.nodeType === 1 && n.querySelectorAll) {
+          n.querySelectorAll('.grid').forEach(function(g){ g.classList.add('grid-large'); });
+        }
+      });
+    });
+  });
+  mo.observe(document.body, {childList:true, subtree:true});
+})();
+
 // ══════════ v1.67.0 · 两步下单 + 恢复已发送 ══════════
 function cartGoStep(step, silent){
   var s1 = document.getElementById('step1-actions');
@@ -5335,6 +5394,5 @@ function restoreSentItems(){
 }
 </script>
 
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
