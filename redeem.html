@@ -481,7 +481,7 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.2</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.3</div>
 
 <script>
 var APP_VERSION = 'v1.4.1';
@@ -1037,6 +1037,30 @@ async function loadStaffReservations(silent){
     if (!silent) listEl.innerHTML = '';
   }
 }
+// v3.3: 店员更新预订状态
+async function updateStaffResStatus(id, status){
+  if (!confirm('确认要' + (status === 'confirmed' ? '确认' : '取消') + '这条预订吗？')) return;
+  try {
+    var res = await fetch(WORKER_URL + '/reservations/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + _token
+      },
+      body: JSON.stringify({status: status})
+    });
+    var data = await res.json();
+    if (data.ok) {
+      toast('✅ 状态已更新');
+      loadStaffReservations();
+    } else {
+      toast('⚠️ ' + (data.error || '更新失败'));
+    }
+  } catch(err) {
+    toast('⚠️ 网络错误');
+  }
+}
+
 function renderStaffResList(){
   var listEl = document.getElementById('res-list');
   if (!listEl) return;
@@ -1044,16 +1068,26 @@ function renderStaffResList(){
     listEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Nessuna prenotazione per oggi</div>';
     return;
   }
-  var statusMap = {'pending':'⏳','confirmed':'✅','cancelled':'❌'};
+  var statusMap = {'pending':'⏳ 待确认','confirmed':'✅ 已确认','cancelled':'❌ 已取消'};
   var rows = _resData.map(function(r){
+    var btns = '';
+    if (r.status === 'pending') {
+      btns = '<div style="margin-top:8px;display:flex;gap:8px;">'
+        +'<button onclick="updateStaffResStatus(' + r.id + ',\'confirmed\')" style="background:#27ae60;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">✅ 确认</button>'
+        +'<button onclick="updateStaffResStatus(' + r.id + ',\'cancelled\')" style="background:#e74c3c;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">❌ 取消</button>'
+        +'</div>';
+    }
     return '<div style="border-bottom:1px solid rgba(0,0,0,.06);padding:12px 0">'
-      +'<div style="font-size:15px;font-weight:600">' + _esc(r.name) + '</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+        +'<div style="font-size:15px;font-weight:600">' + _esc(r.name) + '</div>'
+        +'<div style="font-size:11px;color:var(--muted)">' + (statusMap[r.status] || '⏳') + '</div>'
+      +'</div>'
       +'<div style="font-size:12px;color:var(--muted);margin-top:4px">'
         +'🕐 ' + _esc(r.time) + ' · ' + r.people + ' persone'
         +(r.phone ? ' · 📞 ' + _esc(r.phone) : '')
-        +' · ' + (statusMap[r.status] || '⏳')
       +'</div>'
       +(r.note ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">📝 ' + _esc(r.note) + '</div>' : '')
+      + btns
     +'</div>';
   }).join('');
   listEl.innerHTML = rows;
@@ -1501,6 +1535,5 @@ async function doChangePassword() {
 }
 </script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
