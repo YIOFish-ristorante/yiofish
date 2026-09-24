@@ -481,7 +481,7 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.3</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.4</div>
 
 <script>
 var APP_VERSION = 'v1.4.1';
@@ -1052,6 +1052,17 @@ async function updateStaffResStatus(id, status){
     var data = await res.json();
     if (data.ok) {
       toast('✅ 状态已更新');
+      // v3.4: 确认后如果客人有电话，提示通知
+      if (status === 'confirmed') {
+        var rec = _resData.find(function(x){ return x.id === id; });
+        if (rec && rec.phone) {
+          setTimeout(function(){
+            if (confirm('📱 要通知客人 ' + _esc(rec.name) + ' 预订已确认吗？')) {
+              notifyGuestByWhatsApp(rec.phone, rec.name, rec.time, rec.people, rec.date);
+            }
+          }, 300);
+        }
+      }
       loadStaffReservations();
     } else {
       toast('⚠️ ' + (data.error || '更新失败'));
@@ -1060,6 +1071,17 @@ async function updateStaffResStatus(id, status){
     toast('⚠️ 网络错误');
   }
 }
+// v3.4: 通过 WhatsApp 通知客人预订已确认
+function notifyGuestByWhatsApp(phone, name, time, people, date){
+  var d = date.split('-');
+  var dateIta = d[2] + '/' + d[1] + '/' + d[0];
+  var msg = 'Ciao ' + name + '! ✅ La sua prenotazione da YIO FISH per ' + people + ' persone alle ore ' + time + ' del ' + dateIta + ' è stata confermata. A presto! 🍣';
+  var cleanPhone = phone.replace(/\D/g, '');
+  if (!cleanPhone.startsWith('+')) cleanPhone = '+' + cleanPhone;
+  var waUrl = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(msg);
+  window.open(waUrl, '_blank');
+}
+
 
 function renderStaffResList(){
   var listEl = document.getElementById('res-list');
@@ -1075,6 +1097,10 @@ function renderStaffResList(){
       btns = '<div style="margin-top:8px;display:flex;gap:8px;">'
         +'<button onclick="updateStaffResStatus(' + r.id + ',\'confirmed\')" style="background:#27ae60;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">✅ 确认</button>'
         +'<button onclick="updateStaffResStatus(' + r.id + ',\'cancelled\')" style="background:#e74c3c;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">❌ 取消</button>'
+        +'</div>';
+    } else if (r.status === 'confirmed' && r.phone) {
+      btns = '<div style="margin-top:8px;">'
+        +'<button onclick="notifyGuestByWhatsApp(\'' + _esc(r.phone).replace(/'/g, "\'") + '\',\'' + _esc(r.name).replace(/'/g, "\'") + '\',\'' + _esc(r.time) + '\',' + r.people + ',\'' + _esc(r.date) + '\')" style="background:#25d366;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">📱 通知客人</button>'
         +'</div>';
     }
     return '<div style="border-bottom:1px solid rgba(0,0,0,.06);padding:12px 0">'
