@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.0 · 2026-09-23</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.1 · 2026-09-24</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -4956,7 +4956,7 @@ function sendReservation() {
   var p = date.split('-');
   var note = document.getElementById('res-note') ? document.getElementById('res-note').value.trim() : '';
   var msg = '📅 *PRENOTAZIONE YIO FISH*\n\n👤 _Nome:_ *'+name+'*\n🗓️ _Data:_ *'+p[2]+'/'+p[1]+'/'+p[0]+'*\n⏰ _Orario:_ *'+time+'*\n👥 _Persone:_ *'+people+'*'+(note ? '\n📝 _Note:_ *'+note+'*' : '')+(phone ? '\n📞 _Telefono:_ *'+phone+'*' : '');
-  window.open('https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg),'_blank');
+  var waUrl = 'https://wa.me/'+CONFIG.WA_NUMBER+'?text='+encodeURIComponent(msg);
   closeModal('reservationModal');
   // 手机号可选：填了就静默注册/识别会员（积分系统）；格式不符（A档 9-13位）直接跳过，避免假号建档
   if (phone && SETTINGS.loyalty_enabled && /^\+?\d{9,13}$/.test(phone)) {
@@ -4975,7 +4975,9 @@ function sendReservation() {
       name: name, phone: phone, date: date, time: time,
       people: people, note: note
     })
-  }).catch(function(){});
+  }).catch(function(){}).finally(function(){
+    window.open(waUrl, '_blank');
+  });
 }
 
 // ════════════════════════════════════
@@ -5404,5 +5406,6 @@ function restoreSentItems(){
 }
 </script>
 
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
