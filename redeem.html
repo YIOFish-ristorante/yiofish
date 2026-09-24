@@ -1047,13 +1047,13 @@ function renderStaffResList(){
   var statusMap = {'pending':'⏳','confirmed':'✅','cancelled':'❌'};
   var rows = _resData.map(function(r){
     return '<div style="border-bottom:1px solid rgba(0,0,0,.06);padding:12px 0">'
-      +'<div style="font-size:15px;font-weight:600">' + esc(r.name) + '</div>'
+      +'<div style="font-size:15px;font-weight:600">' + _esc(r.name) + '</div>'
       +'<div style="font-size:12px;color:var(--muted);margin-top:4px">'
-        +'🕐 ' + esc(r.time) + ' · ' + r.people + ' persone'
-        +(r.phone ? ' · 📞 ' + esc(r.phone) : '')
+        +'🕐 ' + _esc(r.time) + ' · ' + r.people + ' persone'
+        +(r.phone ? ' · 📞 ' + _esc(r.phone) : '')
         +' · ' + (statusMap[r.status] || '⏳')
       +'</div>'
-      +(r.note ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">📝 ' + esc(r.note) + '</div>' : '')
+      +(r.note ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">📝 ' + _esc(r.note) + '</div>' : '')
     +'</div>';
   }).join('');
   listEl.innerHTML = rows;
@@ -1501,5 +1501,6 @@ async function doChangePassword() {
 }
 </script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>

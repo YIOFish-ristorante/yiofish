@@ -1843,7 +1843,8 @@ async function loadReservations(){
 
   try {
     var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN || '';
-    var url = WORKER_URL + '/reservations?date=' + encodeURIComponent(_resDate) + '&restaurant_id=' + encodeURIComponent(_resStore);
+    var dateIso = (_resDate || '').replace(/\//g, '-');
+    var url = WORKER_URL + '/reservations?date=' + encodeURIComponent(dateIso) + '&restaurant_id=' + encodeURIComponent(_resStore);
     var res = await fetch(url, { headers: {'Authorization': 'Bearer ' + token} });
     var data = await res.json();
     if (!res.ok) {
@@ -5822,3 +5823,4 @@ async function loadLotteryWins() {
 }
 
 </script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
