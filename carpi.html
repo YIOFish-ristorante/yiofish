@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.6 · 2026-09-24</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.7 · 2026-09-24</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -2257,6 +2257,24 @@ function closeCatOverlay() {
   if (ov) ov.classList.remove('show');
 }
 // 绑定按钮事件（在 DOM ready 之后）
+
+
+// v1.69.7: AI 跳转后自动高亮联系图标
+window.addEventListener('load', function(){
+  var hash = location.hash.replace('#', '');
+  if (hash && hash.startsWith('contact-')) {
+    setTimeout(function(){
+      var el = document.getElementById(hash);
+      if (el) {
+        el.scrollIntoView({behavior:'smooth', block:'center'});
+        el.style.transition = 'transform .4s, box-shadow .4s';
+        el.style.transform = 'scale(1.2)';
+        el.style.boxShadow = '0 0 0 3px var(--gold)';
+        setTimeout(function(){ el.style.transform = ''; el.style.boxShadow = ''; }, 1500);
+      }
+    }, 600);
+  }
+});
 document.addEventListener('DOMContentLoaded', function(){
   var btn = document.getElementById('cat-all-btn');
   if (btn) btn.onclick = openCatOverlay;
@@ -5434,5 +5452,6 @@ function restoreSentItems(){
 }
 </script>
 
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
