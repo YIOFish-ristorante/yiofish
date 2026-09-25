@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.8 · 2026-09-24</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.9 · 2026-09-24</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -2277,7 +2277,7 @@ window.addEventListener('load', function(){
     }
     // TAKE AWAY / PRENOTA 按钮高亮
     else if (hash === 'takeaway' || hash === 'prenota') {
-      var btns = document.querySelectorAll('.btn');
+      var btns = document.querySelectorAll('.big-btn');
       for (var i = 0; i < btns.length; i++) {
         var txt = btns[i].textContent.trim().toUpperCase();
         if ((hash === 'takeaway' && (txt.indexOf('TAKE AWAY') >= 0 || txt.indexOf('TAKEAWAY') >= 0)) ||
