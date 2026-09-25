@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<!-- YIO index · PORTALE v2 — solo selezione ristorante · slim one-screen + YIO AI · 2026-09-10 -->
+<!-- YIO index · PORTALE v2.1 — AI action/scroll support · 2026-09-24 -->
   <title>YIO Fish · Ristorante Giapponese</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
@@ -295,10 +295,31 @@
       var box = document.createElement('div');
       box.className = 'yai-actions';
       actions.forEach(function(a){
-        var link = document.createElement('a');
-        link.href = a.url; link.textContent = a.label;
-        if (a.url.indexOf('http') === 0 || a.url.indexOf('tel:') === 0) link.target = '_blank';
-        box.appendChild(link);
+        if (a.type === 'action'){
+          var btn = document.createElement('button');
+          btn.textContent = a.label;
+          btn.style.cssText = 'display:inline-block;padding:7px 12px;font-size:12px;letter-spacing:.05em;color:var(--gold-lt);border:1px solid var(--gold);border-radius:20px;text-decoration:none;cursor:pointer;background:transparent;';
+          btn.onclick = function(){
+            panel.classList.remove('open');
+            if (a.action === 'openTakeawayChoice') window.location.href = 'carpi.html';
+          };
+          box.appendChild(btn);
+        } else if (a.type === 'scroll'){
+          var btn2 = document.createElement('button');
+          btn2.textContent = a.label;
+          btn2.style.cssText = 'display:inline-block;padding:7px 12px;font-size:12px;letter-spacing:.05em;color:var(--gold-lt);border:1px solid var(--gold);border-radius:20px;text-decoration:none;cursor:pointer;background:transparent;';
+          btn2.onclick = function(){
+            panel.classList.remove('open');
+            var el = document.getElementById('contact-bar') || document.getElementById('footer');
+            if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+          };
+          box.appendChild(btn2);
+        } else {
+          var link = document.createElement('a');
+          link.href = a.url || '#'; link.textContent = a.label;
+          if (a.url && (a.url.indexOf('http') === 0 || a.url.indexOf('tel:') === 0)) link.target = '_blank';
+          box.appendChild(link);
+        }
       });
       msgs.appendChild(box);
     }
@@ -336,9 +357,10 @@
       var reply = d.reply || t('err');
       addMsg('bot', reply, d.actions);
       history.push({ role: 'bot', text: reply });
-    }).catch(function(){
+    }).catch(function(err){
       typing.style.display = 'none';
-      addMsg('bot', t('err'));
+      console.error('[YAI] fetch error:', err);
+      addMsg('bot', t('err') + (err && err.message ? ' (' + err.message + ')' : ''));
     });
   }
   sub.textContent = t('sub');
@@ -354,6 +376,5 @@
 
 
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
