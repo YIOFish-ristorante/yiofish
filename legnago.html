@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.9 · 2026-09-24</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.10 · 2026-09-24</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1990,7 +1990,7 @@ function startBoxMode(boxId) {
   // 组：优先 groups；旧单组 BOX 回退用 dish_count/categories
   var groups;
   if (Array.isArray(box.groups) && box.groups.length) {
-    groups = box.groups.map(function(g){ return { name: g.name||'', count: g.count||1, categories: (g.categories||[]).slice(), picked: [] }; });
+    groups = box.groups.map(function(g){ return { name: g.name||'', count: g.count||1, max_per_dish: g.max_per_dish !== undefined ? g.max_per_dish : 2, categories: (g.categories||[]).slice(), picked: [] }; });
   } else {
     groups = [{ name: 'Piatti', count: box.dish_count||1, categories: (box.categories||[]).slice(), picked: [] }];
   }
@@ -2058,6 +2058,13 @@ function boxPickItem(it) {
       toast('⚠️ Hai già scelto ' + g.count + ' per "' + g.name + '"');
     }
     return;
+  }
+  // v1.69.10: 检查每道菜最多可选次数
+  var maxPD = g.max_per_dish !== undefined ? g.max_per_dish : 2;
+  if (maxPD > 0) {
+    var sameCount = 0;
+    for (var pi = 0; pi < g.picked.length; pi++) { if (g.picked[pi].id === it.id) sameCount++; }
+    if (sameCount >= maxPD) { toast('\u26a0\ufe0f Hai gi\u00e0 scelto ' + maxPD + ' volte "' + it.name + '" in "' + g.name + '"'); return; }
   }
   g.picked.push({ id: it.id, name: it.name });
   updateItemUI(it.id);
