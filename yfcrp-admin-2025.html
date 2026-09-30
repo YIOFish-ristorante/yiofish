@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v5.56.5</title>
+<title>Yio Fish Admin v5.56.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -269,7 +269,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.5</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.6</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -325,7 +325,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.5</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.6</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -712,7 +712,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.5</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.6</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1531,7 +1531,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.5</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.6</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -5446,6 +5446,19 @@ async function loadLoyaltyList() {
   } catch(e) { listEl.innerHTML = '❌ ' + e.message; }
 }
 
+// v5.56.6: 各店累计加分明细（主力店加粗在前；只在一家店加过分时只显示店名）
+function lyStoreCell(c) {
+  var sp = c.store_points || {};
+  var keys = Object.keys(sp).filter(function(k){ return sp[k] > 0; })
+    .sort(function(a, b){ return (sp[b] - sp[a]) || a.localeCompare(b); });
+  if (!keys.length) return '<span style="color:var(--muted)">—</span>';
+  if (keys.length === 1) return '<b>' + _lyEsc(lyStoreName(keys[0])) + '</b>';
+  return '<b>' + _lyEsc(lyStoreName(keys[0])) + '</b>'
+    + '<div style="font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap">'
+    + keys.map(function(k){ return _lyEsc(lyStoreName(k)) + ' +' + sp[k]; }).join(' · ')
+    + '</div>';
+}
+
 // 主力店中文/显示名
 function lyStoreName(rid) {
   if (!rid) return '—';
@@ -5546,13 +5559,15 @@ function renderLoyaltyList() {
           + '<td style="padding:8px 4px;color:var(--muted)">' + _lyEsc(c.phone)
             + (lyPhoneValid(c.phone) ? '' : ' <span style="font-size:10px;background:rgba(192,57,43,.15);color:#c0392b;border:1px solid rgba(192,57,43,.35);border-radius:3px;padding:0 5px;vertical-align:1px">non valido</span>')
           + '</td>'
-          + '<td style="padding:8px 4px;font-size:12px">' + lyStoreName(c.main_store) + '</td>'
+          + '<td style="padding:8px 4px;font-size:12px" title="Punti accumulati per negozio">' + lyStoreCell(c) + '</td>'
           + '<td style="padding:8px 4px;text-align:right;font-weight:600;color:#d4af37">' + c.total_points + '</td>'
           + '<td style="padding:8px 4px;text-align:right;color:var(--muted);font-size:11px">' + new Date(c.created_at).toLocaleDateString('it-IT') + '</td>'
         + '</tr>';
       }).join('')
     + '</tbody></table></div>'
-    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">Mostrati: ' + arr.length + ' / ' + (_lyListTotal || _lyListData.length) + ' clienti · Clicca su una riga per i dettagli</div>';
+    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">Mostrati: ' + arr.length + ' / ' + (_lyListTotal || _lyListData.length) + ' clienti · Clicca su una riga per i dettagli'
+    + ' · <b>Negozio</b> = dove il cliente ha accumulato più punti (sotto: punti accumulati in ogni negozio)</div>'
+    + (_lyListData.some(function(c){ return c.stores_incomplete; }) ? '<div style="font-size:11px;color:#c0392b;margin-top:4px">⚠️ Troppi movimenti: per alcuni clienti il negozio potrebbe non essere completo. 流水太多，部分会员的店铺统计可能不完整。</div>' : '');
 
   var listEl2 = document.getElementById('ly-list');
   if (listEl2) listEl2.onclick = function(e) {
@@ -5585,9 +5600,10 @@ function exportLoyaltyList() {
     return dir*(va-vb);
   });
   function esc(v) { v = (v==null?'':String(v)); return '"' + v.replace(/"/g,'""') + '"'; }
-  var rows = [['Nome','Telefono','Negozio principale','Punti','Data registrazione']];
+  var rows = [['Nome','Telefono','Negozio principale','Punti','Data registrazione','Punti accumulati Carpi','Punti accumulati Legnago','Punti accumulati Imola']];
   arr.forEach(function(c) {
-    rows.push([ c.name||'', c.phone||'', lyStoreName(c.main_store), c.total_points||0, new Date(c.created_at).toLocaleDateString('it-IT') ]);
+    var sp = c.store_points || {};   // v5.56.6: 各店累计加分
+    rows.push([ c.name||'', c.phone||'', lyStoreName(c.main_store), c.total_points||0, new Date(c.created_at).toLocaleDateString('it-IT'), sp.carpi||0, sp.legnago||0, sp.imola||0 ]);
   });
   var csv = '\ufeff' + rows.map(function(r){ return r.map(esc).join(','); }).join('\r\n');
   var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
