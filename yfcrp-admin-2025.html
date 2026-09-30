@@ -676,6 +676,18 @@ function applyStoreAdminUI() {
   CURRENT_ROLE = 'store_admin';
 }
 
+// v5.56.6: 清除公开缓存（admin 修改数据后调用）
+async function purgeCache(urls) {
+  try {
+    var token = sessionStorage.getItem('yf_admin_token') || (typeof ADMIN_TOKEN !== 'undefined' ? ADMIN_TOKEN : '');
+    await fetch(API_BASE + '/admin/cache-purge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ urls: urls })
+    });
+  } catch (e) {}
+}
+
 function sbFetch(path, opts) {
   opts = opts || {};
   var token = '';
@@ -3823,6 +3835,7 @@ async function saveSiteSettings() {
     if (!res.ok) { var t = await res.text(); throw new Error(t || ('HTTP ' + res.status)); }
     markSaved();
     toast('✅ 首页活动设置已保存');
+    purgeCache([API_BASE + '/public/rest/v1/site_settings?id=eq.homepage']);
   } catch(e) {
     markSaved();
     toast('❌ 保存失败: ' + e.message);
@@ -4323,7 +4336,7 @@ async function saveBox() {
       body: JSON.stringify(payload), cache: 'no-store'
     });
     var data = await res.json();
-    if (res.ok) { toast('✅ BOX salvato'); closeBoxEditor(); await loadBoxes(); }
+    if (res.ok) { toast('✅ BOX salvato'); closeBoxEditor(); await loadBoxes(); purgeCache([API_BASE + '/asporto/boxes']); }
     else { toast('❌ ' + (data.error || 'Errore')); }
   } catch(e) { toast('❌ ' + e.message); }
 }
@@ -5825,4 +5838,3 @@ async function loadLotteryWins() {
 }
 
 </script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
