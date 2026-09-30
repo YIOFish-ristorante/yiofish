@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.10 · 2026-09-24</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.11 · 2026-09-30</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1390,6 +1390,19 @@ async function sbFetchJSON(path, retries, timeoutMs) {
   }
 }
 
+// v1.69.11: 自动翻页读取（每页 1000 条，读到不满一页为止；旧版固定只读 3 页=最多 3000 条，超出的菜单关联会丢）
+async function sbFetchAllPages(pathNoPaging, maxPages) {
+  maxPages = maxPages || 20;
+  var all = [];
+  for (var p = 0; p < maxPages; p++) {
+    var rows = await sbFetchJSON(pathNoPaging + '&limit=1000&offset=' + (p * 1000));
+    if (!Array.isArray(rows)) break;
+    all = all.concat(rows);
+    if (rows.length < 1000) break;
+  }
+  return all;
+}
+
 // ════════════════════════════════════
 // 全局数据
 // ════════════════════════════════════
@@ -1666,12 +1679,9 @@ async function loadAll() {
       };
     });
 
-    // dish_menus超过1000条，分3次加载 + 同时加载本店标签（带重试）
-    var dm1 = await sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=0');
-    var dm2 = await sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=1000');
-    var dm3 = await sbFetchJSON('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=2000');
+    // dish_menus 超过 1000 条：自动翻页读完（v1.69.11，不再限 3 页）+ 同时加载本店标签（带重试）
+    var dishMenus = await sbFetchAllPages('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id');
     var tagsData = await sbFetchJSON('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order');
-    var dishMenus = (dm1||[]).concat(dm2||[]).concat(dm3||[]);
     DISH_MENUS = dishMenus;
 
     if (Array.isArray(tagsData) && tagsData.length > 0) {
@@ -1778,13 +1788,12 @@ async function reloadMenuData() {
         menuLimit: mc.menu_limit || 0
       };
     });
-    var [dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=0'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=1000'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=2000'),
+    // v1.69.11: 自动翻页读完 dish_menus_v2（不再限 3 页）
+    var [dmAll, tagsRes] = await Promise.all([
+      sbFetchAllPages('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id'),
       sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
-    DISH_MENUS = (await dm1Res.json()).concat(await dm2Res.json()).concat(await dm3Res.json());
+    DISH_MENUS = dmAll;
     // 重载标签
     var tagsData = await tagsRes.json();
     if (Array.isArray(tagsData) && tagsData.length > 0) {
@@ -4921,20 +4930,21 @@ function lyBackToRewards() {
 }
 
 async function lyCheckExpiry(customerId) {
-  // 查30天内要过期的正积分流水
-  var soon = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
-  var now = new Date().toISOString();
+  // v1.69.11: 改用 Worker /loyalty/expiring（先进先出算好：已花掉的积分不算）
+  // 旧版直接读 loyalty_transactions，但该表不对顾客开放 → 请求被拒，提示从未显示
+  var hint0 = document.getElementById('ly-expiry-hint');
+  if (hint0) { hint0.textContent = ''; hint0.style.display = 'none'; }
+  if (!_lyPhone) return;
   try {
-    var res = await fetch(WORKER_URL + '/public/rest/v1/loyalty_transactions?customer_id=eq.' + customerId
-      + '&points=gt.0&expires_at=gt.' + encodeURIComponent(now)
-      + '&expires_at=lt.' + encodeURIComponent(soon)
-      + '&select=points,expires_at', {cache:'no-store'});
+    var res = await fetch(WORKER_URL + '/loyalty/expiring', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone: _lyPhone, days: 30}), cache: 'no-store'
+    });
     if (!res.ok) return;
-    var txs = await res.json();
-    if (!txs.length) return;
-    var total = txs.reduce(function(s,t){ return s + t.points; }, 0);
-    var earliest = txs.reduce(function(a,b){ return a.expires_at < b.expires_at ? a : b; });
-    var expDate = new Date(earliest.expires_at);
+    var data = await res.json();
+    if (!data || !(data.points > 0) || !data.earliest) return;
+    var total = data.points;
+    var expDate = new Date(data.earliest);
     var expStr = expDate.getDate()+'/'+(expDate.getMonth()+1)+'/'+expDate.getFullYear();
     var hint = document.getElementById('ly-expiry-hint');
     if (hint) {
@@ -5477,6 +5487,5 @@ function restoreSentItems(){
 }
 </script>
 
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
