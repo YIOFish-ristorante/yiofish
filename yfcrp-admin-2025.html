@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v5.56.4</title>
+<title>Yio Fish Admin v5.56.5</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -269,7 +269,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.4</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.5</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -325,7 +325,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.4</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.5</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -645,6 +645,48 @@ var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var RESTAURANT_ID = 'carpi'; // 默认，会被showStoreSelect覆盖
 var CURRENT_ROLE = 'super'; // 'super' 或 'store_admin'
 var ADMIN_TOKEN = '';        // 登录后从 Worker 拿到
+
+// ── v5.56.5: 登录过期检测 ──
+// 登录令牌 7 天有效。后台一直开着（如店里平板）超过 7 天后，旧版所有保存都会失败、只提示"保存失败"。
+// 现在：每个带令牌发往 Worker 的请求，发出前先看令牌是否过期；过期就提示并回到登录页，不再发出请求。
+function _adminTokenExpired() {
+  var t = '';
+  try { t = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN || ''; } catch (e) { t = ADMIN_TOKEN || ''; }
+  if (!t) return false;
+  try {
+    var p = JSON.parse(atob(String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return !!(p && p.exp && (Date.now() / 1000) > (p.exp - 60));   // 提前 1 分钟算过期
+  } catch (e) { return false; }
+}
+var _expiredShown = false;
+function _handleExpiredLogin() {
+  try { sessionStorage.removeItem('yf_admin_token'); } catch (e) {}
+  ADMIN_TOKEN = '';
+  if (_expiredShown) return;
+  _expiredShown = true;
+  setTimeout(function () {
+    alert('⚠️ 登录已过期，请重新登录。\n刚才的操作没有保存，重新登录后请再做一次。');
+    if (typeof doLogout === 'function') doLogout();
+    _expiredShown = false;
+  }, 0);
+}
+(function () {
+  if (!window.fetch) return;
+  var _origFetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    try {
+      var url = (typeof input === 'string') ? input : ((input && input.url) || '');
+      var h = (init && init.headers) || {};
+      var auth = (typeof h.get === 'function') ? h.get('Authorization') : (h['Authorization'] || h['authorization']);
+      if (auth && typeof WORKER_URL === 'string' && url.indexOf(WORKER_URL) === 0 && _adminTokenExpired()) {
+        _handleExpiredLogin();
+        return Promise.resolve(new Response(JSON.stringify({ error: '登录已过期，请重新登录' }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }));
+      }
+    } catch (e) {}
+    return _origFetch(input, init);
+  };
+})();
 // SB_URL兼容字段
 var SB_URL = WORKER_URL;
 
@@ -670,10 +712,26 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.4</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.5</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
+}
+
+// v5.56.5: 分页读取整张表——每页 1000 行（Supabase 单次上限），一直读到不满一页为止。
+// 旧版菜单价格固定读 3 页（最多 3000 行），三家店已到 2000-2500 行，超出后多出的菜会被悄悄丢掉。
+async function sbFetchAll(pathWithQuery) {
+  var PAGE = 1000, all = [], off = 0;
+  for (var guard = 0; guard < 200; guard++) {
+    var res = await sbFetch(pathWithQuery + '&limit=' + PAGE + '&offset=' + off);
+    if (!res.ok) throw new Error('读取失败 HTTP ' + res.status);
+    var rows = await res.json();
+    if (!Array.isArray(rows)) throw new Error('读取失败：返回格式不对');
+    all = all.concat(rows);
+    if (rows.length < PAGE) break;
+    off += PAGE;
+  }
+  return all;
 }
 
 function sbFetch(path, opts) {
@@ -836,6 +894,11 @@ async function handleGoogleLogin(response) {
 (function() {
   try {
     var savedSession = sessionStorage.getItem(_lockSession);
+    // v5.56.5: 令牌已过期就不自动进后台（否则能看不能存）
+    if (savedSession && _adminTokenExpired()) {
+      try { sessionStorage.removeItem(_lockSession); sessionStorage.removeItem('yf_admin_token'); } catch (e) {}
+      savedSession = null;
+    }
     if (savedSession) {
       document.getElementById('lock-screen').style.display = 'none';
       if (savedSession.indexOf('store_admin:') === 0) {
@@ -854,18 +917,12 @@ async function handleGoogleLogin(response) {
 
 async function reloadDishes() {
   try {
-    var [dRes, dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
-      sbFetch('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=0'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=1000'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=2000'),
+    // v5.56.5: 菜品和菜单价格都分页读到底（不再固定 3 页 / 2000 行）
+    var [dishes, dishMenus, tagsRes] = await Promise.all([
+      sbFetchAll('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no,id'),
+      sbFetchAll('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id'),
       sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
-    var dishes = await dRes.json();
-    var dm1 = await dm1Res.json();
-    var dm2 = await dm2Res.json();
-    var dm3 = await dm3Res.json();
-    var dishMenus = dm1.concat(dm2).concat(dm3);
     // 重载标签
     var tagsData = await tagsRes.json();
     if (Array.isArray(tagsData) && tagsData.length > 0) {
@@ -910,18 +967,18 @@ async function reloadDishes() {
 async function loadAll() {
   try {
     showLoading(true);
-    var [rRes, sRes, cRes, dRes] = await Promise.all([
+    var [rRes, sRes, cRes, dishesAll] = await Promise.all([
       sbFetch('restaurants?id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=*'),
       sbFetch('categories?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order'),
-      sbFetch('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000')
+      sbFetchAll('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no,id')   // v5.56.5: 分页读到底
     ]);
     var rData = await rRes.json();
     if (rData[0]) R = rData[0];
     var sData = await sRes.json();
     if (sData[0]) _SETTINGS = sData[0];
     C = await cRes.json();
-    var dishes = await dRes.json();
+    var dishes = dishesAll;
     // 加载菜单配置 + 分类限量
     var [mcRes, mclRes, tcRes] = await Promise.all([
       sbFetch('menu_configs?restaurant_id=eq.'+RESTAURANT_ID+'&select=*'),
@@ -950,17 +1007,11 @@ async function loadAll() {
         m.menuLimit = _MENU_CONFIGS[m.id].menuLimit;
       }
     });
-    // dish_menus超过1000条，分3次加载
-    var [dm1Res, dm2Res, dm3Res, tagsRes] = await Promise.all([
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=0'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=1000'),
-      sbFetch('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id&limit=1000&offset=2000'),
+    // v5.56.5: dish_menus 分页读到底（旧版固定 3 页，超过 3000 行就丢数据）
+    var [dishMenus, tagsRes] = await Promise.all([
+      sbFetchAll('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id'),
       sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
     ]);
-    var dm1 = await dm1Res.json();
-    var dm2 = await dm2Res.json();
-    var dm3 = await dm3Res.json();
-    var dishMenus = dm1.concat(dm2).concat(dm3);
     
     // 加载标签（按 RESTAURANT_ID 独立）
     var tagsData = await tagsRes.json();
@@ -1243,40 +1294,113 @@ function applySettingsSections() {
 // ════════════════════════════════════════════════════════════
 // 完整数据备份（super_admin 用）
 // ════════════════════════════════════════════════════════════
+// v5.56.5: 逐表逐页拉取备份。旧版一次性让 Worker 取完所有表：Worker 单次请求数有上限，
+// 数据一多就会漏表，而且漏了也不提示。现在每页单独请求（失败自动重试 3 次），最后明确告诉你是否完整。
+function _saveBackupFile(obj, complete) {
+  var blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var now = new Date().toISOString();
+  a.href = url;
+  a.download = 'yiofish-backup-' + now.slice(0,10).replace(/-/g,'') + '-' + now.slice(11,16).replace(':','')
+             + (complete ? '' : '-INCOMPLETO') + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  return blob.size;
+}
+
 async function downloadBackup() {
-  if (!confirm('确认下载完整数据备份？\n\n这会拉取所有表的全部数据（可能需要 10-30 秒）。\n备份文件含管理员密码 hash，请妥善保管。')) return;
-  
+  if (!confirm('确认下载完整数据备份？\n\n会逐表逐页读取所有数据（可能需要 1-2 分钟，期间请不要关闭页面）。\n备份文件含管理员密码 hash，请妥善保管。')) return;
+
   var token = sessionStorage.getItem('yf_admin_token') || ADMIN_TOKEN;
   if (!token) { toast('❌ 未登录'); return; }
 
-  toast('⏳ 正在生成备份，请稍候...');
-  try {
-    var res = await fetch(WORKER_URL + '/admin/backup', {
+  async function call(body) {
+    var r = await fetch(WORKER_URL + '/admin/backup', {
       method: 'POST',
-      headers: {'Authorization': 'Bearer ' + token},
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
       cache: 'no-store'
     });
-    if (!res.ok) {
-      var errText = '';
-      try { var er = await res.json(); errText = er.error || ''; } catch(e) {}
-      throw new Error('HTTP ' + res.status + (errText ? ': ' + errText : ''));
+    var t = await r.text();
+    var j = null;
+    try { j = JSON.parse(t); } catch (e) {}
+    if (!r.ok) throw new Error('HTTP ' + r.status + (j && j.error ? ': ' + j.error : ''));
+    return j;
+  }
+
+  try {
+    toast('⏳ 正在读取表清单…', 60000);
+    var list = await call({ mode: 'list' });
+
+    // 兼容旧版 Worker（v5.40.9 之前不认 mode，会直接返回整份备份）
+    if (!list || !Array.isArray(list.tables)) {
+      if (list && list.tables && typeof list.tables === 'object') {
+        var sz0 = _saveBackupFile(list, false);
+        alert('⚠️ 备份已下载（' + Math.round(sz0/1024) + ' KB），但 Worker 还是旧版本，备份可能不完整。\n请先部署 Worker v5.40.9，再下载一次。');
+        return;
+      }
+      throw new Error('Worker 返回的格式不对');
     }
-    
-    // 直接用响应作为 blob 触发下载
-    var blob = await res.blob();
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'yiofish-backup-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + 
-                 new Date().toISOString().slice(11,16).replace(':','') + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-    
-    toast('✅ 备份已下载（' + Math.round(blob.size/1024) + ' KB）');
-  } catch(e) {
-    toast('❌ 备份失败: ' + e.message);
+
+    var tables = list.tables;
+    var backup = {
+      version: '2.1',
+      backup_date: new Date().toISOString(),
+      backup_by: (function(){ try { return sessionStorage.getItem(_lockSession) || ''; } catch (e) { return ''; } })(),
+      source: 'admin-paged',
+      complete: true,
+      error_tables: [],
+      stats: {},
+      tables: {}
+    };
+
+    for (var ti = 0; ti < tables.length; ti++) {
+      var tb = tables[ti];
+      var rows = [], off = 0, ordered = true, pages = 0, notFound = false, err = null;
+      while (off !== null) {
+        toast('⏳ 备份中 ' + (ti + 1) + '/' + tables.length + '：' + tb + (pages ? '（第 ' + (pages + 1) + ' 页）' : ''), 60000);
+        var p = null;
+        for (var attempt = 0; attempt < 3; attempt++) {          // 每页失败自动重试，最多 3 次
+          try {
+            p = await call({ mode: 'page', table: tb, offset: off, ordered: ordered });
+            if (p && p.ok) break;
+          } catch (e) { p = { ok: false, error: e.message }; }
+          await new Promise(function(res){ setTimeout(res, 800 * (attempt + 1)); });
+        }
+        if (!p || !p.ok) { err = (p && p.error) || '未知错误'; break; }
+        if (p.not_found) { notFound = true; break; }
+        rows = rows.concat(p.rows || []);
+        ordered = p.ordered;
+        off = p.next_offset;
+        pages++;
+        if (pages > 500) { err = '页数异常'; break; }
+      }
+      if (notFound) { backup.stats[tb] = 'not_found'; continue; }
+      if (err) {
+        backup.complete = false;
+        backup.error_tables.push(tb);
+        backup.stats[tb] = 'error: ' + err + (rows.length ? '（只取到 ' + rows.length + ' 行）' : '');
+        backup.tables[tb] = rows.length ? rows : null;
+        continue;
+      }
+      backup.tables[tb] = rows;
+      backup.stats[tb] = { rows: rows.length, pages: pages, ordered: ordered };
+    }
+
+    var size = _saveBackupFile(backup, backup.complete);
+    if (backup.complete) {
+      var total = 0;
+      for (var k in backup.stats) if (backup.stats[k] && backup.stats[k].rows) total += backup.stats[k].rows;
+      toast('✅ 备份完整，已下载（' + Object.keys(backup.tables).length + ' 张表 · ' + total + ' 行 · ' + Math.round(size/1024) + ' KB）', 6000);
+    } else {
+      alert('⚠️ 备份不完整！\n\n这些表没取全：' + backup.error_tables.join('、')
+        + '\n\n文件已下载（文件名带 INCOMPLETO），但请稍后再下载一次。');
+    }
+  } catch (e) {
+    toast('❌ 备份失败: ' + e.message, 6000);
   }
 }
 
@@ -1407,7 +1531,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.4</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.5</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -1512,6 +1636,51 @@ async function saveRestaurantToDB(data) {
   if (!res.ok) throw new Error('保存餐厅信息失败');
 }
 
+// v5.56.5: 一道菜在某店的菜单价格行（saveDishToDB / Excel 导入更新 共用）
+function buildDishMenuRows(dishId, dish, store) {
+  return MENUS.map(function(m) {
+    var ms = dish.menus[m.id] || {};
+    return {
+      dish_id: dishId,
+      restaurant_id: store,
+      menu_id: m.id,
+      enabled: !!ms.on,
+      price: parseFloat(ms.price) || 0,
+      max_qty: parseInt(ms.max_qty) || 0,
+      sconto: parseInt(ms.sconto) || 0,
+      sconto_consegna: parseInt(ms.sconto_consegna) || 0
+    };
+  });
+}
+
+// v5.56.5: 安全替换菜单价格。旧版"先删旧价格、再写新价格"，第二步失败时这道菜会从顾客菜单上消失。
+// 现在：① 先把旧价格读下来 ② 删除 ③ 写入新价格 ④ 写入失败 → 把旧价格写回去，并如实报错
+async function replaceDishMenus(dishId, store, newRows) {
+  var base = 'dish_menus_v2?dish_id=eq.' + dishId + '&restaurant_id=eq.' + store;
+  var oldRes = await sbFetch(base + '&select=*');
+  if (!oldRes.ok) throw new Error('读取原菜单价格失败（HTTP ' + oldRes.status + '），没有做任何修改');
+  var oldRows = await oldRes.json();
+  if (!Array.isArray(oldRows)) throw new Error('读取原菜单价格失败，没有做任何修改');
+  var del = await sbFetch(base, { method: 'DELETE' });
+  if (!del.ok) throw new Error('删除旧菜单价格失败（HTTP ' + del.status + '），没有做任何修改');
+  var ins = await sbFetch('dish_menus_v2', { method: 'POST', body: JSON.stringify(newRows) });
+  if (ins.ok) return;
+  var why = '';
+  try { why = (await ins.text()).slice(0, 150); } catch (e) {}
+  if (!oldRows.length) throw new Error('保存菜单价格失败' + (why ? '：' + why : ''));
+  // 写回旧价格（去掉 id，由数据库重新编号，避免主键冲突）；失败再试一次
+  var restore = oldRows.map(function(r){ var o = Object.assign({}, r); delete o.id; return o; });
+  var ok = false;
+  for (var i = 0; i < 2 && !ok; i++) {
+    try {
+      var rs = await sbFetch('dish_menus_v2', { method: 'POST', body: JSON.stringify(restore) });
+      ok = rs.ok;
+    } catch (e) {}
+  }
+  if (!ok) throw new Error('保存菜单价格失败，恢复原价格也失败了！这道菜现在可能不在顾客菜单上，请马上重新保存一次');
+  throw new Error('保存菜单价格失败，已恢复原来的价格' + (why ? '（' + why + '）' : ''));
+}
+
 async function saveDishToDB(dish) {
   // v2 表结构：id 是数据库自增，dish_no 是菜品号（用户输入）
   // v5.12.1: tags 和 sold_out 写 dishes_v2（不再写 dish_menus_v2）
@@ -1544,28 +1713,8 @@ async function saveDishToDB(dish) {
     });
     if (!res.ok) throw new Error('更新菜品失败');
   }
-  // 先删除当前店铺的旧 dish_menus 记录
-  await sbFetch('dish_menus_v2?dish_id=eq.' + dish.id + '&restaurant_id=eq.' + RESTAURANT_ID, {
-    method: 'DELETE'
-  });
-  // 当前店铺插入新菜单价格（v5.12.1: 不再写 tags 和 sold_out）
-  var menuRows = MENUS.map(function(m) {
-    var ms = dish.menus[m.id] || {};
-    return {
-      dish_id: dish.id,
-      restaurant_id: RESTAURANT_ID,
-      menu_id: m.id,
-      enabled: !!ms.on,
-      price: parseFloat(ms.price) || 0,
-      max_qty: parseInt(ms.max_qty) || 0,
-      sconto: parseInt(ms.sconto) || 0,
-      sconto_consegna: parseInt(ms.sconto_consegna) || 0
-    };
-  });
-  var res2 = await sbFetch('dish_menus_v2', {
-    method: 'POST', body: JSON.stringify(menuRows)
-  });
-  if (!res2.ok) throw new Error('保存菜单价格失败');
+  // 当前店铺替换菜单价格（v5.12.1: 不再写 tags 和 sold_out；v5.56.5: 失败自动恢复旧价格）
+  await replaceDishMenus(dish.id, RESTAURANT_ID, buildDishMenuRows(dish.id, dish, RESTAURANT_ID));
   // 方案X-限定：carpi/legnago 新菜给另一家也建骨架（互通）
   if (dish._isNew && (RESTAURANT_ID === 'carpi' || RESTAURANT_ID === 'legnago')) {
     var twinStore = (RESTAURANT_ID === 'carpi') ? 'legnago' : 'carpi';
@@ -2377,6 +2526,12 @@ async function saveCat(){
   } catch(e) { toast('❌ 失败: '+e.message); }
 }
 async function delCat(idx){
+  // v5.56.5: 分类里还有菜时不允许删（否则这些菜会从顾客菜单上消失，BOX 套餐里的这个分类也会失效）
+  var _inCat = I.filter(function(it){ return String(it.category) === String(C[idx].id); }).length;
+  if (_inCat > 0) {
+    alert('分类「' + C[idx].name + '」下还有 ' + _inCat + ' 道菜，不能删除。\n\n请先把这些菜移到其他分类（或删除这些菜），再删这个分类。');
+    return;
+  }
   if(!confirm('删除分类「'+C[idx].name+'」？')) return;
   try {
     markDirty();
@@ -2888,9 +3043,8 @@ async function importUpdateDish(dish, store) {
   });
   if (!ur.ok) throw new Error('更新失败');
 
-  // 删旧 dish_menus_v2 当前店记录，重新插
-  await sbFetch('dish_menus_v2?dish_id=eq.' + dishId + '&restaurant_id=eq.' + store, { method: 'DELETE' });
-  await importWriteMenus(dishId, dish, store);
+  // 替换 dish_menus_v2 当前店记录（v5.56.5: 失败自动恢复旧价格）
+  await replaceDishMenus(dishId, store, buildDishMenuRows(dishId, dish, store));
 }
 
 // 下架：把当前店该菜的所有 dish_menus_v2 enabled 设为 false（不删，数据保留）
@@ -5138,9 +5292,9 @@ function openRewardForm(r) {
     + '<div style="background:var(--surface);border-radius:var(--r);padding:24px;width:100%;max-width:400px">'
       + '<div style="font-size:15px;font-weight:600;margin-bottom:16px">' + (r.id ? '✏️ Modifica premio' : '➕ Nuovo premio') + '</div>'
       + '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">Nome</div>'
-      + '<input id="rf-name" type="text" value="' + (r.name||'') + '" placeholder="Es. Voucher €5" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:10px">'
+      + '<input id="rf-name" type="text" value="' + _lyEsc(r.name||'') + '" placeholder="Es. Voucher €5" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:10px">'
       + '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">Descrizione (opzionale)</div>'
-      + '<input id="rf-desc" type="text" value="' + (r.description||'') + '" placeholder="Es. Sconto di €5 sul conto" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:10px">'
+      + '<input id="rf-desc" type="text" value="' + _lyEsc(r.description||'') + '" placeholder="Es. Sconto di €5 sul conto" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;margin-bottom:10px">'
       + '<div style="display:flex;gap:10px;margin-bottom:10px">'
         + '<div style="flex:1"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Punti richiesti</div>'
           + '<input id="rf-pts" type="number" min="1" value="' + _lyEsc(r.points_cost||'') + '" placeholder="Es. 80" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px"></div>'
@@ -5824,5 +5978,6 @@ async function loadLotteryWins() {
     }).join('') + '</table>';
 }
 
-</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
+</script>
+</body>
+</html>
