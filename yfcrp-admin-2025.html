@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v5.56.7</title>
+<title>Yio Fish Admin v5.56.8</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -269,7 +269,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.7</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.8</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -325,7 +325,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.7</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.8</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -712,7 +712,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.7</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.8</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1531,7 +1531,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.7</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.8</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2746,6 +2746,10 @@ function importProcessRows(rows) {
     }
 
     // 菜单配置（每个菜单独立 enabled / max_qty）
+    // v5.56.8: Sconto_Asporto / Sconto_Consegna 只写入 Asporto 菜单（和导出一致）；
+    //   其他菜单（Pranzo/Cena/…）保留数据库里原有的折扣。旧版把这两列写进了所有菜单 → 堂食菜单也打折了
+    var _imPrev = null;
+    (I||[]).forEach(function(d){ if (d.dish_no === dishNo) _imPrev = d; });
     var menus = {};
     Object.keys(IM_MENU_COLS).forEach(function(mcol){
       var mid = IM_MENU_COLS[mcol];
@@ -2757,8 +2761,12 @@ function importProcessRows(rows) {
         on: isOn,
         price: parseFloat(row[col['Prezzo']]) || 0,
         max_qty: parseInt(maxVal) || 0,
-        sconto: parseInt(row[col['Sconto_Asporto']]) || 0,
-        sconto_consegna: parseInt(row[col['Sconto_Consegna']]) || 0
+        sconto: (mid === 'asporto')
+          ? (parseInt(row[col['Sconto_Asporto']]) || 0)
+          : (parseInt(_imPrev && _imPrev.menus && _imPrev.menus[mid] && _imPrev.menus[mid].sconto) || 0),
+        sconto_consegna: (mid === 'asporto')
+          ? (parseInt(row[col['Sconto_Consegna']]) || 0)
+          : (parseInt(_imPrev && _imPrev.menus && _imPrev.menus[mid] && _imPrev.menus[mid].sconto_consegna) || 0)
       };
     });
 
