@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.11 · 2026-09-30</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.12 · 2026-10-02</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -2146,7 +2146,26 @@ function boxesSubtotal() {
 // ════════════════════════════════════
 // 菜单视图
 // ════════════════════════════════════
+// v1.69.12: 主页和菜单页共用同一个滚动位置（本页是 body 在滚，旧版 window.scrollTo 不起作用）
+//   → 进菜单时记住主页位置并把菜单滚到顶；回主页时恢复原来的位置
+var _homeScrollY = 0;
+function _pageScrollY() {
+  return document.body.scrollTop || (document.documentElement && document.documentElement.scrollTop) || window.pageYOffset || 0;
+}
+function _pageScrollTo(y) {
+  try { document.body.scrollTop = y; } catch(e) {}
+  try { if (document.documentElement) document.documentElement.scrollTop = y; } catch(e) {}
+  try { window.scrollTo(0, y); } catch(e) {}
+}
+function _restoreHomeScroll() {
+  var y = _homeScrollY || 0;
+  _pageScrollTo(y);
+  // 等主页重新排版后再补一次（图片/布局变化时更稳）
+  try { requestAnimationFrame(function(){ _pageScrollTo(y); }); } catch(e) {}
+}
+
 function openMenuView(menuId) {
+  if (!currentMenuId) _homeScrollY = _pageScrollY();   // v1.69.12: 记住主页位置（菜单间切换不覆盖）
   currentMenuId = menuId;
   isAsporto = menuId === 'asporto';
   // 外卖菜单：填充时间选项
@@ -2199,7 +2218,7 @@ function openMenuView(menuId) {
   document.getElementById('home-view').style.display = 'none';
   document.getElementById('menu-view').style.display = 'block';
   initViewMode(); // v1.68.0
-  window.scrollTo(0, 0);
+  _pageScrollTo(0);   // v1.69.12: 菜单从顶部开始
 }
 
 function closeMenuView() {
@@ -2208,6 +2227,7 @@ function closeMenuView() {
   document.getElementById('menu-view').style.display = 'none';
   document.getElementById('home-view').style.display = 'flex';
   closeCart();
+  _restoreHomeScroll();   // v1.69.12: 回到进菜单前的主页位置
   // 清除hash
   if (window.location.hash) {
     try { history.replaceState(null, '', window.location.pathname); } catch(e) {}
@@ -4559,6 +4579,7 @@ window.addEventListener('popstate', function(e) {
     document.getElementById('menu-view').style.display = 'none';
     document.getElementById('home-view').style.display = 'flex';
     closeCart();
+    _restoreHomeScroll();   // v1.69.12: 手机返回键回主页时同样恢复位置
     return;
   }
   document.querySelectorAll('.overlay.open, .admin-overlay.open').forEach(function(el){ el.classList.remove('open'); });
