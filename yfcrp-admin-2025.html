@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v5.56.8</title>
+<title>Yio Fish Admin v5.56.9</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -269,7 +269,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.8</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.9</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -325,7 +325,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.8</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.9</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -712,7 +712,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.8</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.9</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1531,7 +1531,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.8</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.9</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3920,71 +3920,156 @@ function renderSettings(){
   }
 }
 
-// ── v5.38.1: 首页活动（全店通用·site_settings 表，仅超管可见/可改）──
+// ── v5.38.1: 首页活动（site_settings 表，仅超管可见/可改）──
+// v5.56.9: 改为"分店单独设置"——每家店一行（id = carpi / legnago / imola），分店页面本来就按 id 读取；
+//          yio.it 总首页不再显示弹窗和活动区块，只保留"转盘入口"开关（id = homepage）
+var SS_STORES = [ {id:'carpi', name:'Carpi'}, {id:'legnago', name:'Legnago'}, {id:'imola', name:'Imola'} ];
+var _ssStore = 'carpi';
 function siteSettingsCardHTML() {
   if (CURRENT_ROLE !== 'super') return '';
   var inputStyle = 'width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--text2);outline:none;font-family:inherit;box-sizing:border-box;';
   var taStyle = inputStyle + 'resize:vertical;height:90px;';
+  var pill = 'padding:6px 14px;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:inherit;';
   return '<div class="card" id="section-site-settings" style="padding:20px 22px;margin-bottom:16px">'
-    +'<div class="s-label" style="padding:0 0 12px">🏠 首页活动（全店通用）</div>'
-    +'<div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6;">控制 yio.it 首页的活动区块和弹窗海报。没活动时把开关关掉，首页对应内容立刻隐藏；文字留空 = 保持页面默认文案。海报图片仍然替换服务器上 foto/eventi/ 里的图片文件。</div>'
-    +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:6px 0 8px;letter-spacing:1px;">🖼️ 弹窗海报</div>'
-    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="ss-promo-enabled" style="width:16px;height:16px;accent-color:var(--gold);"> 显示弹窗（进首页约 2.5 秒后弹出）</label>'
-    +'<input id="ss-promo-eyebrow" placeholder="弹窗小标题，如：YIO Fish Estate 2026" style="'+inputStyle+'margin-bottom:8px;">'
-    +'<input id="ss-promo-title" placeholder="弹窗大标题，如：YIO Lucky Box · Vinci Sempre!" style="'+inputStyle+'margin-bottom:8px;">'
-    +'<textarea id="ss-promo-detail" placeholder="弹窗详情文字（点开海报后显示，支持换行）" style="'+taStyle+'"></textarea>'
-    +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:16px 0 8px;letter-spacing:1px;">🎉 活动区块（Eventi speciali）</div>'
+    +'<div class="s-label" style="padding:0 0 12px">🏪 分店活动 / Eventi per negozio（每家店单独设置）</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6;">先选店，再设置这家店分店页面上的弹窗海报和活动区块；每家店互不影响。没活动时把开关关掉，该店页面对应内容立刻隐藏。<br>图片：弹窗海报用 <b>foto/店名/eventi/eventi1.webp</b>，活动区块轮播用同一文件夹里的 eventi1、eventi2…（在 GitHub 上替换这些图片文件）。</div>'
+    +'<div id="ss-store-pills" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
+      + SS_STORES.map(function(st){ return '<button type="button" data-ss="'+st.id+'" onclick="ssPickStore(\''+st.id+'\')" style="'+pill+'">'+st.name+'</button>'; }).join('')
+    +'</div>'
+    +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:6px 0 8px;letter-spacing:1px;">🖼️ 弹窗海报 <span id="ss-store-name1" style="color:var(--muted);font-weight:400"></span></div>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="ss-promo-enabled" style="width:16px;height:16px;accent-color:var(--gold);"> 显示弹窗（进分店页面约 2.5 秒后弹出，同一位顾客每天只弹一次）</label>'
+    +'<input id="ss-promo-eyebrow" placeholder="弹窗小标题，如：YIO Fish Carpi · Ottobre 2026" style="'+inputStyle+'margin-bottom:8px;">'
+    +'<input id="ss-promo-title" placeholder="弹窗大标题，如：Menu nuovo!" style="'+inputStyle+'margin-bottom:8px;">'
+    +'<textarea id="ss-promo-detail" placeholder="弹窗详情文字（支持换行）" style="'+taStyle+'"></textarea>'
+    +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:16px 0 8px;letter-spacing:1px;">🎉 活动区块（Eventi speciali）<span id="ss-store-name2" style="color:var(--muted);font-weight:400"></span></div>'
     +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="ss-events-enabled" style="width:16px;height:16px;accent-color:var(--gold);"> 显示活动区块</label>'
-    +'<input id="ss-events-title" placeholder="活动标题，如：🌴 YIO Fish Estate 2026 · Vinci sempre!" style="'+inputStyle+'margin-bottom:8px;">'
+    +'<input id="ss-events-title" placeholder="活动标题，如：🎃 Halloween al YIO Fish" style="'+inputStyle+'margin-bottom:8px;">'
     +'<textarea id="ss-events-desc" placeholder="活动描述（支持换行）" style="'+taStyle+'"></textarea>'
-    +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:16px 0 8px;letter-spacing:1px;">🎡 幸运转盘入口（Ruota della Fortuna）</div>'
-    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="ss-wheel-enabled" style="width:16px;height:16px;accent-color:var(--gold);"> 显示首页底部的转盘入口条</label>'
     +'<div id="ss-status" style="font-size:12px;color:var(--muted);margin-top:8px"></div>'
-    +'<button onclick="saveSiteSettings()" style="margin-top:8px;background:var(--gold);border:none;border-radius:var(--r);padding:10px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-weight:600;">💾 保存首页活动设置</button>'
+    +'<button id="ss-save-btn" onclick="saveSiteSettings()" style="margin-top:8px;background:var(--gold);border:none;border-radius:var(--r);padding:10px 20px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-weight:600;">💾 保存这家店的活动设置</button>'
+    +'<div style="border-top:1px solid var(--border);margin-top:20px;padding-top:16px">'
+      +'<div style="font-weight:600;color:var(--gold);font-size:13px;margin:0 0 8px;letter-spacing:1px;">🎡 yio.it 总首页：幸运转盘入口（Ruota della Fortuna）</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6;">总首页不再显示弹窗和活动区块（活动改为按分店设置）。这里只控制总首页底部的转盘入口条。</div>'
+      +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="ss-wheel-enabled" style="width:16px;height:16px;accent-color:var(--gold);"> 显示总首页底部的转盘入口条</label>'
+      +'<div id="ss-home-status" style="font-size:12px;color:var(--muted);margin-top:4px"></div>'
+      +'<button onclick="saveHomepageSettings()" style="margin-top:8px;background:transparent;border:1px solid var(--gold);border-radius:var(--r);padding:9px 18px;font-size:12px;letter-spacing:1px;color:var(--gold);cursor:pointer;font-weight:600;">💾 保存总首页设置</button>'
+    +'</div>'
   +'</div>';
 }
 
 var _SITE_SETTINGS = null;
+function _ssStoreName(id) { for (var i = 0; i < SS_STORES.length; i++) if (SS_STORES[i].id === id) return SS_STORES[i].name; return id; }
+function _ssPaintPills() {
+  var box = document.getElementById('ss-store-pills'); if (!box) return;
+  box.querySelectorAll('button[data-ss]').forEach(function(b){
+    var on = b.getAttribute('data-ss') === _ssStore;
+    b.style.background = on ? 'var(--gold)' : 'transparent';
+    b.style.color = on ? '#1a1510' : 'var(--muted)';
+    b.style.borderColor = on ? 'var(--gold)' : 'var(--border2)';
+    b.style.fontWeight = on ? '600' : '400';
+  });
+  var nm = '（' + _ssStoreName(_ssStore) + '）';
+  if ($('ss-store-name1')) $('ss-store-name1').textContent = nm;
+  if ($('ss-store-name2')) $('ss-store-name2').textContent = nm;
+  if ($('ss-save-btn')) $('ss-save-btn').textContent = '💾 保存 ' + _ssStoreName(_ssStore) + ' 的活动设置';
+}
+function ssPickStore(id) {
+  _ssStore = id;
+  try { localStorage.setItem('yf_ss_store', id); } catch(e) {}
+  _ssPaintPills();
+  loadStoreSiteSettings();
+}
 async function loadSiteSettings() {
   var card = document.getElementById('section-site-settings');
   if (!card) return;  // 非超管没有这张卡
+  try { var sv = localStorage.getItem('yf_ss_store'); if (sv && _ssStoreName(sv) !== sv) _ssStore = sv; } catch(e) {}
+  _ssPaintPills();
+  loadStoreSiteSettings();
+  // 总首页：只读转盘开关
   try {
-    var res = await sbFetch('site_settings?id=eq.homepage');
-    var rows = res.ok ? await res.json() : [];
-    var s = rows && rows[0];
-    if (!s) { $('ss-status').textContent = '⚠️ 未读取到设置（请先在 Supabase 建 site_settings 表）'; return; }
-    _SITE_SETTINGS = s;
-    $('ss-promo-enabled').checked = (s.promo_enabled !== false);
-    $('ss-events-enabled').checked = (s.events_enabled !== false);
-    $('ss-wheel-enabled').checked = (s.wheel_enabled !== false);
+    var hr = await sbFetch('site_settings?id=eq.homepage');
+    var hrows = hr.ok ? await hr.json() : [];
+    var h = hrows && hrows[0];
+    if (h) {
+      $('ss-wheel-enabled').checked = (h.wheel_enabled !== false);
+      if (h.promo_enabled !== false || h.events_enabled !== false) {
+        $('ss-home-status').innerHTML = '⚠️ 总首页目前还在显示弹窗/活动区块。点一下 <b>保存总首页设置</b> 即可关闭。';
+      }
+    }
+  } catch(e) {}
+}
+async function loadStoreSiteSettings() {
+  var id = _ssStore;
+  var setVals = function(s) {
+    $('ss-promo-enabled').checked = !!s.promo_enabled;
+    $('ss-events-enabled').checked = !!s.events_enabled;
     $('ss-promo-eyebrow').value = s.promo_eyebrow || '';
     $('ss-promo-title').value = s.promo_title || '';
     $('ss-promo-detail').value = s.promo_detail || '';
     $('ss-events-title').value = s.events_title || '';
     $('ss-events-desc').value = s.events_desc || '';
+  };
+  $('ss-status').textContent = '读取中…';
+  try {
+    var res = await sbFetch('site_settings?id=eq.' + encodeURIComponent(id));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var rows = await res.json();
+    if (id !== _ssStore) return;   // 读取期间又切了店
+    var s = rows && rows[0];
+    _SITE_SETTINGS = s || null;
+    setVals(s || {});
+    $('ss-status').textContent = s ? '' : 'ℹ️ ' + _ssStoreName(id) + ' 还没有活动设置（现在不显示任何弹窗/活动）。填好后点保存即可。';
   } catch(e) { $('ss-status').textContent = '⚠️ 读取失败: ' + e.message; }
 }
 
 async function saveSiteSettings() {
+  var id = _ssStore;
+  var data = {
+    promo_enabled: $('ss-promo-enabled').checked,
+    events_enabled: $('ss-events-enabled').checked,
+    promo_eyebrow: $('ss-promo-eyebrow').value.trim(),
+    promo_title: $('ss-promo-title').value.trim(),
+    promo_detail: $('ss-promo-detail').value.trim(),
+    events_title: $('ss-events-title').value.trim(),
+    events_desc: $('ss-events-desc').value.trim(),
+    updated_at: new Date().toISOString()
+  };
+  try {
+    markDirty();
+    // 先更新；这家店还没有记录（更新到 0 行）→ 新建一行
+    var res = await sbFetch('site_settings?id=eq.' + encodeURIComponent(id), { method: 'PATCH', prefer: 'return=representation', body: JSON.stringify(data) });
+    if (!res.ok) { var t = await res.text(); throw new Error(t || ('HTTP ' + res.status)); }
+    var rows = await res.json().catch(function(){ return []; });
+    if (!Array.isArray(rows) || !rows.length) {
+      var ins = Object.assign({ id: id, wheel_enabled: false }, data);
+      var r2 = await sbFetch('site_settings', { method: 'POST', prefer: 'return=representation', body: JSON.stringify(ins) });
+      if (!r2.ok) { var t2 = await r2.text(); throw new Error(t2 || ('HTTP ' + r2.status)); }
+    }
+    markSaved();
+    $('ss-status').textContent = '';
+    toast('✅ ' + _ssStoreName(id) + ' 的活动设置已保存');
+  } catch(e) {
+    markSaved();
+    toast('❌ 保存失败: ' + e.message);
+  }
+}
+
+async function saveHomepageSettings() {
   try {
     markDirty();
     var res = await sbFetch('site_settings?id=eq.homepage', {
       method: 'PATCH',
       body: JSON.stringify({
-        promo_enabled: $('ss-promo-enabled').checked,
-        events_enabled: $('ss-events-enabled').checked,
         wheel_enabled: $('ss-wheel-enabled').checked,
-        promo_eyebrow: $('ss-promo-eyebrow').value.trim(),
-        promo_title: $('ss-promo-title').value.trim(),
-        promo_detail: $('ss-promo-detail').value.trim(),
-        events_title: $('ss-events-title').value.trim(),
-        events_desc: $('ss-events-desc').value.trim(),
+        promo_enabled: false,     // v5.56.9: 总首页不再显示弹窗/活动（改为按分店设置）
+        events_enabled: false,
         updated_at: new Date().toISOString()
       })
     });
     if (!res.ok) { var t = await res.text(); throw new Error(t || ('HTTP ' + res.status)); }
     markSaved();
-    toast('✅ 首页活动设置已保存');
+    $('ss-home-status').textContent = '';
+    toast('✅ 总首页设置已保存');
   } catch(e) {
     markSaved();
     toast('❌ 保存失败: ' + e.message);
