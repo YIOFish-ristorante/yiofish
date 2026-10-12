@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.12 · 2026-10-02</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.13 · 2026-10-12</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -5354,18 +5354,30 @@ function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 
   function $(id){ return document.getElementById(id); }
   function today(){ return new Date().toISOString().slice(0, 10); }
   window.closePromo = function(){ var p = $('promoPop'); if (p) p.style.display = 'none'; };
+  // v1.69.13: 活动图片地址加"后台最后保存时间"——换图后在后台点一次保存，所有缓存（Cloudflare/浏览器/桌面应用）立刻换新图
+  function imgVer(cfg){ var t = Date.parse(cfg && cfg.updated_at); return isNaN(t) ? '' : String(Math.floor(t / 1000)); }
+  function withVer(src, v){
+    if (!v || !src) return src;
+    var base = String(src).replace(/([?&])v=[^&]*&?/, '$1').replace(/[?&]$/, '');
+    return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'v=' + v;
+  }
   function showPromo(cfg){
     if (cfg.promo_eyebrow) $('promoEyebrow').textContent = cfg.promo_eyebrow;
     if (cfg.promo_title) $('promoTitle').textContent = cfg.promo_title;
     if (cfg.promo_detail) $('promoDetail').textContent = cfg.promo_detail;
     var img = $('promoImg');
-    if (img) img.src = 'foto/' + BR + '/eventi/eventi1.webp';
+    if (img) img.src = withVer('foto/' + BR + '/eventi/eventi1.webp', imgVer(cfg));
     var p = $('promoPop');
     if (p) p.style.display = 'flex';
     try { localStorage.setItem('yio_promo_' + BR, today()); } catch(e){}
   }
   function applyCfg(cfg){
     if (cfg.events_enabled){
+      var ver = imgVer(cfg);
+      if (ver) {   // v1.69.13: 轮播图片也带版本号（在区块显示之前换好地址，旧图不会先闪一下）
+        var imgs = document.querySelectorAll('#bc-ev-track img');
+        for (var k = 0; k < imgs.length; k++) imgs[k].src = withVer(imgs[k].getAttribute('src'), ver);
+      }
       var ev = $('branch-eventi');
       if (ev) ev.style.display = 'block';
       var t = $('bc-ev-title'), d = $('bc-ev-desc');
