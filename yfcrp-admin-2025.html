@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v5.56.10</title>
+<title>Yio Fish Admin v5.56.11</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -269,7 +269,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.10</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.11</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -325,7 +325,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.10</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.11</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -712,7 +712,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.10</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.11</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1531,7 +1531,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.10</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.11</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -3858,7 +3858,7 @@ function renderSettings(){
         +'<br>• 设为 <b>15</b> = 门槛 €15：'
         +'<br>&nbsp;&nbsp;– 原价 < €15 → 不打折，按原价收'
         +'<br>&nbsp;&nbsp;– 原价 ≥ €15 → 按各菜 sconto% 打折'
-        +'<br>⚠️ 此规则不影响 Consegna（外送），Consegna 用固定 10% 折扣 + 起送价 €35/€50'
+        +'<br>⚠️ 此规则不影响 Consegna（外送）；外送的距离、起送价、配送费见下方 🛵 卡片'
       +'</div>'
       +'<div style="display:flex;gap:8px;align-items:center">'
         +'<span style="font-size:13px;color:var(--text);min-width:auto;">门槛金额：</span>'
@@ -3870,6 +3870,7 @@ function renderSettings(){
         +'<button onclick="saveAsportoMin()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 16px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;">💾 保存</button>'
       +'</div>'
     +'</div>'
+    + deliveryCardHTML(s)
     +'<div class="card" id="section-round-settings" style="padding:20px 22px;margin-bottom:16px">'
       +'<div class="s-label" style="padding:0 0 12px">🍽️ 点餐轮次控制</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">控制每桌客人的点餐节奏</div>'
@@ -4320,6 +4321,63 @@ async function saveAsportoMin() {
       toast('✅ Asporto 折扣门槛已设为 €' + val.toFixed(2));
     }
   } catch(e) { toast('❌ 保存失败: ' + e.message); }
+}
+
+// ── v5.56.11: 🛵 外送距离与价格（按店，restaurant_settings.delivery_*；留空 = 用默认值）──
+var DELIVERY_FIELDS = [
+  { key: 'delivery_near_km',       label: '近距离范围',     unit: 'km', def: 5,   step: '0.5' },
+  { key: 'delivery_max_km',        label: '最远配送范围',   unit: 'km', def: 8,   step: '0.5' },
+  { key: 'delivery_min_order',     label: '近距离起送价',   unit: '€',  def: 35,  step: '1' },
+  { key: 'delivery_fee_near',      label: '近距离配送费',   unit: '€',  def: 3,   step: '0.5' },
+  { key: 'delivery_min_order_far', label: '远距离起送价',   unit: '€',  def: 50,  step: '1' },
+  { key: 'delivery_fee_far',       label: '远距离配送费',   unit: '€',  def: 5,   step: '0.5' },
+  { key: 'delivery_road_factor',   label: '路程系数（直线 × ?）', unit: '×', def: 1.3, step: '0.05' }
+];
+function deliveryCardHTML(s) {
+  if (CURRENT_ROLE !== 'super') return '';
+  s = s || {};
+  var inp = 'width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 10px;font-size:14px;color:var(--text2);outline:none;text-align:center;box-sizing:border-box;';
+  return '<div class="card" id="section-delivery" style="padding:20px 22px;margin-bottom:16px">'
+    +'<div class="s-label" style="padding:0 0 12px">🛵 外送距离与价格 / Consegna（本店）</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.7;">'
+      +'顾客点 📍 GPS 定位后，按 <b>直线距离 × 路程系数</b> 估算开车路程，再按下面的范围收起送价和配送费。'
+      +'<br>• 例：系数 1.3、近距离 5 km → 直线约 3.8 km 以内算"近距离"'
+      +'<br>• 系数设 <b>1</b> = 只按直线距离（旧算法）'
+      +'<br>• 留空 = 用灰色的默认值；保存后顾客重新打开页面即生效'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-bottom:10px;">'
+      + DELIVERY_FIELDS.map(function(f){
+          var v = (s[f.key] === null || s[f.key] === undefined || s[f.key] === '') ? '' : s[f.key];
+          return '<div><div style="font-size:11px;color:var(--muted);margin-bottom:5px;">' + f.label + '（' + f.unit + '）</div>'
+            + '<input id="dlv-' + f.key + '" type="number" min="0" step="' + f.step + '" placeholder="' + f.def + '" value="' + _lyEsc(v) + '" style="' + inp + '"></div>';
+        }).join('')
+    +'</div>'
+    +'<button onclick="saveDeliverySettings()" style="background:var(--gold);border:none;border-radius:var(--r);padding:9px 18px;font-size:12px;letter-spacing:1px;color:#1a1510;cursor:pointer;font-weight:600;">💾 保存外送设置</button>'
+  +'</div>';
+}
+async function saveDeliverySettings() {
+  var data = {}, vals = {};
+  for (var i = 0; i < DELIVERY_FIELDS.length; i++) {
+    var f = DELIVERY_FIELDS[i], el = document.getElementById('dlv-' + f.key);
+    if (!el) return;
+    var raw = String(el.value || '').trim().replace(',', '.');
+    if (raw === '') { data[f.key] = null; vals[f.key] = f.def; continue; }
+    var v = parseFloat(raw);
+    if (!isFinite(v) || v < 0) { toast('⚠️ 「' + f.label + '」请输入 ≥ 0 的数字'); el.focus(); return; }
+    data[f.key] = v; vals[f.key] = v;
+  }
+  if (vals.delivery_max_km < vals.delivery_near_km) { toast('⚠️ 最远配送范围不能小于近距离范围'); return; }
+  if (vals.delivery_road_factor < 1 || vals.delivery_road_factor > 2) { toast('⚠️ 路程系数请填 1 ～ 2 之间（一般 1.2～1.4）'); return; }
+  try {
+    markDirty();
+    await saveSettingsToDB(data);
+    for (var k in data) _SETTINGS[k] = data[k];
+    markSaved();
+    toast('✅ 外送设置已保存：' + vals.delivery_near_km + ' km 内 €' + vals.delivery_min_order + ' 起送 · 最远 ' + vals.delivery_max_km + ' km');
+  } catch (e) {
+    markSaved();
+    toast('❌ 保存失败（数据库是否已加 delivery_* 字段？）: ' + e.message);
+  }
 }
 
 // 生成时段时间输入框（type=time）

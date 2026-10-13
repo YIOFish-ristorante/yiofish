@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.14 · 2026-10-13</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.15 · 2026-10-13</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1654,6 +1654,7 @@ async function loadAll() {
 
     if (sData[0]) {
       SETTINGS = sData[0];
+      try { applyDeliverySettings(); } catch (e) {}   // v1.69.15
       // v1.65.1: waiter_password 不再下发（服务端校验），忽略该字段
       // 积分系统开关：控制手机号输入框 + 积分按钮显示
       var phoneWrapLoyalty = document.getElementById('res-phone-wrap');
@@ -1819,15 +1820,18 @@ var CONFIG = {
   DINNER_START: 19*60, DINNER_KITCHEN_CLOSE: 22*60+55, DINNER_END: 23*60,
   TIMER_WARNING_MINS: 25,
   // ── Consegna a domicilio ──
-  RESTAURANT_LAT: 45.1928,        // Viale Europa 20, Legnago VR
-  RESTAURANT_LNG: 11.3033,
+  RESTAURANT_LAT: 45.1852781,        // v1.69.15 按 Google 地图修正 · Viale Europa 20, Legnago VR
+  RESTAURANT_LNG: 11.2624608,
   CONSEGNA_SCONTO: 10,            // % sconto in modalità consegna (sovrascrive lo sconto per piatto)
   CONSEGNA_FEE_NEAR: 3,           // €  ≤ 5 km
   CONSEGNA_FEE_FAR: 5,            // €  > 5 km, ≤ 8 km
   CONSEGNA_RANGE_NEAR_KM: 5,
   CONSEGNA_RANGE_MAX_KM: 8,       // oltre = rifiuto
   CONSEGNA_MIN_ORDER: 35,         // € minimo entro 5km (scontato, prima della consegna)
-  CONSEGNA_MIN_ORDER_FAR: 50      // € minimo 5-8km
+  CONSEGNA_MIN_ORDER_FAR: 50,     // € minimo 5-8km
+  // v1.69.15: 以上距离/价格是默认值；后台"🛵 外送距离与价格"设置了就以后台为准（restaurant_settings.delivery_*）
+  CONSEGNA_ROAD_FACTOR: 1.3,      // 路程估算：直线距离 × 1.3 ≈ 开车路程
+  GPS_MAX_ACCURACY_M: 300         // 手机定位误差超过 300 米 → 不接受，请顾客重试
 };
 var isAdmin = false;
 var logoClickCount = 0;
@@ -3954,6 +3958,37 @@ function applyOrderModeUI() {
   if (loyWrap) loyWrap.style.display = (!isC && SETTINGS && SETTINGS.loyalty_enabled) ? 'block' : 'none';
 }
 
+// v1.69.15: 外送距离/价格以后台设置为准（未设置的项保留默认值），并按设置刷新"配送须知"文字
+function applyDeliverySettings() {
+  var S = SETTINGS || {};
+  var map = { delivery_near_km: 'CONSEGNA_RANGE_NEAR_KM', delivery_max_km: 'CONSEGNA_RANGE_MAX_KM',
+              delivery_fee_near: 'CONSEGNA_FEE_NEAR', delivery_fee_far: 'CONSEGNA_FEE_FAR',
+              delivery_min_order: 'CONSEGNA_MIN_ORDER', delivery_min_order_far: 'CONSEGNA_MIN_ORDER_FAR',
+              delivery_road_factor: 'CONSEGNA_ROAD_FACTOR' };
+  for (var k in map) {
+    var v = parseFloat(S[k]);
+    if (isFinite(v) && v >= 0) CONFIG[map[k]] = v;
+  }
+  if (!(CONFIG.CONSEGNA_ROAD_FACTOR >= 1)) CONFIG.CONSEGNA_ROAD_FACTOR = 1;
+  if (CONFIG.CONSEGNA_RANGE_MAX_KM < CONFIG.CONSEGNA_RANGE_NEAR_KM) CONFIG.CONSEGNA_RANGE_MAX_KM = CONFIG.CONSEGNA_RANGE_NEAR_KM;
+  var el = document.getElementById('consegna-info');
+  if (el) {
+    var n = function(x){ return String(Math.round(x * 100) / 100).replace('.', ','); };
+    var dot = ' \u00b7 ';
+    var html = 'Entro ' + n(CONFIG.CONSEGNA_RANGE_NEAR_KM) + ' km: min \u20ac' + n(CONFIG.CONSEGNA_MIN_ORDER) + dot + 'consegna \u20ac' + n(CONFIG.CONSEGNA_FEE_NEAR) + '<br>';
+    if (CONFIG.CONSEGNA_RANGE_MAX_KM > CONFIG.CONSEGNA_RANGE_NEAR_KM) {
+      html += 'Da ' + n(CONFIG.CONSEGNA_RANGE_NEAR_KM) + ' a ' + n(CONFIG.CONSEGNA_RANGE_MAX_KM) + ' km: min \u20ac' + n(CONFIG.CONSEGNA_MIN_ORDER_FAR) + dot + 'consegna \u20ac' + n(CONFIG.CONSEGNA_FEE_FAR) + '<br>';
+    }
+    html += 'Oltre ' + n(CONFIG.CONSEGNA_RANGE_MAX_KM) + ' km non disponibile' + dot + '\ud83d\udccd GPS obbligatorio';
+    if (CONFIG.CONSEGNA_ROAD_FACTOR > 1) html += '<br><span style="opacity:.75">Distanza = percorso stradale stimato</span>';
+    el.innerHTML = html;
+  }
+  if (consegna_geo && consegna_geo.straight_km != null) {   // 已经定过位：按新系数重算
+    consegna_geo.distance_km = consegna_geo.straight_km * CONFIG.CONSEGNA_ROAD_FACTOR;
+    try { updateDistanceDisplay(); } catch (e) {}
+  }
+}
+
 // Haversine: 两点间直线距离 (km)
 function haversineKm(lat1, lng1, lat2, lng2) {
   var R = 6371;
@@ -3978,8 +4013,16 @@ function requestGpsLocation() {
     function(pos) {
       var lat = pos.coords.latitude;
       var lng = pos.coords.longitude;
-      var dist = haversineKm(CONFIG.RESTAURANT_LAT, CONFIG.RESTAURANT_LNG, lat, lng);
-      consegna_geo = { lat: lat, lng: lng, distance_km: dist, source: 'gps' };
+      var acc = Math.round(pos.coords.accuracy || 0);
+      // v1.69.15: 定位误差太大（室内/电脑/只靠基站定位）→ 不接受，请顾客打开 GPS 重试
+      if (acc > CONFIG.GPS_MAX_ACCURACY_M) {
+        if (btn) { btn.disabled = false; btn.textContent = '\ud83d\udccd GPS'; }
+        toast('\u26a0\ufe0f Posizione poco precisa (\u00b1' + acc + ' m). Attiva il GPS / la localizzazione precisa e riprova, meglio vicino a una finestra.', 6000);
+        return;
+      }
+      var straight = haversineKm(CONFIG.RESTAURANT_LAT, CONFIG.RESTAURANT_LNG, lat, lng);
+      var dist = straight * (CONFIG.CONSEGNA_ROAD_FACTOR || 1);   // v1.69.15: 直线 × 系数 ≈ 开车路程
+      consegna_geo = { lat: lat, lng: lng, distance_km: dist, straight_km: straight, accuracy_m: acc, source: 'gps' };
       if (btn) { btn.disabled = false; btn.textContent = '✓ GPS'; btn.style.background = 'rgba(39,174,96,.15)'; btn.style.borderColor = 'rgba(39,174,96,.4)'; btn.style.color = '#27ae60'; }
       updateDistanceDisplay();
       onConsegnaFormChange();
@@ -3991,7 +4034,7 @@ function requestGpsLocation() {
       else if (err.code === 3) msg = 'GPS troppo lento. Riprova o inserisci manualmente';
       toast('⚠️ ' + msg);
     },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }   // v1.69.15: 不用旧的缓存位置
   );
 }
 
@@ -4000,7 +4043,7 @@ function updateDistanceDisplay() {
   if (!el) return;
   if (!consegna_geo) { el.textContent = ''; return; }
   var d = consegna_geo.distance_km;
-  var dStr = d.toFixed(1) + ' km';
+  var dStr = '\u2248 ' + d.toFixed(1) + ' km';   // v1.69.15: 路程估算
   if (d <= CONFIG.CONSEGNA_RANGE_NEAR_KM) {
     el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Min €' + CONFIG.CONSEGNA_MIN_ORDER + ' · Consegna €' + CONFIG.CONSEGNA_FEE_NEAR;
     el.style.color = '#27ae60';
@@ -4397,7 +4440,7 @@ function sendOrder() {
       '📞 Tel: ' + phone,
       '📍 Indirizzo: ' + addrText,
       '🏠 Civico: ' + civico + (citofono ? ' · ' + citofono : ''),
-      '📏 GPS: ' + consegna_geo.distance_km.toFixed(1) + ' km',
+      '📏 Distanza: \u2248 ' + consegna_geo.distance_km.toFixed(1) + ' km (stradale stimata' + (consegna_geo.accuracy_m ? ' \u00b7 GPS \u00b1' + consegna_geo.accuracy_m + ' m' : '') + ')',
       '🗺️ Posizione: ' + mapsUrl,
       '⏰ Consegna: ' + orarioFull,
       ''
