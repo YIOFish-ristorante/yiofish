@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.13 · 2026-10-12</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.14 · 2026-10-13</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -5262,7 +5262,11 @@ function bcCarousel(trackId, dotsId, interval){
   // 同步实际幻灯片数量，数量变化时重建圆点（自动剔除加载失败的图片）
   function sync(){
     var n = track.querySelectorAll('.bc-slide').length;
-    if (n < 2) return n;
+    if (n < 2) {   // v1.69.14: 只剩 0/1 张时清掉多余圆点、回到第一张（旧版会留着 16 个圆点）
+      if (dotsBox.children.length) dotsBox.innerHTML = '';
+      if (idx !== 0 || track.style.transform) { idx = 0; track.style.transform = ''; }
+      return n;
+    }
     if (dotsBox.children.length !== n){
       dotsBox.innerHTML = '';
       for (var i = 0; i < n; i++){
@@ -5374,9 +5378,12 @@ function closeMenuSheet(){ document.getElementById('menuSheet').style.display = 
   function applyCfg(cfg){
     if (cfg.events_enabled){
       var ver = imgVer(cfg);
-      if (ver) {   // v1.69.13: 轮播图片也带版本号（在区块显示之前换好地址，旧图不会先闪一下）
-        var imgs = document.querySelectorAll('#bc-ev-track img');
-        for (var k = 0; k < imgs.length; k++) imgs[k].src = withVer(imgs[k].getAttribute('src'), ver);
+      // v1.69.13: 轮播图片也带版本号（在区块显示之前换好地址，旧图不会先闪一下）
+      // v1.69.14: 改为立即加载全部 16 个位置——不存在的图片马上被剔除，轮播不会转到空白页
+      var imgs = document.querySelectorAll('#bc-ev-track img');
+      for (var k = 0; k < imgs.length; k++) {
+        imgs[k].loading = 'eager';
+        if (ver) imgs[k].src = withVer(imgs[k].getAttribute('src'), ver);
       }
       var ev = $('branch-eventi');
       if (ev) ev.style.display = 'block';
