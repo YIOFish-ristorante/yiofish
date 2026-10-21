@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.15 · 2026-10-13</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.16 · 2026-10-21</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -4802,14 +4802,17 @@ async function lyLookup() {
   if (!/^\+?\d{9,13}$/.test(phone)) { errEl.textContent = 'Numero non valido: servono 9-13 cifre (es. 333 123 4567)'; return; }
   errEl.textContent = '';
 
+  var _stage = 'identify', _http = 0;   // v1.69.16 诊断：记录卡在哪一步
   try {
     // 先 identify（查或创建会员）
     var res = await fetch(WORKER_URL + '/loyalty/identify', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({phone: phone})
     });
+    _http = res.status; _stage = 'identify-json';
     var data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Errore'; return; }
+    _stage = 'render';
 
     _lyPhone = phone;
     _lyCustomer = data.customer;
@@ -4837,8 +4840,12 @@ async function lyLookup() {
     } catch(e) { /* 设 PIN 失败不影响查看积分 */ }
 
     // 加载奖品
+    _stage = 'rewards';
     var rRes = await fetch(WORKER_URL + '/loyalty/rewards?restaurant_id=' + encodeURIComponent(RESTAURANT_ID), {cache:'no-store'});
+    _http = rRes.status; _stage = 'rewards-json';
     _lyRewards = rRes.ok ? await rRes.json() : [];
+    if (!Array.isArray(_lyRewards)) _lyRewards = [];
+    _stage = 'rewards-render';
 
     var listEl = document.getElementById('ly-rewards-list');
     if (!_lyRewards.length) {
@@ -4863,7 +4870,17 @@ async function lyLookup() {
 
     lyShowStep('rewards');
   } catch(e) {
-    errEl.textContent = 'Errore di connessione';
+    // v1.69.16 诊断：显示简短错误代码 + 写入后台错误日志（方便排查 iPhone 上的问题）
+    var _msg = (e && (e.name ? e.name + ': ' : '') + (e.message || String(e))) || 'unknown';
+    errEl.innerHTML = 'Errore di connessione<br><span style="font-size:10px;opacity:.7">(' + escapeHtml(_stage + (_http ? ' · HTTP ' + _http : '') + ' · ' + _msg).slice(0, 160) + ')</span>';
+    try {
+      fetch(WORKER_URL + '/log/error', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, keepalive: true,
+        body: JSON.stringify({ app: 'customer-' + RESTAURANT_ID, level: 'error', message: 'lyLookup failed @' + _stage + ' HTTP ' + _http + ': ' + _msg,
+          stack: e && e.stack ? String(e.stack) : null, url: location.href, user_agent: navigator.userAgent, restaurant_id: RESTAURANT_ID,
+          metadata: { stage: _stage, http: _http, origin: location.origin, page_version: 'v1.69.16' } })
+      }).catch(function(){});
+    } catch (e2) {}
   }
 }
 
