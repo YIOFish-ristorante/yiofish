@@ -389,7 +389,8 @@ input:focus{border-color:var(--gold)}
         <button class="btn btn-ghost" style="width:auto;padding:5px 10px;font-size:11px" onclick="showStep('menu')">← Menu</button>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
-        <input type="date" id="res-filter-date" value="2026-09-25" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);font-size:14px">
+        <input type="date" id="res-filter-date" value="" autocomplete="off" onchange="resDateChanged()" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);font-size:14px">
+        <button class="btn btn-ghost" style="width:auto;padding:8px 12px;font-size:12px" onclick="resGoToday()">Oggi</button>
         <button class="btn btn-ghost" style="width:auto;padding:8px 12px;font-size:12px" onclick="loadStaffReservations()">🔄 刷新</button>
       </div>
       <div id="res-err"></div>
@@ -484,10 +485,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.5</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.7</div>
 
 <script>
-var APP_VERSION = 'v1.4.2';
+var APP_VERSION = 'v3.7';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -1014,6 +1015,27 @@ async function lotteryResetTable() {
 // v3.2 · 今日预订查询（店员端）
 var _resData = [];
 var _resTimer = null;
+// v3.7: 日期默认跟随"今天"（罗马时间）。店员当天手动选了别的日期才保留；过了午夜自动回到今天
+var _resManualDay = null;   // 店员手动选日期的那一天（YYYY-MM-DD）；null = 跟随今天
+function resToday(){
+  try {
+    var p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    if (/^\d{4}-\d{2}-\d{2}$/.test(p)) return p;
+  } catch(e) {}
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function resDateChanged(){
+  var el = document.getElementById('res-filter-date');
+  _resManualDay = (el && el.value && el.value !== resToday()) ? resToday() : null;
+  loadStaffReservations();
+}
+function resGoToday(){
+  _resManualDay = null;
+  var el = document.getElementById('res-filter-date');
+  if (el) el.value = resToday();
+  loadStaffReservations();
+}
 async function loadStaffReservations(silent){
   var listEl = document.getElementById('res-list');
   var errEl = document.getElementById('res-err');
@@ -1023,9 +1045,11 @@ async function loadStaffReservations(silent){
   try {
     var dateEl = document.getElementById('res-filter-date');
     var date = dateEl ? dateEl.value : '';
-    if (!date) {
-      var d = new Date();
-      date = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    var today = resToday();
+    // v3.7: 没有"今天手动选过日期"→ 一律显示今天（解决：页面一直开着/重新打开时还停在以前的日期）
+    if (!date || _resManualDay !== today) {
+      _resManualDay = null;
+      date = today;
       if (dateEl) dateEl.value = date;
     }
     var res = await fetch(WORKER_URL + '/reservations?date=' + encodeURIComponent(date) + '&restaurant_id=' + encodeURIComponent(_store), {
@@ -1552,7 +1576,7 @@ async function doChangePassword() {
     var res = await fetch(WORKER_URL + '/store-admin/change-password', {
       method: 'POST',
       headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+_token},
-      body: JSON.stringify({password: newPwd1}),
+      body: JSON.stringify({password: newPwd1, old_password: oldPwd}), // v3.6: 服务器端也核对旧密码（Worker v5.40.10）
       cache: 'no-store'
     });
     var data = await res.json();
@@ -1568,7 +1592,5 @@ async function doChangePassword() {
   }
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7"}' crossorigin="anonymous"></script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4655f3c58dd6497fb7ddb85b68480db7","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
