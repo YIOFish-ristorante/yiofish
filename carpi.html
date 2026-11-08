@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.69.16 · 2026-10-21</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.70.0 · 2026-11-08</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1454,9 +1454,119 @@ var LS_KEY_SENT = 'yiofish_cart_sent_carpi';
 var LS_KEY_ASP = 'yiofish_cart_asporto_carpi';
 var LS_KEY_MODE = 'yiofish_order_mode_carpi';
 var LS_KEY_CONSEGNA_FORM = 'yiofish_consegna_form_carpi';
+// ══════════ v1.70.0 · 单道菜备注（Nota per piatto）══════════
+// 每个购物车（堂食 / 打包）各自一份：{ 菜品id: '备注文字' }；菜品减到 0 份或下单清空后自动删除
+var LS_KEY_NOTES = 'yiofish_cart_notes_' + RESTAURANT_ID;
+var cart_notes = { dine: {}, asporto: {} };
+var NOTE_MAX = 80;
+var NOTE_QUICK = ['Senza salsa', 'Senza philadelphia', 'Senza maionese', 'Senza piccante', 'Senza sesamo', 'Senza cipolla'];
+var _ddItemId = null;   // 详情弹窗当前显示的菜品
+function _noteMode() { return isAsporto ? 'asporto' : 'dine'; }
+function getDishNote(id, mode) { var m = cart_notes[mode || _noteMode()] || {}; return m[id] || ''; }
+function cleanNote(t) {
+  // 去掉换行和 WhatsApp 格式符号（* _ ~ `），避免把消息格式弄乱
+  return String(t || '').replace(/[\r\n\t]+/g, ' ').replace(/[*_~`]/g, '').replace(/\s{2,}/g, ' ').trim().slice(0, NOTE_MAX);
+}
+function pruneNotes() {
+  [['dine', cart_dine], ['asporto', cart_asporto]].forEach(function(pair) {
+    var n = cart_notes[pair[0]] || (cart_notes[pair[0]] = {});
+    for (var k in n) { if (!pair[1][k] || !n[k]) delete n[k]; }
+  });
+}
+// WhatsApp 消息里，菜品下面加一行备注
+function waNoteLine(id, mode) {
+  var t = getDishNote(id, mode);
+  return t ? '\n      ⚠️ *NOTA:* ' + t : '';
+}
+// 菜品卡片 / 购物车 / 详情弹窗里的"✏️ Nota"按钮或备注文字
+function renderNoteSlot(el, itemId, q) {
+  el.innerHTML = '';
+  if (!q) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  var t = getDishNote(itemId);
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:none;padding:6px 0 0;font-family:inherit;cursor:pointer;line-height:1.35;' +
+    (t ? 'color:#f0a35e;font-size:12px;' : 'color:#c9a24c;font-size:11px;opacity:.9;');
+  b.textContent = t ? ('⚠️ ' + t + '  ✏️') : '✏️ Nota (es. senza salsa)';
+  b.onclick = function(e) { if (e) e.stopPropagation(); openDishNote(itemId); };
+  el.appendChild(b);
+}
+function updateNoteUI(itemId) {
+  var q = _boxMode ? 0 : ((isAsporto ? cart_asporto : cart_dine)[itemId] || 0);
+  var a = document.getElementById('nt' + itemId);
+  if (a) renderNoteSlot(a, itemId, q);
+  if (_ddItemId !== null && String(_ddItemId) === String(itemId)) {
+    var d = document.getElementById('dd-note');
+    if (d) renderNoteSlot(d, itemId, q);
+  }
+}
+function closeDishNote() { var ov = document.getElementById('dn-ov'); if (ov && ov.parentNode) ov.parentNode.removeChild(ov); }
+function openDishNote(itemId) {
+  var it = getItemForMenu(itemId);
+  if (!it) return;
+  var mode = _noteMode();
+  var q = (isAsporto ? cart_asporto : cart_dine)[itemId] || 0;
+  if (!q) return;
+  closeDishNote();
+  var ov = document.createElement('div');
+  ov.id = 'dn-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100000;display:flex;align-items:flex-end;justify-content:center;';
+  ov.onclick = function(e) { if (e.target === ov) closeDishNote(); };
+  var box = document.createElement('div');
+  box.style.cssText = 'width:100%;max-width:480px;background:#16130f;border:1px solid rgba(212,171,72,.35);border-bottom:none;border-radius:16px 16px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;color:#ede5d4;font-family:inherit;';
+  var btnBase = 'flex:1;border-radius:8px;padding:11px 6px;font-size:13px;font-family:inherit;cursor:pointer;';
+  box.innerHTML = '<div style="font-size:10px;letter-spacing:2px;color:#d4ab48;margin-bottom:6px">✏️ NOTA PER IL PIATTO</div>'
+    + '<div style="font-size:15px;margin-bottom:12px">' + displayDishHTML(it) + (q > 1 ? ' <span style="color:#a89f8c;font-size:12px">× ' + q + '</span>' : '') + '</div>'
+    + '<div id="dn-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>'
+    + '<textarea id="dn-text" rows="2" maxlength="' + NOTE_MAX + '" style="width:100%;box-sizing:border-box;background:#0d0b09;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px;color:#ede5d4;font-size:16px;font-family:inherit;resize:none;outline:none;"></textarea>'
+    + '<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#8a8170;margin:5px 0 12px"><span>⚠️ Per allergie gravi avvisa sempre il personale</span><span id="dn-count"></span></div>'
+    + '<div style="display:flex;gap:8px">'
+      + '<button type="button" id="dn-del" style="' + btnBase + 'background:transparent;border:1px solid rgba(192,57,43,.5);color:#e07a6e;">Elimina</button>'
+      + '<button type="button" id="dn-cancel" style="' + btnBase + 'background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);">Annulla</button>'
+      + '<button type="button" id="dn-save" style="' + btnBase + 'background:#d4ab48;border:none;color:#1a1510;font-weight:600;">Salva</button>'
+    + '</div>';
+  ov.appendChild(box);
+  document.body.appendChild(ov);
+  var ta = document.getElementById('dn-text');
+  var cnt = document.getElementById('dn-count');
+  ta.placeholder = 'Scrivi qui (es. senza salsa' + (q > 1 ? ', solo 1 dei ' + q : '') + ')';
+  ta.value = getDishNote(itemId, mode);
+  var upd = function() { cnt.textContent = ta.value.length + '/' + NOTE_MAX; };
+  ta.oninput = upd; upd();
+  var chips = document.getElementById('dn-chips');
+  NOTE_QUICK.forEach(function(c) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = c;
+    b.style.cssText = 'background:rgba(212,171,72,.1);border:1px solid rgba(212,171,72,.4);border-radius:14px;padding:6px 11px;font-size:12px;color:#e6c675;font-family:inherit;cursor:pointer;';
+    b.onclick = function() {
+      var cur = ta.value.trim();
+      if (cur.toLowerCase().indexOf(c.toLowerCase()) >= 0) return;   // 已经有了
+      var add = cur ? (cur.replace(/[,;]\s*$/, '') + ', ' + c.charAt(0).toLowerCase() + c.slice(1)) : c;
+      ta.value = add.slice(0, NOTE_MAX); upd();
+    };
+    chips.appendChild(b);
+  });
+  var done = function(t) {
+    var n = cart_notes[mode] || (cart_notes[mode] = {});
+    if (t) n[itemId] = t; else delete n[itemId];
+    saveCartToLS();
+    updateNoteUI(itemId);
+    try { renderCartBody(); } catch (e) {}
+    closeDishNote();
+  };
+  document.getElementById('dn-save').onclick = function() { var t = cleanNote(ta.value); done(t); if (t) toast('✅ Nota salvata'); };
+  document.getElementById('dn-del').onclick = function() { done(''); };
+  document.getElementById('dn-cancel').onclick = closeDishNote;
+  setTimeout(function() { try { ta.focus(); } catch (e) {} }, 50);
+}
+
 function saveCartToLS() {
   try {
     var now = Date.now();
+    pruneNotes();
+    localStorage.setItem(LS_KEY_NOTES, JSON.stringify({data: cart_notes, ts: now}));   // v1.70.0
     localStorage.setItem(LS_KEY_DINE, JSON.stringify({data: cart_dine, ts: now}));
     localStorage.setItem(LS_KEY_SENT, JSON.stringify({data: cart_dine_sent, ts: now}));
     localStorage.setItem(LS_KEY_ASP, JSON.stringify({data: cart_asporto, ts: now}));
@@ -1479,6 +1589,8 @@ function loadCartFromLS() {
     if (as) { var obj4 = JSON.parse(as); if (now - obj4.ts < FOUR_HOURS) cart_asporto_sent = obj4.data || {}; }
     var ab = localStorage.getItem(LS_KEY_ASP+'_boxes');
     if (ab) { var obj5 = JSON.parse(ab); if (now - obj5.ts < FOUR_HOURS) cart_boxes = obj5.data || []; }
+    var nt = localStorage.getItem(LS_KEY_NOTES);   // v1.70.0 单道菜备注
+    if (nt) { var obj6 = JSON.parse(nt); if (now - obj6.ts < FOUR_HOURS && obj6.data) cart_notes = { dine: obj6.data.dine || {}, asporto: obj6.data.asporto || {} }; }
     // 模式（无过期限制：默认就 asporto）
     var m = localStorage.getItem(LS_KEY_MODE);
     if (m === 'consegna' || m === 'asporto') order_mode = m;
@@ -1493,6 +1605,7 @@ function clearCartLS() {
   try {
     localStorage.removeItem(LS_KEY_DINE); localStorage.removeItem(LS_KEY_SENT);
     localStorage.removeItem(LS_KEY_ASP); localStorage.removeItem(LS_KEY_ASP+'_sent');
+    localStorage.removeItem(LS_KEY_NOTES);   // v1.70.0
   } catch(e) {}
 }
 // v1.65.1: 服务员密码不再下发到前端（Worker v5.31 起从公开接口剥离），
@@ -2577,6 +2690,11 @@ function mkCard(it, delay) {
   ft.appendChild(ac);
 
   body.appendChild(ft);
+  var ntEl = document.createElement('div');   // v1.70.0: 加入购物车后显示"✏️ Nota"
+  ntEl.id = 'nt' + it.id;
+  ntEl.className = 'cnote';
+  ntEl.style.display = 'none';
+  body.appendChild(ntEl);
   if (iw) {
     // 点击图片/菜名 → 弹出大图详情
     iw.style.cursor = 'pointer';
@@ -2628,10 +2746,12 @@ function showDishDetail(it) {
       + (tagsHtml ? '<div class="dd-tags">'+tagsHtml+'</div>' : '')
       + (it.desc ? '<div class="dd-desc">'+escapeHtml(it.desc)+'</div>' : '')
       + '<div class="dd-foot"><div class="dd-price-wrap">'+priceHtml+'</div><div id="dd-ac"></div></div>'
+      + '<div id="dd-note" style="display:none"></div>'
     + '</div>'
   + '</div>';
   // 详情里的加减：独立渲染，复用 changeQty/addItem，操作后同步刷新
   renderDetailAc(it);
+  _ddItemId = it.id; try { updateNoteUI(it.id); } catch (e) {}   // v1.70.0
   m.classList.add('show');
   document.body.style.overflow = 'hidden';
   setupDishImageZoom();
@@ -2696,6 +2816,7 @@ function renderDetailAc(it) {
 }
 
 function closeDishDetail() {
+  _ddItemId = null;   // v1.70.0
   var m = document.getElementById('dish-detail-modal');
   if (m) m.classList.remove('show');
   document.body.style.overflow = '';
@@ -3096,6 +3217,7 @@ function changeQty(it, d) {
 }
 
 function updateItemUI(itemId) {
+  try { updateNoteUI(itemId); } catch (e) {}   // v1.70.0
   var el = document.getElementById('ac' + itemId);
   if (!el) return;
   var it = getItemForMenu(itemId);
@@ -3193,6 +3315,7 @@ function updateItemUI(itemId) {
 var _lastAsportoDiscountActive = null;
 
 function updateCartUI() {
+  try { pruneNotes(); } catch (e) {}   // v1.70.0
   var n = cartCount();
   var badge = document.getElementById('cart-badge');
   if (badge) { badge.textContent = n; badge.className = 'cbadge' + (n > 0 ? ' on' : ''); }
@@ -3404,6 +3527,10 @@ function renderCartBody() {
       var bp = document.createElement('button'); bp.className = 'qbtn'; bp.textContent = '+';
       (function(i){ bm.onclick = function(){ changeQty(i,-1); }; bp.onclick = function(){ changeQty(i,+1); }; })(it);
       qc.appendChild(bm); qc.appendChild(sp); qc.appendChild(bp);
+      var ntc = document.createElement('div');   // v1.70.0
+      ntc.className = 'ci-note';
+      renderNoteSlot(ntc, id, qty);
+      info.appendChild(ntc);
       row.appendChild(th); row.appendChild(info); row.appendChild(qc);
       el.appendChild(row);
     })(id, activeCart[id]);
@@ -3795,7 +3922,7 @@ function sendNotify() {
   var lines = ['🔔 *CHIAMATA CAMERIERE - Yio Fish Carpi*', '', '🪑 Tavolo: ' + tableNum, ''];
   for (var id in cart_dine) {
     var it = getItemForMenu(id);
-    if (it) lines.push(waDishLine(it, cart_dine[id]));
+    if (it) lines.push(waDishLine(it, cart_dine[id]) + waNoteLine(id, 'dine'));
   }
   if (cartTotal() > 0) { lines.push(''); lines.push('💵 Totale: ' + fmt(cartTotal())); }
   if (note) { lines.push(''); lines.push('📝 Note: ' + note); }
@@ -4452,7 +4579,7 @@ function sendOrder() {
       var it = getItemForMenu(id);
       if (it) {
         var p = (it.price || 0); // 单品显示原价，折扣在合计处统一计算
-        lines.push(waDishLine(it, cart_asporto[id], p > 0 ? fmt(p * cart_asporto[id]) : ''));
+        lines.push(waDishLine(it, cart_asporto[id], p > 0 ? fmt(p * cart_asporto[id]) : '') + waNoteLine(id, 'asporto'));
       }
     }
     lines.push('');
@@ -4475,7 +4602,7 @@ function sendOrder() {
       var it2 = getItemForMenu(id2);
       if (it2) {
         var p2 = (it2.price || 0); // 单品显示原价，折扣在合计处统一计算
-        lines.push(waDishLine(it2, cart_asporto[id2], p2 > 0 ? fmt(p2 * cart_asporto[id2]) : ''));
+        lines.push(waDishLine(it2, cart_asporto[id2], p2 > 0 ? fmt(p2 * cart_asporto[id2]) : '') + waNoteLine(id2, 'asporto'));
       }
     }
     // 价格明细：单品显示原价，这里统一展示 Subtotale / Sconto / Totale
@@ -4870,15 +4997,15 @@ async function lyLookup() {
 
     lyShowStep('rewards');
   } catch(e) {
-    // v1.69.16 诊断：显示简短错误代码 + 写入后台错误日志（方便排查 iPhone 上的问题）
+    // v1.69.16 诊断：出错详情写入后台错误日志（方便排查），顾客只看到简短提示
     var _msg = (e && (e.name ? e.name + ': ' : '') + (e.message || String(e))) || 'unknown';
-    errEl.innerHTML = 'Errore di connessione<br><span style="font-size:10px;opacity:.7">(' + escapeHtml(_stage + (_http ? ' · HTTP ' + _http : '') + ' · ' + _msg).slice(0, 160) + ')</span>';
+    errEl.textContent = 'Errore di connessione';   // v1.69.17: 顾客端不再显示诊断小字（详情仍静默写入后台错误日志）
     try {
       fetch(WORKER_URL + '/log/error', {
         method: 'POST', headers: {'Content-Type':'application/json'}, keepalive: true,
         body: JSON.stringify({ app: 'customer-' + RESTAURANT_ID, level: 'error', message: 'lyLookup failed @' + _stage + ' HTTP ' + _http + ': ' + _msg,
           stack: e && e.stack ? String(e.stack) : null, url: location.href, user_agent: navigator.userAgent, restaurant_id: RESTAURANT_ID,
-          metadata: { stage: _stage, http: _http, origin: location.origin, page_version: 'v1.69.16' } })
+          metadata: { stage: _stage, http: _http, origin: location.origin, page_version: 'v1.69.17' } })
       }).catch(function(){});
     } catch (e2) {}
   }
