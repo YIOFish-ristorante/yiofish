@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.70.0 · 2026-11-08</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.70.1 · 2026-11-10</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -4825,6 +4825,50 @@ function lyStartFlow(flow) {
   lyShowStep('phone');
   setTimeout(function(){ var el = document.getElementById('ly-phone'); if(el) el.focus(); }, 100);
 }
+
+// v1.70.1: 积分页"下拉刷新"——积分弹窗在页面上层自己滚动，手机自带的下拉刷新管不到，这里自己做一个
+(function(){
+  var modal = document.getElementById('loyaltyModal');
+  var sheet = modal && modal.querySelector('.sheet');
+  if (!sheet) return;
+  sheet.style.overscrollBehavior = 'contain';   // 拉到顶时不带动后面的页面
+  var TH = 70, MAXH = 90;                         // 拉多少触发 / 最多拉多高
+  var startY = null, pulling = false, busy = false, h = 0;
+  var bar = document.createElement('div');
+  bar.id = 'ly-ptr';
+  bar.style.cssText = 'height:0;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;font-size:12px;letter-spacing:1px;color:#b8902e;transition:height .2s ease;';
+  sheet.insertBefore(bar, sheet.firstChild);
+  function active() {
+    var st = document.getElementById('ly-step-rewards');
+    return !!(_lyPhone && st && st.style.display !== 'none' && modal.classList.contains('open'));
+  }
+  function setH(v, text) { h = v; bar.style.height = v + 'px'; bar.textContent = text || ''; bar.style.paddingBottom = v ? '8px' : '0'; }
+  sheet.addEventListener('touchstart', function(e) {
+    if (busy || e.touches.length !== 1 || sheet.scrollTop > 0 || !active()) { startY = null; return; }
+    startY = e.touches[0].clientY; pulling = false; bar.style.transition = 'none';
+  }, { passive: true });
+  sheet.addEventListener('touchmove', function(e) {
+    if (startY === null || busy) return;
+    var dy = e.touches[0].clientY - startY;
+    if (dy <= 0 || sheet.scrollTop > 0) { if (pulling) setH(0); pulling = false; return; }
+    pulling = true;
+    if (e.cancelable) e.preventDefault();          // 阻止弹窗一起被拖动/回弹
+    var v = Math.min(MAXH, dy * 0.5);
+    setH(v, v >= TH ? '↻ Rilascia per aggiornare' : '↓ Tira per aggiornare');
+  }, { passive: false });
+  function end() {
+    if (startY === null) return;
+    startY = null; bar.style.transition = 'height .2s ease';
+    if (!pulling) return;
+    pulling = false;
+    if (h >= TH && !busy) {
+      busy = true; setH(44, '⏳ Aggiornamento…');
+      Promise.resolve(lyRefresh()).catch(function(){}).then(function(){ busy = false; setH(0); });
+    } else { setH(0); }
+  }
+  sheet.addEventListener('touchend', end, { passive: true });
+  sheet.addEventListener('touchcancel', end, { passive: true });
+})();
 
 // 刷新积分：复用已登录的手机号重新拉取最新积分+奖品
 async function lyRefresh() {
