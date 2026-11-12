@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.70.1 · 2026-11-10</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.0 · 2026-11-12</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1051,7 +1051,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <div id="consegna-info" style="display:none;background:rgba(212,171,72,.1);border:1px solid rgba(212,171,72,.3);border-radius:var(--r);padding:8px 10px;margin-bottom:10px;font-size:11px;color:#d4ab48;line-height:1.5;">
         Entro 5km: min €35 · consegna €3<br>
         Da 5 a 8km: min €50 · consegna €5<br>
-        Oltre 8km non disponibile · 📍 GPS obbligatorio
+        Oltre 8km non disponibile · 📍 calcolata sull'indirizzo
       </div>
 
       <!-- Nome (sempre) -->
@@ -1066,24 +1066,30 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
         <input type="tel" id="consegna-phone" placeholder="+39 ..." oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
       </div>
 
-      <!-- Indirizzo (solo consegna) - manuale + bottone GPS opzionale -->
+      <!-- Indirizzo (solo consegna) - v1.71.0: distanza calcolata sull'indirizzo (Google); GPS solo come riserva -->
       <div class="table-input-wrap" id="consegna-address-wrap" style="display:none;">
         <label>Indirizzo di consegna</label>
         <div style="display:flex;gap:6px;align-items:stretch;">
-          <input type="text" id="consegna-address" placeholder="Via, città" autocomplete="street-address"
-            style="flex:1;min-width:0;" oninput="onAddressTextChange()" onfocus="scrollInputIntoView(this)">
-          <button type="button" id="consegna-gps-btn" onclick="requestGpsLocation()"
+          <input type="text" id="consegna-address" placeholder="Via e città (es. Via Roma, Carpi)" autocomplete="street-address"
+            style="flex:1;min-width:0;" oninput="onAddressTextChange()" onblur="maybeAutoQuote()" onfocus="scrollInputIntoView(this)">
+          <button type="button" id="consegna-verify-btn" onclick="quoteByAddress(true)"
             style="flex:0 0 auto;background:rgba(212,171,72,.15);border:1px solid rgba(212,171,72,.4);border-radius:var(--r);padding:0 10px;font-size:11px;color:#d4ab48;cursor:pointer;font-family:inherit;white-space:nowrap;"
-            title="Usa la mia posizione GPS (obbligatorio)">📍 GPS</button>
+            title="Calcola distanza e costo di consegna">🔎 Verifica</button>
         </div>
-        <div id="consegna-distance" style="font-size:11px;margin-top:4px;min-height:14px;color:rgba(237,229,212,.5);">📍 Tocca "GPS" per verificare la zona di consegna</div>
+        <div id="consegna-distance" style="font-size:11px;margin-top:4px;min-height:14px;line-height:1.5;color:rgba(237,229,212,.5);">📍 Scrivi via, città e numero civico: la consegna viene calcolata sull'indirizzo</div>
+        <div id="consegna-gps-fallback" style="display:none;margin-top:6px;font-size:11px;color:rgba(237,229,212,.6);">
+          Indirizzo non trovato? In alternativa:
+          <button type="button" id="consegna-gps-btn" onclick="requestGpsLocation()"
+            style="background:rgba(212,171,72,.15);border:1px solid rgba(212,171,72,.4);border-radius:var(--r);padding:4px 10px;font-size:11px;color:#d4ab48;cursor:pointer;font-family:inherit;white-space:nowrap;margin-left:4px;"
+            title="Usa la mia posizione GPS">📍 GPS</button>
+        </div>
       </div>
 
       <!-- Civico + Citofono (solo consegna) -->
       <div id="consegna-extra-wrap" style="display:none;grid-template-columns:1fr 2fr;gap:8px;">
         <div class="table-input-wrap" style="margin-bottom:8px;">
           <label>Civico</label>
-          <input type="text" id="consegna-civico" placeholder="N°" oninput="onConsegnaFormChange()" onfocus="scrollInputIntoView(this)">
+          <input type="text" id="consegna-civico" placeholder="N°" oninput="onAddressTextChange()" onblur="maybeAutoQuote()" onfocus="scrollInputIntoView(this)">
         </div>
         <div class="table-input-wrap" style="margin-bottom:8px;">
           <label>Citofono / Note ingresso</label>
@@ -4106,11 +4112,11 @@ function applyDeliverySettings() {
     if (CONFIG.CONSEGNA_RANGE_MAX_KM > CONFIG.CONSEGNA_RANGE_NEAR_KM) {
       html += 'Da ' + n(CONFIG.CONSEGNA_RANGE_NEAR_KM) + ' a ' + n(CONFIG.CONSEGNA_RANGE_MAX_KM) + ' km: min \u20ac' + n(CONFIG.CONSEGNA_MIN_ORDER_FAR) + dot + 'consegna \u20ac' + n(CONFIG.CONSEGNA_FEE_FAR) + '<br>';
     }
-    html += 'Oltre ' + n(CONFIG.CONSEGNA_RANGE_MAX_KM) + ' km non disponibile' + dot + '\ud83d\udccd GPS obbligatorio';
-    if (CONFIG.CONSEGNA_ROAD_FACTOR > 1) html += '<br><span style="opacity:.75">Distanza = percorso stradale stimato</span>';
+    html += 'Oltre ' + n(CONFIG.CONSEGNA_RANGE_MAX_KM) + ' km non disponibile';
+    html += '<br><span style="opacity:.75">Distanza = percorso stradale fino al tuo indirizzo</span>';   // v1.71.0
     el.innerHTML = html;
   }
-  if (consegna_geo && consegna_geo.straight_km != null) {   // 已经定过位：按新系数重算
+  if (consegna_geo && consegna_geo.straight_km != null && consegna_geo.route !== 'google_route') {   // 已经定过位（非 Google 真实路程）：按新系数重算
     consegna_geo.distance_km = consegna_geo.straight_km * CONFIG.CONSEGNA_ROAD_FACTOR;
     try { updateDistanceDisplay(); } catch (e) {}
   }
@@ -4128,7 +4134,95 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// 客人点 📍 GPS 按钮：用浏览器 Geolocation API（免费、无 key）
+// ══════════ v1.71.0 · 外送距离按"填写的地址"计算（Worker → Google 地址识别 + 开车路程）══════════
+// GPS 只作备用：地址查不到 / 服务暂时不可用时，才显示 📍 GPS
+var _dqBusy = false, _dqSeq = 0, _dqLastFail = '';
+function buildFullAddress() {
+  var a = ((document.getElementById('consegna-address') || {}).value || '').replace(/\s+/g, ' ').trim();
+  var c = ((document.getElementById('consegna-civico') || {}).value || '').replace(/\s+/g, ' ').trim();
+  if (!a) return '';
+  if (!c) return a;
+  // 街道里已经写了这个门牌号 → 不重复加
+  var esc = c.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
+  if (new RegExp('(^|[\\s,])' + esc + '([\\s,]|$)', 'i').test(a)) return a;
+  var i = a.indexOf(',');
+  return i > 0 ? (a.slice(0, i).trim() + ' ' + c + ', ' + a.slice(i + 1).trim()) : (a + ' ' + c);
+}
+function showGpsFallback(show) {
+  var el = document.getElementById('consegna-gps-fallback');
+  if (el) el.style.display = show ? 'block' : 'none';
+}
+function _dqSetMsg(html, color) {
+  var el = document.getElementById('consegna-distance');
+  if (el) { el.innerHTML = html; el.style.color = color || 'rgba(237,229,212,.5)'; }
+}
+function _dqSetBtn(state) {
+  var b = document.getElementById('consegna-verify-btn');
+  if (!b) return;
+  var ok = state === 'ok';
+  b.disabled = state === 'busy';
+  b.textContent = state === 'busy' ? '\u23f3 ...' : (ok ? '\u2713 OK' : '\ud83d\udd0e Verifica');
+  b.style.background = ok ? 'rgba(39,174,96,.15)' : 'rgba(212,171,72,.15)';
+  b.style.borderColor = ok ? 'rgba(39,174,96,.4)' : 'rgba(212,171,72,.4)';
+  b.style.color = ok ? '#27ae60' : '#d4ab48';
+}
+// 地址和门牌号都填了、还没算过 → 自动算一次（同一个查不到的地址不反复查）
+function maybeAutoQuote() {
+  setTimeout(function() {
+    if (order_mode !== 'consegna' || consegna_geo || _dqBusy) return;
+    var a = ((document.getElementById('consegna-address') || {}).value || '').trim();
+    var c = ((document.getElementById('consegna-civico') || {}).value || '').trim();
+    if (a.length < 5 || !c) return;
+    var ae = document.activeElement;
+    if (ae && (ae.id === 'consegna-address' || ae.id === 'consegna-civico')) return;   // 还在填
+    if (buildFullAddress() === _dqLastFail) return;
+    quoteByAddress(false);
+  }, 200);
+}
+async function quoteByAddress(manual) {
+  if (_dqBusy) return;
+  var a = ((document.getElementById('consegna-address') || {}).value || '').trim();
+  var c = ((document.getElementById('consegna-civico') || {}).value || '').trim();
+  if (a.length < 5) { if (manual) { toast('\u26a0\ufe0f Inserisci via e citt\u00e0'); focusField('consegna-address'); } return; }
+  if (!c) { if (manual) { toast('\u26a0\ufe0f Inserisci anche il numero civico'); focusField('consegna-civico'); } return; }
+  var full = buildFullAddress();
+  var seq = ++_dqSeq;
+  _dqBusy = true; _dqSetBtn('busy');
+  _dqSetMsg('\u23f3 Verifica dell\'indirizzo in corso\u2026');
+  var fail = function(msg, gps) {
+    consegna_geo = null; _dqLastFail = full;
+    _dqSetMsg('\u2717 ' + msg, '#e74c3c'); _dqSetBtn('idle'); showGpsFallback(gps !== false);
+  };
+  try {
+    var res = await fetch(WORKER_URL + '/public/delivery/quote', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, cache: 'no-store',
+      body: JSON.stringify({ restaurant_id: RESTAURANT_ID, address: full })
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (seq !== _dqSeq || full !== buildFullAddress()) return;   // 查询期间顾客又改了地址 → 丢弃这次结果
+    if (res.ok && data && data.ok) {
+      var dist = (data.source === 'google_route') ? data.distance_km : (data.straight_km * (CONFIG.CONSEGNA_ROAD_FACTOR || 1.3));
+      consegna_geo = { lat: data.lat, lng: data.lng, distance_km: dist, straight_km: data.straight_km, source: 'address',
+                       route: data.source, label: data.formatted_address || full, precision: data.precision || 'exact', query: full };
+      _dqLastFail = '';
+      _dqSetBtn('ok'); showGpsFallback(false);
+      updateDistanceDisplay();
+    } else {
+      var code = (data && data.error) || ('http_' + res.status);
+      if (code === 'not_found' || code === 'too_vague') fail('Indirizzo non trovato. Controlla via, numero civico e citt\u00e0 (es. Via Roma 12, Carpi).');
+      else if (code === 'rate_limited') fail('Troppe verifiche in poco tempo. Riprova tra qualche minuto.');
+      else fail('Verifica dell\'indirizzo non disponibile in questo momento.');
+    }
+  } catch (e) {
+    if (seq === _dqSeq) fail('Errore di connessione. Riprova.');
+  } finally {
+    _dqBusy = false;
+    if (seq !== _dqSeq) _dqSetBtn('idle');
+    onConsegnaFormChange();
+  }
+}
+
+// 客人点 📍 GPS 按钮（备用方式）：用浏览器 Geolocation API
 function requestGpsLocation() {
   if (!navigator.geolocation) {
     toast('⚠️ GPS non disponibile sul tuo dispositivo');
@@ -4170,15 +4264,20 @@ function updateDistanceDisplay() {
   if (!el) return;
   if (!consegna_geo) { el.textContent = ''; return; }
   var d = consegna_geo.distance_km;
-  var dStr = '\u2248 ' + d.toFixed(1) + ' km';   // v1.69.15: 路程估算
+  var dStr = '\u2248 ' + d.toFixed(1).replace('.', ',') + ' km';   // v1.69.15: 路程估算
+  // v1.71.0: 按地址算的 → 显示 Google 识别出的地址，让顾客核对
+  var byAddr = consegna_geo.source === 'address';
+  var who = byAddr ? escapeHtml(consegna_geo.label || '') + '<br>' : 'Posizione GPS: ';
+  var warn = (byAddr && consegna_geo.precision === 'street')
+    ? '<br><span style="color:#d4ab48">\u26a0\ufe0f Numero civico non riconosciuto: distanza calcolata sulla via. Controlla l\'indirizzo.</span>' : '';
   if (d <= CONFIG.CONSEGNA_RANGE_NEAR_KM) {
-    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Min €' + CONFIG.CONSEGNA_MIN_ORDER + ' · Consegna €' + CONFIG.CONSEGNA_FEE_NEAR;
+    el.innerHTML = '✓ ' + who + dStr + ' · Min €' + CONFIG.CONSEGNA_MIN_ORDER + ' · Consegna €' + CONFIG.CONSEGNA_FEE_NEAR + warn;
     el.style.color = '#27ae60';
   } else if (d <= CONFIG.CONSEGNA_RANGE_MAX_KM) {
-    el.innerHTML = '✓ Posizione GPS: ' + dStr + ' · Min €' + CONFIG.CONSEGNA_MIN_ORDER_FAR + ' · Consegna €' + CONFIG.CONSEGNA_FEE_FAR;
+    el.innerHTML = '✓ ' + who + dStr + ' · Min €' + CONFIG.CONSEGNA_MIN_ORDER_FAR + ' · Consegna €' + CONFIG.CONSEGNA_FEE_FAR + warn;
     el.style.color = '#d4ab48';
   } else {
-    el.innerHTML = '✗ Posizione GPS: ' + dStr + ' · Fuori zona (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)';
+    el.innerHTML = '✗ ' + who + dStr + ' · Fuori zona (max ' + CONFIG.CONSEGNA_RANGE_MAX_KM + ' km)' + warn;
     el.style.color = '#e74c3c';
   }
 }
@@ -4189,6 +4288,8 @@ function onConsegnaFormChange() {
 
 // 客人改地址 = 之前的 GPS 钉位失效（位置必须跟地址一致）
 function onAddressTextChange() {
+  _dqSeq++;                                  // v1.71.0: 正在进行的地址查询作废
+  try { _dqSetBtn('idle'); } catch (e) {}
   if (consegna_geo) {
     consegna_geo = null;
     var btn = document.getElementById('consegna-gps-btn');
@@ -4200,7 +4301,7 @@ function onAddressTextChange() {
     }
     var distEl = document.getElementById('consegna-distance');
     if (distEl) {
-      distEl.innerHTML = '📍 Tocca "GPS" per verificare la zona di consegna';
+      distEl.innerHTML = '📍 Indirizzo modificato: tocca "Verifica" per ricalcolare la consegna';
       distEl.style.color = 'rgba(237,229,212,.5)';
     }
   }
@@ -4516,9 +4617,10 @@ function sendOrder() {
     if (!addrText) { toast('⚠️ Inserisci l\'indirizzo di consegna'); focusField('consegna-address'); return; }
     // 4. 门牌号
     if (!civico) { toast('⚠️ Inserisci il numero civico'); focusField('consegna-civico'); return; }
-    // 5. GPS 必填
+    // 5. 必须先算出配送距离（v1.71.0: 按地址；自动再试一次）
     if (!consegna_geo) {
-      toast('⚠️ Tocca 📍 GPS per verificare la zona di consegna');
+      toast('⚠️ Verifica l\'indirizzo per calcolare la consegna');
+      quoteByAddress(true);
       return;
     }
     // 6. 距离不能超
@@ -4567,7 +4669,10 @@ function sendOrder() {
       '📞 Tel: ' + phone,
       '📍 Indirizzo: ' + addrText,
       '🏠 Civico: ' + civico + (citofono ? ' · ' + citofono : ''),
-      '📏 Distanza: \u2248 ' + consegna_geo.distance_km.toFixed(1) + ' km (stradale stimata' + (consegna_geo.accuracy_m ? ' \u00b7 GPS \u00b1' + consegna_geo.accuracy_m + ' m' : '') + ')',
+      '📏 Distanza: \u2248 ' + consegna_geo.distance_km.toFixed(1) + ' km ' + (consegna_geo.source === 'address'
+          ? (consegna_geo.route === 'google_route' ? '(percorso stradale Google)' : '(stimata sull\'indirizzo)') + (consegna_geo.precision === 'street' ? ' \u26a0\ufe0f civico non riconosciuto' : '')
+          : '(stimata da GPS' + (consegna_geo.accuracy_m ? ' \u00b1' + consegna_geo.accuracy_m + ' m' : '') + ' \u26a0\ufe0f posizione del cliente, non indirizzo)'),
+      (consegna_geo.source === 'address' ? '✅ Verificato: ' + String(consegna_geo.label || '').replace(/[*_~`]/g, '') : '⚠️ Indirizzo NON verificato (usato GPS)'),
       '🗺️ Posizione: ' + mapsUrl,
       '⏰ Consegna: ' + orarioFull,
       ''
