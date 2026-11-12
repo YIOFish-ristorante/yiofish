@@ -810,7 +810,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.0 · 2026-11-12</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.2 · 2026-11-12</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -4669,14 +4669,19 @@ function sendOrder() {
       '📞 Tel: ' + phone,
       '📍 Indirizzo: ' + addrText,
       '🏠 Civico: ' + civico + (citofono ? ' · ' + citofono : ''),
-      '📏 Distanza: \u2248 ' + consegna_geo.distance_km.toFixed(1) + ' km ' + (consegna_geo.source === 'address'
-          ? (consegna_geo.route === 'google_route' ? '(percorso stradale Google)' : '(stimata sull\'indirizzo)') + (consegna_geo.precision === 'street' ? ' \u26a0\ufe0f civico non riconosciuto' : '')
-          : '(stimata da GPS' + (consegna_geo.accuracy_m ? ' \u00b1' + consegna_geo.accuracy_m + ' m' : '') + ' \u26a0\ufe0f posizione del cliente, non indirizzo)'),
-      (consegna_geo.source === 'address' ? '✅ Verificato: ' + String(consegna_geo.label || '').replace(/[*_~`]/g, '') : '⚠️ Indirizzo NON verificato (usato GPS)'),
-      '🗺️ Posizione: ' + mapsUrl,
+      // v1.71.1: 按地址算出的订单只显示公里数（不再显示"percorso stradale Google"）
+      '📏 Distanza: \u2248 ' + consegna_geo.distance_km.toFixed(1) + ' km' + (consegna_geo.source === 'address'
+          ? (consegna_geo.route === 'google_route' ? '' : ' (stimata)') + (consegna_geo.precision === 'street' ? ' \u26a0\ufe0f civico non riconosciuto' : '')
+          : ' (stimata da GPS' + (consegna_geo.accuracy_m ? ' \u00b1' + consegna_geo.accuracy_m + ' m' : '') + ' \u26a0\ufe0f posizione del cliente, non indirizzo)'),
       '⏰ Consegna: ' + orarioFull,
       ''
     ];
+    // v1.71.2: 地图链接保留（WhatsApp 顶部地图预览方便送餐）；地址已验证的订单不加"Verificato"；备用 GPS 下单额外加未验证提醒
+    if (consegna_geo.source !== 'address') {
+      lines.splice(lines.length - 2, 0, '⚠️ Indirizzo NON verificato (usato GPS)', '🗺️ Posizione: ' + mapsUrl);
+    } else {
+      lines.splice(lines.length - 2, 0, '🗺️ Posizione: ' + mapsUrl);
+    }
     var origSub = asportoOriginalSubtotal(); // 原价小计
     // BOX 套餐先列
     waBoxLines().forEach(function(l){ lines.push(l); });
