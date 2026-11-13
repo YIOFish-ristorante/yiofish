@@ -822,7 +822,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.8 · 2026-11-13</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.9 · 2026-11-13</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1218,7 +1218,13 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
         <div style="font-size:17px;font-weight:600;margin:8px 0 4px">Inviato alla cassa!</div>
         <div style="font-size:13px;color:#757575">Comunica al personale il numero che finisce con</div>
         <div id="ly-cassa-last4" style="font-size:34px;font-weight:700;letter-spacing:6px;color:#b8902e;margin:6px 0"></div>
-        <div id="ly-cassa-name" style="font-size:12px;color:#7a7060;margin-bottom:14px"></div>
+        <div id="ly-cassa-name" style="font-size:12px;color:#7a7060;margin-bottom:10px"></div>
+        <!-- v1.71.9: 员工加完分，这里显示加了多少 -->
+        <div id="ly-cassa-wait" style="font-size:13px;color:#7a7060;margin-bottom:14px">⏳ In attesa del personale…</div>
+        <div id="ly-cassa-result" style="display:none;margin:4px 0 16px;padding:14px;border-radius:10px;background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.4)">
+          <div id="ly-cassa-pts" style="font-size:30px;font-weight:700;color:#27ae60;line-height:1.1"></div>
+          <div id="ly-cassa-total" style="font-size:13px;color:#7a7060;margin-top:4px"></div>
+        </div>
         <button class="btn btn-gold" style="width:100%;padding:13px;letter-spacing:1px" onclick="lyCassaShowPoints()">⭐ Vedi i miei punti</button>
         <a href="#" onclick="lyCassaChange();return false;" style="display:inline-block;margin-top:12px;font-size:12px;color:#7a7060;text-decoration:underline">Non è il tuo numero? Cambia</a>
       </div>
@@ -1342,7 +1348,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
   <div class="admin-box">
     <h4>MENU RAPIDO</h4>
     <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;">
-      <button onclick="closeModal('quickMenuModal');openModal('adminModal');"
+      <button onclick="closeModal('quickMenuModal');openModal('adminModal');resetPin();setTimeout(function(){var e=document.getElementById('adminPwd');if(e)e.focus();},150);"
         style="background:var(--gold);border:none;border-radius:var(--r);padding:14px;font-size:14px;color:#1a1510;cursor:pointer;font-family:inherit;letter-spacing:1px;">
         🔐 ACCESSO ADMIN
       </button>
@@ -1365,26 +1371,11 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
 <div class="admin-overlay" id="adminModal">
   <div class="admin-box">
     <h4>ACCESSO ADMIN</h4>
-    <div class="pin-dots" id="pinDots">
-      <div class="pin-dot" id="dot0"></div>
-      <div class="pin-dot" id="dot1"></div>
-      <div class="pin-dot" id="dot2"></div>
-      <div class="pin-dot" id="dot3"></div>
-    </div>
-    <div class="keypad">
-      <button class="key" onclick="pinInput('1')">1</button>
-      <button class="key" onclick="pinInput('2')">2</button>
-      <button class="key" onclick="pinInput('3')">3</button>
-      <button class="key" onclick="pinInput('4')">4</button>
-      <button class="key" onclick="pinInput('5')">5</button>
-      <button class="key" onclick="pinInput('6')">6</button>
-      <button class="key" onclick="pinInput('7')">7</button>
-      <button class="key" onclick="pinInput('8')">8</button>
-      <button class="key" onclick="pinInput('9')">9</button>
-      <button class="key empty"></button>
-      <button class="key" onclick="pinInput('0')">0</button>
-      <button class="key del" onclick="pinDelete()">DEL</button>
-    </div>
+    <!-- v1.71.9: 用服务员密码进入（服务器核对），源码里不再写死密码 -->
+    <input type="password" id="adminPwd" class="form-field" placeholder="Codice cameriere" autocomplete="off"
+      style="width:100%;margin-bottom:12px;text-align:center;letter-spacing:2px"
+      onkeydown="if(event.key==='Enter')verifyPin();">
+    <button class="btn btn-gold" id="adminPwdBtn" style="width:100%;padding:13px;letter-spacing:1px" onclick="verifyPin()">ENTRA</button>
     <div class="admin-error" id="adminError"></div>
     <button class="btn-close" onclick="closeModal('adminModal'); resetPin()">Annulla</button>
   </div>
@@ -1975,7 +1966,6 @@ async function reloadMenuData() {
 // 首页菜单时间逻辑
 // ════════════════════════════════════
 var CONFIG = {
-  ADMIN_PIN: "8888",
   LOGO_CLICKS: 5,
   CLICK_TIMEOUT: 3000,
   WA_NUMBER: "393391406020",
@@ -1999,7 +1989,6 @@ var CONFIG = {
 var isAdmin = false;
 var logoClickCount = 0;
 var logoClickTimer = null;
-var pinValue = "";
 
 // 统一的罗马时间实现：Intl 官方时区库，自动处理夏令时
 // （旧版用设备时区猜夏令时，非欧洲设备会差 1 小时；现已收敛为这一个入口）
@@ -3733,11 +3722,15 @@ function updateGuestCountUI() {
   }
 }
 
-async function resetTableSession(tableNum) {
+async function resetTableSession(tableNum, pwd) {
   if (!tableNum) return;
   try {
-    // 删除旧记录
-    await sbFetch('table_sessions?restaurant_id=eq.' + RESTAURANT_ID + '&table_number=eq.' + encodeURIComponent(tableNum), {method: 'DELETE'});
+    // v1.71.9: 提前重置走服务器（带服务员密码）
+    var rr = await fetch(WORKER_URL + '/public/table/reset', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, cache: 'no-store',
+      body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: tableNum, waiter_password: pwd || ''})
+    });
+    if (!rr.ok) { var rd = await rr.json().catch(function(){ return {}; }); toast('❌ ' + (rd.error || 'Reset non riuscito')); return; }
     _tableSession = null;
     _roundCartCount = 0;
     // 清除本地购物车
@@ -3927,7 +3920,8 @@ function canAddItem() {
 async function changeGuestCount() {
   var pwd = prompt('Inserisci il codice cameriere:');
   if (pwd === null) return;
-  if (!(await waiterVerify(pwd.trim()))) {
+  pwd = pwd.trim();
+  if (!(await waiterVerify(pwd))) {
     alert('Codice non corretto.');
     return;
   }
@@ -3946,10 +3940,11 @@ async function changeGuestCount() {
   // 同步到table_configs
   var tableNum2 = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
   if (tableNum2 && _tableConfig) {
-    sbFetch('table_configs?restaurant_id=eq.'+RESTAURANT_ID+'&table_number=eq.'+encodeURIComponent(tableNum2), {
-      method: 'PATCH',
-      body: JSON.stringify({guest_count: n})
-    }).catch(function(){});
+    // v1.71.9: 改人数走服务器（带服务员密码），顾客不能再直接改
+    fetch(WORKER_URL + '/public/table/guests', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, cache: 'no-store',
+      body: JSON.stringify({restaurant_id: RESTAURANT_ID, table_number: tableNum2, guest_count: n, waiter_password: pwd})
+    }).then(function(r){ if (!r.ok) toast('⚠️ Numero di persone non salvato sul server'); }).catch(function(){});
     _tableConfig.guest_count = n;
   }
 }
@@ -3957,10 +3952,11 @@ async function changeGuestCount() {
 async function confirmResetRound() {
   var pwd = prompt('Codice cameriere per reset:');
   if (pwd === null) return;
-  if (!(await waiterVerify(pwd.trim()))) { alert('Codice non corretto.'); return; }
+  pwd = pwd.trim();
+  if (!(await waiterVerify(pwd))) { alert('Codice non corretto.'); return; }
   var tableNum = document.getElementById('table-number') ? document.getElementById('table-number').value.trim() : '';
   if (!tableNum) { alert('Inserisci prima il numero del tavolo.'); return; }
-  resetTableSession(tableNum);
+  resetTableSession(tableNum, pwd);
 }
 
 function sendNotify() {
@@ -4923,23 +4919,24 @@ document.getElementById('logoBtn').addEventListener('click', function() {
   if (logoClickCount >= CONFIG.LOGO_CLICKS) { logoClickCount = 0; openModal('quickMenuModal'); return; }
   logoClickTimer = setTimeout(function(){ logoClickCount = 0; }, CONFIG.CLICK_TIMEOUT);
 });
-function pinInput(digit) {
-  if (pinValue.length >= 4) return;
-  pinValue += digit;
-  updatePinDots();
-  if (pinValue.length === 4) verifyPin();
+// v1.71.9: 管理模式改用服务员密码，由服务器核对（连错 5 次锁 15 分钟）
+var _adminBusy = false;
+async function verifyPin() {
+  if (_adminBusy) return;
+  var inp = document.getElementById('adminPwd'), err = document.getElementById('adminError'), btn = document.getElementById('adminPwdBtn');
+  var pwd = (inp && inp.value || '').trim();
+  if (!pwd) { err.textContent = 'INSERISCI IL CODICE'; return; }
+  _adminBusy = true; if (btn) btn.disabled = true;
+  try {
+    if (await waiterVerify(pwd)) {
+      isAdmin = true; closeModal('adminModal'); resetPin(); loadMenu();
+    } else {
+      err.textContent = 'CODICE ERRATO';
+      if (inp) { inp.value = ''; inp.focus(); }
+    }
+  } finally { _adminBusy = false; if (btn) btn.disabled = false; }
 }
-function pinDelete() { pinValue = pinValue.slice(0,-1); updatePinDots(); document.getElementById('adminError').textContent = ''; }
-function updatePinDots() { for (var i=0;i<4;i++) document.getElementById('dot'+i).classList.toggle('filled', i < pinValue.length); }
-function verifyPin() {
-  if (pinValue === CONFIG.ADMIN_PIN) {
-    isAdmin = true; closeModal('adminModal'); resetPin(); loadMenu();
-  } else {
-    document.getElementById('adminError').textContent = 'PASSWORD ERRATA';
-    setTimeout(resetPin, 600);
-  }
-}
-function resetPin() { pinValue = ''; updatePinDots(); document.getElementById('adminError').textContent = ''; }
+function resetPin() { var i = document.getElementById('adminPwd'); if (i) i.value = ''; var e = document.getElementById('adminError'); if (e) e.textContent = ''; }
 
 // 预订
 function updateTimeOptions() {
@@ -5299,6 +5296,12 @@ async function lyRedeem(rewardId) {
       return;
     }
 
+    // v1.71.9: 名字平时打码（M***），PIN 输对后服务器回全名 → 换成全名
+    if (data.customer_name && _lyCustomer) {
+      _lyCustomer.name = data.customer_name;
+      var _nmEl = document.getElementById('ly-name-display');
+      if (_nmEl) _nmEl.textContent = '👤 ' + data.customer_name;
+    }
     // 显示兑换码 + 生成二维码
     document.getElementById('ly-code-display').textContent = data.code;
     document.getElementById('ly-code-reward').textContent = '🎁 ' + data.reward_name;
@@ -5410,11 +5413,48 @@ async function lyCassaSend() {
       : (data.name ? '👤 ' + data.name : '');
     document.getElementById('ly-cassa-form').style.display = 'none';
     document.getElementById('ly-cassa-done').style.display = '';
+    lyCassaWatch(data.ticket);   // v1.71.9: 等员工加分，显示加了多少
   } catch (e) {
     err.textContent = 'Connessione assente, riprova';
   } finally {
     _lyCassaBusy = false; btn.disabled = false; btn.textContent = '📲 INVIA ALLA CASSA';
   }
+}
+// v1.71.9: 员工在 redeem 加完分后，客人手机上马上显示"+4 punti · Totale 14"
+//   每 4 秒问一次服务器（页面在后台时暂停），最多等 10 分钟
+var _lyCassaTimer = null;
+function lyCassaWatch(ticket) {
+  if (_lyCassaTimer) { clearInterval(_lyCassaTimer); _lyCassaTimer = null; }
+  var wait = document.getElementById('ly-cassa-wait'), box = document.getElementById('ly-cassa-result');
+  if (box) box.style.display = 'none';
+  if (!ticket) { if (wait) wait.style.display = 'none'; return; }   // 服务器还是旧版：不显示等待
+  if (wait) { wait.style.display = ''; wait.textContent = '⏳ In attesa del personale…'; }
+  var started = Date.now(), busy = false;
+  var stop = function(){ if (_lyCassaTimer) { clearInterval(_lyCassaTimer); _lyCassaTimer = null; } };
+  var check = async function(){
+    if (busy || document.hidden) return;
+    var modal = document.getElementById('loyaltyModal');
+    if (!modal || !modal.classList.contains('open') || document.getElementById('ly-cassa-done').style.display === 'none') { stop(); return; }
+    if (Date.now() - started > 10 * 60 * 1000) { stop(); if (wait) wait.style.display = 'none'; return; }
+    busy = true;
+    try {
+      var r = await fetch(WORKER_URL + '/public/loyalty/checkin/status?t=' + encodeURIComponent(ticket), { cache: 'no-store' });
+      if (r.status === 404) { stop(); if (wait) wait.style.display = 'none'; return; }
+      var d = await r.json().catch(function(){ return {}; });
+      if (d.status === 'done') {
+        stop();
+        if (wait) wait.style.display = 'none';
+        document.getElementById('ly-cassa-pts').textContent = '+' + (d.points || 0) + ' punti 🎉';
+        document.getElementById('ly-cassa-total').textContent = d.total_points != null ? 'Totale: ' + d.total_points + ' punti' : '';
+        if (box) box.style.display = '';
+        try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) {}
+      } else if (d.status === 'dismissed' || d.status === 'expired') {
+        stop();
+        if (wait) wait.textContent = d.status === 'dismissed' ? 'Richiesta chiusa dal personale.' : 'Tempo scaduto: invia di nuovo se serve.';
+      }
+    } catch (e) {} finally { busy = false; }
+  };
+  _lyCassaTimer = setInterval(check, 4000);
 }
 function lyCassaShowPoints() {
   var phone = (document.getElementById('ly-cassa-phone').value || '').trim() || lySavedPhone();
