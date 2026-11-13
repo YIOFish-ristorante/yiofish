@@ -822,7 +822,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.4 · 2026-11-12</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.5 · 2026-11-13</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1200,6 +1200,28 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
       <input class="form-field" type="tel" id="ly-phone" placeholder="Numero di telefono">
       <button class="btn btn-gold" style="width:100%;margin-top:6px" onclick="lyLookup()">CONTINUA</button>
       <div id="ly-phone-err" style="color:#c0392b;font-size:12px;margin-top:6px"></div>
+    </div>
+
+    <!-- v1.71.5 收银台扫码：把手机号发到员工端（redeem），员工填积分确认 -->
+    <div id="ly-step-cassa" style="display:none">
+      <div id="ly-cassa-form">
+        <p style="font-size:13px;color:#757575;text-align:center;margin-bottom:14px;line-height:1.6">
+          Invia il tuo numero alla cassa:<br>il personale aggiungerà i tuoi punti.
+        </p>
+        <input class="form-field" type="tel" id="ly-cassa-phone" placeholder="Numero di telefono" autocomplete="tel"
+          onkeydown="if(event.keyCode===13)lyCassaSend()">
+        <button class="btn btn-gold" id="ly-cassa-btn" style="width:100%;margin-top:6px;padding:14px;letter-spacing:1px" onclick="lyCassaSend()">📲 INVIA ALLA CASSA</button>
+        <div id="ly-cassa-err" style="color:#c0392b;font-size:12px;margin-top:6px"></div>
+      </div>
+      <div id="ly-cassa-done" style="display:none;text-align:center;padding:6px 0 4px">
+        <div style="font-size:44px;line-height:1">✅</div>
+        <div style="font-size:17px;font-weight:600;margin:8px 0 4px">Inviato alla cassa!</div>
+        <div style="font-size:13px;color:#757575">Comunica al personale il numero che finisce con</div>
+        <div id="ly-cassa-last4" style="font-size:34px;font-weight:700;letter-spacing:6px;color:#b8902e;margin:6px 0"></div>
+        <div id="ly-cassa-name" style="font-size:12px;color:#7a7060;margin-bottom:14px"></div>
+        <button class="btn btn-gold" style="width:100%;padding:13px;letter-spacing:1px" onclick="lyCassaShowPoints()">⭐ Vedi i miei punti</button>
+        <a href="#" onclick="lyCassaChange();return false;" style="display:inline-block;margin-top:12px;font-size:12px;color:#7a7060;text-decoration:underline">Non è il tuo numero? Cambia</a>
+      </div>
     </div>
 
     <!-- 步骤2：显示积分+奖品 -->
@@ -4932,7 +4954,7 @@ var _lyRewards = [];
 var _lyFlow = 'login'; // 'login' or 'register'
 
 function lyShowStep(step) {
-  ['intro','phone','rewards','code'].forEach(function(s){
+  ['intro','phone','rewards','code','cassa'].forEach(function(s){
     var el = document.getElementById('ly-step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
   });
@@ -5109,6 +5131,7 @@ async function lyLookup() {
 
     _lyPhone = phone;
     _lyCustomer = data.customer;
+    lySavePhone(phone);   // v1.71.5: 记住号码，下次在收银台扫码自动发送
 
     document.getElementById('ly-pts-display').textContent = _lyCustomer.total_points;
     var nameEl = document.getElementById('ly-name-display');
@@ -5328,7 +5351,89 @@ async function lyCheckExpiry(customerId) {
   } catch(e) {}
 }
 
+// ════════════════════════════════════════════════════════
+//  v1.71.5 收银台扫码加积分（?cassa）
+//  客人扫收银台二维码 → 自动打开这里 → 手机号发到本店员工端名单 → 员工填积分确认
+//  这台手机用过积分（记住了号码）→ 打开就自动发送，什么都不用按
+// ════════════════════════════════════════════════════════
+var LY_PHONE_KEY = 'yio_ly_phone';
+function lySavedPhone() { try { return localStorage.getItem(LY_PHONE_KEY) || ''; } catch (e) { return ''; } }
+function lySavePhone(p) { try { if (p) localStorage.setItem(LY_PHONE_KEY, p); else localStorage.removeItem(LY_PHONE_KEY); } catch (e) {} }
+function lyOpenCassa() {
+  openModal('loyaltyModal');
+  lyShowStep('cassa');
+  document.getElementById('ly-cassa-form').style.display = '';
+  document.getElementById('ly-cassa-done').style.display = 'none';
+  document.getElementById('ly-cassa-err').textContent = '';
+  var saved = lySavedPhone();
+  var inp = document.getElementById('ly-cassa-phone');
+  inp.value = saved;
+  if (saved) lyCassaSend();
+  else setTimeout(function(){ inp.focus(); }, 150);
+}
+var _lyCassaBusy = false;
+async function lyCassaSend() {
+  if (_lyCassaBusy) return;
+  var inp = document.getElementById('ly-cassa-phone'), err = document.getElementById('ly-cassa-err'), btn = document.getElementById('ly-cassa-btn');
+  var phone = (inp.value || '').trim().replace(/\s+/g, '');
+  if (!phone) { err.textContent = 'Inserisci il numero di telefono'; inp.focus(); return; }
+  if (!/^\+?\d{9,13}$/.test(phone)) { err.textContent = 'Numero non valido: servono 9-13 cifre (es. 333 123 4567)'; inp.focus(); return; }
+  err.textContent = '';
+  _lyCassaBusy = true; btn.disabled = true; btn.textContent = '⏳ Invio…';
+  try {
+    var res = await fetch(WORKER_URL + '/public/loyalty/checkin', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurant_id: RESTAURANT_ID, phone: phone }), cache: 'no-store'
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok || !data.ok) {
+      err.textContent = data.error === 'bad_restaurant' ? 'Errore: negozio non riconosciuto' : (data.error || 'Errore, riprova');
+      return;
+    }
+    lySavePhone(phone);
+    document.getElementById('ly-cassa-last4').textContent = data.last4 || phone.slice(-4);
+    document.getElementById('ly-cassa-name').textContent = data.is_new
+      ? '👋 Benvenuto! Il tuo account fedeltà è stato creato.'
+      : (data.name ? '👤 ' + data.name : '');
+    document.getElementById('ly-cassa-form').style.display = 'none';
+    document.getElementById('ly-cassa-done').style.display = '';
+  } catch (e) {
+    err.textContent = 'Connessione assente, riprova';
+  } finally {
+    _lyCassaBusy = false; btn.disabled = false; btn.textContent = '📲 INVIA ALLA CASSA';
+  }
+}
+function lyCassaShowPoints() {
+  var phone = (document.getElementById('ly-cassa-phone').value || '').trim() || lySavedPhone();
+  _lyFlow = 'login';
+  document.getElementById('ly-phone').value = phone;
+  lyShowStep('phone');
+  lyLookup();
+}
+// ?cassa 入口：独立于菜单加载（菜单加载慢或出错也不影响收银台扫码）
+(function(){
+  try {
+    var q = new URLSearchParams(location.search);
+    if (!q.has('cassa')) return;
+    // 先把 ?cassa 从网址里去掉：之后刷新页面/从后台切回来，不会再自动发一次
+    q.delete('cassa');
+    var qs = q.toString();
+    try { history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } catch (e) {}
+    var go = function(){ setTimeout(function(){ try { lyOpenCassa(); } catch (e) {} }, 300); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+  } catch (e) {}
+})();
+function lyCassaChange() {
+  lySavePhone('');
+  var inp = document.getElementById('ly-cassa-phone');
+  inp.value = '';
+  document.getElementById('ly-cassa-done').style.display = 'none';
+  document.getElementById('ly-cassa-form').style.display = '';
+  setTimeout(function(){ inp.focus(); }, 100);
+}
+
 function lyReset() {
+  lySavePhone('');   // v1.71.5: "Cambia numero" 也忘掉记住的号码
   _lyPhone = ''; _lyCustomer = null;
   document.getElementById('ly-phone').value = '';
   document.getElementById('ly-phone-err').textContent = '';

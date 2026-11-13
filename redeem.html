@@ -62,6 +62,25 @@ input:focus{border-color:var(--gold)}
 .menu-icon{font-size:26px;flex-shrink:0}
 .menu-label{font-size:14px;font-weight:500;letter-spacing:.5px}
 .menu-desc{font-size:11px;color:var(--muted);margin-top:2px}
+/* v3.8 收银台扫码客人名单 */
+#cassa-panel{width:100%;margin-bottom:16px}
+.ck-card{background:var(--surface);border:2px solid var(--gold);border-radius:var(--r);padding:14px 16px}
+.ck-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ck-title{font-size:14px;font-weight:600}
+.ck-count{background:var(--red);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:6px;vertical-align:1px}
+.ck-toggle{background:none;border:1px solid var(--border);border-radius:14px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap}
+.ck-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);flex-wrap:wrap}
+.ck-row:first-of-type{border-top:none}
+.ck-who{flex:1 1 150px;min-width:0}
+.ck-last4{font-size:22px;font-weight:700;letter-spacing:2px;color:var(--text)}
+.ck-sub{font-size:11px;color:var(--muted)}
+.ck-new{animation:ckFlash 1.2s ease 3}
+@keyframes ckFlash{0%,100%{background:transparent}50%{background:#fdf3d8}}
+.ck-act{display:flex;align-items:center;gap:6px}
+.ck-act input{width:82px;margin:0;padding:9px 10px;font-size:18px;text-align:center;font-weight:600}
+.ck-ok{width:auto;margin:0;padding:10px 14px;font-size:13px;background:var(--green);color:#fff;border:none;border-radius:var(--r);cursor:pointer;font-family:inherit;white-space:nowrap}
+.ck-ok:disabled{opacity:.5}
+.ck-x{width:auto;margin:0;padding:10px 10px;font-size:13px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:var(--r);cursor:pointer}
 </style>
 </head>
 <body>
@@ -75,6 +94,19 @@ input:focus{border-color:var(--gold)}
 </div>
 
 <div class="wrap">
+
+  <!-- v3.8: 收银台扫码客人名单（登录后在每个页面顶部显示） -->
+  <div id="cassa-panel" style="display:none">
+    <div class="ck-card">
+      <div class="ck-head">
+        <div class="ck-title">🧾 Clienti in cassa <span class="ck-count" id="ck-count" style="display:none"></span></div>
+        <button class="ck-toggle" id="ck-toggle" onclick="ckToggle()"></button>
+      </div>
+      <div id="ck-toast"></div>
+      <div id="ck-err"></div>
+      <div id="ck-list"></div>
+    </div>
+  </div>
 
   <!-- STEP: login -->
   <div id="step-login">
@@ -485,10 +517,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.7</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.8</div>
 
 <script>
-var APP_VERSION = 'v3.7';
+var APP_VERSION = 'v3.8';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -569,6 +601,7 @@ function showStep(step) {
     var el = document.getElementById('step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
   });
+  try { ckOnStep(step); } catch (e) {}   // v3.8 收银台名单
 }
 
 function showErr(elId, msg) {
@@ -1590,6 +1623,164 @@ async function doChangePassword() {
   } catch(e) {
     showErr('changepwd-err', 'Errore: ' + e.message);
   }
+}
+
+// ════════════════════════════════════════
+//  v3.8 · 收银台扫码加积分（Clienti in cassa）
+//  客人扫收银台二维码 → 号码出现在这里 → 员工问一句尾号 → 填积分 → ✅
+//  只在页面打开、看得见、并且本机开着"Cassa ON"时每 8 秒查一次
+// ════════════════════════════════════════
+var CK_POLL_MS = 8000;
+var _ckTimer = null, _ckSeen = {}, _ckFirst = true, _ckBusy = false, _ckRows = [];
+function ckEnabled() { try { return localStorage.getItem('yio_staff_cassa_off') !== '1'; } catch (e) { return true; } }
+function ckRenderToggle() {
+  var b = document.getElementById('ck-toggle');
+  if (b) b.textContent = ckEnabled() ? '🔔 Cassa ON' : '🔕 Cassa OFF';
+}
+function ckToggle() {
+  var on = !ckEnabled();
+  try { if (on) localStorage.removeItem('yio_staff_cassa_off'); else localStorage.setItem('yio_staff_cassa_off', '1'); } catch (e) {}
+  ckRenderToggle();
+  ckUnlockAudio();
+  if (on) { ckPoll(); ckStart(); } else { ckStop(); ckShowOff(); }
+}
+function ckShowOff() {
+  ckRender([]);
+  var box = document.getElementById('ck-list');
+  if (box) box.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0 0">Su questo dispositivo non arrivano i clienti dalla cassa. Premi "Cassa OFF" per riattivare.</div>';
+}
+function ckOnStep(step) {
+  var panel = document.getElementById('cassa-panel');
+  if (!panel) return;
+  if (step === 'login' || !_token) { panel.style.display = 'none'; ckStop(); _ckSeen = {}; _ckFirst = true; return; }
+  panel.style.display = '';
+  ckRenderToggle();
+  if (ckEnabled()) { if (!_ckTimer) { ckPoll(); ckStart(); } }
+  else ckShowOff();
+}
+function ckStart() { if (!_ckTimer) _ckTimer = setInterval(function(){ if (!document.hidden) ckPoll(); }, CK_POLL_MS); }
+function ckStop() { if (_ckTimer) { clearInterval(_ckTimer); _ckTimer = null; } }
+document.addEventListener('visibilitychange', function(){ if (!document.hidden && _token && ckEnabled() && _ckTimer) ckPoll(); });
+
+// 提示音（浏览器要求先有一次点击才能出声，登录/点按钮时解锁）
+var _ckAudio = null;
+function ckUnlockAudio() { try { if (!_ckAudio) _ckAudio = new (window.AudioContext || window.webkitAudioContext)(); if (_ckAudio.state === 'suspended') _ckAudio.resume(); } catch (e) {} }
+document.addEventListener('click', ckUnlockAudio, { once: true });
+function ckBeep() {
+  try {
+    ckUnlockAudio(); if (!_ckAudio) return;
+    [0, 0.18].forEach(function(t, i){
+      var o = _ckAudio.createOscillator(), g = _ckAudio.createGain();
+      o.type = 'sine'; o.frequency.value = i ? 1320 : 880;
+      g.gain.setValueAtTime(0.0001, _ckAudio.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.25, _ckAudio.currentTime + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, _ckAudio.currentTime + t + 0.16);
+      o.connect(g); g.connect(_ckAudio.destination); o.start(_ckAudio.currentTime + t); o.stop(_ckAudio.currentTime + t + 0.18);
+    });
+  } catch (e) {}
+}
+
+async function ckPoll() {
+  if (!_token || _ckBusy) return;
+  _ckBusy = true;
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/checkin/list?restaurant_id=' + encodeURIComponent(_store), {
+      headers: { 'Authorization': 'Bearer ' + _token }, cache: 'no-store'
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) { showErr('ck-err', data.error || ('Errore ' + res.status)); return; }
+    showErr('ck-err', '');
+    var rows = data.checkins || [];
+    var fresh = rows.filter(function(r){ return !_ckSeen[r.id + '@' + r.created_at]; });
+    rows.forEach(function(r){ _ckSeen[r.id + '@' + r.created_at] = 1; });
+    if (fresh.length && !_ckFirst) ckBeep();
+    _ckFirst = false;
+    ckRender(rows, fresh);
+  } catch (e) {
+    showErr('ck-err', 'Connessione assente, riprovo…');
+  } finally { _ckBusy = false; }
+}
+
+function ckRender(rows, fresh) {
+  _ckRows = rows || [];
+  var cnt = document.getElementById('ck-count');
+  if (cnt) { cnt.style.display = _ckRows.length ? '' : 'none'; cnt.textContent = _ckRows.length; }
+  try { document.title = (_ckRows.length ? '(' + _ckRows.length + ') ' : '') + 'YIO Staff'; } catch (e) {}
+  var box = document.getElementById('ck-list');
+  if (!box) return;
+  if (!ckEnabled()) return;
+  if (!_ckRows.length) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0 0">Nessun cliente in attesa. Quando un cliente inquadra il QR della cassa, il suo numero compare qui.</div>';
+    return;
+  }
+  // 正在输入的积分不被刷新冲掉
+  var typed = {}, focusId = null;
+  _ckRows.forEach(function(r){ var el = document.getElementById('ck-pts-' + r.id); if (el) { typed[r.id] = el.value; if (document.activeElement === el) focusId = r.id; } });
+  var freshIds = {}; (fresh || []).forEach(function(r){ freshIds[r.id] = 1; });
+  var html = '';
+  _ckRows.forEach(function(r){
+    var ph = String(r.phone || ''), last4 = ph.slice(-4);
+    var t = '', ago = '';
+    try { var d = new Date(r.created_at); t = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }); var m = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000)); ago = m < 1 ? 'adesso' : m + ' min fa'; } catch (e) {}
+    html += '<div class="ck-row' + (freshIds[r.id] ? ' ck-new' : '') + '">'
+      + '<div class="ck-who"><div class="ck-last4">•••• ' + _esc(last4) + '</div>'
+      + '<div class="ck-sub">' + (r.customer_name ? '👤 ' + _esc(r.customer_name) + ' · ' : '') + _esc(ph) + ' · ' + t + ' (' + ago + ')</div></div>'
+      + '<div class="ck-act">'
+      + '<input type="number" inputmode="numeric" min="1" max="1000" id="ck-pts-' + r.id + '" placeholder="Punti" onkeydown="if(event.keyCode===13)ckAward(' + r.id + ')">'
+      + '<button class="ck-ok" id="ck-btn-' + r.id + '" onclick="ckAward(' + r.id + ')">✅ Aggiungi</button>'
+      + '<button class="ck-x" title="Rimuovi" onclick="ckDismiss(' + r.id + ')">✕</button>'
+      + '</div></div>';
+  });
+  box.innerHTML = html;
+  Object.keys(typed).forEach(function(id){ var el = document.getElementById('ck-pts-' + id); if (el) el.value = typed[id]; });
+  if (focusId) { var f = document.getElementById('ck-pts-' + focusId); if (f) f.focus(); }
+}
+
+function ckToast(html) {
+  var el = document.getElementById('ck-toast'); if (!el) return;
+  el.innerHTML = html;
+  clearTimeout(ckToast._t); ckToast._t = setTimeout(function(){ el.innerHTML = ''; }, 6000);
+}
+
+async function ckAward(id) {
+  var inp = document.getElementById('ck-pts-' + id), btn = document.getElementById('ck-btn-' + id);
+  var pts = parseInt((inp && inp.value) || '0', 10);
+  if (!pts || pts < 1 || pts > 1000) { showErr('ck-err', 'Inserisci i punti (da 1 a 1000)'); if (inp) inp.focus(); return; }
+  var row = _ckRows.filter(function(r){ return r.id === id; })[0] || {};
+  showErr('ck-err', '');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/checkin/award', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+      body: JSON.stringify({ id: id, points: pts }), cache: 'no-store'
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) { showErr('ck-err', data.error || 'Errore'); if (btn) { btn.disabled = false; btn.textContent = '✅ Aggiungi'; } ckPoll(); return; }
+    var ph = data.phone || row.phone || '';
+    if (data.tx_id) saveLastOp({ tx_id: data.tx_id, label: '+' + pts + ' pt a ' + ph + ' (cassa)', ts: Date.now() });
+    ckToast('<div class="msg msg-ok" style="margin:10px 0 0">✅ +' + pts + ' punti a •••• ' + _esc(String(ph).slice(-4)) + (data.name ? ' (' + _esc(data.name) + ')' : '') + ' · Totale: ' + data.total_points + '</div>');
+    _ckRows = _ckRows.filter(function(r){ return r.id !== id; });
+    ckRender(_ckRows);
+    ckPoll();
+  } catch (e) {
+    showErr('ck-err', 'Errore di connessione: riprova');
+    if (btn) { btn.disabled = false; btn.textContent = '✅ Aggiungi'; }
+  }
+}
+
+async function ckDismiss(id) {
+  if (!confirm('Rimuovere questo cliente dalla lista? Non verranno aggiunti punti.')) return;
+  try {
+    var res = await fetch(WORKER_URL + '/loyalty/checkin/dismiss', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+      body: JSON.stringify({ id: id }), cache: 'no-store'
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) showErr('ck-err', data.error || 'Errore');
+  } catch (e) { showErr('ck-err', 'Errore di connessione'); }
+  _ckRows = _ckRows.filter(function(r){ return r.id !== id; });
+  ckRender(_ckRows);
+  ckPoll();
 }
 </script>
 </body>
