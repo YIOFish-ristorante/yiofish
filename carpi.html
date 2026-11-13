@@ -822,7 +822,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.6 · 2026-11-13</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.7 · 2026-11-13</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1659,6 +1659,8 @@ async function waiterVerify(pwd) {
       cache: 'no-store'
     });
     var d = await r.json();
+    // v1.71.7: 连错 5 次被锁 15 分钟时，告诉店员"被锁了"，而不是只显示密码错
+    if (r.status === 429 && d && d.error) { try { toast('⏳ ' + d.error); } catch (e2) {} }
     return !!(r.ok && d && d.ok);
   } catch (e) {
     toast('❌ Errore di connessione');

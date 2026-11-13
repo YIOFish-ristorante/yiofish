@@ -517,10 +517,10 @@ input:focus{border-color:var(--gold)}
 
 </div>
 
-<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v3.8</div>
+<div style="text-align:center;padding:20px 0;font-size:10px;color:#b0a898;letter-spacing:1px">YIO Staff · v4.0</div>
 
 <script>
-var APP_VERSION = 'v3.8';
+var APP_VERSION = 'v4.0';
 var WORKER_URL = 'https://yio-api.zhou136103031.workers.dev';
 var _token = '';
 var _store = '';
@@ -556,7 +556,7 @@ function renderUndoBanner() {
   var op = getLastOp();
   if (!op) { box.innerHTML = ''; return; }
   box.innerHTML = '<div style="background:#fdf8ee;border:1px solid rgba(184,144,46,.25);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px">'
-    + '<span style="font-size:12px;color:#7a6020">Ultima: ' + op.label + '</span>'
+    + '<span style="font-size:12px;color:#7a6020">Ultima: ' + _esc(op.label) + '</span>'
     + '<button class="btn" style="width:auto;background:#fdf0ee;color:var(--red);border:1px solid rgba(192,57,43,.3);padding:6px 10px;font-size:12px" onclick="undoLastOp()">↩️ Annulla</button>'
   + '</div>';
 }
@@ -581,10 +581,69 @@ async function undoLastOp() {
 
 var ALL_STEPS = ['login','menu','code','confirm','success','addpts','addpts-success','changepwd','changepwd-success','scan','redeem-scan','pending','pinreq','lottery','riscatta-choose','addpunti-choose','reservations','resetpin','resetpin-success'];
 
-// 页面加载时自动填入已保存凭证
+// 页面加载时自动填入已保存的用户名
+// v3.9: 刷新页面不退出登录——登录凭证（7 天有效）存在本机，打开页面直接回到菜单
+// v4.0: 浏览器里不再保存密码。凭证快到期时向服务器换一个新的（/store-admin/refresh），
+//       只要这台设备 7 天内用过一次就一直不用重新登录；改了密码 / 账号被删 → 必须重新登录
 window.addEventListener('load', function() {
+  try { localStorage.removeItem('yio_staff_pwd'); localStorage.removeItem('yio_staff_loggedout'); } catch (e) {}   // 清掉旧版存的明文密码
   loadSavedCredentials();
+  if (restoreSession()) refreshTokenIfNeeded();
 });
+var STAFF_SESSION_KEY = 'yio_staff_session';
+function _jwtExpMs(t) {
+  try {
+    var p = String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (p.length % 4) p += '=';
+    var o = JSON.parse(atob(p));
+    return o.exp ? o.exp * 1000 : 0;
+  } catch (e) { return 0; }
+}
+function saveSession() {
+  try { localStorage.setItem(STAFF_SESSION_KEY, JSON.stringify({ t: _token, s: _store, u: _username })); } catch (e) {}
+}
+function clearSession() { try { localStorage.removeItem(STAFF_SESSION_KEY); } catch (e) {} }
+function restoreSession() {
+  try {
+    var o = JSON.parse(localStorage.getItem(STAFF_SESSION_KEY) || 'null');
+    if (!o || !o.t || !o.s) return false;
+    if (_jwtExpMs(o.t) - Date.now() < 10 * 60 * 1000) { clearSession(); return false; }   // 10 分钟内过期 → 当作已过期
+    _token = o.t; _store = o.s; _username = o.u || '';
+    showStaffName();
+    showStep('menu');
+    return true;
+  } catch (e) { return false; }
+}
+// 凭证剩不到 5 天 → 向服务器换一个新的 7 天凭证（不跳页面、不需要密码）
+var _refreshing = false;
+async function refreshTokenIfNeeded() {
+  if (!_token || _refreshing) return;
+  if (_jwtExpMs(_token) - Date.now() > 5 * 24 * 3600 * 1000) return;
+  _refreshing = true;
+  try {
+    var res = await fetch(WORKER_URL + '/store-admin/refresh', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + _token }, cache: 'no-store'
+    });
+    var data = await res.json().catch(function(){ return {}; });
+    if (res.ok && data.token) { _token = data.token; saveSession(); }
+    else if (res.status === 401 && data.relogin) { sessionExpired(data.error); }
+    // 其他情况（网络问题 / 服务器还是旧版）：保留现在的凭证，下次再试
+  } catch (e) {} finally { _refreshing = false; }
+}
+function sessionExpired(msg) {
+  doLogout();
+  showErr('login-err', (msg || 'Sessione scaduta, accedi di nuovo'));
+}
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) refreshTokenIfNeeded(); });
+setInterval(refreshTokenIfNeeded, 60 * 60 * 1000);
+function showStaffName() {
+  var storeNames = {carpi:'Carpi', imola:'Imola', legnago:'Legnago'};
+  var staffEl = document.getElementById('topbar-staff');
+  if (staffEl) {
+    staffEl.textContent = '👤 ' + _username + ' · ' + (storeNames[_store] || _store);
+    staffEl.style.display = '';
+  }
+}
 
 function showStep(step) {
   // 离开扫码页时停止摄像头
@@ -606,7 +665,8 @@ function showStep(step) {
 
 function showErr(elId, msg) {
   var el = document.getElementById(elId);
-  if (el) el.innerHTML = msg ? '<div class="msg msg-err">'+msg+'</div>' : '';
+  // v4.0: 提示文字一律转义后再显示（服务器/客人数据不能当成网页代码执行）
+  if (el) el.innerHTML = msg ? '<div class="msg msg-err">'+_esc(msg)+'</div>' : '';
 }
 
 async function doLogin() {
@@ -624,35 +684,30 @@ async function doLogin() {
     });
     var data = await res.json();
     if (!res.ok) {
-      showErr('login-err', data.error || 'Username o password errati');
+      showErr('login-err', (data.error || 'Username o password errati'));
       return;
     }
     _token = data.token;
     _store = data.restaurantId;
     _username = data.username;
+    saveSession();   // v3.9: 刷新页面不退出
 
-    // 保存凭证到 localStorage
-    try {
-      localStorage.setItem('yio_staff_user', username);
-      localStorage.setItem('yio_staff_pwd', pwd);
-    } catch(e) {}
+    // v4.0: 只记住用户名（方便下次登录），密码不保存
+    try { localStorage.setItem('yio_staff_user', username); localStorage.removeItem('yio_staff_pwd'); } catch(e) {}
+    document.getElementById('inp-pwd').value = '';
 
     // topbar 显示店员名 + 店铺
-    var storeNames = {carpi:'Carpi', imola:'Imola', legnago:'Legnago'};
-    var staffEl = document.getElementById('topbar-staff');
-    if (staffEl) {
-      staffEl.textContent = '👤 ' + _username + ' · ' + (storeNames[_store] || _store);
-      staffEl.style.display = '';
-    }
+    showStaffName();
 
     showErr('login-err', '');
     showStep('menu');
   } catch(e) {
-    showErr('login-err', 'Errore di connessione: ' + e.message);
+    showErr('login-err', 'Errore di connessione: ' + (e.message));
   }
 }
 
 function doLogout() {
+  clearSession();   // v3.9: 按 "Esci" 才真正退出
   _token = ''; _store = ''; _username = ''; _redemptionId = null;
   document.getElementById('inp-code').value = '';
   var staffEl = document.getElementById('topbar-staff');
@@ -665,14 +720,13 @@ function doLogout() {
 function loadSavedCredentials() {
   try {
     var savedUser = localStorage.getItem('yio_staff_user');
-    var savedPwd = localStorage.getItem('yio_staff_pwd');
-    if (savedUser && savedPwd) {
+    if (savedUser) {
       document.getElementById('inp-user').value = savedUser;
-      document.getElementById('inp-pwd').value = savedPwd;
+      document.getElementById('inp-pwd').value = '';
       var hint = document.getElementById('saved-hint');
       var hintText = document.getElementById('saved-hint-text');
       if (hint) hint.style.display = 'flex';
-      if (hintText) hintText.textContent = '👤 Credenziali salvate: ' + savedUser;
+      if (hintText) hintText.textContent = '👤 Utente salvato: ' + savedUser;
     }
   } catch(e) {}
 }
@@ -707,10 +761,10 @@ async function doVerify() {
     var expStr = expires.getHours()+':'+(expires.getMinutes()<10?'0':'')+expires.getMinutes();
     document.getElementById('confirm-detail').innerHTML =
       '<div class="reward-box">'
-        + '<div class="reward-name">🎁 ' + data.reward_name + '</div>'
-        + (data.reward_description ? '<div class="reward-desc">' + data.reward_description + '</div>' : '')
-        + '<div class="reward-pts">− ' + data.points_cost + ' punti</div>'
-        + '<div class="customer-info">👤 ' + (data.customer_name || '—') + ' · 📱 ' + data.customer_phone + '</div>'
+        + '<div class="reward-name">🎁 ' + _esc(data.reward_name) + '</div>'
+        + (data.reward_description ? '<div class="reward-desc">' + _esc(data.reward_description) + '</div>' : '')
+        + '<div class="reward-pts">− ' + _esc(data.points_cost) + ' punti</div>'
+        + '<div class="customer-info">👤 ' + _esc(data.customer_name || '—') + ' · 📱 ' + _esc(data.customer_phone) + '</div>'
       + '</div>'
       + '<div class="msg msg-info">⏱ Codice valido fino alle ' + expStr + '</div>';
     showStep('confirm');
@@ -921,7 +975,7 @@ async function decidePinReq(id, action, btn) {
       loadPinReqs(true);
       updatePinBadge();
     } else {
-      showErr('pinreq-err', escHtml(data.error || ('Errore ' + res.status)));
+      showErr('pinreq-err', (data.error || ('Errore ' + res.status)));
       btn.disabled = false;
       loadPinReqs(true);
     }
@@ -1012,7 +1066,7 @@ async function decideLotteryReq(id, action, btn) {
       loadLotteryReqs(true);
       updateLotteryBadge();
     } else {
-      showErr('lottery-err', escHtml(data.error || ('Errore ' + res.status)));
+      showErr('lottery-err', (data.error || ('Errore ' + res.status)));
       btn.disabled = false;
       loadLotteryReqs(true);
     }
@@ -1037,7 +1091,7 @@ async function lotteryResetTable() {
       document.getElementById('lottery-toast').innerHTML = '<div style="background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.35);color:#7bd88f;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px">✅ Tavolo ' + escHtml(t) + ' resettato (' + (data.cleared || 0) + ' richieste)</div>';
       document.getElementById('lottery-reset-table').value = '';
     } else {
-      showErr('lottery-err', escHtml(data.error || 'Errore'));
+      showErr('lottery-err', (data.error || 'Errore'));
     }
     loadLotteryReqs(true);
   } catch (e) { showErr('lottery-err', 'Errore di rete'); }
@@ -1091,14 +1145,14 @@ async function loadStaffReservations(silent){
     });
     var data = await res.json();
     if (!res.ok) {
-      if (errEl) errEl.innerHTML = '<div class="msg msg-err">' + (data.error || 'Errore') + '</div>';
+      if (errEl) errEl.innerHTML = '<div class="msg msg-err">' + _esc(data.error || 'Errore') + '</div>';
       if (!silent) listEl.innerHTML = '';
       return;
     }
     _resData = Array.isArray(data) ? data : [];
     renderStaffResList();
   } catch(e) {
-    if (errEl) errEl.innerHTML = '<div class="msg msg-err">' + e.message + '</div>';
+    if (errEl) errEl.innerHTML = '<div class="msg msg-err">' + _esc(e.message) + '</div>';
     if (!silent) listEl.innerHTML = '';
   }
 }
@@ -1241,7 +1295,7 @@ async function lotteryVoidWin(winId, prizeName, btn) {
     if (res.ok && data.ok) {
       document.getElementById('lottery-toast').innerHTML = '<div style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);color:#e8a49c;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px">✕ Annullato: ' + escHtml(data.prize_name || prizeName || '') + '</div>';
     } else {
-      showErr('lottery-err', escHtml(data.error || 'Errore'));
+      showErr('lottery-err', (data.error || 'Errore'));
     }
   } catch (e) { showErr('lottery-err', 'Errore di rete'); }
   loadLotteryActiveWins();
@@ -1401,7 +1455,7 @@ async function lotteryRedeemWin(codeOrId, prizeName, btn) {
       body: JSON.stringify({code: String(codeOrId).toUpperCase(), restaurant_id: _store})
     });
     const ld = await lr.json().catch(() => ({}));
-    if (!lr.ok || !ld.ok) { showErr('lottery-err', escHtml(ld.error || 'Codice non trovato')); if (btn) btn.disabled = false; return; }
+    if (!lr.ok || !ld.ok) { showErr('lottery-err', (ld.error || 'Codice non trovato')); if (btn) btn.disabled = false; return; }
     if (ld.win.status !== 'active') { showErr('lottery-err', 'Premio non più valido (' + ld.win.status + ')'); if (btn) btn.disabled = false; loadLotteryActiveWins(); lotterySearchRefresh(); return; }
     if (ld.win.usable === false) { showErr('lottery-err', '⏳ Premio utilizzabile dalla prossima visita (non oggi)'); if (btn) btn.disabled = false; loadLotteryActiveWins(); lotterySearchRefresh(); return; }
     const res = await fetch(WORKER_URL + '/lottery/wins/redeem', {
@@ -1415,7 +1469,7 @@ async function lotteryRedeemWin(codeOrId, prizeName, btn) {
       loadLotteryActiveWins();
       lotterySearchRefresh(); // 保留桌号并刷新列表，可接着核销下一笔
     } else {
-      showErr('lottery-err', escHtml(data.error || 'Errore'));
+      showErr('lottery-err', (data.error || 'Errore'));
       if (btn) btn.disabled = false;
       loadLotteryActiveWins();
       lotterySearchRefresh();
@@ -1459,7 +1513,8 @@ async function confirmPending(id, action, btn) {
     if (okEl) {
       if (action === 'confirm') {
         if (data.tx_id) saveLastOp({ tx_id: data.tx_id, label: '+' + (data.points_earned || 0) + ' pt (asporto)', ts: Date.now() });
-        okEl.innerHTML = '<div class="msg msg-ok">✅ +' + (data.points_earned || 0) + ' punti assegnati</div>';
+        okEl.innerHTML = '<div class="msg msg-ok">✅ +' + _esc(data.points_earned || 0) + ' punti assegnati'
+          + (data.capped ? ' (massimo ' + _esc(data.max_points) + ' per ordine)' : '') + '</div>';   // v4.0
       } else {
         okEl.innerHTML = '<div class="msg msg-ok">✅ Ordine annullato</div>';
       }
@@ -1619,6 +1674,15 @@ async function doChangePassword() {
     document.getElementById('cp-old').value = '';
     document.getElementById('cp-new1').value = '';
     document.getElementById('cp-new2').value = '';
+    // v4.0: 密码变了，旧凭证不能再续期 → 马上用新密码换一个新凭证（员工不用重新登录）
+    try {
+      var lr = await fetch(WORKER_URL + '/store-admin/login', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({username: _username, password: newPwd1}), cache: 'no-store'
+      });
+      var ld = await lr.json();
+      if (lr.ok && ld.token) { _token = ld.token; saveSession(); }
+    } catch (e) {}
     showStep('changepwd-success');
   } catch(e) {
     showErr('changepwd-err', 'Errore: ' + e.message);
@@ -1688,6 +1752,11 @@ async function ckPoll() {
       headers: { 'Authorization': 'Bearer ' + _token }, cache: 'no-store'
     });
     var data = await res.json().catch(function(){ return {}; });
+    if (res.status === 401 || res.status === 403) {
+      // v4.0: 登录失效 → 回到登录页
+      sessionExpired(data.error);
+      return;
+    }
     if (!res.ok) { showErr('ck-err', data.error || ('Errore ' + res.status)); return; }
     showErr('ck-err', '');
     var rows = data.checkins || [];
