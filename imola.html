@@ -822,7 +822,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.7 · 2026-11-13</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.71.8 · 2026-11-13</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1920,8 +1920,8 @@ async function checkNewPublish() {
     if (typeof applyOrderModeUI === 'function') applyOrderModeUI();
     // 检查是否有新发布
     if (s.published_at && s.published_at !== _lastPublishedAt) {
-      _lastPublishedAt = s.published_at;
-      await reloadMenuData();
+      // v1.71.8: 重新加载成功后才记下发布时间（失败的话 30 秒后自动再试，不会一直卡在旧菜单）
+      if (await reloadMenuData()) _lastPublishedAt = s.published_at;
     }
   } catch(e) {}
 }
@@ -1933,9 +1933,21 @@ async function reloadMenuData() {
       sbFetch('dishes_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=dish_no&limit=2000'),
       sbFetch('menu_configs?restaurant_id=eq.' + RESTAURANT_ID + '&select=*')
     ]);
-    CATS = await cRes.json();
+    // v1.71.8: 任何一项没读到（网络出错/被限流）→ 这次不更新，保留现在的菜单，30 秒后再试
+    //   旧版直接用了出错的回应，分类会消失，要手动刷新页面才恢复
+    if (!cRes.ok || !dRes.ok || !mcRes.ok) return false;
+    var newCats = await cRes.json();
     var dishes = await dRes.json();
     var mcData = await mcRes.json();
+    if (!Array.isArray(newCats) || !Array.isArray(dishes) || !Array.isArray(mcData) || !dishes.length) return false;
+    // v1.69.11: 自动翻页读完 dish_menus_v2（不再限 3 页）
+    var [dmAll, tagsRes] = await Promise.all([
+      sbFetchAllPages('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id'),
+      sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
+    ]);
+    if (!Array.isArray(dmAll) || !dmAll.length) return false;   // v1.71.8: 价格表没读到 → 不更新
+    // 全部读到了，才一起换上新数据
+    CATS = newCats;
     // 存储每个菜单的excludeCats
     MENU_CONFIGS = {};
     mcData.forEach(function(mc) {
@@ -1944,14 +1956,9 @@ async function reloadMenuData() {
         menuLimit: mc.menu_limit || 0
       };
     });
-    // v1.69.11: 自动翻页读完 dish_menus_v2（不再限 3 页）
-    var [dmAll, tagsRes] = await Promise.all([
-      sbFetchAllPages('dish_menus_v2?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=id'),
-      sbFetch('restaurant_tags?restaurant_id=eq.' + RESTAURANT_ID + '&select=*&order=sort_order')
-    ]);
     DISH_MENUS = dmAll;
     // 重载标签
-    var tagsData = await tagsRes.json();
+    var tagsData = tagsRes.ok ? await tagsRes.json().catch(function(){ return null; }) : null;
     if (Array.isArray(tagsData) && tagsData.length > 0) {
       TAGS = {};
       tagsData.forEach(function(t){
@@ -1960,7 +1967,8 @@ async function reloadMenuData() {
     }
     mergeDishes(dishes);
     if (currentMenuId) openMenuView(currentMenuId);
-  } catch(e) { console.log('reload failed:', e); }
+    return true;
+  } catch(e) { console.log('reload failed:', e); return false; }
 }
 
 // ════════════════════════════════════
