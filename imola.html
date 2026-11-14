@@ -822,7 +822,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.72.0 · 2026-11-14</span></div>
+  <div class="footer">©YIO_Fish · Via Giuseppe Fanin, 21, 40026 Imola BO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.72.1 · 2026-11-14</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1239,8 +1239,10 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
         <div id="ly-pts-display" style="font-size:36px;font-weight:700;color:#b8902e">0</div>
         <div id="ly-name-display" style="font-size:12px;color:#7a7060;margin-top:2px"></div>
         <!-- v1.72.0: 不用扫码，在积分页直接把号码发到收银台 -->
-        <button class="btn btn-gold" onclick="lyCassaFromRewards()" style="display:block;width:100%;margin-top:12px;padding:12px;letter-spacing:2px;font-size:13px">⭐ ACCUMULA PUNTI</button>
-        <div style="font-size:11px;color:#7a7060;margin-top:5px">Invia il tuo numero alla cassa · solo quando sei in cassa</div>
+        <div id="ly-cassa-entry">
+          <button class="btn btn-gold" onclick="lyCassaFromRewards()" style="display:block;width:100%;margin-top:12px;padding:12px;letter-spacing:2px;font-size:13px">⭐ ACCUMULA PUNTI</button>
+          <div style="font-size:11px;color:#7a7060;margin-top:5px">Invia il tuo numero alla cassa · solo quando sei in cassa</div>
+        </div>
         <button onclick="lyShowQR()" style="margin-top:10px;padding:7px 18px;background:#1a1510;color:#f4f1ec;border:none;border-radius:20px;font-size:12px;font-family:inherit;cursor:pointer;letter-spacing:1px">
           📱 Mostra QR al cameriere
         </button>
@@ -4967,6 +4969,11 @@ var _lyRewards = [];
 var _lyFlow = 'login'; // 'login' or 'register'
 
 function lyShowStep(step) {
+  // v1.72.1: 后台 FEDELTÀ 可以关掉积分页的 "ACCUMULA PUNTI" 按钮（每家店单独）
+  if (step === 'rewards') {
+    var _ce = document.getElementById('ly-cassa-entry');
+    if (_ce) _ce.style.display = (typeof SETTINGS !== 'undefined' && SETTINGS && SETTINGS.cassa_button_enabled === false) ? 'none' : '';
+  }
   ['intro','phone','rewards','code','cassa'].forEach(function(s){
     var el = document.getElementById('ly-step-'+s);
     if (el) el.style.display = s === step ? '' : 'none';
