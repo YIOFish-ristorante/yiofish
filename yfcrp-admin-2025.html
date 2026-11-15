@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v5.56.12</title>
+<title>Yio Fish Admin v5.56.13</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -269,7 +269,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.12</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.13</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -325,7 +325,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.12</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.13</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -712,7 +712,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.12</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.13</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1531,7 +1531,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.12</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.13</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -4323,7 +4323,7 @@ async function saveAsportoMin() {
   } catch(e) { toast('❌ 保存失败: ' + e.message); }
 }
 
-// ── v5.56.12: 🛵 外送距离与价格（按店，restaurant_settings.delivery_*；留空 = 用默认值）──
+// ── v5.56.13: 🛵 外送距离与价格（按店，restaurant_settings.delivery_*；留空 = 用默认值）──
 var DELIVERY_FIELDS = [
   { key: 'delivery_near_km',       label: '近距离范围',     unit: 'km', def: 5,   step: '0.5' },
   { key: 'delivery_max_km',        label: '最远配送范围',   unit: 'km', def: 8,   step: '0.5' },
@@ -4331,7 +4331,10 @@ var DELIVERY_FIELDS = [
   { key: 'delivery_fee_near',      label: '近距离配送费',   unit: '€',  def: 3,   step: '0.5' },
   { key: 'delivery_min_order_far', label: '远距离起送价',   unit: '€',  def: 50,  step: '1' },
   { key: 'delivery_fee_far',       label: '远距离配送费',   unit: '€',  def: 5,   step: '0.5' },
-  { key: 'delivery_road_factor',   label: '路程系数（直线 × ?）', unit: '×', def: 1.3, step: '0.05' }
+  { key: 'delivery_road_factor',   label: '路程系数（直线 × ?）', unit: '×', def: 1.3, step: '0.05' },
+  // v5.56.13: 超出最远配送范围后，到这个距离以内仍可"询问"（订单标 FUORI ZONA – da confermare，配送费待商定）；填 0 = 关闭询问
+  { key: 'delivery_ask_max_km',    label: '询问单范围上限（0=关闭）', unit: 'km', def: 20, step: '0.5' },
+  { key: 'delivery_ask_min_order', label: '询问单起送价',   unit: '€',  def: 80,  step: '1' }
 ];
 function deliveryCardHTML(s) {
   if (CURRENT_ROLE !== 'super') return '';
@@ -4344,6 +4347,8 @@ function deliveryCardHTML(s) {
       +'<br>• 例：系数 1.3、近距离 5 km → 直线约 3.8 km 以内算"近距离"'
       +'<br>• 系数设 <b>1</b> = 只按直线距离（旧算法）'
       +'<br>• 留空 = 用灰色的默认值；保存后顾客重新打开页面即生效'
+      +'<br>• <b>询问单</b>：超过"最远配送范围"、但在"询问单范围上限"以内的地址，顾客可以照样下单，'
+      +'WhatsApp 订单最上面标 <b>⚠️ FUORI ZONA – da confermare</b>，配送费显示"da concordare"（待商定），由你们回复接不接、收多少。上限填 <b>0</b> = 关闭询问（超过最远范围直接拒绝）'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-bottom:10px;">'
       + DELIVERY_FIELDS.map(function(f){
@@ -4368,15 +4373,17 @@ async function saveDeliverySettings() {
   }
   if (vals.delivery_max_km < vals.delivery_near_km) { toast('⚠️ 最远配送范围不能小于近距离范围'); return; }
   if (vals.delivery_road_factor < 1 || vals.delivery_road_factor > 2) { toast('⚠️ 路程系数请填 1 ～ 2 之间（一般 1.2～1.4）'); return; }
+  if (vals.delivery_ask_max_km > 0 && vals.delivery_ask_max_km <= vals.delivery_max_km) { toast('⚠️ 询问单范围上限要大于最远配送范围（或填 0 关闭询问）'); return; }   // v5.56.13
   try {
     markDirty();
     await saveSettingsToDB(data);
     for (var k in data) _SETTINGS[k] = data[k];
     markSaved();
-    toast('✅ 外送设置已保存：' + vals.delivery_near_km + ' km 内 €' + vals.delivery_min_order + ' 起送 · 最远 ' + vals.delivery_max_km + ' km');
+    toast('✅ 外送设置已保存：' + vals.delivery_near_km + ' km 内 €' + vals.delivery_min_order + ' 起送 · 最远 ' + vals.delivery_max_km + ' km'
+      + (vals.delivery_ask_max_km > 0 ? ' · ' + vals.delivery_max_km + '–' + vals.delivery_ask_max_km + ' km 询问（€' + vals.delivery_ask_min_order + ' 起）' : ' · 询问已关闭'));
   } catch (e) {
     markSaved();
-    toast('❌ 保存失败（数据库是否已加 delivery_* 字段？）: ' + e.message);
+    toast('❌ 保存失败（数据库是否已加 delivery_* 字段？询问单要先跑新的 SQL）: ' + e.message);
   }
 }
 
@@ -4839,7 +4846,7 @@ async function renderLoyaltyPage() {
           + '<div style="font-size:11px;color:var(--muted)">Quando OFF: nessun campo telefono nei form clienti</div>'
         + '</div>'
       + '</div>'
-      // v5.56.12: 积分页 "ACCUMULA PUNTI" 按钮开关（每家店单独；收银台二维码不受影响）
+      // v5.56.13: 积分页 "ACCUMULA PUNTI" 按钮开关（每家店单独；收银台二维码不受影响）
       + '<label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;padding:12px 14px;background:var(--bg);border-radius:var(--r);cursor:pointer">'
         + '<input type="checkbox" id="ly-cassa-btn" checked style="width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:#d4af37">'
         + '<div><div style="font-size:14px;font-weight:600">Pulsante «⭐ ACCUMULA PUNTI» nella pagina punti</div>'
@@ -5031,7 +5038,7 @@ async function loadLoyaltySettings() {
   try {
     var _base = 'restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID + '&select=points_per_euro,points_trigger,loyalty_enabled,loyalty_signup_bonus,loyalty_mode';
     var res = await sbFetch(_base + ',cassa_button_enabled&limit=1');
-    // v5.56.12: 数据库还没加 cassa_button_enabled 这一列（SQL 没跑）→ 不带它再读一次，其他设置照常显示
+    // v5.56.13: 数据库还没加 cassa_button_enabled 这一列（SQL 没跑）→ 不带它再读一次，其他设置照常显示
     if (!res.ok) { _cassaColMissing = true; res = await sbFetch(_base + '&limit=1'); } else { _cassaColMissing = false; }
     if (!res.ok) return;
     var data = await res.json();
@@ -5056,7 +5063,7 @@ async function loadLoyaltySettings() {
   } catch(e) {}
 }
 
-var _cassaColMissing = false;   // v5.56.12
+var _cassaColMissing = false;   // v5.56.13
 async function saveLoyaltySettings() {
   var ppeEl = document.getElementById('ly-pts-per-euro');
   var trigEl = document.getElementById('ly-trigger');
@@ -5070,12 +5077,12 @@ async function saveLoyaltySettings() {
     var loyaltyMode = modeEl ? modeEl.value : 'per_euro';
     var _payload = { points_per_euro: ppe, points_trigger: trigEl.value, loyalty_enabled: loyaltyEnabled, loyalty_signup_bonus: parseInt(document.getElementById('ly-signup-bonus').value||'0') || 0, loyalty_mode: loyaltyMode };
     var cbEl = document.getElementById('ly-cassa-btn');
-    if (cbEl && !_cassaColMissing) _payload.cassa_button_enabled = !!cbEl.checked;   // v5.56.12
+    if (cbEl && !_cassaColMissing) _payload.cassa_button_enabled = !!cbEl.checked;   // v5.56.13
     var res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID, {
       method: 'PATCH',
       body: JSON.stringify(_payload)
     });
-    // v5.56.12: 数据库还没有这一列 → 其他设置照常保存，提示先跑 SQL
+    // v5.56.13: 数据库还没有这一列 → 其他设置照常保存，提示先跑 SQL
     if (!res.ok && 'cassa_button_enabled' in _payload) {
       delete _payload.cassa_button_enabled; _cassaColMissing = true;
       res = await sbFetch('restaurant_settings?restaurant_id=eq.' + RESTAURANT_ID, { method: 'PATCH', body: JSON.stringify(_payload) });
