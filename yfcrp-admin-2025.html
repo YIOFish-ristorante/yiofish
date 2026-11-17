@@ -1,7 +1,7 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yio Fish Admin v5.56.13</title>
+<title>Yio Fish Admin v5.56.14</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&amp;family=Cormorant+Garamond:wght@300;400&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -177,10 +177,6 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
 }
 
 /* EXPORT */
-.ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:16px;}
-.ex-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;}
-.ex-card h3{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:300;margin-bottom:4px;}
-.ex-card p{font-size:11px;color:var(--muted);margin-bottom:14px;}
 
 /* INFO BOX */
 .info-box{background:var(--gold-bg);border:1px solid rgba(184,144,46,.3);border-radius:var(--r);
@@ -269,7 +265,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
   <div class="lock-box">
     <div class="lock-logo">Yio Fish</div>
     <div class="lock-sub">GESTIONE MENU</div>
-    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.13</div>
+    <div style="font-size:10px;color:rgba(212,171,72,.4);letter-spacing:2px;margin-top:-20px;margin-bottom:24px;">v5.56.14</div>
     <input id="lock-username" type="text"
       placeholder="Username (店铺管理员填写)"
       autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -325,7 +321,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-seri
       style="display:none;background:transparent;border:none;color:#f4f1ec;font-size:22px;cursor:pointer;padding:4px 10px 4px 0;line-height:1;">☰</button>
     <div class="t-logo">Yio Fish</div>
     <div class="t-title">菜单管理后台</div>
-    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.13</div>
+    <div style="font-size:10px;opacity:.4;font-weight:300;margin-left:8px;letter-spacing:1px;">v5.56.14</div>
   </div>
   <div class="t-right">
     <div class="save-label"><div class="save-dot" id="save-dot"></div><span id="save-txt">已自动保存</span></div>
@@ -712,7 +708,7 @@ function applyStoreAdminUI() {
   var store = STORES.find(function(s){ return s.id === RESTAURANT_ID; });
   if (store) {
     var titleEl = document.querySelector('.t-title');
-    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.13</span>';
+    if (titleEl) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.14</span>';
   }
   // 隐藏超级管理员专属功能（可以之后细化）
   CURRENT_ROLE = 'store_admin';
@@ -1531,7 +1527,7 @@ async function switchStore(storeId) {
   RESTAURANT_ID = storeId;
   var store = STORES.find(function(s){ return s.id === storeId; });
   var titleEl = document.querySelector('.t-title');
-  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.13</span>';
+  if (titleEl && store) titleEl.innerHTML = _lyEsc(store.name) + ' <span style="font-size:10px;opacity:.4;font-weight:300;margin-left:4px;">v5.56.14</span>';
   if (typeof showLoading === 'function') showLoading(true);
   await loadAll();
   if (typeof showLoading === 'function') showLoading(false);
@@ -2376,25 +2372,6 @@ async function cleanupDishImages(){
     toast('✅ 清理完成：删除孤儿图 ' + d.removed + ' 张，保留 ' + d.kept + ' 张');
   } catch(e) { toast('❌ 清理失败: ' + e.message); }
 }
-async function migrateDishImages(){
-  if (!confirm('把本店旧图（git 仓库 images/ 目录）批量搬到 Supabase Storage？\n搬完后菜单图走 Supabase，git 里的旧图可择机删除。')) return;
-  var offset = 0, totalM = 0, failed = [];
-  try {
-    for (var guard = 0; guard < 200; guard++) {
-      var r = await apiFetch('/dish-images/migrate', { method: 'POST', body: JSON.stringify({ restaurant_id: RESTAURANT_ID, offset: offset, limit: 12 }) });
-      var d = await r.json().catch(function(){ return {}; });
-      if (!r.ok || !d.ok) { toast('❌ ' + (d.error || '迁移中断')); return; }
-      totalM += (d.batch_migrated || 0);
-      if (d.failed && d.failed.length) failed = failed.concat(d.failed);
-      toast('⏳ 已迁移 ' + totalM + ' / ' + (d.total || '?') + ' 张…');
-      if (d.done) break;
-      offset = d.next_offset;
-    }
-    toast('✅ 迁移完成：成功 ' + totalM + ' 张' + (failed.length ? ('，失败 ' + failed.length + ' 张（' + failed.slice(0,5).join(', ') + (failed.length > 5 ? '…' : '') + '）') : ''));
-    render();
-  } catch(e) { toast('❌ 迁移失败: ' + e.message); }
-}
-
 async function delDish(id){
   if(!confirm('确定删除这道菜品？')) return;
   try {

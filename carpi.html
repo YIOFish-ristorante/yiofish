@@ -106,7 +106,6 @@ body {
   animation: pulse 2s infinite;
 }
 @keyframes pulse { 0%,100%{opacity:.65} 50%{opacity:1} }
-.action-row { display: flex; gap: 10px; margin-bottom: 12px; }
 .btn {
   display: flex;
   align-items: center;
@@ -126,14 +125,6 @@ body {
 }
 .btn:active { opacity: .75; transform: scale(.97); }
 .btn-gold { background: var(--gold); color: #000; }
-.btn-ghost {
-  flex: 1;
-  margin-bottom: 0;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  font-weight: 400;
-}
 .menu-btn { display: none; }
 .social-row {
   display: flex;
@@ -433,30 +424,6 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .csub { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
 .csub span:first-child { font-size: 12px; color: var(--muted2); }
 .ctotal { font-family: "Cormorant Garamond", serif; font-size: 28px; font-weight: 300; color: var(--gold); }
-.cinfo { font-size: 11px; color: var(--muted2); line-height: 1.6; margin: 10px 0 16px; }
-.cinfo strong { color: var(--text2); font-weight: 400; }
-
-/* 购物车按钮 */
-.obtn {
-  width: 100%; background: var(--gold); border: none; border-radius: var(--r);
-  padding: 14px; font-family: "Cormorant Garamond", serif;
-  font-size: 16px; letter-spacing: 3px; color: #0c0b09;
-  cursor: pointer; transition: background .15s; margin-bottom: 8px;
-}
-.obtn:hover { background: var(--gold-lt); }
-.obtn:disabled { background: var(--muted); color: #333; cursor: default; }
-.obtn-notify {
-  width: 100%; background: var(--surface2); border: 1px solid var(--gold);
-  border-radius: var(--r); padding: 12px;
-  font-family: "Cormorant Garamond", serif;
-  font-size: 14px; letter-spacing: 2px; color: var(--gold);
-  cursor: pointer; transition: background .15s; margin-bottom: 8px;
-  display: none;
-}
-.obtn-notify:hover { background: var(--gold-dim); }
-.obtn-notify:disabled { border-color: var(--muted); color: var(--muted); cursor: default; }
-.clr { width: 100%; background: none; border: 1px solid var(--border2); border-radius: var(--r); color: var(--muted2); padding: 10px; font-size: 13px; margin-top: 4px; cursor: pointer; }
-.clr:hover { border-color: var(--muted2); color: var(--text2); }
 
 /* 桌号输入 */
 .table-input-wrap { margin-bottom: 12px; }
@@ -507,14 +474,9 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 16px 170px; }
 .admin-box { background: var(--surface); border-radius: 20px; padding: 32px 28px; width: 85%; max-width: 320px; border: 1px solid var(--border); text-align: center; animation: fadeScale .22s cubic-bezier(.4,0,.2,1); }
 @keyframes fadeScale { from{opacity:0;transform:scale(.92)} to{opacity:1;transform:scale(1)} }
 .admin-box h4 { color: var(--gold); letter-spacing: 2px; font-size: 13px; font-weight: 400; margin-bottom: 20px; }
-.pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 24px; }
-.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); background: transparent; transition: background .15s, border-color .15s; }
-.pin-dot.filled { background: var(--gold); border-color: var(--gold); }
-.keypad { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
 .key { padding: 18px 0; border-radius: 12px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 20px; font-weight: 300; cursor: pointer; transition: background var(--transition), transform var(--transition); -webkit-tap-highlight-color: transparent; user-select: none; }
 .key:active { background: var(--gold-dim); transform: scale(.93); }
 .key.del { color: var(--gold); font-size: 14px; letter-spacing: 1px; }
-.key.empty { pointer-events: none; background: transparent; border-color: transparent; }
 .admin-error { color: var(--red); font-size: 12px; letter-spacing: 1px; margin-top: 12px; min-height: 18px; }
 
 /* 菜品详情弹窗 */
@@ -710,12 +672,6 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
 .bc-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.25); cursor: pointer; transition: .3s; }
 .bc-dots .dot.active { background: var(--gold); width: 18px; border-radius: 3px; }
 
-.bc-contact { max-width: 420px; margin: 0 auto; text-align: left; }
-.bc-row { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.75; color: var(--text2); margin-bottom: 14px; font-weight: 300; }
-.bc-row .k { color: var(--gold); flex: none; width: 16px; text-align: center; }
-.bc-row a { color: var(--text2); border-bottom: 1px solid rgba(191,164,111,.35); }
-.bc-map { display: inline-block; margin-top: 6px; font-size: 11px; letter-spacing: 2px; color: var(--gold); border: 1px solid rgba(191,164,111,.4); padding: 10px 18px; border-radius: 3px; text-transform: uppercase; transition: .25s; }
-.bc-map:hover, .bc-map:active { background: var(--gold); color: #0c0b09; }
 #bc-ev-title { font-family: "Cormorant Garamond", serif; font-size: 24px; color: var(--gold-lt); margin: 20px 0 10px; font-weight: 400; }
 #bc-ev-desc { font-size: 13.5px; line-height: 1.85; color: var(--text2); max-width: 480px; margin: 0 auto; font-weight: 300; }
 @media (max-width: 480px) { .branch-city { letter-spacing: 5px; } .bsec { padding: 36px 0; } }
@@ -822,7 +778,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.72.2 · 2026-11-15</span></div>
+  <div class="footer">©YIO_Fish · Viale dell&#39;Industria, 19, Carpi MO<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.72.3 · 2026-11-17</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -1705,13 +1661,6 @@ function displayDishHTML(it) {
 }
 
 // 纯文本版（用于订单消息、搜索等）
-function displayDishText(it) {
-  if (it.dish_no) {
-    var n = it.dish_no < 10 ? '0' + it.dish_no : it.dish_no;
-    return n + ' / ' + (it.name||'');
-  }
-  return (it.name||'');
-}
 
 // WhatsApp 订单行格式：号码普通 + 菜名斜体 + 份数粗体 + 价格斜体
 // qty=数量；priceStr=已格式化的价格字符串（如 '€18,00'），不传则不显示价格
