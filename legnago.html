@@ -782,7 +782,7 @@ input, textarea, select, [contenteditable="true"] {   /* 输入框保持可选�
     </a>
   </div>
   <a class="scroll-hint" href="#branch-intro"><span>Scopri di più</span><i></i></a>
-  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.72.4 · 2026-11-17</span></div>
+  <div class="footer">©YIO_Fish · Viale Europa 20, Legnago (VR)<br>www.yio.it<br><span style="color:#333;font-size:9px;letter-spacing:1px;">v1.72.5 · 2026-11-18</span></div>
 </div>
 </div>
   <!-- ══════════ 下滑内容区 · PORTALE v2 ══════════ -->
@@ -4776,15 +4776,23 @@ function sendOrder() {
     if (_lyPhone) {
       var _lyAmount, _lySummary = [];
       if (order_mode === 'consegna') {
-        _lyAmount = cartSubtotal() + consegnaFee();
+        _lyAmount = cartSubtotal() + consegnaFee();   // cartSubtotal 已含 BOX
       } else {
-        _lyAmount = asportoCartBreakdown().finalTotal;
+        _lyAmount = asportoCartBreakdown().finalTotal + boxesSubtotal();   // v1.72.5: 修——原来漏算 BOX（只点 BOX 时金额=0，不记录）
       }
       for (var _lid in cart_asporto) {
         var _lit = getItemForMenu(_lid);
         if (_lit) _lySummary.push(cart_asporto[_lid] + 'x ' + (_lit.name || _lid));
       }
-      submitLoyaltyPending(_lyPhone, _lyAmount, _lySummary.join(', '));
+      cart_boxes.forEach(function(bx){ _lySummary.push('1x 🍱 ' + (bx.name || 'BOX')); });   // v1.72.5: 摘要也写上 BOX
+      // v1.72.5: 取货/送餐日期（罗马时间 YYYY-MM-DD），服务器按它算"一星期没处理自动取消"
+      var _lyPick = '';
+      try {
+        var _lyOff = parseInt((document.getElementById('asporto-date') || {}).value, 10) || 0;
+        var _lyR = getRomeNow(), _lyD = new Date(_lyR.year, _lyR.month - 1, _lyR.date + _lyOff);
+        _lyPick = _lyD.getFullYear() + '-' + ('0' + (_lyD.getMonth() + 1)).slice(-2) + '-' + ('0' + _lyD.getDate()).slice(-2);
+      } catch (e) {}
+      submitLoyaltyPending(_lyPhone, _lyAmount, _lySummary.join(', '), _lyPick);
     }
   }
 
@@ -4802,7 +4810,7 @@ function sendOrder() {
 }
 
 // ⭐ 提交待确认积分（fire-and-forget，不阻塞下单）
-function submitLoyaltyPending(phone, amount, summary) {
+function submitLoyaltyPending(phone, amount, summary, pickupDate) {
   try {
     if (!phone || !amount || amount <= 0) return;
     fetch(WORKER_URL + '/loyalty/pending/create', {
@@ -4812,7 +4820,8 @@ function submitLoyaltyPending(phone, amount, summary) {
         phone: phone,
         restaurant_id: RESTAURANT_ID,
         amount: amount,
-        items_summary: summary || ''
+        items_summary: summary || '',
+        pickup_date: pickupDate || ''
       })
     }).catch(function(){});
   } catch(e) {}
